@@ -45,6 +45,7 @@ setup_gitconfig () {
     user ' - What is your github author email?'
     read -e git_authoremail
 
+    mkdir -p git
     sed -e "s/AUTHORNAME/$git_authorname/g" -e "s/AUTHOREMAIL/$git_authoremail/g" -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" $EXAMPLE_ROOT/git/gitconfig.local.symlink.example > git/gitconfig.local.symlink
 
     success 'gitconfig'
@@ -139,8 +140,17 @@ install_dotfiles () {
   done
 }
 
+setup_dotfiles_sync () {
+  if [ -f $DOTFILES_ROOT/script/sync_dotfiles ]
+  then
+    info 'setup dotfiles sync'
+    echo "@hourly $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT" | crontab -
+  fi
+}
+
 setup_gitconfig
 install_dotfiles
+setup_dotfiles_sync
 
 # If we're on a Mac, let's install and setup homebrew.
 if [ "$(uname -s)" == "Darwin" ]
