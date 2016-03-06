@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd $1
+git add --all .
+git commit -m "Change from $(hostname)"
+git pull && git push
