@@ -15,5 +15,5 @@ for f in $HOME/.linuxbrew/bin; do
     fi
 done
 
-$BREW install cmake
+$BREW install perl cmake
 
