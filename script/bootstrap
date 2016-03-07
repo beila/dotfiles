@@ -3,8 +3,6 @@
 # bootstrap installs things.
 
 cd "$(dirname "$0")/.."
-EXAMPLE_ROOT=$(pwd -P)
-cd ..
 DOTFILES_ROOT=$(pwd -P)
 
 set -e
@@ -46,7 +44,7 @@ setup_gitconfig () {
     read -e git_authoremail
 
     mkdir -p git
-    sed -e "s/AUTHORNAME/$git_authorname/g" -e "s/AUTHOREMAIL/$git_authoremail/g" -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" $EXAMPLE_ROOT/git/gitconfig.local.symlink.example > git/gitconfig.local.symlink
+    sed -e "s/AUTHORNAME/$git_authorname/g" -e "s/AUTHOREMAIL/$git_authoremail/g" -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" $DOTFILES_ROOT/git/gitconfig.local.symlink.example > git/gitconfig.local.symlink
 
     success 'gitconfig'
   fi
@@ -141,10 +139,11 @@ install_dotfiles () {
 }
 
 setup_dotfiles_sync () {
+  local GIT_EXECUTABLE_FINDING="$(which git)"
   if [ -f $DOTFILES_ROOT/script/sync_dotfiles ]
   then
     info 'setup dotfiles sync'
-    echo "@hourly $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT" | crontab -
+    echo "@hourly GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT" | crontab -
   fi
 }
 
