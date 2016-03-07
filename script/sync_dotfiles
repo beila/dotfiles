@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
+GIT=${GIT_EXECUTABLE:-git}
 cd $1
-git add --all .
-git commit -m "Change from $(hostname)"
-git pull && git push
+$GIT add --all .
+$GIT commit -m "Change from $(hostname)"
+$GIT pull && $GIT push
