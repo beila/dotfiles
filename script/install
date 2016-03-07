@@ -6,13 +6,6 @@ set -e
 
 cd "$(dirname $0)"/..
 
-if [ "$(uname -s)" == "Linux" ]
-then
-  ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/linuxbrew/go/install)"
-fi
-
-brew install cmake
-
 # Run Homebrew through the Brewfile
 #echo "› brew bundle"
 #brew bundle
