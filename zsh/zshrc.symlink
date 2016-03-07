@@ -1,5 +1,5 @@
 # shortcut to this dotfiles path is $DOTFILES_ROOT
-export DOTFILES_ROOT=`(cd $(dirname $(readlink "$0")); cd ..; pwd)`
+export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 
 # your project folder that we can `c [tab]` to
 export PROJECTS=~/dev
