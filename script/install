@@ -6,9 +6,16 @@ set -e
 
 cd "$(dirname $0)"/..
 
+if [ "$(uname -s)" == "Linux" ]
+then
+  ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/linuxbrew/go/install)"
+fi
+
+brew install cmake
+
 # Run Homebrew through the Brewfile
-echo "› brew bundle"
-brew bundle
+#echo "› brew bundle"
+#brew bundle
 
 # find the installers and run them iteratively
 find . -name install.sh | while read installer ; do sh -c "${installer}" ; done
