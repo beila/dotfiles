@@ -143,7 +143,9 @@ setup_dotfiles_sync () {
   if [ -f $DOTFILES_ROOT/script/sync_dotfiles ]
   then
     info 'setup dotfiles sync'
-    echo "@[RANDOM % 60] * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT > /dev/null" | crontab -
+    MINUTE=$RANDOM
+    let "MINUTE %= 60"
+    echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT > /dev/null" | crontab -
   fi
 }
 
