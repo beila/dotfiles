@@ -3,4 +3,4 @@ GIT=${GIT_EXECUTABLE:-git}
 cd $1
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
-$GIT pull && $GIT push
+$GIT pull --no-edit && $GIT push
