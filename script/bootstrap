@@ -145,7 +145,7 @@ setup_dotfiles_sync () {
     info 'setup dotfiles sync'
     MINUTE=$RANDOM
     let "MINUTE %= 60"
-    echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT > /dev/null" | crontab -
+    echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT 2>&1 | grep -i -C1000 conflict" | crontab -
   fi
 }
 
