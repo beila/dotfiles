@@ -1,3 +1,6 @@
-[submodule "vim.sync"]
-	path = vim.sync
+[submodule "zprezto.symlink"]
+	path = zprezto.symlink
+	url = git@github.com:beila/prezto.git
+[submodule "vim.symlink"]
+	path = vim.symlink
 	url = git@github.com:beila/dotvim.git

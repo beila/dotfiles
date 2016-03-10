@@ -131,7 +131,7 @@ install_dotfiles () {
 
   local overwrite_all=false backup_all=false skip_all=false
 
-  for src in $(find -H "$DOTFILES_ROOT" -maxdepth 2 -name '*.symlink' -not -path '*.git*')
+  for src in $(find -H "$DOTFILES_ROOT" -maxdepth 3 -name '*.symlink' -not -path '*.git*')
   do
     dst="$HOME/.$(basename "${src%.*}")"
     link_file "$src" "$dst"
@@ -142,10 +142,13 @@ setup_dotfiles_sync () {
   local GIT_EXECUTABLE_FINDING="$(which git)"
   if [ -f $DOTFILES_ROOT/script/sync_dotfiles ]
   then
-    info 'setup dotfiles sync'
-    MINUTE=$RANDOM
-    let "MINUTE %= 60"
-    echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT 2>&1 | grep -i -C1000 conflict" | crontab -
+    info "setup periodic sync for $DOTFILES_ROOT/{.,vim.symlink,zprezto.symlink}"
+	for SYNC_TARGET in . vim.symlink zprezto.symlink;
+	do
+      MINUTE=$RANDOM
+      let "MINUTE %= 60"
+	  echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT/$SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
+    done | tee | crontab -
   fi
 }
 
