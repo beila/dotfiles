@@ -1,0 +1,3 @@
+[submodule "vim.sync"]
+	path = vim.sync
+	url = git@github.com:beila/dotvim.git
