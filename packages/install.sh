@@ -15,8 +15,10 @@ for f in $HOME/.linuxbrew/bin; do
     fi
 done
 
-$BREW tap homebrew/versions
+#$BREW tap homebrew/versions
 
 # gcc is needed because of https://github.com/Linuxbrew/linuxbrew/issues/732#issuecomment-192697040
-$BREW install gcc47 cmake
+#$BREW install gcc47 cmake
+
+$BREW install awscli
 
