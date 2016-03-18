@@ -152,7 +152,7 @@ setup_dotfiles_sync () {
   fi
 }
 
-git submodule update --init --recursive
+git submodule update --init --recursive --merge
 setup_gitconfig
 install_dotfiles
 setup_dotfiles_sync
