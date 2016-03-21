@@ -1,6 +1,8 @@
 [submodule "zprezto.symlink"]
 	path = zprezto.symlink
 	url = git@github.com:beila/prezto.git
+	branch = master
 [submodule "vim.symlink"]
 	path = vim.symlink
 	url = git@github.com:beila/dotvim.git
+	branch = master
