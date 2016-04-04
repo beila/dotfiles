@@ -10,13 +10,13 @@ then
 fi
 
 for f in $HOME/.linuxbrew/bin; do
-    if [[ -d $f/brew ]]; then
+    if [[ -x $f/brew ]]; then
         BREW=${BREW:-$f/brew}
     fi
 done
 
-$BREW tap homebrew/versions
+#$BREW tap homebrew/versions
 
 # gcc is needed because of https://github.com/Linuxbrew/linuxbrew/issues/732#issuecomment-192697040
-$BREW install gcc47 cmake
+#$BREW install gcc47 cmake
 
