@@ -17,7 +17,7 @@ fad () {
 	then
 		export FA_TARGETS=
 	else
-		export FA_TARGETS=$(find "$@" -maxdepth 0 -type d -print0|xargs -0r readlink -f) 
+		export FA_TARGETS="$(find "$@" -maxdepth 0 -type d -print0|xargs -0r readlink -f)"
 	fi
 	echo "FA_TARGETS=${FA_TARGETS}"
 }
