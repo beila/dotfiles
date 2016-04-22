@@ -1,17 +1,33 @@
 #!env zsh
-	echo "dir\t#session\t#crash\t#rubycrash\tcrash-rate\tnon-ruby-crash-rate"
-for CACHE in $(ls -d cache*)
+#python crashlog_printer.py -c cache0413 859800641
+#python crashlog_printer.py -c cache0414 860722067
+#python crashlog_printer.py -c cache0415 861600616
+#python crashlog_printer.py -c cache0416 862600059
+#python crashlog_printer.py -c cache0417 863522167
+#python crashlog_printer.py -c cache0418 864456477
+#python crashlog_printer.py -c cache0419 865352304
+#python crashlog_printer.py -c cache0420 866250601
+#python crashlog_printer.py -c cache0421 867147125
+(
+	echo "dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
+
+	for CACHE in $(ls -d cache*)
 	do
-	grep --color=auto -RL ',.[012]\...\...=1,\|UnknownFirmware' $CACHE |\
-				 xargs cat |\
-				 awk -v OFS='\t' "
-				 /IgnitionStartup/	{session++}
-				 /EnterForegroundJS/	{session++}
-				 /IgnitionSignalCrash/	{crash++}
-				 /IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
-				 END	{
-						 print \"$CACHE\",session,crash,rubycrash,crash*100/session,(crash-rubycrash)*100/session
-				 }
-" |\
-		column -t
-		done
+		grep --color=auto -RL ',.[012]\...\...=1,\|UnknownFirmware' $CACHE |\
+		xargs grep -h FG=1 #|\
+#		awk "
+#			/IgnitionStartup/	{session++}
+#			/EnterForegroundJS/	{session++}
+#			/IgnitionSignalCrash/	{crash++}
+#			/IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
+#			END	{
+#				print \"$CACHE\",
+#						session,
+#						crash,
+#						rubycrash,
+#						crash*100/session,
+#						(crash-rubycrash)*100/session
+#			}
+#		"
+	done
+)# | tee >(column -t)	# http://unix.stackexchange.com/a/28519
