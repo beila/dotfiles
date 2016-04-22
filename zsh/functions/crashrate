@@ -1,0 +1,17 @@
+#!env zsh
+	echo "dir\t#session\t#crash\t#rubycrash\tcrash-rate\tnon-ruby-crash-rate"
+for CACHE in $(ls -d cache*)
+	do
+	grep --color=auto -RL ',.[012]\...\...=1,\|UnknownFirmware' $CACHE |\
+				 xargs cat |\
+				 awk -v OFS='\t' "
+				 /IgnitionStartup/	{session++}
+				 /EnterForegroundJS/	{session++}
+				 /IgnitionSignalCrash/	{crash++}
+				 /IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
+				 END	{
+						 print \"$CACHE\",session,crash,rubycrash,crash*100/session,(crash-rubycrash)*100/session
+				 }
+" |\
+		column -t
+		done
