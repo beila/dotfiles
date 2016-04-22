@@ -8,26 +8,33 @@
 #python crashlog_printer.py -c cache0419 865352304
 #python crashlog_printer.py -c cache0420 866250601
 #python crashlog_printer.py -c cache0421 867147125
-(
+
+for CHIPSET in $(grep -Roh ',[^.,]*W30=1' cache*|sort -u)
+do
+	echo $CHIPSET
 	echo "dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
 
 	for CACHE in $(ls -d cache*)
 	do
 		grep --color=auto -RL ',.[012]\...\...=1,\|UnknownFirmware' $CACHE |\
-		xargs grep -h FG=1 #|\
-#		awk "
-#			/IgnitionStartup/	{session++}
-#			/EnterForegroundJS/	{session++}
-#			/IgnitionSignalCrash/	{crash++}
-#			/IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
-#			END	{
-#				print \"$CACHE\",
-#						session,
-#						crash,
-#						rubycrash,
-#						crash*100/session,
-#						(crash-rubycrash)*100/session
-#			}
-#		"
+		xargs grep -h FG=1 |\
+		grep $CHIPSET |\
+		awk "
+			BEGIN	{crash=0;rubycrash=0}
+			/IgnitionStartup/	{session++}
+			/EnterForegroundJS/	{session++}
+			/IgnitionSignalCrash/	{crash++}
+			/IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
+			END	{
+				if (session>0)
+					print \"$CACHE\",
+							session,
+							crash,
+							rubycrash,
+							crash*100/session,
+							(crash-rubycrash)*100/session
+			}
+		"
 	done
-)# | tee >(column -t)	# http://unix.stackexchange.com/a/28519
+	echo
+done | tee >(column -t)	# http://unix.stackexchange.com/a/28519
