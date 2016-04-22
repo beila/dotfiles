@@ -1,9 +1,8 @@
-fad () {
-	if (( $# == 0 ))
-	then
-		export FA_TARGETS=
-	else
-		export FA_TARGETS="$(find "$@" -maxdepth 0 -type d -print0|xargs -0r readlink -f)"
-	fi
-	echo "FA_TARGETS=${FA_TARGETS}"
-}
+#!env zsh
+if (( $# == 0 ))
+then
+	export FA_TARGETS=
+else
+	export FA_TARGETS="$(find "$@" -maxdepth 0 -type d -print0|xargs -0r readlink -f)"
+fi
+echo "FA_TARGETS=${FA_TARGETS}"
