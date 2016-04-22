@@ -10,14 +10,4 @@ _fa() {
 	done
 }
 # refer to smart_sudo in http://zshwiki.org/home/examples/functions
-alias fa='_fa '
-
-fad () {
-	if (( $# == 0 ))
-	then
-		export FA_TARGETS=
-	else
-		export FA_TARGETS="$(find "$@" -maxdepth 0 -type d -print0|xargs -0r readlink -f)"
-	fi
-	echo "FA_TARGETS=${FA_TARGETS}"
-}
+#alias fa='_fa '

@@ -1,0 +1,3 @@
+_gSf() {
+	git submodule foreach "$@"
+}
