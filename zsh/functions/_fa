@@ -4,7 +4,7 @@ local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
 for TARGET in ${=TARGETS}
 do
-	echo "$TARGET::::"
+	echo "$TARGET:"
 	(cd $TARGET; "$@")
 	echo
 done
