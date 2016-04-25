@@ -13,9 +13,11 @@
 #python crashlog_printer.py -c cache0424 869991133
 
 (
-	AWK_DELETE_TEST_DEVICES=$(awk -F '[,"]' '{printf("/%s/{next}", $5)}' test_devices*.txt)
+	AWK_DELETE_TEST_DEVICES=$(awk -F '[,"]' '
+		$5 != "" {printf("/%s/{next}", $5)}
+		' test_devices*.txt)
 
-	echo " chipset #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
+	echo "chipset #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
 	for CHIPSET in ",H15_W30=1" ",K2LP_W30=1" ",K2L_W30=1" ",M16LITE_W30=1" ",M16_W30=1" ",M2_W30=1" "."
 	do
 		CHIPSET_NAME="${${CHIPSET#,}%_W30=1} "
