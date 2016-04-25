@@ -13,17 +13,17 @@
 #python crashlog_printer.py -c cache0424 869991133
 
 (
-echo "#session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
-#for CHIPSET in $(grep -Roh ',[^.,]*W30=1' cache*|sort -u)
-#do
-	#echo -n $CHIPSET
+echo "dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
+for CHIPSET in $(grep -Roh ',[^.,]*W30=1' cache*|sort -u; echo .)
+do
+	echo $CHIPSET
 	#echo "dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
 
 	#for CACHE in $(ls -d cache*)
 	#do
 		grep -RL ',.[012]\...\...=1,\|UnknownFirmware' *1{5,6,7,8,9} *2{0,1} |\
 		xargs grep -h FG=1 |\
-		#grep $CHIPSET |\
+		grep $CHIPSET |\
 		awk "
 			BEGIN	{crash=0;rubycrash=0}
 			/IgnitionStartup/	{session++}
@@ -41,5 +41,5 @@ echo "#session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
 			}
 		"
 	#done
-#done
+done
 ) | tee >(column -t)	# http://unix.stackexchange.com/a/28519
