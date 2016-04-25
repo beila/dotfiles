@@ -13,33 +13,39 @@
 #python crashlog_printer.py -c cache0424 869991133
 
 (
-echo "dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
-for CHIPSET in $(grep -Roh ',[^.,]*W30=1' cache*|sort -u; echo .)
+echo "foreground chipset #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
+for GROUND in FG BG
 do
-	echo $CHIPSET
-	#echo "dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
-
-	#for CACHE in $(ls -d cache*)
-	#do
-		grep -RL ',.[012]\...\...=1,\|UnknownFirmware' *1{5,6,7,8,9} *2{0,1} |\
-		xargs grep -h FG=1 |\
-		grep $CHIPSET |\
-		awk "
-			BEGIN	{crash=0;rubycrash=0}
-			/IgnitionStartup/	{session++}
-			/EnterForegroundJS/	{session++}
-			/IgnitionSignalCrash/	{crash++}
-			/IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
-			END	{
-				if (session>0)
-					print \"$CACHE\",
-							session,
-							crash,
-							rubycrash,
-							crash*100/session,
-							(crash-rubycrash)*100/session
-			}
-		"
-	#done
+	#echo " chipset #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
+	for CHIPSET in ",H15_W30=1" ",K2LP_W30=1" ",K2L_W30=1" ",M16LITE_W30=1" ",M16_W30=1" ",M2_W30=1" "."
+	do
+		echo -n "${GROUND} "
+		echo -n "${${CHIPSET#,}%_W30=1} "
+		#echo " dir #session #crash #rubycrash crash-rate% non-ruby-crash-rate%"
+		#for CACHE in $(ls -d cache*)
+		#do
+			grep -RL ',.[012]\...\...=1,\|UnknownFirmware' *1{8,9} *2{0,1,2,3,4} |\
+			xargs grep -h ${GROUND}=1 |\
+			grep ",${CHIPSET}" |\
+			awk "
+				BEGIN	{crash=0;rubycrash=0}
+				/IgnitionStartup/	{session++}
+				/EnterForegroundJS/	{session++}
+				/IgnitionSignalCrash/	{crash++}
+				/IgnitionCrashDump.*NetworkMonitor/	{rubycrash++}
+				END	{
+					if (session>0)
+						print \"$GROUND\",
+								\"${${CHIPSET#,}%_W30=1}\"
+//								\"$CACHE\",
+								session,
+								crash,
+								rubycrash,
+								crash*100/session,
+								(crash-rubycrash)*100/session
+				}
+			"
+		#done
+	done
 done
 ) | tee >(column -t)	# http://unix.stackexchange.com/a/28519
