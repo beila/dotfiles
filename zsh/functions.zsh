@@ -4,6 +4,8 @@ fpath=($funcdir $fpath)
 
 for ff in $(cd $funcdir;ls *)
 do
+	unalias ${ff}
+	unfunction ${ff}
 	autoload ${ff}
 done
 
