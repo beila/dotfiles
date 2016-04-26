@@ -4,8 +4,8 @@ fpath=($funcdir $fpath)
 
 for ff in $(cd $funcdir;ls *)
 do
-	unalias ${ff}
-	unfunction ${ff}
+	unhash -f ${ff} 2> /dev/null
+	unhash -a ${ff} 2> /dev/null
 	autoload ${ff}
 done
 
@@ -13,6 +13,7 @@ done
 #alias fa='_fa '
 for ff in $(cd $funcdir;ls _*)
 do
+	unhash -af ${ff#_} 2> /dev/null
 	alias ${ff#_}="${ff} "
 done
 
