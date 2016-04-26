@@ -1,0 +1,2 @@
+#!env zsh
+noglob git show-branch *$(gb)
