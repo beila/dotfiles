@@ -1,2 +1,2 @@
 #!env zsh
-noglob git show-branch *$(gb) "$@"
+noglob git show-branch $(gb) */$(gb) "$@"
