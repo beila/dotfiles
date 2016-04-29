@@ -4,6 +4,6 @@ local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
 for TARGET in ${=TARGETS}
 do
-	echo -n "$TARGET:¬"
+	echo -n "${TARGET##*/}:¬"
 	(cd $TARGET; "$@") 2> /dev/null || echo
 done | column -s '¬' -t

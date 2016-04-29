@@ -1,2 +1,2 @@
 #!env zsh
-git symbolic-ref --short -q HEAD || git rev-parse --short -q HEAD
+git symbolic-ref --short -q HEAD || git describe --all --exact-match --abbrev=0 || git rev-parse --short -q HEAD
