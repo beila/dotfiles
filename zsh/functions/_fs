@@ -1,8 +1,8 @@
 #!env zsh
-local TARGETS=${FA_TARGETS:-$(find . -mindepth 1 -maxdepth 1 -type d)}
+_FS_TARGETS=${FA_TARGETS:-$(find . -mindepth 1 -maxdepth 1 -type d|sort)}
 local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
-for TARGET in ${=TARGETS}
+for TARGET in ${=_FS_TARGETS}
 do
 	echo -n "${TARGET##*/}:¬"
 	(cd $TARGET; "$@") 2> /dev/null || echo
