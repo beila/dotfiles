@@ -1,0 +1,6 @@
+#!env zsh
+for fun in ${(k)=functions}
+do
+	autoload +X $fun
+	functions $fun | grep -C999 "$@"
+done
