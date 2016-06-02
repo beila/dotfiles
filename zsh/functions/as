@@ -1,0 +1,7 @@
+#!env zsh	# This is only for sourcing
+for fun in ${(k)=functions}
+do
+	autoload +X $fun
+	functions $fun | sed 's/\n/ /' | grep -C999 "$@"
+done
+alias|grep "$@"
