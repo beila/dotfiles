@@ -1,9 +1,0 @@
-! http://www.tldp.org/HOWTO/XWindow-User-HOWTO/moreconfig.html
-! Reverse mouse buttons for left-handed people
-!pointer = 3 2 1
-pointer = 1 2 3
-
-! http://www.noah.org/wiki/CapsLock_Remap_Howto#X11
-remove Lock = Caps_Lock
-keycode 0x42 = Control_L
-add Control = Control_L
