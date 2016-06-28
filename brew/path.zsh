@@ -5,3 +5,16 @@ then
 	export MANPATH=$HOME/.linuxbrew/share/man:${MANPATH://$HOME\/.linuxbrew\/share\/man}
 	export INFOPATH=$HOME/.linuxbrew/share/info:${INFOPATH://$HOME\/.linuxbrew\/share\/info}
 fi
+
+# brew info coreutils
+if [[ -d /usr/local/opt/coreutils/libexec/gnubin ]]
+then
+	PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+fi
+
+# brew info coreutils
+if [[ -d /usr/local/opt/coreutils/libexec/gnuman ]]
+then
+    MANPATH="/usr/local/opt/coreutils/libexec/gnuman:$MANPATH"
+fi
+
