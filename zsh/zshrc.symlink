@@ -46,6 +46,5 @@ done
 
 unset config_files
 
-# TODO nvm
-export NVM_DIR="$HOME/.nvm"
+export NVM_DIR="/home/hojin/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
