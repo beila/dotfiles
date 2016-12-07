@@ -1,0 +1,50 @@
+#!/bin/bash
+export XMODIFIERS="@im=nabi"
+export EDITOR=gvim
+if test -z "$DBUS_SESSION_BUS_ADDRESS" ; then
+    ## if not found, launch a new one
+    eval `/usr/bin/dbus-launch --sh-syntax --exit-with-session`
+fi
+
+T=0
+
+T=$((T+1)); (sleep $T; exec stalonetray --geometry 1x1+1256-22 --grow-gravity E --transparent --window-strut none) &
+#T=$((T+1)); (sleep $T; exec gnome-panel) &
+#T=$((T+1)); (sleep $T; exec avant-window-navigator) &
+#T=$((T+1)); (sleep $T; exec docky) &
+T=$((T+1)); (sleep $T; exec pidgin) &
+#T=$((T+1)); (sleep $T; exec hp-systray) &
+#T=$((T+1)); (sleep $T; sudo invoke-rc.d dropbox stop; exec dropbox) &
+
+# gnome-do에서 파일 연결 처리하기...
+# 출처:http://ubuntuforums.org/showthread.php?t=1385795
+T=$((T+1)); (sleep $T; KDE_FULL_SESSION=true exec gnome-do) &
+
+#T=$((T+1)); (sleep $T; exec GWorkspace) &
+#T=$((T+1)); (sleep $T; exec TimeMon) &
+T=$((T+1)); (sleep $T; exec xscreensaver) &
+T=$((T+1)); (sleep $T; exec blueproximity) &
+#T=$((T+1)); (sleep $T; exec gtimelog) &
+#T=$((T+1)); (sleep $T; exec ktimetracker) &
+#T=$((T+1)); (sleep $T; exec gcaldaemon start) &
+#T=$((T+1)); (sleep $T; exec opera) &
+#T=$((T+1)); (sleep $T; exec amarok) &
+#T=$((T+1)); (sleep $T; exec sonata) &
+T=$((T+1)); (sleep $T; exec yakuake) &
+#T=$((T+1)); (sleep $T; exec screenlets-daemon) &
+T=$((T+1)); (sleep $T; exec nabi) &
+#T=$((T+1)); (sleep $T; exec tucan) &
+T=$((T+1)); (killall -9 opera; sleep $T; exec omail) &
+
+# hamster를 애플릿 아닌 윈도에 실행하기
+#출처: http://projecthamster.wordpress.com/trouble-shooting/
+T=$((T+1)); (sleep $T; exec /usr/lib/hamster-applet/hamster-applet -w) &
+
+#T=$((T+1)); (sleep $T; exec teamviewer) &
+T=$((T+1)); (sleep $T; exec sudo invoke-rc.d dropbox restart) &
+
+killall -9 synergys; synergys
+$HOME/bin/kenleft
+#xmodmap -e 'add mod3 = Scroll_Lock'
+#exec compiz
+compiz
