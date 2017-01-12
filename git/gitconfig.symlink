@@ -10,6 +10,7 @@
         excludesfile = ~/.gitignore
         editor = vim
 	autocrlf = input
+	pager = less -FMRiX
 [push]
         # See `git help config` (search for push.default)
         # for more information on different options of the below setting.
@@ -26,3 +27,8 @@
 	diffFilter = diff-highlight
 [rerere]
 	enabled = true
+[user]
+	email = hojin@amazon.com
+	name = Ghim
+[alias]
+	dag = log --graph --format='format:%C(yellow)%h%C(reset) %C(blue)\"%an\" <%ae>%C(reset) %C(magenta)%cr%C(reset)%C(auto)%d%C(reset)%n%s' --date-order
