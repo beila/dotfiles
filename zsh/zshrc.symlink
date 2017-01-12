@@ -52,6 +52,3 @@ export SUDO_EDITOR=vim
 
 # http://www.tldp.org/HOWTO/BackspaceDelete/system.html#AEN270
 stty erase '^?'
-
-export NVM_DIR="/home/hojin/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
