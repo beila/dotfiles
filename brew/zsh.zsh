@@ -4,4 +4,4 @@ HELPDIR=/usr/local/share/zsh/help
 
 # brew info nvm
 export NVM_DIR="$HOME/.nvm"
-source "$(brew --prefix nvm)/nvm.sh"
+source /usr/local/opt/nvm/nvm.sh
