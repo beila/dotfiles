@@ -1,4 +1,4 @@
-if [[ -d .linuxbrew ]]
+if [[ -d $HOME/.linuxbrew ]]
 then
 	export PATH=$HOME/.linuxbrew/sbin:${PATH//$HOME\/.linuxbrew\/sbin}
 	export PATH=$HOME/.linuxbrew/bin${PATH//$HOME\/.linuxbrew\/bin}
