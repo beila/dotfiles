@@ -1,7 +1,15 @@
 #!env zsh	# This is only for sourcing
-for fun in ${(k)=functions}
+local grep_pattern="${${@/#/\b}/%/\b}"
+# fun in keys of ${functions} associative array with keys starting with "_" removed
+for fun in ${(k)=functions:/_*/}
 do
 	autoload +X $fun
-	functions $fun | sed 's/\n/ /' | grep -C999 "$@"
+	functions $fun | grep -C999 "${grep_pattern}"
 done
-alias|grep "$@"
+
+functions "$@"
+
+# functions which are prefixed with "aliased_" which are added from ../functions.zsh
+functions "${@/#/aliased_}"
+
+alias|grep "${grep_pattern}"

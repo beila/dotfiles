@@ -10,10 +10,10 @@ do
 done
 
 # refer to smart_sudo in http://zshwiki.org/home/examples/functions
-#alias fa='_fa '
-for ff in $(cd $funcdir;ls _*)
+#alias fa='aliased_fa '
+for ff in $(cd $funcdir;ls aliased_*)
 do
-	unhash -af ${ff#_} 2> /dev/null
-	alias ${ff#_}="${ff} "
+	unhash -af ${ff#aliased_} 2> /dev/null
+	alias ${ff#aliased_}="${ff} "
 done
 
