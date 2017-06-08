@@ -1,3 +1,3 @@
 #!env zsh
-echo -n "Number of commits not included in $1:\t"
+#echo -n "Number of commits not included in $1:\t"
 wc -l <(git log --oneline $(git merge-base HEAD "$1")..) | cut -d' ' -f1
