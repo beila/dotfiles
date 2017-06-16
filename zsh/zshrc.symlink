@@ -4,14 +4,6 @@ export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 # your project folder that we can `c [tab]` to
 export PROJECTS=~/dev
 
-# Stash your environment variables in ~/.localrc. This means they'll stay out
-# of your main dotfiles repository (which may be public, like this one), but
-# you'll have access to them in your scripts.
-if [[ -a ~/.localrc ]]
-then
-  source ~/.localrc
-fi
-
 # all of our zsh files
 typeset -U config_files
 config_files=($DOTFILES_ROOT/**/*.zsh)
@@ -49,6 +41,14 @@ unset config_files
 export EDITOR=vim
 export VISUAL=vim
 export SUDO_EDITOR=vim
+
+# Stash your environment variables in ~/.localrc. This means they'll stay out
+# of your main dotfiles repository (which may be public, like this one), but
+# you'll have access to them in your scripts.
+if [[ -a ~/.localrc ]]
+then
+  source ~/.localrc
+fi
 
 # http://www.tldp.org/HOWTO/BackspaceDelete/system.html#AEN270
 stty erase '^?'
