@@ -1,0 +1,6 @@
+bind –v
+# So we don’t have to reach for the ESC key:
+bind "hh" vi-command-mode
+bind "jj" vi-command-mode
+bind "kk" vi-command-mode
+bind "lll" vi-command-mode
