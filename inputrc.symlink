@@ -7,3 +7,6 @@ set keymap vi-insert
 "jj": vi-movement-mode
 "kk": vi-movement-mode
 "lll": vi-movement-mode
+
+# http://cirw.in/blog/bracketed-paste
+set enable-bracketed-paste on
