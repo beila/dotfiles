@@ -1,0 +1,12 @@
+set editing-mode vi
+set keymap vi-command
+# Command-mode keymaps go here...
+set keymap vi-insert
+# Insert-mode keymaps go here; example:
+"hh": vi-movement-mode
+"jj": vi-movement-mode
+"kk": vi-movement-mode
+"lll": vi-movement-mode
+
+# http://cirw.in/blog/bracketed-paste
+set enable-bracketed-paste on
