@@ -1,0 +1,30 @@
+#! /bin/sh
+
+### BEGIN INIT INFO
+# Provides:          svnserve
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:
+# Default-Start:     S 
+# Default-Stop:
+### END INIT INFO
+
+# created by hojin
+# referecing http://linux.justinhartman.com/Startup_Script_for_Subversion
+
+N=/etc/init.d/svnserve
+
+set -e
+
+case "$1" in
+  start)
+	svnserve -d -r /home/beila/svn
+	;;
+  stop|reload|restart|force-reload)
+	;;
+  *)
+	echo "Usage: $N {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit 0
