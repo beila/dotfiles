@@ -1,0 +1,16 @@
+#!/bin/bash
+# 출처: http://www.commandlinefu.com/commands/view/5184/updated-top-ten-memory-utilizing-processes-childinstance-aggregation-now-with-percentages-of-total-ram?utm_source=feedburner&utm_medium=feed&utm_campaign=Feed%3A+Command-line-fu+%28Command-Line-Fu%29
+
+TR=`free|grep Mem:|awk '{print $2}'`
+printf "%-7s\t%-16s\t%-4s\n" RSS COMMAND RSS%
+ps axo rss,comm,pid|awk -v tr=$TR '
+{\
+    proc_list[$2]+=$1;\
+}\
+END\
+{\
+    for (proc in proc_list) {\
+        proc_pct=(proc_list[proc]/tr)*100;\
+        printf("%d\t%-16s\t%0.2f\n",proc_list[proc],proc,proc_pct);\
+    }\
+}'|sort -nr |head -n 10

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+pgrep -x hpodder -u $USER >/dev/null
+if [[ $? -eq 0 ]]
+then
+    exit
+fi
+
+exec hpodder "$@"

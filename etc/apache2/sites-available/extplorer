@@ -1,0 +1,7 @@
+<VirtualHost *:8002>
+DocumentRoot /smb
+</VirtualHost>
+
+<VirtualHost *:8003>
+DocumentRoot /usr/share/extplorer
+</VirtualHost>

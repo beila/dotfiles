@@ -1,0 +1,61 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          flexnet
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Should-Start:
+# Should-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: flexnet
+# Description:       flexnet
+### END INIT INFO
+
+#
+#
+# MATLAB FLEXnet Network License Manager Daemon
+#
+# 	For boot-time initialization on Linux
+#
+# Steps: (as root)
+#
+#    If the following links do not exist create them:
+#
+#    ln -s $MATLAB/etc/lmboot /etc/lmboot_TMW
+#    ln -s $MATLAB/etc/lmdown /etc/lmdown_TMW
+#    
+#    Then:
+#
+#    cp $MATLAB/etc/flexnet.boot.linux /etc/init.d/flexnet      (Debian, SuSE)
+#    cp $MATLAB/etc/flexnet.boot.linux /etc/rc.d/init.d/flexnet (Red Hat, Fedora Core)
+#
+#    CRITICAL: replace username argument to the lmboot_TMW commands 
+#	       below by a real usename OTHER than root!
+#
+#    Look in /etc/inittab for the default runlevel. Create
+#    a link in the rc directory associated with that run
+#    level. For example if it is 5, then
+#
+#    cd /etc/rc5.d;        ln -s ../init.d/flexnet S90flexnet (Debian)
+#    cd /etc/init.d/rc5.d; ln -s ../flexnet S90flexnet (SuSE)
+#    cd /etc/rc.d/rc5.d;   ln -s ../init.d/flexnet S90flexnet (Red Hat, Fedora Core)
+#
+case "$1" in
+  start)
+        if [ -f /etc/lmboot_TMW ]; then
+            /etc/lmboot_TMW -u beila && echo 'MATLAB_lmgrd'
+        fi
+        ;;
+  stop)
+	if [ -f /etc/lmdown_TMW ]; then
+            /etc/lmdown_TMW  > /dev/null 2>&1
+	fi
+        ;;
+  *)
+	echo "Usage: $0 {start|stop}"
+	exit 1
+	;;
+esac
+
+exit 0
