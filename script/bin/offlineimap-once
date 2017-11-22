@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+if [ $(ps -A | grep offlineimap | wc -l) -eq 0 ] ; then
+#echo "$@"
+#  bash -c "$*"
+  offlineimap "$@"
+fi

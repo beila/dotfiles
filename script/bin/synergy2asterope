@@ -1,0 +1,3 @@
+#!/bin/bash
+pkill synergyc
+/usr/bin/synergyc --daemon asterope.kaist.ac.kr

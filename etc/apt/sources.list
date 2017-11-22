@@ -1,0 +1,83 @@
+#deb http://ftp.daum.net/debian/ stable main non-free contrib
+#deb http://ftp.kr.debian.org/debian/ stable main non-free contrib
+deb http://http.us.debian.org/debian stable main non-free contrib
+#deb-src http://ftp.daum.net/debian/ stable main non-free contrib
+#deb-src http://http.us.debian.org/debian stable main non-free contrib
+
+#deb http://ftp.kr.debian.org/debian/ testing main non-free contrib
+#deb http://ftp.daum.net/debian/ testing main non-free contrib
+deb http://http.us.debian.org/debian testing main non-free contrib
+#deb-src http://ftp.daum.net/debian/ testing main non-free contrib
+#deb-src http://http.us.debian.org/debian testing main non-free contrib
+
+#deb http://ftp.daum.net/debian/ unstable main non-free contrib
+#deb http://ftp.kr.debian.org/debian/ unstable main non-free contrib
+deb http://http.us.debian.org/debian unstable main non-free contrib
+#deb-src http://ftp.daum.net/debian/ unstable main non-free contrib
+#deb-src http://http.us.debian.org/debian unstable main non-free contrib
+
+#deb http://ftp.daum.net/debian/ experimental main non-free contrib
+#deb http://ftp.kr.debian.org/debian/ experimental main non-free contrib
+#deb http://http.us.debian.org/debian experimental main non-free contrib
+#deb-src http://ftp.daum.net/debian/ experimental main non-free contrib
+#deb-src http://http.us.debian.org/debian experimental main non-free contrib
+
+#deb http://ftp.daum.net/debian/ lenny-proposed-updates non-free contrib main
+#deb http://ftp.kr.debian.org/debian/ lenny-proposed-updates non-free contrib main
+deb http://http.us.debian.org/debian lenny-proposed-updates main non-free contrib
+#deb-src http://ftp.daum.net/debian/ lenny-proposed-updates non-free contrib main
+
+#deb http://ftp.daum.net/debian/ testing-proposed-updates non-free contrib main
+#deb http://ftp.kr.debian.org/debian/ testing-proposed-updates non-free contrib main
+deb http://http.us.debian.org/debian testing-proposed-updates main non-free contrib
+#deb-src http://ftp.daum.net/debian/ testing-proposed-updates non-free contrib main
+
+deb http://volatile.debian.org/debian-volatile lenny/volatile main contrib non-free
+deb http://volatile.debian.org/debian-volatile lenny/volatile-sloppy main contrib non-free
+deb-src http://volatile.debian.org/debian-volatile lenny/volatile main contrib non-free
+deb-src http://volatile.debian.org/debian-volatile lenny/volatile-sloppy main contrib non-free
+
+deb http://www.backports.org/debian lenny-backports main contrib non-free
+deb-src http://www.backports.org/debian lenny-backports main contrib non-free
+
+deb http://security.debian.org/ stable/updates main non-free contrib
+deb-src http://security.debian.org/ stable/updates main non-free contrib
+deb http://security.debian.org/ testing/updates main non-free contrib
+deb-src http://security.debian.org/ testing/updates main non-free contrib
+
+#for Skype
+deb http://download.skype.com/linux/repos/debian/ stable non-free
+
+#for Opera
+deb http://deb.opera.com/opera testing non-free
+deb http://deb.opera.com/opera stable non-free
+
+#for mplayer's codecs
+deb http://www.debian-multimedia.org testing main
+deb http://www.debian-multimedia.org unstable main
+
+#for freenx
+#deb http://packages.debianbase.de/testing/i386/nx/ ./
+#deb http://packages.debianbase.de/stable/i386/nx/ ./
+
+#for virtualbox
+#deb http://download.virtualbox.org/virtualbox/debian lenny non-free
+#deb http://download.virtualbox.org/virtualbox/debian squeeze non-free
+
+#for mpd experimental
+#deb http://musicpd.org/~decklin/debian/ ./
+#deb-src http://musicpd.org/~decklin/debian/ ./
+
+# 네이버 나눔고딕 글꼴
+deb http://dev.naver.com/repos deb/
+
+# picasa
+#deb http://dl.google.com/linux/deb/ stable non-free
+#deb http://dl.google.com/linux/deb/ testing non-free
+#deb http://dl.google.com/linux/deb/ unstable non-free
+
+# dropbox
+#deb http://linux.dropbox.com/ubuntu karmic main
+
+# docky
+#deb http://ppa.launchpad.net/dock-core/ppa/ubuntu karmic main

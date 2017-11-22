@@ -1,0 +1,43 @@
+Explanation: see http://www.argon.org/~roderick/apt-pinning.html
+Package: *
+Pin: release o=Debian,a=stable
+Pin-Priority: 900
+
+Package: *
+Pin: release o=Debian,a=testing
+Pin-Priority: 900
+
+Package: *
+Pin: release o=Debian,a=unstable
+Pin-Priority: 450
+
+Package: *
+Pin: release o=Debian,a=experimental
+Pin-Priority: 400
+
+Package: *
+Pin: release a=lenny-backports
+Pin-Priority: 850
+
+Package: *
+Pin: release o=Debian,a=lenny-proposed-updates
+Pin-Priority: 800
+
+Package: *
+Pin: release a=squeeze-backports
+Pin-Priority: 850
+
+Package: *
+Pin: release o=Debian,a=squeeze-proposed-updates
+Pin-Priority: 800
+
+Package: *
+Pin: release o=Debian
+Pin-Priority: 50
+
+Explanation: Pinned by apt-listbugs at Thu May 06 22:25:48 +0900 2010
+Explanation:   #580479: libdbd-mysql-perl can access out of string and call craches
+Package: libdbd-mysql-perl
+Pin: version 4.013-1
+Pin-Priority: 1000
+
