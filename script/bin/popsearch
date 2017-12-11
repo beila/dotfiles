@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+VOTES_FILE=$HOME/.by_vote.gz
+wget --quiet -N http://popcon.debian.org/by_vote.gz -O $VOTES_FILE
+#aptitude search --disable-columns -F "%p" "$@" | xargs -I FFFFF zgrep " FFFFF " $VOTES_FILE | sort -n
+
+PACKAGES=$(aptitude search --disable-columns -F "%p" "$@")
+
+if [ ${#PACKAGES} -le 0 ]
+then
+    exit
+fi
+
+SEARCH_WORD=
+for p in ${PACKAGES:?No package found with \""$@"\"}
+do
+    SEARCH_WORD="${SEARCH_WORD}${p}\|"
+done
+SEARCH_WORD="^[[:digit:]]\+[[:space:]]\+\(${SEARCH_WORD%\\|}\)[[:space:]]\+"
+#echo "${SEARCH_WORD}"
+
+SORTED_PACKAGES=$(zgrep "${SEARCH_WORD}" $VOTES_FILE|sed 's/ \+/ /g'|cut -d ' ' -f 2)
+
+TEXT=$(aptitude search "$@")
+for p in ${SORTED_PACKAGES}
+do
+    grep "^... ${p}[[:space:]]" <<<"${TEXT}"
+done

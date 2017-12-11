@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ ! -d ~/asterope ]
+then
+mkdir ~/asterope
+fi
+sshfs -o follow_symlinks asterope.kaist.ac.kr: ~/asterope

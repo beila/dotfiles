@@ -1,0 +1,5 @@
+#!/bin/bash
+PLAYER=/usr/bin/smplayer
+JOBID=`echo "DISPLAY=:0 ${PLAYER%% *} -send-action quit" | at -q v now + 30 minutes 2>&1 |grep "^job"|cut -d " " -f 2`
+${PLAYER} "$@"
+#atrm ${JOBID} 2> /dev/null
