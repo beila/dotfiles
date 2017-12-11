@@ -1,0 +1,18 @@
+#!/bin/bash
+PLAYER=${PLAYER:-/usr/bin/mplayer -quiet -fs -vf scale=1280:-3 -autosync 15 -framedrop -nodouble}
+# for slow video
+OPT_SLOWVIDEO=${SLOW:+-cache 16384 -vfm ffmpeg -lavdopts lowres=1:fast:skiploopfilter=all}
+# for reversing left & right channel
+OPT_REVSTEREO=${REV:+-af extrastereo=-1.0}
+
+# first remove already-set jobs
+#atq -q v|cut -f 1|xargs atrm
+
+# set a job for killing player
+JOBID=`echo "killall ${PLAYER%% *}" | at -q v now + 30 minutes 2>&1 |grep "^job"|cut -d " " -f 2`
+
+# play
+${PLAYER} ${OPT_SLOWVIDEO} ${OPT_REVSTEREO} "$@"
+
+# remove the job if it remains
+atrm ${JOBID} 2> /dev/null

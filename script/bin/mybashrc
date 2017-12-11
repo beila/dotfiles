@@ -1,0 +1,101 @@
+#!/bin/bash
+PATH=${PATH//$HOME\/bin*(:)/}
+PATH=${PATH//:$HOME\/.dropbox-dist/:$HOME/Applications}
+export PATH=$HOME/bin${PATH:+:$PATH}:$HOME/.dropbox-dist:$HOME/Applications
+CDPATH=${CDPATH//.:$HOME:$HOME\/doc:\/usr\/share\/doc*(:)/}
+export CDPATH=.:$HOME:$HOME/doc:/usr/share/doc${CDPATH:+:$CDPATH}
+export LESS="-FWXQi"
+export MPD_HOST=asterope.kaist.ac.kr
+export OPERA_STRICT_FILE_PERMISSIONS=TRUE
+export SUDO_EDITOR=/usr/bin/vi
+
+# from /usr/share/doc/gnustep-gui-runtime/README.Debian
+#. /usr/lib/GNUstep/System/Makefiles/GNUstep.sh
+
+alias 'e'='sensible-editor'
+#alias 'l'='sensible-pager'
+alias 'b'='sensible-browser'
+alias ll='ls -lh'
+alias la='ls -A'
+
+alias 'psg'='ps ax | grep '
+#alias 'p'='pkill mpd-dynamic ; mpd-dynamic -o 57 -n 1 -s 1 ; mpc toggle ; sats -d -n 10'
+alias 'p'='pkill mpd-dynamic ; mpd-dynamic -o 57 -n 1 -s 1 ; mpc toggle'
+alias 'z'='mpc random'
+alias 'n'='mpc next'
+alias 'fbgs'='fbgs -xxl -c'
+alias svnstat='svn stat -u | sort | sed -e "s/^M.*/\o033[31m&\o033[0m/" -e "s/^A.*/\o033[34m&\o033[0m/" -e "s/^D.*/\o033[35m&\o033[0m/"'
+alias 's'='sudo'
+alias 'bc'='bc -l'
+alias 'd'='popd'
+alias '..'='builtin cd ..'
+alias '...'='builtin cd .. ; builtin cd ..'
+alias '....'='builtin cd .. ; builtin cd .. ; builtin cd ..'
+alias 'mv'='mv -n'
+
+#for screen title
+export PS1=${PS1//\\033k\\033\\134\\134/}
+if [[ "${TERM}" == "screen" ]]
+then
+    export PS1='\033k\033\134\134'${PS1}
+fi
+
+if [[ ${BASH_VERSINFO[0]} -ge 4 ]]
+then
+    shopt -s dirspell globstar
+fi
+set -o vi
+set -o notify
+
+unalias man 2>/dev/null
+man () {
+    if [[ -n ${XAUTHORITY} ]]
+    then
+        # ( /usr/bin/man -t $@ >/tmp/man$1 && ps2pdf /tmp/man$1 - | okular - 2>/dev/null ; rm /tmp/man$1 ) &
+        # ps2pdf를 안 넣으면 okular에서 검색이 안되더라...
+        ( /usr/bin/man -t $@ >/tmp/man$1 && evince /tmp/man$1 2>/dev/null ; rm /tmp/man$1 ) &
+    else
+        /usr/bin/man $@
+    fi
+    #/usr/bin/man -t $@ | ps2pdf - - | open -f -a /Applications/Preview.app
+}
+
+unalias l 2>/dev/null
+l () {
+    if [[ -f /dev/stdin || -p /dev/stdin ]]
+    then
+        less </dev/stdin
+        return
+    fi
+
+    local JJ FILEARG MORETHANONEFILEARG
+    for JJ in "$@"
+    do
+        if [[ ${JJ:0:1} != "-" ]]
+        then
+            MORETHANONEFILEARG=${FILEARG:+true}    #FILEARG가 있으면 true 없으면 null
+            FILEARG=${JJ}
+        fi
+    done
+    #echo "F=${FILEARG}"
+    #echo "M=${MORETHANONEFILEARG}"
+
+    # ls를 실행하는 경우
+    # 1. 옵션이 아닌 인자가 없음
+    # 2. 옵션이 아닌 인자가 둘 이상
+    # 3. 옵션이 아닌 인자가 단 하나이고, 그게 디렉토리
+    # less 실행하는 경우
+    # 1. 옵션이 아닌 인자가 단 하나이고, 그게 디렉토리 아님
+    # 2. 표준입력이 있음 (위에서 처리)
+    if [[ -z ${FILEARG} || -n ${MORETHANONEFILEARG} || -d "${FILEARG}" ]]
+    then
+        ls "$@"
+    else
+        less "$@"
+    fi
+}
+
+unalias cd 2>/dev/null
+cd () {
+    pushd "${@:-${HOME}}" >/dev/null
+}
