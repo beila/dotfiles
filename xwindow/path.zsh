@@ -1,1 +1,1 @@
-PATH=${PATH}:${DOTFILES_ROOT}/xwindow/bin
+PATH=${PATH}:${DOTFILES_ROOT}/script/bin

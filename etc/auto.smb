@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# $Id: auto.smb,v 1.3 2005/04/05 13:02:09 raven Exp $
+
+# This file must be executable to work! chmod 755!
+
+key="$1"
+mountopts="-fstype=cifs"
+smbopts=""
+credfile="/etc/auto.smb.$key"
+
+for P in /bin /sbin /usr/bin /usr/sbin
+do
+	if [ -x $P/smbclient ]
+	then
+		SMBCLIENT=$P/smbclient
+		break
+	fi
+done
+
+[ -x $SMBCLIENT ] || exit 1
+
+if [ -e $credfile ]; then
+	mountopts="$mountopts,credentials=$credfile"
+	smbopts="-A $credfile"
+else
+	smbopts="-N"
+fi
+ 
+$SMBCLIENT $smbopts -gL $key 2>/dev/null| awk -v key="$key" -v opts="$mountopts" -F'|' -- '
+	BEGIN	{ ORS=""; first=1 }
+	/Disk/	{ if (first) { print opts; first=0 }; sub(/ /, "\\ ", $2); print " \\\n\t /" $2, "://" key "/" $2 }
+	END 	{ if (!first) print "\n"; else exit 1 }
+	'
+

@@ -1,0 +1,4 @@
+#!/bin/bash
+# 모든 네트워크 드라이브 마운트하기
+echo "mounting all media drives:"
+find -P /pub -depth -mount -type d -empty -print -exec sudo mount '{}' \;

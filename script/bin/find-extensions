@@ -1,0 +1,7 @@
+#!/bin/bash
+# 모든 확장자 찾기
+echo "$@"
+find -L "$@" -type f |sed 's/^.*\///'|grep -o '\.[^.]*$'|sort -f|uniq -i
+
+# 파라미터 사용은 다음 웹페이지 참고
+# http://www.ibm.com/developerworks/kr/library/l-bash-parameters.html
