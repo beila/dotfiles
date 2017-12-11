@@ -49,6 +49,3 @@ if [[ -a ~/.localrc ]]
 then
   source ~/.localrc
 fi
-
-# http://www.tldp.org/HOWTO/BackspaceDelete/system.html#AEN270
-stty erase '^?'
