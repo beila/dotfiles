@@ -9,9 +9,10 @@ then
   fi
 fi
 
-for f in $HOME/.linuxbrew/bin; do
+for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
     if [[ -x $f/brew ]]; then
         BREW=${BREW:-$f/brew}
+		break
     fi
 done
 
