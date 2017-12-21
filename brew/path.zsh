@@ -16,14 +16,16 @@ then
 fi
 
 # brew info coreutils
-if [[ -d /usr/local/opt/coreutils/libexec/gnubin ]]
+local DIR=/usr/local/opt/coreutils/libexec/gnubin 
+if [[ -d $DIR ]]
 then
-	PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+	export PATH=$DIR:${PATH//$DIR:}
 fi
 
 # brew info coreutils
-if [[ -d /usr/local/opt/coreutils/libexec/gnuman ]]
+local DIR=/usr/local/opt/coreutils/libexec/gnuman
+if [[ -d $DIR ]]
 then
-    MANPATH="/usr/local/opt/coreutils/libexec/gnuman:$MANPATH"
+    export MANPATH=$DIR:${MANPATH//$DIR:}
 fi
 

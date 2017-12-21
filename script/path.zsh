@@ -1,1 +1,2 @@
-PATH=${PATH}:${DOTFILES_ROOT}/xwindow/bin
+local DIR=${DOTFILES_ROOT}/xwindow/bin
+export PATH=${PATH//:${DIR}}:${DIR}
