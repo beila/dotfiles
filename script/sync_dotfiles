@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 GIT=${GIT_EXECUTABLE:-git}
-cd $1
+test -d $1 && cd $1
+pwd
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
 $GIT pull --no-edit && $GIT push
