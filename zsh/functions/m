@@ -14,4 +14,5 @@ functions "${@/#/aliased_}"
 
 alias|grep "${grep_pattern}"
 
+# tldr shows the error message to stdout, not stderr
 tldr "$@" >/dev/null 2>&1 && tldr "$@"
