@@ -13,3 +13,5 @@ functions "$@"
 functions "${@/#/aliased_}"
 
 alias|grep "${grep_pattern}"
+
+tldr "$@" >/dev/null 2>&1 && tldr "$@"
