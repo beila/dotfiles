@@ -1,0 +1,221 @@
+diff --git a/..gitmodules.un~ b/..gitmodules.un~
+new file mode 100644
+index 0000000..fcf33eb
+Binary files /dev/null and b/..gitmodules.un~ differ
+diff --git a/.gitmodules b/.gitmodules
+index a8a9e57..868ffc6 100644
+--- a/.gitmodules
++++ b/.gitmodules
+@@ -1,18 +1,30 @@
+ [submodule "modules/history-substring-search/external"]
+ 	path = modules/history-substring-search/external
+ 	url = https://github.com/zsh-users/zsh-history-substring-search.git
++	branch = master
++	ignore = all
+ [submodule "modules/syntax-highlighting/external"]
+ 	path = modules/syntax-highlighting/external
+ 	url = https://github.com/zsh-users/zsh-syntax-highlighting.git
++	branch = master
++	ignore = all
+ [submodule "modules/completion/external"]
+ 	path = modules/completion/external
+ 	url = https://github.com/zsh-users/zsh-completions.git
++	branch = master
++	ignore = all
+ [submodule "modules/prompt/external/powerline"]
+ 	path = modules/prompt/external/powerline
+ 	url = https://github.com/davidjrice/prezto_powerline.git
++	branch = master
++	ignore = all
+ [submodule "modules/prompt/external/agnoster"]
+ 	path = modules/prompt/external/agnoster
+ 	url = https://github.com/agnoster/agnoster-zsh-theme.git
++	branch = master
++	ignore = all
+ [submodule "modules/prompt/functions/pure"]
+ 	path = modules/prompt/external/pure
+ 	url = https://github.com/sindresorhus/pure.git
++	branch = master
++	ignore = all
+diff --git a/modules/utility/init.zsh b/modules/utility/init.zsh
+index fd7aaf6..8b82952 100644
+--- a/modules/utility/init.zsh
++++ b/modules/utility/init.zsh
+@@ -36,7 +36,7 @@ alias rm='nocorrect rm'
+ # Disable globbing.
+ alias bower='noglob bower'
+ alias fc='noglob fc'
+-alias find='noglob find'
++#alias find='noglob find'
+ alias ftp='noglob ftp'
+ alias history='noglob history'
+ alias locate='noglob locate'
+diff --git a/runcoms/zpreztorc b/runcoms/zpreztorc
+index 4778944..ca06e79 100644
+--- a/runcoms/zpreztorc
++++ b/runcoms/zpreztorc
+@@ -16,10 +16,10 @@
+ zstyle ':prezto:*:*' color 'yes'
+ 
+ # Set the Zsh modules to load (man zshmodules).
+-# zstyle ':prezto:load' zmodule 'attr' 'stat'
++zstyle ':prezto:load' zmodule 'attr' 'stat'
+ 
+ # Set the Zsh functions to load (man zshcontrib).
+-# zstyle ':prezto:load' zfunction 'zargs' 'zmv'
++zstyle ':prezto:load' zfunction 'zargs' 'zmv'
+ 
+ # Set the Prezto modules to load (browse modules).
+ # The order matters.
+@@ -32,44 +32,58 @@ zstyle ':prezto:load' pmodule \
+   'spectrum' \
+   'utility' \
+   'completion' \
+-  'prompt'
++  'prompt' \
++  'archive' \
++  'command-not-found' \
++  'fasd' \
++  'git' \
++  'gnu-utility' \
++  'history-substring-search' \
++  'node' \
++  'screen' \
++  'ssh' \
++  'syntax-highlighting' \
++  '' \
++  '' \
++  '' \
++  ''
+ 
+ #
+ # Editor
+ #
+ 
+ # Set the key mapping style to 'emacs' or 'vi'.
+-zstyle ':prezto:module:editor' key-bindings 'emacs'
++zstyle ':prezto:module:editor' key-bindings 'vi'
+ 
+ # Auto convert .... to ../..
+-# zstyle ':prezto:module:editor' dot-expansion 'yes'
++zstyle ':prezto:module:editor' dot-expansion 'yes'
+ 
+ #
+ # Git
+ #
+ 
+ # Ignore submodules when they are 'dirty', 'untracked', 'all', or 'none'.
+-# zstyle ':prezto:module:git:status:ignore' submodules 'all'
++zstyle ':prezto:module:git:status:ignore' submodules 'all'
+ 
+ #
+ # GNU Utility
+ #
+ 
+ # Set the command prefix on non-GNU systems.
+-# zstyle ':prezto:module:gnu-utility' prefix 'g'
++zstyle ':prezto:module:gnu-utility' prefix 'g'
+ 
+ #
+ # History Substring Search
+ #
+ 
+ # Set the query found color.
+-# zstyle ':prezto:module:history-substring-search:color' found ''
++zstyle ':prezto:module:history-substring-search:color' found ''
+ 
+ # Set the query not found color.
+-# zstyle ':prezto:module:history-substring-search:color' not-found ''
++zstyle ':prezto:module:history-substring-search:color' not-found ''
+ 
+ # Set the search globbing flags.
+-# zstyle ':prezto:module:history-substring-search' globbing-flags ''
++zstyle ':prezto:module:history-substring-search' globbing-flags ''
+ 
+ #
+ # Pacman
+@@ -85,7 +99,7 @@ zstyle ':prezto:module:editor' key-bindings 'emacs'
+ # Set the prompt theme to load.
+ # Setting it to 'random' loads a random theme.
+ # Auto set to 'off' on dumb terminals.
+-zstyle ':prezto:module:prompt' theme 'sorin'
++zstyle ':prezto:module:prompt' theme 'steeef'
+ 
+ #
+ # Ruby
+@@ -99,17 +113,17 @@ zstyle ':prezto:module:prompt' theme 'sorin'
+ #
+ 
+ # Auto start a session when Zsh is launched in a local terminal.
+-# zstyle ':prezto:module:screen:auto-start' local 'yes'
++zstyle ':prezto:module:screen:auto-start' local 'yes'
+ 
+ # Auto start a session when Zsh is launched in a SSH connection.
+-# zstyle ':prezto:module:screen:auto-start' remote 'yes'
++zstyle ':prezto:module:screen:auto-start' remote 'yes'
+ 
+ #
+ # SSH
+ #
+ 
+ # Set the SSH identities to load into the agent.
+-# zstyle ':prezto:module:ssh:load' identities 'id_rsa' 'id_rsa2' 'id_github'
++zstyle ':prezto:module:ssh:load' identities 'id_rsa' 'id_rsa2' 'id_github'
+ 
+ #
+ # Syntax Highlighting
+@@ -117,31 +131,31 @@ zstyle ':prezto:module:prompt' theme 'sorin'
+ 
+ # Set syntax highlighters.
+ # By default, only the main highlighter is enabled.
+-# zstyle ':prezto:module:syntax-highlighting' highlighters \
+-#   'main' \
+-#   'brackets' \
+-#   'pattern' \
+-#   'cursor' \
+-#   'root'
++zstyle ':prezto:module:syntax-highlighting' highlighters \
++  'main' \
++  'brackets' \
++  'pattern' \
++  'cursor' \
++  'root'
+ #
+ # Set syntax highlighting styles.
+-# zstyle ':prezto:module:syntax-highlighting' styles \
+-#   'builtin' 'bg=blue' \
+-#   'command' 'bg=blue' \
+-#   'function' 'bg=blue'
++zstyle ':prezto:module:syntax-highlighting' styles \
++  'builtin' 'bg=blue' \
++  'command' 'bg=blue' \
++  'function' 'bg=blue'
+ 
+ #
+ # Terminal
+ #
+ 
+ # Auto set the tab and window titles.
+-# zstyle ':prezto:module:terminal' auto-title 'yes'
++zstyle ':prezto:module:terminal' auto-title 'yes'
+ 
+ # Set the window title format.
+-# zstyle ':prezto:module:terminal:window-title' format '%n@%m: %s'
++zstyle ':prezto:module:terminal:window-title' format '%n@%m: %s'
+ 
+ # Set the tab title format.
+-# zstyle ':prezto:module:terminal:tab-title' format '%m: %s'
++zstyle ':prezto:module:terminal:tab-title' format '%m: %s'
+ 
+ #
+ # Tmux
+diff --git a/runcoms/zprofile b/runcoms/zprofile
+index d87cb3b..70280c8 100644
+--- a/runcoms/zprofile
++++ b/runcoms/zprofile
+@@ -72,3 +72,5 @@ if [[ ! -d "$TMPDIR" ]]; then
+ fi
+ 
+ TMPPREFIX="${TMPDIR%/}/zsh"
++
++export PATH="$HOME/.cargo/bin:$PATH"
