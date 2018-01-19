@@ -3,4 +3,5 @@ GIT=${GIT_EXECUTABLE:-git}
 test -d $1 && cd $1
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
-$GIT pull --no-edit && $GIT push
+$GIT pull --no-edit --recurse-submodules=no && $GIT push \
+	&& which git-subrepo >/dev/null 2>&1 && $GIT subrepo pull --all && $GIT subrepo push --all

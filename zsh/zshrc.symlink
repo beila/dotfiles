@@ -40,6 +40,7 @@ unset config_files
 
 export EDITOR=vim
 export VISUAL=vim
+which mvim >/dev/null 2>&1 && export VISUAL=mvim
 export SUDO_EDITOR=vim
 
 # Stash your environment variables in ~/.localrc. This means they'll stay out
