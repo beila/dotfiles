@@ -140,6 +140,7 @@ install_dotfiles () {
 
 setup_dotfiles_sync () {
   local GIT_EXECUTABLE_FINDING="$(which git)"
+  local GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
   if [ -f $DOTFILES_ROOT/script/sync_dotfiles ]
   then
     info "setup periodic sync for $DOTFILES_ROOT/{.,vim.symlink,zprezto.symlink}"
@@ -147,7 +148,7 @@ setup_dotfiles_sync () {
 	do
       MINUTE=$RANDOM
       let "MINUTE %= 60"
-	  echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT/$SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
+	  echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT/$SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
     done | tee | crontab -
   fi
 }

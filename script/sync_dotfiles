@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 GIT=${GIT_EXECUTABLE:-git}
-GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
+GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 test -d $1 && cd $1
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
