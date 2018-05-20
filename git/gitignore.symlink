@@ -4,3 +4,5 @@
 .idea
 *.iml
 cmake-build-*
+atlassian-ide-plugin.xml
+venv/

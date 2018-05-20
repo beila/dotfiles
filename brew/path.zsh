@@ -6,15 +6,26 @@ then
 	export INFOPATH=$HOME/.linuxbrew/share/info:${INFOPATH://$HOME\/.linuxbrew\/share\/info:}
 fi
 
-# brew info coreutils
-if [[ -d /usr/local/opt/coreutils/libexec/gnubin ]]
+if [[ -d /home/linuxbrew/.linuxbrew ]]
 then
-	PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+	BREWPATH=$(cd /home/linuxbrew/.linuxbrew && pwd)
+	export PATH=$BREWPATH/sbin:${PATH//$BREWPATH\/sbin:}
+	export PATH=$BREWPATH/bin:${PATH//$BREWPATH\/bin:}
+	export MANPATH=$BREWPATH/share/man:${MANPATH://$BREWPATH\/share\/man:}
+	export INFOPATH=$BREWPATH/share/info:${INFOPATH://$BREWPATH\/share\/info:}
 fi
 
 # brew info coreutils
-if [[ -d /usr/local/opt/coreutils/libexec/gnuman ]]
+local DIR=/usr/local/opt/coreutils/libexec/gnubin 
+if [[ -d $DIR ]]
 then
-    MANPATH="/usr/local/opt/coreutils/libexec/gnuman:$MANPATH"
+	export PATH=$DIR:${PATH//$DIR:}
+fi
+
+# brew info coreutils
+local DIR=/usr/local/opt/coreutils/libexec/gnuman
+if [[ -d $DIR ]]
+then
+    export MANPATH=$DIR:${MANPATH//$DIR:}
 fi
 
