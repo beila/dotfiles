@@ -1,7 +1,7 @@
 # https://github.com/pyenv/pyenv#basic-github-checkoutn
 export PYENV_ROOT="${DOTFILES_ROOT}/python/pyenv"
 local DIR=${DOTFILES_ROOT}/python/pyenv/bin
-export PATH=${PATH//:${DIR}}:${DIR}
+export PATH=${DIR}:${PATH//${DIR}:}
 
 if command -v pyenv 1>/dev/null 2>&1; then
 	eval "$(pyenv init -)"
