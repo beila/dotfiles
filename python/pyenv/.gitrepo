@@ -1,0 +1,11 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/pyenv/pyenv.git
+	branch = master
+	commit = dad0fc708a4d2abd2d90206c25e0c6af09da055d
+	parent = 46f1ed0601726e8cce8d519cfee9abdf06ff95e9
+	cmdver = 0.3.1
