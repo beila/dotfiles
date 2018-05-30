@@ -29,3 +29,6 @@ then
     export MANPATH=$DIR:${MANPATH//$DIR:}
 fi
 
+# brew info curl
+local DIR=/usr/local/opt/curl/bin
+export PATH=${DIR}:${PATH//${DIR}:}
