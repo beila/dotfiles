@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
-test -d $1 && cd $1
+cd $1 || (echo "NO DIRECTORY: $1"; exit)
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
 $GIT pull --no-edit --recurse-submodules=no && $GIT push \
