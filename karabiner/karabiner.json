@@ -415,14 +415,6 @@
                             "to": {
                                 "key_code": "right_command"
                             }
-                        },
-                        {
-                            "from": {
-                                "key_code": "insert"
-                            },
-                            "to": {
-                                "key_code": "fn"
-                            }
                         }
                     ]
                 },
@@ -540,7 +532,40 @@
             ],
             "name": "Default profile",
             "selected": true,
-            "simple_modifications": [],
+            "simple_modifications": [
+                {
+                    "from": {
+                        "key_code": "print_screen"
+                    },
+                    "to": {
+                        "consumer_key_code": "rewind"
+                    }
+                },
+                {
+                    "from": {
+                        "key_code": "scroll_lock"
+                    },
+                    "to": {
+                        "consumer_key_code": "play_or_pause"
+                    }
+                },
+                {
+                    "from": {
+                        "key_code": "pause"
+                    },
+                    "to": {
+                        "consumer_key_code": "fastforward"
+                    }
+                },
+                {
+                    "from": {
+                        "key_code": "insert"
+                    },
+                    "to": {
+                        "key_code": "fn"
+                    }
+                }
+            ],
             "virtual_hid_keyboard": {
                 "country_code": 0
             }
