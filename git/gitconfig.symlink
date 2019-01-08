@@ -11,6 +11,7 @@
         editor = vim
 	autocrlf = input
 	pager = less -FMRiX
+	safecrlf = false
 [push]
         # See `git help config` (search for push.default)
         # for more information on different options of the below setting.
