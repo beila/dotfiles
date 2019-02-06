@@ -3,6 +3,8 @@ import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.SetWMName
 import XMonad.Actions.Plane
+import XMonad.Util.EZConfig(additionalKeys)
+import XMonad.Util.Run(spawnPipe)
 
 myManageHook = composeAll
     [ className =? "Tilda"  --> doFloat
@@ -22,6 +24,5 @@ myConfig = defaultConfig
 	, layoutHook = avoidStruts  $  layoutHook defaultConfig
 	} `additionalKeys`
     -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
-    [ ((mod4Mask, xK_l), spawn "xscreensaver-command -lock")
-    , ((0, xK_F12), spawn "tilda")
+    [ ((mod4Mask, xK_l), spawn "gnome-screensaver-command --lock")
     ]
