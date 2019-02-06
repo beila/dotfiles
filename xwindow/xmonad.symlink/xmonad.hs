@@ -20,4 +20,8 @@ myConfig = defaultConfig
 	, manageHook = manageDocks <+> myManageHook
                 <+> manageHook defaultConfig
 	, layoutHook = avoidStruts  $  layoutHook defaultConfig
-	}
+	} `additionalKeys`
+    -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
+    [ ((mod4Mask, xK_l), spawn "xscreensaver-command -lock")
+    , ((0, xK_F12), spawn "tilda")
+    ]
