@@ -25,3 +25,5 @@ if [ "$(uname -s)" == "Darwin" ]
     $BREW install homebrew/cask-drivers/kensington-trackball-works
     $BREW cask install iterm2 quicksilver karabiner-elements
 fi
+
+$BREW cask install vivaldi
