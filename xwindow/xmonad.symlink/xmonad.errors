@@ -1,4 +1,27 @@
 
-xmonad.hs:4:8:
-    Could not find module `XMonad.Hooks.SetWMName'
-    Use -v to see a list of the files searched for.
+xmonad.hs:14:12: Warning:
+    In the use of ‘defaultConfig’
+    (imported from XMonad, but defined in XMonad.Config):
+    Deprecated: "Use def (from Data.Default, and re-exported by XMonad and XMonad.Config) instead."
+
+xmonad.hs:15:1: Warning: Tab character
+
+xmonad.hs:16:1: Warning: Tab character
+
+xmonad.hs:19:1: Warning: Tab character
+
+xmonad.hs:20:1: Warning: Tab character
+
+xmonad.hs:21:32: Warning:
+    In the use of ‘defaultConfig’
+    (imported from XMonad, but defined in XMonad.Config):
+    Deprecated: "Use def (from Data.Default, and re-exported by XMonad and XMonad.Config) instead."
+
+xmonad.hs:22:1: Warning: Tab character
+
+xmonad.hs:22:51: Warning:
+    In the use of ‘defaultConfig’
+    (imported from XMonad, but defined in XMonad.Config):
+    Deprecated: "Use def (from Data.Default, and re-exported by XMonad and XMonad.Config) instead."
+
+xmonad.hs:23:1: Warning: Tab character
