@@ -16,12 +16,14 @@ for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
     fi
 done
 
-#$BREW tap homebrew/versions
-
-# gcc is needed because of https://github.com/Linuxbrew/linuxbrew/issues/732#issuecomment-192697040
-#$BREW install gcc47 cmake
-
 if [ "$(uname -s)" == "Darwin" ]
     $BREW install homebrew/cask-drivers/kensington-trackball-works
     $BREW cask install iterm2 quicksilver karabiner-elements
 fi
+
+$BREW cask install vivaldi clion
+
+#$BREW tap homebrew/versions
+
+# gcc is needed because of https://github.com/Linuxbrew/linuxbrew/issues/732#issuecomment-192697040
+#$BREW install gcc47 cmake
