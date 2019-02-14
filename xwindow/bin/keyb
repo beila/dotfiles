@@ -11,7 +11,7 @@ export XAUTHORITY=$HOME/.Xauthority
 	xset r rate 200 30
 	#numlockx
 	#setxkbmap -layout "de" -variant nodeadkeys
-	#xmodmap ${HOME}/.Xmodmap
+    xmodmap ${HOME}/.Xmodmap
 	#(killall xbindkeys || true) &> /dev/null  # Continue even if exit status is 1
 	#xbindkeys  # Only one instance will run
 	notify-send -t 5000 "Keyboard settings applied"
