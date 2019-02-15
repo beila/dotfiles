@@ -17,6 +17,7 @@ for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
 done
 
 if [ "$(uname -s)" == "Darwin" ]
+    $BREW install coreutils
     $BREW install homebrew/cask-drivers/kensington-trackball-works
     $BREW cask install iterm2 quicksilver karabiner-elements
 fi
