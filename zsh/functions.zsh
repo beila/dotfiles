@@ -16,4 +16,3 @@ do
 	unhash -af ${ff#aliased_} 2> /dev/null
 	alias ${ff#aliased_}="${ff} "
 done
-
