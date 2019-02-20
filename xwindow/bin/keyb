@@ -1,7 +1,6 @@
 #!/bin/bash
 # http://superuser.com/a/350336
 export DISPLAY=":0.0"
-export HOME=/home/hojin
 export XAUTHORITY=$HOME/.Xauthority
 (
 	sleep 1
