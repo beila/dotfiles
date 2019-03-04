@@ -1,28 +1,27 @@
 
-xmonad.hs:2:8:
-    Could not find module ‘XMonad.Hooks.DynamicLog’
-    Use -v to see a list of the files searched for.
+xmonad.hs:23:12: Warning:
+    In the use of ‘defaultConfig’
+    (imported from XMonad, but defined in XMonad.Config):
+    Deprecated: "Use def (from Data.Default, and re-exported by XMonad and XMonad.Config) instead."
 
-xmonad.hs:3:8:
-    Could not find module ‘XMonad.Hooks.ManageDocks’
-    Use -v to see a list of the files searched for.
+xmonad.hs:24:1: Warning: Tab character
 
-xmonad.hs:4:8:
-    Could not find module ‘XMonad.Hooks.SetWMName’
-    Use -v to see a list of the files searched for.
+xmonad.hs:25:1: Warning: Tab character
 
-xmonad.hs:5:8:
-    Could not find module ‘XMonad.Actions.CycleWS’
-    Use -v to see a list of the files searched for.
+xmonad.hs:30:1: Warning: Tab character
 
-xmonad.hs:6:8:
-    Could not find module ‘XMonad.Util.EZConfig’
-    Use -v to see a list of the files searched for.
+xmonad.hs:31:1: Warning: Tab character
 
-xmonad.hs:7:8:
-    Could not find module ‘XMonad.Util.Run’
-    Use -v to see a list of the files searched for.
+xmonad.hs:32:32: Warning:
+    In the use of ‘defaultConfig’
+    (imported from XMonad, but defined in XMonad.Config):
+    Deprecated: "Use def (from Data.Default, and re-exported by XMonad and XMonad.Config) instead."
 
-xmonad.hs:8:8:
-    Could not find module ‘XMonad.Layout.PerWorkspace’
-    Use -v to see a list of the files searched for.
+xmonad.hs:33:1: Warning: Tab character
+
+xmonad.hs:33:51: Warning:
+    In the use of ‘defaultConfig’
+    (imported from XMonad, but defined in XMonad.Config):
+    Deprecated: "Use def (from Data.Default, and re-exported by XMonad and XMonad.Config) instead."
+
+xmonad.hs:34:1: Warning: Tab character
