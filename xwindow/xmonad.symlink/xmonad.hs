@@ -45,5 +45,15 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
     | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
-    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask)]
+    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask)]--, (myGreedyView, mod1Mask)]
     ]
+
+myGreedyView :: (Eq s, Eq i) => i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
+myGreedyView w ws
+     | any wTag (W.hidden ws) = W.view w ws
+     | (Just s) <- L.find (wTag . W.workspace) (W.visible ws)
+                            = ws { W.current = (W.current ws) { W.workspace = W.workspace s }
+                                 , W.visible = s { W.workspace = W.workspace (W.current ws) }
+                                           : W.filter (not . wTag . W.workspace) (W.visible ws) }
+     | otherwise = ws
+   where wTag = (w == ) . W.tag
