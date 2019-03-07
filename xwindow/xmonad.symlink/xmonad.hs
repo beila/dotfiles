@@ -10,19 +10,20 @@ import qualified XMonad.StackSet as W
 import qualified Data.List as L (find,filter)
 
 myManageHook = composeAll
-    [ className =? "Tilda"  --> doFloat
-    , className =? "Thunderbird" --> doShift "1:mail"
-    , className =? "jetbrains-clion" --> doShift "3:clion"
-    , className =? "Gvim" --> doShift "4:gvim"
-    , className =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
-    , className =? "yakyak" --> doShift "9:messenger"
-    , className =? "AmazonChime" --> doShift "9:messenger"
-    , className =? "WhatsApp - Vivaldi" --> doShift "9:messenger"
+    [ className =? "Tilda"                                   --> doFloat
+    , className =? "Thunderbird"                             --> doShift "1:mail"
+    , className =? "jetbrains-clion"                         --> doShift "3:clion"
+    , className =? "Gvim"                                    --> doShift "4:gvim"
+    , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
+    , title     =? "Google Calendar"                         --> doShift "8:calendar"
+    , className =? "yakyak"                                  --> doShift "9:messenger"
+    , className =? "AmazonChime"                             --> doShift "9:messenger"
+    , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
-{-main = xmonad =<< xmobar myConfig-}
-main = xmonad =<< dzenWithFlags "-tx 500" myConfig
+main = xmonad =<< xmobar myConfig
+{-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = defaultConfig
 	-- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
