@@ -22,7 +22,8 @@ myManageHook = composeAll
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
-main = xmonad =<< xmobar myConfig
+{-main = xmonad =<< xmobar myConfig-}
+main = xmonad =<< dzen myConfig
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = defaultConfig
