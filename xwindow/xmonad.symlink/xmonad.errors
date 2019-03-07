@@ -1,2 +1,2 @@
 
-xmonad.hs:54:20: Not in scope: ‘L.find’
+xmonad.hs:23:19: Not in scope: ‘dzenWithFlags’
