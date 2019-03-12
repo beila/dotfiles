@@ -7,18 +7,24 @@ import XMonad.Util.EZConfig(additionalKeys)
 import XMonad.Util.Run(spawnPipe)
 import XMonad.Layout.PerWorkspace
 import qualified XMonad.StackSet as W
+import qualified Data.List as L (find,filter)
 
 myManageHook = composeAll
-    [ className =? "Tilda"  --> doFloat
-    , className =? "Thunderbird" --> doShift "1:mail"
-    , className =? "jetbrains-clion" --> doShift "3:clion"
-    , className =? "yakyak" --> doShift "9:messenger"
-    , className =? "AmazonChime" --> doShift "9:messenger"
-    , className =? "Gvim" --> doShift "4:gvim"
+    [ className =? "Tilda"                                   --> doFloat
+    , className =? "Thunderbird"                             --> doShift "1:mail"
+    , className =? "jetbrains-clion"                         --> doShift "3:clion"
+    , className =? "Gvim"                                    --> doShift "4:gvim"
+    , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
+    , title     =? "Google Calendar"                         --> doShift "8:calendar"
+    , className =? "yakyak"                                  --> doShift "9:messenger"
+    , className =? "AmazonChime"                             --> doShift "9:messenger"
+    , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
+{-main = xmonad =<< xmobar myConfig-}
 main = xmonad =<< dzen myConfig
+{-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = defaultConfig
 	-- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
@@ -45,5 +51,17 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
     | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
-    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask)]
+    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (myGreedyView, mod1Mask)]
     ]
+
+-- TODO let's make it lruView
+-- Copied from https://hackage.haskell.org/package/xmonad-0.15/docs/src/XMonad.StackSet.html#greedyView
+myGreedyView :: (Eq s, Eq i) => i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
+myGreedyView w ws
+     | any wTag (W.hidden ws) = W.view w ws
+     | (Just s) <- L.find (wTag . W.workspace) (W.visible ws)
+                            = ws { W.current = (W.current ws) { W.workspace = W.workspace s }
+                                 , W.visible = s { W.workspace = W.workspace (W.current ws) }
+                                           : L.filter (not . wTag . W.workspace) (W.visible ws) }
+     | otherwise = ws
+   where wTag = (w == ) . W.tag
