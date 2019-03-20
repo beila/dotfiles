@@ -1,0 +1,34 @@
+#!/bin/bash
+ 
+#http://ronnybull.com/2011/08/10/bash-dynamic-public-ip-address-monitor-script/
+#Script to report public IP address change
+#By: Ronny L. Bull
+ 
+TO=${1:-beila@kaist.ac.kr}
+ 
+#The file that contains the current IP
+EXT_IP_FILE="$HOME/.ipaddress"
+ 
+#Get the current IP
+CURRENT_IP=$(dig +short $(hostname))
+ 
+#Check file for previous IP address
+if [ -f $EXT_IP_FILE ]; then
+	KNOWN_IP=$(cat $EXT_IP_FILE)
+else
+	KNOWN_IP=
+fi
+ 
+#See if the IP has changed
+if [ "$CURRENT_IP" != "$KNOWN_IP" ]; then
+	echo $CURRENT_IP > $EXT_IP_FILE
+	 
+	#If so send an alert
+	echo "The IP address of $(hostname) has been changed to $CURRENT_IP" | mail -s "$(hostname) IP address" ${TO}
+	 
+	logger -t ipcheck -- IP changed to $CURRENT_IP
+else
+	 
+	#If not just report that it stayed the same
+	logger -t ipcheck -- NO IP change
+fi
