@@ -339,6 +339,11 @@ http() {
     elif type curl &>/dev/null; then
       http_client="http_${method}_curl"
     elif type wget &>/dev/null; then
+      # SSL Certificate error with older wget that does not support Server Name Indication (#60)
+      if [[ "$(wget --version 2>/dev/null || true)" = "GNU Wget 1.1"[0-3]* ]]; then
+        echo "python-build: wget (< 1.14) doesn't support Server Name Indication. Please install curl (>= 7.18.1) and try again" >&2
+        return 1
+      fi
       http_client="http_${method}_wget"
     else
       echo "error: please install \`aria2c\`, \`curl\` or \`wget\` and try again" >&2
@@ -1487,15 +1492,20 @@ has_broken_mac_openssl() {
 }
 
 use_homebrew_openssl() {
-  local ssldir="$(brew --prefix openssl 2>/dev/null || true)"
-  if [ -d "$ssldir" ]; then
-    echo "python-build: use openssl from homebrew"
-    export PKG_CONFIG_PATH="$ssldir/lib/pkgconfig/:${PKG_CONFIG_PATH}"
-    export CPPFLAGS="-I$ssldir/include ${CPPFLAGS}"
-    export LDFLAGS="-L$ssldir/lib ${LDFLAGS}"
+  local ssl11dir="$(brew --prefix openssl@1.1 2>/dev/null || true)"
+  local ssl10dir="$(brew --prefix openssl 2>/dev/null || true)"
+  if [ -d "$ssl11dir" ]; then
+    echo "python-build: use openssl 1.1 from homebrew"
+    local ssldir=$ssl11dir
+  elif [ -d "$ssl10dir" ]; then
+    echo "python-build: use openssl 1.0 from homebrew"
+    local ssldir=$ssl10dir
   else
     return 1
   fi
+  export PKG_CONFIG_PATH="$ssldir/lib/pkgconfig/:${PKG_CONFIG_PATH}"
+  export CPPFLAGS="-I$ssldir/include ${CPPFLAGS}"
+  export LDFLAGS="-L$ssldir/lib ${LDFLAGS}"
 }
 
 build_package_mac_openssl() {
@@ -1808,6 +1818,16 @@ build_package_verify_py38() {
   build_package_verify_py37 "$1" "${2:-3.8}"
 }
 
+# Copy Tools/gdb/libpython.py to pythonX.Y-gdb.py (#1190)
+build_package_copy_python_gdb() {
+  if [ -e "$BUILD_PATH/$1/Tools/gdb/libpython.py" ]; then
+    local version_re='-([0-9]\.[0-9]+)'
+    [[ "$1" =~ $version_re ]]
+    local python_bin="$PREFIX_PATH/bin/python${BASH_REMATCH[1]}"
+    cp "$BUILD_PATH/$1/Tools/gdb/libpython.py" "$python_bin-gdb.py"
+  fi
+}
+
 build_package_ez_setup() {
   local ez_setup="ez_setup.py"
   rm -f "${ez_setup}"
@@ -1874,7 +1894,7 @@ usage() {
 
 list_definitions() {
   { for DEFINITION_DIR in "${PYTHON_BUILD_DEFINITIONS[@]}"; do
-      [ -d "$DEFINITION_DIR" ] && find "$DEFINITION_DIR" -maxdepth 1 -type f -print0 | xargs -0 -n 1 basename 2>/dev/null
+      [ -d "$DEFINITION_DIR" ] && ls "$DEFINITION_DIR" | grep -xv patches
     done
   } | sort_versions | uniq
 }
@@ -2039,14 +2059,6 @@ fi
 ARIA2_OPTS="${PYTHON_BUILD_ARIA2_OPTS} ${IPV4+--disable-ipv6=true} ${IPV6+--disable-ipv6=false}"
 CURL_OPTS="${PYTHON_BUILD_CURL_OPTS} ${IPV4+--ipv4} ${IPV6+--ipv6}"
 WGET_OPTS="${PYTHON_BUILD_WGET_OPTS} ${IPV4+--inet4-only} ${IPV6+--inet6-only}"
-
-if [ -z "${PYTHON_BUILD_HTTP_CLIENT}" ] && ! type aria2c &>/dev/null && ! type curl &>/dev/null; then
-  # SSL Certificate error with older wget that does not support Server Name Indication (#60)
-  if [[ "$(wget --version 2>/dev/null || true)" = "GNU Wget 1.1"[0-3]* ]]; then
-    echo "python-build: wget (< 1.14) doesn't support Server Name Indication. Please install curl (>= 7.18.1) and try again" >&2
-    return 1
-  fi
-fi
 
 # Add an option to build a debug version of Python (#11)
 if [ -n "$DEBUG" ]; then
