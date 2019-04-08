@@ -152,7 +152,7 @@ setup_dotfiles_sync () {
           echo "$MINUTE * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_dotfiles $DOTFILES_ROOT/$SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
         done
         MINUTE=$RANDOM
-        let "MINUTE %= 60"
+    let "MINUTE %= 60"
         echo "#$MINUTE * * * * $DOTFILES_ROOT/script/bin/send-ip-address-to hojin@amazon.com"
     ) | crontab -
   fi
