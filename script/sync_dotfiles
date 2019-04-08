@@ -5,6 +5,6 @@ cd $1 || (echo "NO DIRECTORY: $1"; exit)
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
 $GIT pull --no-edit --recurse-submodules=no && $GIT push \
-	&& $GIT_SUBREPO pull --all && $GIT_SUBREPO push --all \
+	&& $GIT_SUBREPO pull --all \
     && $GIT pull --no-edit --recurse-submodules=no && $GIT push \
 	|| $GIT_SUBREPO clean --all
