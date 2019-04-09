@@ -1,5 +1,45 @@
 ## Version History
 
+## 1.2.10
+
+* python-build: Force y, Y, yes or YES to confirm installation (#1217)
+* python-build: Add PyPy 7.0.0, 7.1.0
+* python-build: Add CPython 2.7.16, 3.5.7 and 3.7.3
+* python-build: Install `python-gdb.py` (#1190, #1289)
+* python-build: Add micropython 1.10
+* python-build: Prefer Homebrew's OpenSSL 1.1 over 1.0 (#839, #1302)
+
+## 1.2.9
+
+* python-build: Add CPython 3.7.2 and CPython 3.6.8 (#1256)
+* python-build: Add anaconda[23]-5.3.1 (#1246)
+* python-build: Add Anaconda 2018.12 (#1259)
+* python-build: Fix ironpython-dev git repo url (#1260)
+* python-build: Add `OPENSSL_NO_SSL3` patch for CPython 3.3.7 (#1263)
+
+## 1.2.8
+
+* python-build: Add CPython 3.7.1
+* python-build: Add CPython 3.6.7
+* python-build: Add anaconda[23]-5.3.0 (#1220)
+
+## 1.2.7
+
+* python-build: Add CPython 3.5.6 (#1199)
+* python-build: Add CPython 3.4.9
+
+## 1.2.6
+
+* python-build: Added CPython 3.6.6 (#1178)
+* python-build: Check wget version iff wget is going to be used (#1180)
+
+## 1.2.5
+
+* python-build: Add CPython 3.7.0 (#1177)
+* python-build: Add micropython 1.9.4 (#1160)
+* python-build: Add anaconda[23]-5.2.0 (#1165)
+* pyenv: Fix `seq(1)` is not available on OpenBSD (#1166)
+
 ## 1.2.4
 
 * python-build: Add CPython 2.7.15
