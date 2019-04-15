@@ -22,6 +22,7 @@ if [ "$(uname -s)" == "Darwin" ]
     $BREW cask install iterm2 quicksilver karabiner-elements
 fi
 
+$BREW install ripgrep
 $BREW cask install vivaldi clion
 
 #$BREW tap homebrew/versions
