@@ -2,6 +2,9 @@
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 cd $1 || (echo "NO DIRECTORY: $1"; exit)
+
+$GIT submodule foreach $0 .
+
 $GIT add --all .
 $GIT commit -m "Change from $(hostname)"
 $GIT pull --no-edit --recurse-submodules=no && $GIT push \
