@@ -45,7 +45,7 @@ myWorkspaces = ["1:mail", "2:work browser", "3:clion", "4:gvim", "5", "6", "7:br
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
-    , ((mod4Mask, xK_w), nextScreen)
+    , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_0), moveTo Next EmptyWS)  -- find a free workspace
     ] ++
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
