@@ -30,5 +30,6 @@ then
 fi
 
 # brew info curl
-local DIR=/usr/local/opt/curl/bin
-export PATH=${DIR}:${PATH//${DIR}:}
+#local DIR=/usr/local/opt/curl/bin
+#export PATH=${DIR}:${PATH//${DIR}:}
+# brew curl doesn't support kerberos
