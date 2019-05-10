@@ -9,7 +9,7 @@ $GIT submodule foreach $GIT pull --no-edit --recurse-submodules=no
 $GIT submodule foreach $GIT push
 
 $GIT add --all .
-$GIT commit -m "Change from $(hostname)"
+$GIT commit -m "Change from $(dig +short $(hostname))"
 $GIT pull --no-edit --recurse-submodules=no && $GIT push \
 	&& $GIT_SUBREPO pull -v --all \
     && $GIT pull --no-edit --recurse-submodules=no && $GIT push \
