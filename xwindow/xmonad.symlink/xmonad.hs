@@ -11,11 +11,12 @@ import qualified Data.List as L (find,filter)
 
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
+    , className =? "ignition"                                --> doFloat
     , className =? "Thunderbird"                             --> doShift "1:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
     , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
-    , title     =? "Google Calendar"                         --> doShift "8:calendar"
+    , title     =? "Google Calendar - Vivaldi"               --> doShift "8:calendar"
     , className =? "yakyak"                                  --> doShift "9:messenger"
     , className =? "AmazonChime"                             --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
