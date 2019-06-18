@@ -13,7 +13,6 @@ $GIT pull --no-edit --recurse-submodules=no \
 	#|| $GIT_SUBREPO clean --all
 
 $GIT submodule foreach bash -xc "$GIT add --all . ;\
-    $GIT commit -m \"Change from $(hostname -s)\" ;\
-    RESULT=\$? ;\
+    $GIT commit -m \"Change from $(hostname -s)\" && WILL_PUSH=yes ;\
     $GIT pull --no-edit --recurse-submodules=no ;\
-    test \$RESULT && $GIT push"
+    test \$WILL_PUSH && $GIT push || true"
