@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 cd $1 || (echo "NO DIRECTORY: $1"; exit)
@@ -8,10 +9,11 @@ $GIT commit -m "Change from $(hostname -s)"
 $GIT pull --no-edit --recurse-submodules=no \
     || $GIT merge --abort \
     && $GIT push \
-	&& $GIT_SUBREPO pull -v --all \
-	|| $GIT_SUBREPO clean --all
+	#&& $GIT_SUBREPO pull --all \
+	#|| $GIT_SUBREPO clean --all
 
-$GIT submodule foreach $GIT add --all .
-$GIT submodule foreach $GIT commit -m "Change from $(hostname -s)"
-$GIT submodule foreach $GIT pull --no-edit --recurse-submodules=no
-$GIT submodule foreach $GIT push
+$GIT submodule foreach bash -xc "$GIT add --all . ;\
+    $GIT commit -m \"Change from $(hostname -s)\" ;\
+    RESULT=\$? ;\
+    $GIT pull --no-edit --recurse-submodules=no ;\
+    test \$RESULT && $GIT push"
