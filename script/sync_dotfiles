@@ -8,10 +8,10 @@ $GIT commit -m "Change from $(hostname -s)"
 $GIT pull --no-edit --recurse-submodules=no \
     || $GIT merge --abort \
     && $GIT push \
-	&& $GIT_SUBREPO pull -v --all \
-	|| $GIT_SUBREPO clean --all
+    && $GIT_SUBREPO pull -v --all \
+    || $GIT_SUBREPO clean --all
 
-$GIT submodule foreach $GIT add --all .
-$GIT submodule foreach $GIT commit -m "Change from $(hostname -s)"
-$GIT submodule foreach $GIT pull --no-edit --recurse-submodules=no
-$GIT submodule foreach $GIT push
+$GIT submodule foreach bash -c "$GIT add --all . ;\
+    $GIT commit -m \"Change from $(hostname -s)\" && WILL_PUSH=yes ;\
+    $GIT pull --no-edit --recurse-submodules=no ;\
+    test \$WILL_PUSH && $GIT push || true"
