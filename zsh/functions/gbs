@@ -1,2 +1,2 @@
 #!env zsh
-noglob git show-branch $(gb) */$(gb) "$@"
+noglob git show-branch $(gb) $(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2> /dev/null) "$@"
