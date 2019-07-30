@@ -1,2 +1,10 @@
 #!env zsh
-mkdir -p "$@" && cd $1
+# https://stackoverflow.com/a/3184819
+regex='(https?|ftp|file|ssh)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+if [[ $1 =~ $regex ]]
+then
+    dirname=${${1##*/}%.git}
+    command git clone $1 $dirname && cd $dirname
+else
+    command mkdir -p "$@" && cd $1
+fi
