@@ -1,0 +1,4 @@
+#!/bin/bash
+set -x
+git submodule sync --quiet
+git submodule update --init
