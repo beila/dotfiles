@@ -14,6 +14,7 @@ myManageHook = composeAll
     , className =? "ignition"                                --> doFloat
     , className =? "Thunderbird"                             --> doShift "1:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
+    , className =? "jetbrains-idea"                          --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
     , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
     , title     =? "Google Calendar - Vivaldi"               --> doShift "8:calendar"
