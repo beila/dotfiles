@@ -1,0 +1,26 @@
+#!/bin/bash
+git submodule sync --quiet
+git submodule update --init
+
+deleted_sections=$(comm -13 <(awk -F '"' '/\[submodule /{print $0}' .gitmodules|sort) <(awk -F '"' '/\[submodule /{print $0}' .git/config|sort))
+if [ "$deleted_sections" ]
+then
+    echo "Removing following submodule sections from .git/config:"
+    echo "$deleted_sections"
+
+    # Back up .git/config
+    cp -f .git/config .git/config-$1    # $1 is previous the commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
+
+    # Remove stale sections from .git/config
+    rm -f .git/config-temp
+    pattern=$(echo $deleted_sections|sed 's/\[/\\[/'|sed 's/\]/\\]/'|paste -sd'|')
+    awk -v pattern="$pattern" '/^\[/{a=1} $0 ~ pattern {a=0} {if (a) print $0}' .git/config > .git/config-temp
+    mv -f .git/config-temp .git/config
+
+    # Clean up worktree
+    deleted_submodules=$(awk -F '"' '{print $2}' <<< "$deleted_sections")
+    while read -r submodule_path
+    do
+        git clean -dff "$submodule_path"
+    done <<< "$deleted_submodules"
+fi
