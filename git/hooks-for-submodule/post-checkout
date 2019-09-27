@@ -1,14 +1,18 @@
 #!/bin/bash
-set -x
+set -xe
 #git submodule sync --quiet
 #git submodule update --init
 
 CONFIG_FILE=${CONFIG_FILE:-.git/config}
-COMMIT_ID=${1:0:-6}    # $1 is the previous commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
-                       # The last 6 chars are removed so it's still commit ID for post-checkout and empty for others.
-BACKUP_FILE=${CONFIG_FILE}-${COMMIT_ID:-$(date +%s)}
-TEMP_FILE=${CONFIG_FILE}-temp
 MODULES_FILE=${MODULES_FILE:-.gitmodules}
+
+COMMIT_ID=${1%0}    # $1 is the previous commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
+                    # 0, 1, amend, rebase are removed at the end so it's still commit ID for post-checkout and empty for others.
+COMMIT_ID=${COMMIT_ID%1}
+COMMIT_ID=${COMMIT_ID%amend}
+COMMIT_ID=${COMMIT_ID%rebase}
+BACKUP_FILE=${CONFIG_FILE}-${COMMIT_ID:-$(date +%s)}    # timestamp suffix when there isn't the commit ID.
+TEMP_FILE=${CONFIG_FILE}-temp
 
 deleted_sections=$(comm -13 <(awk -F '"' '/\[submodule /{print $0}' ${MODULES_FILE}|sort) <(awk -F '"' '/\[submodule /{print $0}' ${CONFIG_FILE}|sort))
 if [ "$deleted_sections" ]
@@ -16,19 +20,25 @@ then
     echo "Removing following submodule sections from ${CONFIG_FILE}:"
     echo "$deleted_sections"
 
-    # Back up .git/config
-    cp -f ${CONFIG_FILE} ${BACKUP_FILE}
-
-    # Remove stale sections from ${CONFIG_FILE}
-    rm -f ${TEMP_FILE}
-    pattern=$(echo $deleted_sections|sed 's/\[/\\[/'|sed 's/\]/\\]/'|paste -sd'|')
-    awk -v pattern="$pattern" '/^\[/{a=1} $0 ~ pattern {a=0} {if (a) print $0}' ${CONFIG_FILE} > ${TEMP_FILE}
-    mv -f ${TEMP_FILE} ${CONFIG_FILE}
-
     # Clean up worktree
     deleted_submodules=$(awk -F '"' '{print $2}' <<< "$deleted_sections")
     while read -r submodule_path
     do
-        git clean -dff "$submodule_path"
+        git clean -dff "$submodule_path" || true
     done <<< "$deleted_submodules"
+
+    CONFIG=$(cat ${CONFIG_FILE})
+    while read -r section
+    do
+        echo "FFFFF ${section}"
+        pattern=$(sed 's/\[//' <<< ${section})
+        pattern=$(sed 's/\]//' <<< ${pattern})
+        CONFIG=$(awk -v "pattern=$pattern" '{print $0}' <<< ${CONFIG})
+    done <<< "${deleted_sections}"
+
+    # Remove stale sections from ${CONFIG_FILE}
+    rm -f ${TEMP_FILE}
+    echo ${CONFIG} > ${TEMP_FILE}
+    cp -f ${CONFIG_FILE} ${BACKUP_FILE}
+    mv -f ${TEMP_FILE} ${CONFIG_FILE}
 fi
