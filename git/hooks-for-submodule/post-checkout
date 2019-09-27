@@ -1,21 +1,29 @@
 #!/bin/bash
-git submodule sync --quiet
-git submodule update --init
+set -x
+#git submodule sync --quiet
+#git submodule update --init
 
-deleted_sections=$(comm -13 <(awk -F '"' '/\[submodule /{print $0}' .gitmodules|sort) <(awk -F '"' '/\[submodule /{print $0}' .git/config|sort))
+CONFIG_FILE=${CONFIG_FILE:-.git/config}
+COMMIT_ID=${1:0:-6}    # $1 is the previous commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
+                       # The last 6 chars are removed so it's still commit ID for post-checkout and empty for others.
+BACKUP_FILE=${CONFIG_FILE}-${COMMIT_ID:-$(date +%s)}
+TEMP_FILE=${CONFIG_FILE}-temp
+MODULES_FILE=${MODULES_FILE:-.gitmodules}
+
+deleted_sections=$(comm -13 <(awk -F '"' '/\[submodule /{print $0}' ${MODULES_FILE}|sort) <(awk -F '"' '/\[submodule /{print $0}' ${CONFIG_FILE}|sort))
 if [ "$deleted_sections" ]
 then
-    echo "Removing following submodule sections from .git/config:"
+    echo "Removing following submodule sections from ${CONFIG_FILE}:"
     echo "$deleted_sections"
 
     # Back up .git/config
-    cp -f .git/config .git/config-$1    # $1 is previous the commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
+    cp -f ${CONFIG_FILE} ${BACKUP_FILE}
 
-    # Remove stale sections from .git/config
-    rm -f .git/config-temp
+    # Remove stale sections from ${CONFIG_FILE}
+    rm -f ${TEMP_FILE}
     pattern=$(echo $deleted_sections|sed 's/\[/\\[/'|sed 's/\]/\\]/'|paste -sd'|')
-    awk -v pattern="$pattern" '/^\[/{a=1} $0 ~ pattern {a=0} {if (a) print $0}' .git/config > .git/config-temp
-    mv -f .git/config-temp .git/config
+    awk -v pattern="$pattern" '/^\[/{a=1} $0 ~ pattern {a=0} {if (a) print $0}' ${CONFIG_FILE} > ${TEMP_FILE}
+    mv -f ${TEMP_FILE} ${CONFIG_FILE}
 
     # Clean up worktree
     deleted_submodules=$(awk -F '"' '{print $2}' <<< "$deleted_sections")
