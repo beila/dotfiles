@@ -17,13 +17,14 @@ for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
 done
 
 if [ "$(uname -s)" == "Darwin" ]
+then
     $BREW install coreutils
     $BREW install homebrew/cask-drivers/kensington-trackball-works
     $BREW cask install iterm2 quicksilver karabiner-elements
+    $BREW cask install vivaldi clion
 fi
 
 $BREW install ripgrep
-$BREW cask install vivaldi clion
 
 #$BREW tap homebrew/versions
 
