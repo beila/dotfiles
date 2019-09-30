@@ -50,3 +50,5 @@ if [[ -a ~/.localrc ]]
 then
   source ~/.localrc
 fi
+
+export PATH=$HOME/.toolbox/bin:$PATH
