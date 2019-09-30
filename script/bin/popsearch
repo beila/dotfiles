@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 VOTES_FILE=$HOME/.by_vote.gz
 wget --quiet -N http://popcon.debian.org/by_vote.gz -O $VOTES_FILE
 #aptitude search --disable-columns -F "%p" "$@" | xargs -I FFFFF zgrep " FFFFF " $VOTES_FILE | sort -n
@@ -23,5 +23,5 @@ SORTED_PACKAGES=$(zgrep "${SEARCH_WORD}" $VOTES_FILE|sed 's/ \+/ /g'|cut -d ' ' 
 TEXT=$(aptitude search "$@")
 for p in ${SORTED_PACKAGES}
 do
-    grep "^... ${p}[[:space:]]" <<<"${TEXT}"
+    grep "^.. ${p}[[:space:]]" <<<"${TEXT}"
 done
