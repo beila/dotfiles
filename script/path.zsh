@@ -1,2 +1,2 @@
-local DIR=${DOTFILES_ROOT}/xwindow/bin
-export PATH=${PATH//:${DIR}}:${DIR}
+local dir=${DOTFILES_ROOT}/xwindow/bin
+path=(${(@)path:#$dir} $dir)
