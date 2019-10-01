@@ -1,32 +1,30 @@
-if [[ -d $HOME/.linuxbrew ]]
-then
-	export PATH=$HOME/.linuxbrew/sbin:${PATH//$HOME\/.linuxbrew\/sbin:}
-	export PATH=$HOME/.linuxbrew/bin:${PATH//$HOME\/.linuxbrew\/bin:}
-	export MANPATH=$HOME/.linuxbrew/share/man:${MANPATH://$HOME\/.linuxbrew\/share\/man:}
-	export INFOPATH=$HOME/.linuxbrew/share/info:${INFOPATH://$HOME\/.linuxbrew\/share\/info:}
-fi
+for brew_path in $HOME/.linuxbrew /home/linuxbrew/.linuxbrew 
+do
+    if [[ -d ${brew_path} ]]
+    then
+        local dir=${brew_path}/sbin
+        path=($dir ${(@)path:#$dir})
+        dir=${brew_path}/bin
+        path=($dir ${(@)path:#$dir})
+        dir=${brew_path}/share/man
+        manpath=($dir ${(@)manpath:#$dir})
+        dir=${brew_path}/share/info
+        export INFOPATH=$dir:${INFOPATH://$dir:}
+    fi
+done
 
-if [[ -d /home/linuxbrew/.linuxbrew ]]
+# brew info coreutils
+local dir=/usr/local/opt/coreutils/libexec/gnubin 
+if [[ -d $dir ]]
 then
-	BREWPATH=$(cd /home/linuxbrew/.linuxbrew && pwd)
-	export PATH=$BREWPATH/sbin:${PATH//$BREWPATH\/sbin:}
-	export PATH=$BREWPATH/bin:${PATH//$BREWPATH\/bin:}
-	export MANPATH=$BREWPATH/share/man:${MANPATH://$BREWPATH\/share\/man:}
-	export INFOPATH=$BREWPATH/share/info:${INFOPATH://$BREWPATH\/share\/info:}
+    path=($dir ${(@)path:#$dir})
 fi
 
 # brew info coreutils
-local DIR=/usr/local/opt/coreutils/libexec/gnubin 
-if [[ -d $DIR ]]
+local dir=/usr/local/opt/coreutils/libexec/gnuman
+if [[ -d $dir ]]
 then
-	export PATH=$DIR:${PATH//$DIR:}
-fi
-
-# brew info coreutils
-local DIR=/usr/local/opt/coreutils/libexec/gnuman
-if [[ -d $DIR ]]
-then
-    export MANPATH=$DIR:${MANPATH//$DIR:}
+    manpath=($dir ${(@)manpath:#$dir})
 fi
 
 # brew info curl
