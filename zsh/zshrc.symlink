@@ -51,4 +51,5 @@ then
   source ~/.localrc
 fi
 
-export PATH=$HOME/.toolbox/bin:$PATH
+local dir=$HOME/.toolbox/bin
+path=($dir ${(@)path:#$dir})

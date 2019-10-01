@@ -1,2 +1,2 @@
-local DIR=${DOTFILES_ROOT}/script/bin
-export PATH=${PATH//:${DIR}}:${DIR}
+local dir=${DOTFILES_ROOT}/script/bin
+path=(${(@)path:#$dir} $dir)

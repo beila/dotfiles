@@ -1,2 +1,2 @@
-local DIR=${DOTFILES_ROOT}/git/bin
-export PATH=${PATH//:${DIR}}:${DIR}
+local dir=${DOTFILES_ROOT}/git/bin
+path=(${(@)path:#$dir} $dir)
