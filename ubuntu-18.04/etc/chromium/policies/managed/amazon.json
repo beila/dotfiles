@@ -1,0 +1,4 @@
+{
+"AuthServerWhitelist": "*.amazon.com",
+"AuthNegotiateDelegateWhitelist": "*.amazon.com"
+}

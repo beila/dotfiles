@@ -1,0 +1,5 @@
+[Desktop Entry]
+Name=XMonad Standalone
+Comment=Lightweight tiling window manager ( https://xmonadhaskell.wordpress.com/2018/10/22/xmonad-ubuntu-18-04-install/ )
+Exec=xmonad
+Type=XSession
