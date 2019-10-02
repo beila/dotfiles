@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
-cd $1 || (echo "NO DIRECTORY: $1"; exit)
+cd $1 || {echo "NO DIRECTORY: $1"; exit}
 
 $GIT add --all .
 $GIT commit -m "Change from $(hostname -s)"
