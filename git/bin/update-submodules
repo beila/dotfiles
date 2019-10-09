@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+#set -e
 git submodule sync --quiet
 git submodule update --init
 
