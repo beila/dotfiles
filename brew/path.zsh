@@ -6,8 +6,11 @@ do
         path=($dir ${(@)path:#$dir})
         dir=${brew_path}/bin
         path=($dir ${(@)path:#$dir})
+
+        export MANPATH=${MANPATH:-$(manpath)} # should be initialised otherwise default values are not used
         dir=${brew_path}/share/man
         manpath=($dir ${(@)manpath:#$dir})
+
         dir=${brew_path}/share/info
         export INFOPATH=$dir:${INFOPATH://$dir:}
     fi
