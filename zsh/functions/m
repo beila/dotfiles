@@ -16,3 +16,5 @@ alias|grep "${grep_pattern}"
 
 # tldr shows the error message to stdout, not stderr
 tldr "$@" >/dev/null 2>&1 && tldr "$@"
+
+which "$@" | grep -iv "not found" | head -1 | xargs head -40
