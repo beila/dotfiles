@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/pyenv/pyenv.git
 	branch = master
-	commit = ddc56ebe3a6bd4dd634c8277ffe07ef9fb054513
-	parent = 6f7c9bd11ed0aac022ae995341eec871fbc91b10
+	commit = 0e7cfc3b3d4eca46ad83d632e1505f5932cd179b
+	parent = bb3ee5d69cb771a62fc06537ba6a8077d0cbc634
 	cmdver = 0.4.0
 	method = merge
