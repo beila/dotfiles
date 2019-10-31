@@ -21,9 +21,9 @@
 [merge]
 	conflictStyle = diff3
 [pager]
-	log = diff-highlight | less
-	show = diff-highlight | less
-	diff = diff-highlight | less
+	log = diff-highlight | less -FMRiX
+	show = diff-highlight | less -FMRiX
+	diff = diff-highlight | less -FMRiX
 [interactive]
 	diffFilter = diff-highlight
 [rerere]
