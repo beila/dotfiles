@@ -1,5 +1,4 @@
 #!/bin/bash
-#set -e
 set -x
 git submodule sync --quiet
 git submodule update --init
@@ -33,7 +32,7 @@ then
 
     # Remove stale sections from ${CONFIG_FILE}
     rm -f ${TEMP_FILE}
-    pattern=$(echo "$deleted_sections"|sed 's/[][]//g'|paste -sd'|')    # [][] matches '[' or ']' since []] matches ']'
+    pattern=$(echo "$deleted_sections"|sed 's/[][]//g'|paste -sd'|' -)    # [][] matches '[' or ']' since []] matches ']'
     awk -v pattern="$pattern" '/^\[/{a=1} $0 ~ pattern {a=0} {if (a) print $0}' ${CONFIG_FILE} > ${TEMP_FILE}
     mv -f ${TEMP_FILE} ${CONFIG_FILE}
 fi
