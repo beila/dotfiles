@@ -16,32 +16,6 @@
                 },
                 "rules": [
                     {
-                        "description": "Caps Lock to Escape on single press, Control on press and hold.",
-                        "manipulators": [
-                            {
-                                "from": {
-                                    "key_code": "caps_lock",
-                                    "modifiers": {
-                                        "optional": [
-                                            "any"
-                                        ]
-                                    }
-                                },
-                                "to": [
-                                    {
-                                        "key_code": "left_control"
-                                    }
-                                ],
-                                "to_if_alone": [
-                                    {
-                                        "key_code": "escape"
-                                    }
-                                ],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
                         "description": "(Hojin) Map volume controls to fine volume controls (Option + Shift + Volume)",
                         "manipulators": [
                             {
