@@ -8,6 +8,7 @@ import XMonad.Util.Run(spawnPipe)
 import XMonad.Layout.PerWorkspace
 import qualified XMonad.StackSet as W
 import qualified Data.List as L (find,filter)
+import XMonad.Hooks.EwmhDesktops
 
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
