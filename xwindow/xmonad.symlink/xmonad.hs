@@ -12,7 +12,7 @@ import XMonad.Hooks.EwmhDesktops
 
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
-    , className =? "ignition"                                --> doFloat
+    --, className =? "ignition"                                --> doFloat
     , className =? "Thunderbird"                             --> doShift "1:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "jetbrains-idea"                          --> doShift "3:clion"
