@@ -1,4 +1,0 @@
-#!/Users/hojin/.dotfiles/python/pyenv/versions/2.7.15/envs/oncall-scripts-venv/bin/python
-import pydoc
-if __name__ == '__main__':
-      pydoc.cli()
