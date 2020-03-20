@@ -1,0 +1,4 @@
+#!/Users/hojin/.dotfiles/python/pyenv/versions/3.6.5/envs/crashdrivers-venv/bin/python
+import pydoc
+if __name__ == '__main__':
+      pydoc.cli()
