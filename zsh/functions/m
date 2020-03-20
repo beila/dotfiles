@@ -3,8 +3,8 @@ local grep_pattern="${${@/#/\b}/%/\b}"
 # fun in keys of ${functions} associative array with keys starting with "_" removed
 for fun in ${(k)=functions:/_*/}
 do
-	autoload +X $fun
-	functions $fun | grep -C999 "${grep_pattern}"
+	autoload +X -- $fun
+	functions -- $fun | grep -C999 "${grep_pattern}"
 done
 
 functions "$@"
