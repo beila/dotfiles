@@ -1,6 +1,7 @@
 local funcdir=$(dirname $(readlink -f $0))/functions
+local exafuncdir=$(dirname $(readlink -f $0))/exa_functions
 
-fpath=($funcdir $fpath)
+fpath=($exafuncdir $funcdir $fpath)
 
 for ff in $(cd $funcdir;ls *)
 do
@@ -16,3 +17,15 @@ do
 	unhash -af ${ff#aliased_} 2> /dev/null
 	alias ${ff#aliased_}="${ff} "
 done
+
+local EXA=$(which exa 2> /dev/null)
+if [ "$?" -eq 0 ]
+then
+    for ff in $(cd $exafuncdir;ls *)
+    do
+        unhash -f ${ff} 2> /dev/null
+        unhash -a ${ff} 2> /dev/null
+        autoload ${ff}
+    done
+
+fi
