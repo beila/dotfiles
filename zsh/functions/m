@@ -1,13 +1,14 @@
 #!env zsh	# This is only for sourcing
 local grep_pattern="${${@/#/\b}/%/\b}"
+
+which -p "$@" | grep -iv "not found" | tee >(cat - >&2) | xargs strings | head -40
+
 # fun in keys of ${functions} associative array with keys starting with "_" removed
 for fun in ${(k)=functions:/_*/}
 do
 	autoload +X -- $fun
-	functions -- $fun | grep -C999 "${grep_pattern}"
+	functions -- $fun | grep -q "${grep_pattern}" && functions $fun | head -40
 done
-
-functions "$@"
 
 # functions which are prefixed with "aliased_" which are added from ../functions.zsh
 functions "${@/#/aliased_}"
@@ -16,5 +17,3 @@ alias|grep "${grep_pattern}"
 
 # tldr shows the error message to stdout, not stderr
 tldr "$@" >/dev/null 2>&1 && tldr "$@"
-
-which "$@" | grep -iv "not found" | head -1 | xargs head -40
