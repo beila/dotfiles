@@ -11,6 +11,9 @@ export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 # your project folder that we can `c [tab]` to
 export PROJECTS=~/dev
 
+# should be initialised otherwise default values are not used
+MANPATH=${MANPATH:-$(manpath)}
+
 # all of our zsh files
 typeset -U config_files
 config_files=($DOTFILES_ROOT/**/*.zsh)
