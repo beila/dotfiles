@@ -19,7 +19,7 @@ do
 done
 
 local EXA=$(which exa 2> /dev/null)
-if [ "$?" -eq 0 ]
+if [[ -x ${EXA} ]]
 then
     for ff in $(cd $exafuncdir;ls *)
     do
