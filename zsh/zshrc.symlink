@@ -17,11 +17,13 @@ MANPATH=${MANPATH:-$(manpath)}
 # all of our zsh files
 typeset -U config_files
 config_files=($DOTFILES_ROOT/**/*.zsh)
+zprezto_config_file=zprezto.symlink/init.zsh
+config_files=${config_files:#${zprezto_config_file}}
 
 # load the path files
 for file in ${${(M)config_files:#*/path.zsh}:#*/zprezto.symlink/modules/*}
 do
-  #echo "sourcing path from: $file"
+  echo "sourcing path from: $file"
   source $file
 done
 
@@ -31,9 +33,12 @@ done
 # load everything but the path and completion files
 for file in ${${${${config_files:#*/path.zsh}:#*/completion.zsh}:#*/vimshell/*}:#*/zprezto.symlink/modules/*}
 do
-  #echo "sourcing: $file"
+  echo "sourcing: $file"
   source $file
 done
+
+echo "sourcing: $zprezto_config_file"
+source $zprezto_config_file
 
 # initialize autocomplete here, otherwise functions won't be loaded
 autoload -U compinit
@@ -42,7 +47,7 @@ compinit
 # load every completion after autocomplete loads
 for file in ${(M)config_files:#*/completion.zsh}
 do
-  #echo "sourcing completion from: $file"
+  echo "sourcing completion from: $file"
   source $file
 done
 
