@@ -16,9 +16,13 @@ MANPATH=${MANPATH:-$(manpath)}
 
 # all of our zsh files
 typeset -U config_files
-config_files=($DOTFILES_ROOT/**/*.zsh)
+config_files=(${DOTFILES_ROOT}/**/*.zsh)
+echo "BBBBBBBBBBBBBBBBBBBBBBB ${config_files}"
+echo
+echo
 zprezto_config_file=zprezto.symlink/init.zsh
-config_files=${config_files:#${zprezto_config_file}}
+config_files=${config_files:#*${zprezto_config_file}}
+echo "AAAAAAAAAAAAAAAAAAAAAAA ${config_files}"
 
 # load the path files
 for file in ${${(M)config_files:#*/path.zsh}:#*/zprezto.symlink/modules/*}
@@ -37,8 +41,8 @@ do
   source $file
 done
 
-echo "sourcing: $zprezto_config_file"
-source $zprezto_config_file
+echo "sourcing: ${DOTFILES_ROOT}/$zprezto_config_file"
+source ${DOTFILES_ROOT}/$zprezto_config_file
 
 # initialize autocomplete here, otherwise functions won't be loaded
 autoload -U compinit
