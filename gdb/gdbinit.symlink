@@ -1,1 +1,2 @@
 set prompt \1\033[1;36m\2(gdb) \1\033[0m\2
+set startup-with-shell off
