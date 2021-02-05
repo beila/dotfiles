@@ -40,6 +40,8 @@ do
   source $file
 done
 
+#source ${DOTFILES_ROOT}/zprezto.symlink/contrib/fzf-tab/fzf-tab.plugin.zsh
+
 # initialize autocomplete here, otherwise functions won't be loaded
 autoload -U compinit
 compinit
@@ -70,8 +72,3 @@ fi
 
 local dir=$HOME/.toolbox/bin
 path=($dir ${(@)path:#$dir})
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
