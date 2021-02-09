@@ -72,3 +72,5 @@ fi
 
 local dir=$HOME/.toolbox/bin
 path=($dir ${(@)path:#$dir})
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
