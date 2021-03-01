@@ -47,7 +47,7 @@ setup_gitconfig () {
     sed -e "s/AUTHORNAME/$git_authorname/g" \
         -e "s/AUTHOREMAIL/$git_authoremail/g" \
         -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" \
-        -e "s^GIT_TEMPLATE_DIR^${DOTFILES_ROOT}/git/bin^g" \
+        -e "s^DOTFILES_ROOT^${DOTFILES_ROOT}^g" \
         $DOTFILES_ROOT/git/gitconfig.local.symlink.example > git/gitconfig.local.symlink
 
     success 'gitconfig'
