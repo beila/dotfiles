@@ -4,5 +4,7 @@
 .idea
 *.iml
 cmake-build-*
+.clion.source.upload.marker
 atlassian-ide-plugin.xml
 venv
+tags
