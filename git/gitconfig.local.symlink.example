@@ -3,3 +3,9 @@
         email = AUTHOREMAIL
 [credential]
         helper = GIT_CREDENTIAL_HELPER
+[init]
+        templatedir = DOTFILES_ROOT/git/hooks
+[pager]
+	log = DOTFILES_ROOT/git/bin/diff-highlight | less -FMRiX
+	show = DOTFILES_ROOT/git/bin/diff-highlight | less -FMRiX
+	diff = DOTFILES_ROOT/git/bin/diff-highlight | less -FMRiX
