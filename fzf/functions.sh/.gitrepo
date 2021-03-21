@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://gist.github.com/8b572b8d4b5eddd8b85e5f4d40f17236.git
 	branch = master
-	commit = 0fc65a1e6560dd59a469959fa74b1e2c3cfba9a1
-	parent = 0544c1286a9facd0fe2a45c5cc9e47c191125724
+	commit = e71264d55876f8949855280c0792809331b5a8cf
+	parent = 42c8384d1f3985360f7a1df5b846c434635d4aa4
 	method = merge
 	cmdver = 0.4.0
