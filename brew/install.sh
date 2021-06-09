@@ -3,10 +3,7 @@
 BREW=$(which brew 2> /dev/null)
 if [ "$?" -ne 0 ]
 then
-  if [ "$(uname -s)" == "Linux" ]
-  then
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Linuxbrew/linuxbrew/go/install)"
-  fi
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
 for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
@@ -24,7 +21,7 @@ then
     $BREW cask install vivaldi clion
 fi
 
-$BREW install ripgrep
+$BREW install ripgrep fzf
 
 #$BREW tap homebrew/versions
 
