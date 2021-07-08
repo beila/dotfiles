@@ -29,3 +29,5 @@
     dag = log --graph --format='format:%C(yellow)%h%C(reset) %C(blue)\"%an\" <%ae>%C(reset) %C(magenta)%cd%C(reset)%C(auto)%d%C(reset)%n%s' --date='format:%y-%m-%d' --date-order
 [pull]
 	ff = only
+[protocol "codecommit"]
+	allow = always
