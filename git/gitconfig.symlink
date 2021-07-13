@@ -31,3 +31,5 @@
 	ff = only
 [protocol "codecommit"]
 	allow = always
+[init]
+	defaultBranch = main
