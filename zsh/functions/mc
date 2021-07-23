@@ -1,6 +1,6 @@
 #!env zsh
 # https://stackoverflow.com/a/3184819
-regex='(https?|ftp|file|ssh)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
+regex='(https?|ftp|file|ssh|codecommit::.*)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
 if [[ $1 =~ $regex ]]
 then
     dirname=${${1##*/}%.git}
