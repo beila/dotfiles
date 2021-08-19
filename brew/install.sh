@@ -20,6 +20,7 @@ then
     $BREW cask install iterm2 quicksilver karabiner-elements
     $BREW cask install vivaldi clion
 fi
+which screen 2>&1 >dev/null || $BREW install screen
 
 $BREW install ripgrep fzf
 
