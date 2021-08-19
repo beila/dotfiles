@@ -1,2 +1,8 @@
 #!env zsh
-(set -x; fswatch -r .|git check-ignore --stdin --non-matching --verbose|awk -v HOST=$1 -v LOCAL_PREFIX=$2 -v REMOTE_PREFIX=$3 '$1=="::"{relpath=$2;sub(LOCAL_PREFIX "/?","",relpath);system(sprintf("scp %s %s:%s/%s\n",$2,HOST,REMOTE_PREFIX,relpath))}')
+(
+set -x
+fswatch -r . |\
+    git check-ignore --stdin --non-matching --verbose |\
+    awk -v HOST=$1 -v LOCAL_PREFIX=$2 -v REMOTE_PREFIX=$3 \
+    '$1=="::"{relpath=$2;sub(LOCAL_PREFIX "/?","",relpath);system("date");system(sprintf("scp %s %s:%s/%s\n",$2,HOST,REMOTE_PREFIX,relpath))}'
+)
