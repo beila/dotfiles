@@ -164,12 +164,11 @@ setup_dotfiles_sync () {
 }
 
 setup_gitconfig
-git submodule update --init
-git submodule foreach git submodule update --init --recursive --remote
+git submodule update --init --remote --recursive
 install_dotfiles
 setup_dotfiles_sync
 
-$DOTFILES_ROOT/script/install
+bash -x $DOTFILES_ROOT/script/install
 
 echo ''
 echo '  All installed!'
