@@ -169,17 +169,7 @@ git submodule foreach git submodule update --init --recursive --remote
 install_dotfiles
 setup_dotfiles_sync
 
-# If we're on a Mac, let's install and setup homebrew.
-if [ "$(uname -s)" == "Darwin" ]
-then
-  info "installing dependencies"
-  if source bin/dot > /tmp/dotfiles-dot 2>&1
-  then
-    success "dependencies installed"
-  else
-    fail "error installing dependencies"
-  fi
-fi
+$DOTFILES_ROOT/script/install
 
 echo ''
 echo '  All installed!'
