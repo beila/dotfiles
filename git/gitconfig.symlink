@@ -32,4 +32,4 @@
 [protocol "codecommit"]
 	allow = always
 [init]
-	defaultBranch = main
+	defaultBranch = mainline
