@@ -3,8 +3,10 @@
 	url = git@github.com:beila/prezto.git
 	branch = master
 	ignore = all
+	update = merge
 [submodule "vim.symlink"]
 	path = vim.symlink
 	url = git@github.com:beila/dotvim.git
 	branch = master
 	ignore = all
+	update = merge
