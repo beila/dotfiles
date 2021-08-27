@@ -33,3 +33,5 @@
 	allow = always
 [init]
 	defaultBranch = mainline
+[rebase]
+	autoSquash = true
