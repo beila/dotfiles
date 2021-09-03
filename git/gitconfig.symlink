@@ -20,8 +20,6 @@
         default = simple
 [merge]
 	conflictStyle = diff3
-[interactive]
-	diffFilter = diff-highlight
 [rerere]
 	enabled = true
 [alias]

@@ -18,9 +18,9 @@ done
 if [ "$(uname -s)" == "Darwin" ]
 then
     $BREW install coreutils
-    $BREW install homebrew/cask-drivers/kensington-trackball-works
-    $BREW cask install iterm2 quicksilver karabiner-elements
-    $BREW cask install vivaldi clion
+    #$BREW install homebrew/cask-drivers/kensington-trackball-works
+    $BREW install iterm2 quicksilver karabiner-elements
+    $BREW install vivaldi clion
 fi
 
 which screen 2>&1 >dev/null || $BREW install screen
