@@ -169,7 +169,5 @@ git submodule foreach git submodule update --init --recursive --remote
 install_dotfiles
 setup_dotfiles_sync
 
-$DOTFILES_ROOT/script/install
-
 echo ''
 echo '  All installed!'
