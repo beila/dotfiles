@@ -1,5 +1,5 @@
 module.exports = {
-  defaultBrowser: "Vivaldi",
+  defaultBrowser: "Firefox",
   options: {
     hideIcon: false,
     checkForUpdate: true,
