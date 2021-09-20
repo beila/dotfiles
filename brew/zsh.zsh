@@ -3,7 +3,7 @@ autoload run-help
 HELPDIR=/usr/local/share/zsh/help
 
 # brew info nvm
-local NVM_DIR="$HOME/.nvm"
-test -d $NVM_DIR && export NVM_DIR
-local NVM_SOURCE="/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"
-test -d $NVM_SOURCE && source $NVM_SOURCE
+[ -d "$HOME/.nvm" ] && export NVM_DIR="$HOME/.nvm"
+[ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && . "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && . "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+
