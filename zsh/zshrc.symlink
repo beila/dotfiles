@@ -27,10 +27,10 @@ do
   source $file
 done
 
-#https://youtrack.jetbrains.com/articles/IDEA-A-19/Shell-Environment-Loading
+# https://youtrack.jetbrains.com/articles/IDEA-A-19/Shell-Environment-Loading
 if [ -z "$INTELLIJ_ENVIRONMENT_READER" ]; then
-#echo "sourcing: ${DOTFILES_ROOT}/$zprezto_config_file"
-source ${DOTFILES_ROOT}/$zprezto_config_file
+  #echo "sourcing: ${DOTFILES_ROOT}/$zprezto_config_file"
+  source ${DOTFILES_ROOT}/$zprezto_config_file
 fi
 
 # TODO this one stops me from logging in:
