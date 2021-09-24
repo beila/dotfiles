@@ -1,0 +1,10 @@
+#!env zsh
+
+[ -z $SLACK_NOTIFY_WEBHOOK ] && echo "Need SLACK_NOTIFY_WEBHOOK env variable!" ; return
+
+COMMAND=$@
+bash -c "$COMMAND"; EXIT_CODE=$?
+
+printf -v MESSAGE '{"hostname":"%s", "command":"%s", "exit_code":"%d"}' "$HOSTNAME" "$COMMAND" "$EXIT_CODE"
+
+curl -X POST $SLACK_NOTIFY_WEBHOOK -H "Content-Type:application/json" --data "$MESSAGE"
