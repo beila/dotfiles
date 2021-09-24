@@ -1,10 +1,14 @@
 #!env zsh
+set -x
+[ -z $SLACK_NOTIFY_WEBHOOK ] && echo "Need SLACK_NOTIFY_WEBHOOK env variable!" && return
 
-[ -z $SLACK_NOTIFY_WEBHOOK ] && echo "Need SLACK_NOTIFY_WEBHOOK env variable!" ; return
+SHORT_COMMAND="${@[1]}"
+COMMAND="$@"
+$COMMAND; EXIT_CODE=$?
 
-COMMAND=$@
-bash -c "$COMMAND"; EXIT_CODE=$?
+SUMMARY="'${SHORT_COMMAND}' is failed with error code: $EXIT_CODE"
+[[ $EXIT_CODE -eq 0 ]] && SUMMARY="'${SHORT_COMMAND}' is succeeded"
 
-printf -v MESSAGE '{"hostname":"%s", "command":"%s", "exit_code":"%d"}' "$HOSTNAME" "$COMMAND" "$EXIT_CODE"
+printf -v DATA '{"summary":"%s", "command":"%s", "message":"```%s```\nran in %s"}' "${SUMMARY}" "${COMMAND}" "${COMMAND}" $(hostname)
 
-curl -X POST $SLACK_NOTIFY_WEBHOOK -H "Content-Type:application/json" --data "$MESSAGE"
+curl -X POST $SLACK_NOTIFY_WEBHOOK -H "Content-Type:application/json" --data "$DATA"
