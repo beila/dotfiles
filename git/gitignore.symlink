@@ -8,4 +8,3 @@ cmake-build-*
 atlassian-ide-plugin.xml
 venv
 tags
-.npmrc
