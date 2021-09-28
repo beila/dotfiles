@@ -6,18 +6,22 @@
       "passKeys": "jkevl`"
     },
     {
-      "pattern": "https?://bitbucket.amazondcl.com/*/diff#*",
-      "passKeys": "jkpn?"
+      "pattern": "https?://bitbucket*.amazondcl.com/*/diff#*",
+      "passKeys": "jkpn?{"
     },
     {
-      "pattern": "https?://bitbucket.amazondcl.com/*/diff",
-      "passKeys": "jkpn?"
+      "pattern": "https?://bitbucket*.amazondcl.com/*/diff",
+      "passKeys": "jkpn?{"
+    },
+    {
+      "pattern": "https?://bitbucket*.amazondcl.com/*/pull-requests?create&*",
+      "passKeys": "jkpn?{"
     }
   ],
   "filterLinkHints": false,
   "waitForEnterForFilteredHints": true,
   "hideHud": false,
-  "keyMappings": "map [ previousTab\nmap ] nextTab\nmap { goPrevious\nmap } goNext\n\nmap j scrollPageDown\nmap k scrollPageUp\nmap J scrollDown\nmap K scrollUp\nmap H scrollLeft\nmap L scrollRight\n\nmap f LinkHints.activateModeToOpenInNewForegroundTab\nmap F LinkHints.activateMode\nmap p openCopiedUrlInNewTab\nmap P openCopiedUrlInCurrentTab\n\n# https://avilpage.com/2014/04/useful-custom-key-maps-for-vimium-to.html\nmap h goBack\nmap l goForward\nmap o Vomnibar.activateInNewTab\nmap O Vomnibar.activate\nmap b Vomnibar.activateBookmarksInNewTab\nmap B Vomnibar.activateBookmarks",
+  "keyMappings": "map [ previousTab\nmap ] nextTab\nmap { goPrevious\nmap } goNext\n\nmap j scrollPageDown\nmap k scrollPageUp\nmap J scrollDown\nmap K scrollUp\nmap H scrollLeft\nmap L scrollRight\n\n#map f LinkHints.activateModeToOpenInNewForegroundTab\n#map F LinkHints.activateMode\nmap p openCopiedUrlInNewTab\nmap P openCopiedUrlInCurrentTab\n\n# https://avilpage.com/2014/04/useful-custom-key-maps-for-vimium-to.html\nmap h goBack\nmap l goForward\nmap o Vomnibar.activateInNewTab\nmap O Vomnibar.activate\nmap b Vomnibar.activateBookmarksInNewTab\nmap B Vomnibar.activateBookmarks",
   "linkHintCharacters": "sadjklewcmpgh",
   "linkHintNumbers": "0123456789",
   "newTabUrl": "about:newtab",
