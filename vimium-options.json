@@ -3,7 +3,7 @@
   "exclusionRules": [
     {
       "pattern": "https?://mail.google.com/*",
-      "passKeys": "jkevl`"
+      "passKeys": "jkevl`/"
     },
     {
       "pattern": "https?://bitbucket*.amazondcl.com/*/diff#*",
@@ -25,8 +25,8 @@
   "linkHintCharacters": "sadjklewcmpgh",
   "linkHintNumbers": "0123456789",
   "newTabUrl": "about:newtab",
-  "nextPatterns": "next,more,newer,>,›,→,»,≫,>>,다음",
-  "previousPatterns": "prev,previous,back,older,<,‹,←,«,≪,<<,이전",
+  "nextPatterns": "next,more,older,>,›,→,»,≫,>>,다음",
+  "previousPatterns": "prev,previous,back,newer,<,‹,←,«,≪,<<,이전",
   "regexFindMode": false,
   "ignoreKeyboardLayout": false,
   "scrollStepSize": 60,
