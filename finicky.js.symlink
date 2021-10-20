@@ -15,10 +15,12 @@ module.exports = {
      *  browser: "/Applications/Quip.app",
      *},
      */
-    {
-      match: finicky.matchHostnames(["localhost", "xxx"]),
-      browser: "Google Chrome"
-    },
+    /*
+     *{
+     *  match: finicky.matchHostnames(["localhost", "xxx"]),
+     *  browser: "Google Chrome"
+     *},
+     */
   ],
   rewrite: [
     {
@@ -48,13 +50,15 @@ module.exports = {
      *  }),
      *},
      */
-    {
-      // rewrite t.corp.amazon.com to SIM
-      match: finicky.matchHostnames(["t.corp.amazon.com"]),
-      url: ({ url }) => ({
-        ...url,
-        host: "issues.amazon.com",
-      }),
-    },
+    /*
+     *{
+     *  // rewrite t.corp.amazon.com to SIM
+     *  match: finicky.matchHostnames(["t.corp.amazon.com"]),
+     *  url: ({ url }) => ({
+     *    ...url,
+     *    host: "issues.amazon.com",
+     *  }),
+     *},
+     */
   ],
 };
