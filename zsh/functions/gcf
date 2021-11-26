@@ -1,0 +1,6 @@
+#!env zsh
+if typeset -f _gh > /dev/null; then
+    git commit --verbose --fixup=$(_gh)
+else
+    git commit --verbose --fixup=$1
+fi
