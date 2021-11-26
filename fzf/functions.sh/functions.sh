@@ -13,7 +13,7 @@ _gf() {
   is_in_git_repo || return
   git -c color.status=always status --ignore-submodules=${_git_status_ignore_submodules} --short |
   fzf-down -m --ansi --nth 2..,.. \
-    --preview '(git diff --color=always -- {-1} | sed 1,4d; cat {-1})' |
+    --preview '(git diff --color=always HEAD -- {-1} | sed 1,4d; cat {-1})' |
   cut -c4- | sed 's/.* -> //'
 }
 
