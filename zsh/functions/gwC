@@ -1,2 +1,2 @@
 #!env zsh
-git clean -dff
+git clean -dffX
