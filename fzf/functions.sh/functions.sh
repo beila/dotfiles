@@ -11,9 +11,9 @@ fzf-down() {
 
 _gf() {
   is_in_git_repo || return
-  git -c color.status=always status --short |
+  git -c color.status=always status --ignore-submodules=${_git_status_ignore_submodules} --short |
   fzf-down -m --ansi --nth 2..,.. \
-    --preview '(git diff --color=always -- {-1} | sed 1,4d; cat {-1})' |
+    --preview '(git diff --color=always HEAD -- {-1} | sed 1,4d; cat {-1})' |
   cut -c4- | sed 's/.* -> //'
 }
 
@@ -38,7 +38,7 @@ _gh() {
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
   fzf-down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | xargs git show --color=always' |
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | xargs git show --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}"
 }
 
