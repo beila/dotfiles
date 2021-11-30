@@ -27,8 +27,11 @@ do
   source $file
 done
 
-#echo "sourcing: ${DOTFILES_ROOT}/$zprezto_config_file"
-source ${DOTFILES_ROOT}/$zprezto_config_file
+# https://youtrack.jetbrains.com/articles/IDEA-A-19/Shell-Environment-Loading
+if [ -z "$INTELLIJ_ENVIRONMENT_READER" ]; then
+  #echo "sourcing: ${DOTFILES_ROOT}/$zprezto_config_file"
+  source ${DOTFILES_ROOT}/$zprezto_config_file
+fi
 
 # TODO this one stops me from logging in:
 # .dotfiles/vim.sync/bundle/vimshell/autoload/unite/sources/vimshell_zsh_complete/complete.zsh
@@ -71,3 +74,6 @@ then
 fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+

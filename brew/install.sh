@@ -9,6 +9,8 @@ fi
 for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
     if [[ -x $f/brew ]]; then
         BREW=${BREW:-$f/brew}
+        mkdir $HOME/local
+        ln -s $f/.. $HOME/local/linuxbrew
 		break
     fi
 done
@@ -16,12 +18,12 @@ done
 if [ "$(uname -s)" == "Darwin" ]
 then
     $BREW install coreutils
-    $BREW install homebrew/cask-drivers/kensington-trackball-works
-    $BREW cask install iterm2 quicksilver karabiner-elements
-    $BREW cask install vivaldi clion
+    #$BREW install homebrew/cask-drivers/kensington-trackball-works
+    $BREW install iterm2 quicksilver karabiner-elements
+    $BREW install vivaldi clion
 fi
-which screen 2>&1 >dev/null || $BREW install screen
 
+which screen 2>&1 >dev/null || $BREW install screen
 $BREW install ripgrep fzf
 
 # brew info fzf
