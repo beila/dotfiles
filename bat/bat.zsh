@@ -1,2 +1,2 @@
-# Used for delta too
-export BAT_THEME=ansi
+local DIR=$(dirname $(readlink -f $0))
+export BAT_CONFIG_PATH="${DIR}/bat.conf"
