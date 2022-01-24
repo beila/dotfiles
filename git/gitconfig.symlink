@@ -39,3 +39,5 @@
     navigate = true
 [diff]
     colorMoved = default
+[commit]
+	verbose = true
