@@ -1,4 +1,4 @@
-LOCAL_ROOTS=($HOME/local $HOME/.local)
+LOCAL_ROOTS=($HOME/local $HOME/.local ${DOTFILES_ROOT})
 
 for local_root in $LOCAL_ROOTS
 do
