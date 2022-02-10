@@ -729,6 +729,16 @@
                         },
                         {
                             "from": {
+                                "key_code": "home"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "left_option"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
                                 "key_code": "left_control"
                             },
                             "to": [
@@ -743,7 +753,7 @@
                             },
                             "to": [
                                 {
-                                    "key_code": "left_option"
+                                    "key_code": "left_control"
                                 }
                             ]
                         },
@@ -754,6 +764,16 @@
                             "to": [
                                 {
                                     "apple_vendor_top_case_key_code": "keyboard_fn"
+                                }
+                            ]
+                        },
+                        {
+                            "from": {
+                                "key_code": "page_up"
+                            },
+                            "to": [
+                                {
+                                    "key_code": "right_option"
                                 }
                             ]
                         },
