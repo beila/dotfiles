@@ -3,27 +3,27 @@
 # https://unix.stackexchange.com/a/9607
 if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
   nc localhost 2224 --close
-  exit
+  return
 fi
 
 case $(ps -o comm= -p "$PPID") in
 sshd|*/sshd)
   nc localhost 2224 --close
-  exit;;
+  return;;
 esac
 
 CLIP=$(which xclip 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
     ${CLIP} -selection clipoard "$@"
-    exit
+    return
 fi
 
 CLIP=$(which pbcopy 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
     ${CLIP} "$@"
-    exit
+    return
 fi
 
 << 'END'
