@@ -2,12 +2,13 @@
 
 # https://unix.stackexchange.com/a/9607
 if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
-  nc localhost 2224
+  nc localhost 2224 --close
   exit
+fi
 
 case $(ps -o comm= -p "$PPID") in
 sshd|*/sshd)
-  nc localhost 2224
+  nc localhost 2224 --close
   exit;;
 esac
 
@@ -25,7 +26,7 @@ then
     exit
 fi
 
->/dev/null << END
+<< 'END'
 Quicktip
 Setup remote pbcopy on your cloud dev desktop so can pipe to copy directly over ssh into clipboard.
  
