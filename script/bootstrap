@@ -163,11 +163,22 @@ setup_dotfiles_sync () {
   fi
 }
 
+setup_pbcopy_from_ssh () {
+  which launchctl >/dev/null 2<&1 || return
+  rm -f ~/Library/LaunchAgents/pbcopy.plist
+  ln -s $DOTFILES_ROOT/zsh/pbcopy.plist ~/Library/LaunchAgents/
+  launchctl load -w ~/Library/LaunchAgents/pbcopy.plist
+  echo 'Add the following in the host entries in ~/.ssh/config'
+  echo '    RemoteForward 2224 127.0.0.1:2224'
+}
+
 setup_gitconfig
 git submodule update --init --remote --recursive
 install_dotfiles
 setup_dotfiles_sync
+setup_pbcopy_from_ssh
 
 #bash -x $DOTFILES_ROOT/script/install
+
 echo ''
 echo '  All installed!'
