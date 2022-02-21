@@ -1,12 +1,87 @@
 #!env zsh
+
+# https://unix.stackexchange.com/a/9607
+if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
+  nc localhost 2224
+  exit
+
+case $(ps -o comm= -p "$PPID") in
+sshd|*/sshd)
+  nc localhost 2224
+  exit;;
+esac
+
 CLIP=$(which xclip 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
     ${CLIP} -selection clipoard "$@"
+    exit
 fi
 
 CLIP=$(which pbcopy 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
     ${CLIP} "$@"
+    exit
 fi
+
+>/dev/null << END
+Quicktip
+Setup remote pbcopy on your cloud dev desktop so can pipe to copy directly over ssh into clipboard.
+ 
+The Problem
+Developers spend time sending output to std out on their dev desktops, so they can select with mouse and copy. ‘Remote pbcopy’ allows using Linux/Unix pipe style syntax to send the output directly from dev desktop over ssh to local (OSX) clipboard.
+ 
+A Solution
+Put the following in ~/Library/LaunchAgents/pbcopy.plist
+ 
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+     <key>Label</key>
+     <string>localhost.pbcopy</string>
+     <key>ProgramArguments</key>
+     <array>
+         <string>/usr/bin/pbcopy</string>
+     </array>
+     <key>inetdCompatibility</key>
+     <dict>
+          <key>Wait</key>
+          <false/>
+     </dict>
+     <key>Sockets</key>
+     <dict>
+          <key>Listeners</key>
+               <dict>
+                    <key>SockServiceName</key>
+                    <string>2224</string>
+                    <key>SockNodeName</key>
+                    <string>127.0.0.1</string>
+               </dict>
+     </dict>
+</dict>
+</plist>
+ 
+Run launchctl load ~/Library/LaunchAgents/pbcopy.plist
+ 
+After setting up OSX, update your ~/.ssh/config to setup remote port forward RemoteForward 2224 127.0.0.1:2224
+ 
+Sample ssh config with remote port forward
+Host dev-host
+    HostName dev-host.aka.corp.amazon.com
+    User developer
+    ForwardAgent yes
+    RemoteForward 2224 127.0.0.1:2224
+ 
+On remote host (cloud dev desktop), add an executable shell script in path (let’s call it rcopy on dev desktop) containing 
+ 
+#!/bin/bash
+[ $# -ge 1 -a -f "$1" ] && input="$1" || input="-"
+cat $input | nc localhost 2224
+ 
+Now you can ssh to cloud dev desktop and use pipe to copy directly over ssh to clipboard on OSX!
+ 
+$ssh dev-host
+$cat file.txt| rcopy # Contents of file.txt now available on your OSX clipboard
+END
