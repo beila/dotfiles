@@ -2,7 +2,7 @@ export FZF_CTRL_T_COMMAND="fasd -alR; command find -L . -mindepth 1 \\( -path '*
     -o -type f -print \
     -o -type d -print \
     -o -type l -print 2> /dev/null | cut -b3-"
-export FZF_CTRL_T_OPTS="--preview 'test -f {} && bat --style=numbers --color=always --line-range :500 --highlight-line {+} {} || exa -l {} || ls -l --color {}'"
+export FZF_CTRL_T_OPTS="--preview 'test -f {} && bat --style=numbers --color=always --line-range :500 {} || exa -l {} || ls -l --color {}'"
 export FZF_ALT_C_COMMAND="fasd -dlR"
 export FZF_ALT_C_OPTS="--preview 'exa -l {} || ls -l --color {}'"
 
