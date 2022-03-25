@@ -3,10 +3,19 @@ CLIP=$(which xclip 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
     ${CLIP} -selection clipoard -out "$@"
+    return
 fi
 
 CLIP=$(which pbpaste 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
     ${CLIP} "$@"
+    return
+fi
+
+CLIP=$(which powershell.exe 2> /dev/null)
+if [ "$?" -eq 0 ]
+then
+    powershell.exe Get-Clipboard "$@" | sed 's/\r//'
+    return
 fi
