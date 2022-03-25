@@ -24,7 +24,7 @@ then
 fi
 
 which screen 2>&1 >dev/null || $BREW install screen
-$BREW install ripgrep fzf
+$BREW install ripgrep fzf git-delta bat exa broot
 
 # brew info fzf
 $($BREW --prefix fzf)/install
