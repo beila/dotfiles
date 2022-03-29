@@ -15,3 +15,11 @@ Return
     Else
         Send {Blind}{Ctrl Up}
 Return
+
+; https://gist.github.com/mistic100/d3c0c1eb63fb7e4ee545
+ScrollLock::Send       {Media_Play_Pause}
+PrintScreen::Send        {Media_Prev}
+Pause::Send       {Media_Next}
+;^!NumpadMult::Send  {Volume_Mute}
+;F12::Send   {Volume_Up}
+;F11::Send   {Volume_Down}
