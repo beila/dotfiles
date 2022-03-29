@@ -9,8 +9,8 @@ fi
 for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
     if [[ -x $f/brew ]]; then
         BREW=${BREW:-$f/brew}
-        mkdir $HOME/local
-        ln -s $f/.. $HOME/local/linuxbrew
+        mkdir -p $HOME/local
+        ln -sf $f/.. $HOME/local/linuxbrew
 		break
     fi
 done
@@ -23,7 +23,7 @@ then
     $BREW install vivaldi clion
 fi
 
-which screen 2>&1 >dev/null || $BREW install screen
+which screen 2>&1 > /dev/null || $BREW install screen
 $BREW install ripgrep fzf git-delta bat exa broot
 
 # brew info fzf
