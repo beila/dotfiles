@@ -10,7 +10,7 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 Return
 
 *CapsLock up::
-    If ((A_TickCount-cDown)<300)  ; Modify press time as needed (milliseconds)
+    If ((A_TickCount-cDown)<100)  ; Modify press time as needed (milliseconds)
         Send {Blind}{Ctrl Up}{Esc}
     Else
         Send {Blind}{Ctrl Up}
@@ -32,20 +32,39 @@ Return
 ;           Send, {Esc 2}
 ;   Return
 
-*PgDn::
-  SetKeyDelay -1
-  Send {Blind}{Ctrl Down}{Alt Down}{Shift Down}
-return
-
-*PgDn up::
-  SetKeyDelay -1
-  Send {Blind}{Ctrl Up}{Alt Up}{Shift Up}
-return
-
 ; https://gist.github.com/mistic100/d3c0c1eb63fb7e4ee545
 ScrollLock::Send {Media_Play_Pause}
 PrintScreen::Send {Media_Prev}
 Pause::Send {Media_Next}
-^!+F10::Send {Volume_Mute}
-^!+F12::Send {Volume_Up}
-^!+F11::Send {Volume_Down}
+#F10::Send {Volume_Mute}
+#F12::Send {Volume_Up}
+#F11::Send {Volume_Down}
+
+; Activate/deactivate the first app in the task bar (ex. Windows Terminal)
+F12::Send {LWin down}{1}{LWin up}
+
+;LCtrl & Tab::AltTab
+;LCtrl & =::ShiftAltTab
+
+; Rearrange modifier keys for Kinesis Advantage 2
+LCtrl::LAlt
+LAlt::LCtrl
+RWin::RCtrl
+RCtrl::RAlt
+*End::
+  SetKeyDelay -1
+  Send {Blind}{LWin Down}
+return
+*End up::
+  SetKeyDelay -1
+  Send {Blind}{LWin Up}
+return
+*PgDn::
+  SetKeyDelay -1
+  Send {Blind}{RWin Down}
+return
+*PgDn up::
+  SetKeyDelay -1
+  Send {Blind}{RWin Up}
+return
+
