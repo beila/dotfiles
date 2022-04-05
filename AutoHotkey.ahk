@@ -8,10 +8,20 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
     Send {Blind}{Ctrl Down}
     cDown := A_TickCount
 Return
-
 *CapsLock up::
     If ((A_TickCount-cDown)<100)  ; Modify press time as needed (milliseconds)
         Send {Blind}{Ctrl Up}{Esc}
+    Else
+        Send {Blind}{Ctrl Up}
+Return
+
+*'::
+    Send {Blind}{Ctrl Down}
+    cDown := A_TickCount
+Return
+*' up::
+    If ((A_TickCount-cDown)<100)  ; Modify press time as needed (milliseconds)
+        Send {Blind}{Ctrl Up}{'}
     Else
         Send {Blind}{Ctrl Up}
 Return
@@ -33,12 +43,15 @@ Return
 ;   Return
 
 ; https://gist.github.com/mistic100/d3c0c1eb63fb7e4ee545
-ScrollLock::Send {Media_Play_Pause}
 PrintScreen::Send {Media_Prev}
+ScrollLock::Send {Media_Play_Pause}
 Pause::Send {Media_Next}
 #F10::Send {Volume_Mute}
 #F12::Send {Volume_Up}
 #F11::Send {Volume_Down}
++PrintScreen::Send {Volume_Mute}
++Pause::Send {Volume_Up}
++ScrollLock::Send {Volume_Down}
 
 ; Activate/deactivate the first app in the task bar (ex. Windows Terminal)
 F12::Send {LWin down}{1}{LWin up}
