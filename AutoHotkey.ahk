@@ -63,7 +63,14 @@ Pause::Send {Media_Next}
 +Pause::Send {Volume_Up}
 
 ; Activate/deactivate the first app in the task bar (ex. Windows Terminal)
-F12::Send {LWin down}{1}{LWin up}
+; But this disabled #F12
+;F12::Send {LWin down}{1}{LWin up}
+F12::
+	if WinActive("ahk_exe WindowsTerminal.exe")
+		WinMinimize
+	else
+		WinActivate, ahk_exe WindowsTerminal.exe
+return
 
 ;LCtrl & Tab::AltTab
 ;LCtrl & =::ShiftAltTab
