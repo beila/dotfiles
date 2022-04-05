@@ -4,12 +4,22 @@ SendMode Input  ; Recommended for new scripts due to its superior speed and reli
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ; https://gist.github.com/volks73/1e889e01ad0a736159a5d56268a300a8
+;*CapsLock::
+;    Send {Blind}{Ctrl Down}
+;    cDown := A_TickCount
+;Return
+;*CapsLock up::
+;    If ((A_TickCount-cDown)<100)  ; Modify press time as needed (milliseconds)
+;        Send {Blind}{Ctrl Up}{Esc}
+;    Else
+;        Send {Blind}{Ctrl Up}
+;Return
+
 *CapsLock::
     Send {Blind}{Ctrl Down}
-    cDown := A_TickCount
 Return
 *CapsLock up::
-    If ((A_TickCount-cDown)<100)  ; Modify press time as needed (milliseconds)
+    If (A_PriorKey = "CapsLock")  ; When no other key is pressed
         Send {Blind}{Ctrl Up}{Esc}
     Else
         Send {Blind}{Ctrl Up}
@@ -17,10 +27,9 @@ Return
 
 *'::
     Send {Blind}{Ctrl Down}
-    cDown := A_TickCount
 Return
 *' up::
-    If ((A_TickCount-cDown)<100)  ; Modify press time as needed (milliseconds)
+    If (A_PriorKey = "'")  ; When no other key is pressed
         Send {Blind}{Ctrl Up}{'}
     Else
         Send {Blind}{Ctrl Up}
@@ -47,11 +56,11 @@ PrintScreen::Send {Media_Prev}
 ScrollLock::Send {Media_Play_Pause}
 Pause::Send {Media_Next}
 #F10::Send {Volume_Mute}
-#F12::Send {Volume_Up}
 #F11::Send {Volume_Down}
+#F12::Send {Volume_Up}
 +PrintScreen::Send {Volume_Mute}
-+Pause::Send {Volume_Up}
 +ScrollLock::Send {Volume_Down}
++Pause::Send {Volume_Up}
 
 ; Activate/deactivate the first app in the task bar (ex. Windows Terminal)
 F12::Send {LWin down}{1}{LWin up}
