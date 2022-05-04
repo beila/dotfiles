@@ -164,7 +164,7 @@ setup_dotfiles_sync () {
 }
 
 setup_pbcopy_from_ssh () {
-  which launchctl >/dev/null 2<&1 || return
+  which launchctl >/dev/null 2>&1 || return
   rm -f ~/Library/LaunchAgents/pbcopy.plist
   ln -s $DOTFILES_ROOT/zsh/pbcopy.plist ~/Library/LaunchAgents/
   launchctl load -w ~/Library/LaunchAgents/pbcopy.plist
