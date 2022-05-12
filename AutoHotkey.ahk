@@ -25,28 +25,28 @@ Return
         Send {Blind}{Ctrl Up}
 Return
 
-*'::
-    Send {Blind}{Ctrl Down}
-Return
-*' up::
-    If (A_PriorKey = "'")  ; When no other key is pressed
-        Send {Blind}{Ctrl Up}{'}
-    Else
-        Send {Blind}{Ctrl Up}
-Return
+;*'::
+;    Send {Blind}{Ctrl Down}
+;Return
+;*' up::
+;    If (A_PriorKey = "'")  ; When no other key is pressed
+;        Send {Blind}{Ctrl Up}{'}
+;    Else
+;        Send {Blind}{Ctrl Up}
+;Return
 
-backslashDownTickCount := 0
-*\::
-    If (backslashDownTickCount = 0)
-		backslashDownTickCount := A_TickCount
-Return
-*\ up::
-    If ((A_TickCount-backslashDownTickCount)<300)
-        Send {Blind}{Tab}
-    Else
-        Send {Blind}{\}
-	backslashDownTickCount := 0
-Return
+;backslashDownTickCount := 0
+;*\::
+;    If (backslashDownTickCount = 0)
+;		backslashDownTickCount := A_TickCount
+;Return
+;*\ up::
+;    If ((A_TickCount-backslashDownTickCount)<300)
+;        Send {Blind}{Tab}
+;    Else
+;        Send {Blind}{\}
+;	backslashDownTickCount := 0
+;Return
 
 ; https://www.autohotkey.com/board/topic/104173-capslock-to-control-and-escape/?p=669777
 ;CapsLock::
