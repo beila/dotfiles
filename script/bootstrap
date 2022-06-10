@@ -143,7 +143,7 @@ install_dotfiles () {
 }
 
 setup_dotfiles_sync () {
-  local GIT_EXECUTABLE_FINDING="$(which git)"
+  local GIT_EXECUTABLE_FINDING="$(which -a git.exe git 2>/dev/null | head -1)"
   local GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
   if [ -f $DOTFILES_ROOT/script/sync_dotfiles ]
   then
@@ -164,7 +164,7 @@ setup_dotfiles_sync () {
 }
 
 setup_pbcopy_from_ssh () {
-  which launchctl >/dev/null 2<&1 || return
+  which launchctl >/dev/null 2>&1 || return
   rm -f ~/Library/LaunchAgents/pbcopy.plist
   ln -s $DOTFILES_ROOT/zsh/pbcopy.plist ~/Library/LaunchAgents/
   launchctl load -w ~/Library/LaunchAgents/pbcopy.plist
