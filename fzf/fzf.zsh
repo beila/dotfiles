@@ -1,6 +1,6 @@
 export FZF_CTRL_T_COMMAND="fasd -alR;\
-    git ls-files --cached;\
-    git ls-files --others;\
+    git ls-files --cached 2> /dev/null;\
+    git ls-files --others 2> /dev/null;\
     command find -L . -mindepth 1 \\( -path '*/\\.*' -o -fstype 'sysfs' -o -fstype 'devfs' -o -fstype 'devtmpfs' -o -fstype 'proc' \\) -prune \
     -o -type f -print \
     -o -type d -print \
