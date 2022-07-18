@@ -42,6 +42,15 @@ _gh() {
   grep -o "[a-f0-9]\{7,\}"
 }
 
+_gy() {
+  is_in_git_repo || return
+  git reflog --color=always |
+  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
+    --header 'Press CTRL-S to toggle sort' \
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
+  grep -o "[a-f0-9]\{7,\}"
+}
+
 _gr() {
   is_in_git_repo || return
   git remote -v | awk '{print $1 "\t" $2}' | uniq |
