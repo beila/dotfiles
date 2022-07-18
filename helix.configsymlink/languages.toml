@@ -1,0 +1,7 @@
+[[language]]
+name = "cpp"
+language-server = { command = "clangd.exe" }
+
+[[language]]
+name = "cmake"
+language-server = { command = "cmake-language-server.exe" }

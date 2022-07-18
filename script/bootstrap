@@ -140,6 +140,13 @@ install_dotfiles () {
     dst="$HOME/.$(basename "${src%.*}")"
     link_file "$src" "$dst"
   done
+
+  mkdir -p $HOME/.config
+  for src in $(find -H "$DOTFILES_ROOT" -maxdepth 3 -name '*.configsymlink' -not -path '*.git*')
+  do
+    dst="$HOME/.config/$(basename "${src%.*}")"
+    link_file "$src" "$dst"
+  done
 }
 
 setup_dotfiles_sync () {
@@ -173,7 +180,7 @@ setup_pbcopy_from_ssh () {
 }
 
 setup_gitconfig
-git submodule update --init --remote --recursive
+# git submodule update --init --remote --recursive
 install_dotfiles
 setup_dotfiles_sync
 setup_pbcopy_from_ssh

@@ -1,0 +1,12 @@
+# https://github.com/helix-editor/helix/wiki/FAQ#change-cursor-shape-on-mode-change-bar-cursor-on-insert-mode-block-on-normal-mode-etc
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+# https://github.com/helix-editor/helix/wiki/FAQ#map-jk-or-jj-to-exit-insert-mode
+[keys.insert]
+j = { j = "normal_mode" }
+k = { k = "normal_mode" }
+h = { h = "normal_mode" }
+l = { l = { l = "normal_mode" }}
