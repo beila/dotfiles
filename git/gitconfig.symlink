@@ -36,6 +36,8 @@
 	autoSquash = true
 [interactive]
     diffFilter = delta --color-only
+[add.interactive]
+    useBuiltin = false # https://github.com/dandavison/delta#get-started
 [delta]
     navigate = true
 [diff]
