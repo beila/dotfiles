@@ -1,7 +1,12 @@
-#!env zsh	# This is only for sourcing
+#!env zsh
 local grep_pattern="${${@/#/\b}/%/\b}"
 
-which -p "$@" | grep -iv "not found" | tee >(cat - >&2) | xargs strings | head -40
+command which -a "$@" |
+    grep -iv "not found" |
+    grep -iv "no $@ in (" |
+    tee >(cat - >&2) |
+    xargs strings |
+    head -40
 
 # fun in keys of ${functions} associative array with keys starting with "_" removed
 for fun in ${(k)=functions:/_*/}
