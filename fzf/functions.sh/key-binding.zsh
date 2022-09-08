@@ -12,4 +12,4 @@ join-lines() {
     eval "zle -N fzf-g$c-widget"
     eval "bindkey '^g^$c' fzf-g$c-widget"
   done
-} f b t r h s
+} f b t r y h s
