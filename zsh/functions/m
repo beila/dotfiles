@@ -1,9 +1,9 @@
 #!env zsh
 local grep_pattern="${${@/#/\b}/%/\b}"
 
-command which -a "$@" |
+command which -a "$@" 2>&1 |
     grep -iv "not found" |
-    grep -iv "no $@ in (" |
+    #grep -iv "no $@ in \(" |
     tee >(cat - >&2) |
     xargs strings |
     head -40
