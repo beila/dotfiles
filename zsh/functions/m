@@ -1,24 +1,28 @@
 #!env zsh
 local grep_pattern="${${@/#/\b}/%/\b}"
 
+function mmmmggg() {command grep --color=auto -C40 "${grep_pattern}"}
+
 command which -a "$@" 2>&1 |
-    grep -iv "not found" |
-    #grep -iv "no $@ in \(" |
-    tee >(cat - >&2) |
-    xargs strings |
-    head -40
+    command grep -iv "not found" |
+    command grep -iv "no $@ in (" |
+    command tee >(mmmmggg >&2) |
+    command xargs strings 2>/dev/null |
+    command head -40 |
+    mmmmggg
+    #command grep --color=auto -C40 "${grep_pattern}"
 
 # fun in keys of ${functions} associative array with keys starting with "_" removed
 for fun in ${(k)=functions:/_*/}
 do
 	autoload +X -- $fun
-	functions -- $fun | grep -q "${grep_pattern}" && functions $fun | head -40
+	functions -- $fun | command grep -q "${grep_pattern}" && functions $fun | command head -40 | mmmmggg
 done
 
 # functions which are prefixed with "aliased_" which are added from ../functions.zsh
-functions "${@/#/aliased_}"
+functions "${@/#/aliased_}" | command grep --color=auto -C40 "${grep_pattern}"
 
-alias|grep "${grep_pattern}"
+alias|command grep --color=auto "${grep_pattern}"
 
 # tldr shows the error message to stdout, not stderr
-tldr "$@" >/dev/null 2>&1 && tldr "$@"
+command tldr "$@" >/dev/null 2>&1 && command tldr "$@"
