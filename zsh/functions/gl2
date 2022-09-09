@@ -1,2 +1,2 @@
 #!env zsh
-gl -2 --stat
+gl -2 --stat "$@"
