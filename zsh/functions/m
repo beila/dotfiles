@@ -1,28 +1,32 @@
 #!env zsh
-local grep_pattern="${${@/#/\b}/%/\b}"
+local grep_pattern="\\b$*\\b"
+functions _m_highlight () {
+    command head -30 | command grep --color=auto -C30 \"${grep_pattern}\"
+}
+functions _m_highlight () {
+    command head -30 | command grep --color=auto -C30 \"${grep_pattern}\"
+}
 
-function mmmmggg() {command grep --color=auto -C40 "${grep_pattern}"}
-
-command which -a "$@" 2>&1 |
-    command grep -iv "not found" |
-    command grep -iv "no $@ in (" |
-    command tee >(mmmmggg >&2) |
-    command xargs strings 2>/dev/null |
-    command head -40 |
-    mmmmggg
-    #command grep --color=auto -C40 "${grep_pattern}"
+(
+    command which -a "$@" 2>&1 |
+        command grep -iv "not found" |
+        command grep -iv "no $@ in (" |
+        command tee >(zsh -c ${highlight} >&2) |
+        command xargs strings 2>/dev/null |
+        zsh -c ${highlight}
+) 2>&1
 
 # fun in keys of ${functions} associative array with keys starting with "_" removed
 for fun in ${(k)=functions:/_*/}
 do
 	autoload +X -- $fun
-	functions -- $fun | command grep -q "${grep_pattern}" && functions $fun | command head -40 | mmmmggg
+	functions -- $fun | command grep -q "${grep_pattern}" && functions $fun | zsh -c ${highlight}
 done
 
 # functions which are prefixed with "aliased_" which are added from ../functions.zsh
-functions "${@/#/aliased_}" | command grep --color=auto -C40 "${grep_pattern}"
+functions "aliased_$@" | zsh -c ${highlight}
 
-alias|command grep --color=auto "${grep_pattern}"
+alias | command grep "${grep_pattern}" | zsh -c ${highlight}
 
 # tldr shows the error message to stdout, not stderr
 command tldr "$@" >/dev/null 2>&1 && command tldr "$@"
