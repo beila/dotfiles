@@ -1,0 +1,2 @@
+#!env zsh
+gl -2 --stat
