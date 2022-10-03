@@ -9,12 +9,22 @@ fzf_down() {
   fzf --height 50% --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
 }
 
+_gf_remove_status() { cut -c4- }
+_gf_remove_original_name() { sed "s/.* -> //" }
+_gf_remove_quote() { sed 's/^"\(.*\)"$/\1/' }
+_gf_get_file() { _gf_remove_status | _gf_remove_original_name | _gf_remove_quote }
+
 _gf() {
   is_in_git_repo || return
   git -c color.status=always status --ignore-submodules=${_git_status_ignore_submodules} --short |
   fzf_down -m --ansi --nth 2..,.. \
-  --preview '(_f_=$(echo {} | cut -c4- | sed "s/.* -> //" | sed "s/^\"\(.*\)\"$/\1/") _gf_=$(git diff --cached --color=always HEAD -- "$_f_" | sed 1,4d; git diff --color=always -- "$_f_" | sed 1,4d); if [[ "$_gf_" ]]; then echo "$_gf_"; else; cat "$_f_" || ls -l "$_f_" ; fi)' |
-  cut -c4- | sed 's/.* -> //'
+  --preview "$(functions _gf_remove_status _gf_remove_original_name _gf_remove_quote _gf_get_file)"'
+    file=$(_gf_get_file <<< {})
+    diff=$(git diff --color=always --cached HEAD -- "$file" | sed 1,4d
+           git diff --color=always -- "$file" | sed 1,4d)
+    if [[ "$diff" ]]; then echo "$diff"
+    else; bat "$file" 2>/dev/null || cat "$file" 2>/dev/null || ls -l --color=always "$file" ; fi' |
+  _gf_get_file
 }
 
 _gb() {
