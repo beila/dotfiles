@@ -1,0 +1,2 @@
+#!env zsh
+git submodule|cut -c2-|cut -f2 -d " "
