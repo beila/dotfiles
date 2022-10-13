@@ -68,7 +68,7 @@ export VISUAL=vim
 which mvim >/dev/null 2>&1 && export VISUAL=mvim
 export SUDO_EDITOR=vim
 
-export LESS="${LESS} --quit-if-one-screen"
+export LESS="${LESS} --quit-if-one-screen --jump-target=.4 --incsearch"
 
 # Stash your environment variables in ~/.localrc. This means they'll stay out
 # of your main dotfiles repository (which may be public, like this one), but

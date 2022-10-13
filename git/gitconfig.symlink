@@ -39,3 +39,7 @@
 	verbose = true
 [clone]
 	defaultRemoteName = o
+
+# Defininig a custom hunk-header in man gitattributes
+[diff "artworkstoml"]
+    xfuncname = "^title *=.*$"
