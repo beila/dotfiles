@@ -33,6 +33,7 @@
 	defaultBranch = mainline
 [rebase]
 	autoSquash = true
+	updateRefs = true
 [diff]
     colorMoved = default
 [commit]
