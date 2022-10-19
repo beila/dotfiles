@@ -9,14 +9,23 @@ fzf_down() {
   fzf --height 50% --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
 }
 
-_gf_remove_status() { cut -c4- }
-_gf_remove_original_name() { sed "s/.* -> //" }
-_gf_remove_quote() { sed 's/^"\(.*\)"$/\1/' }
-_gf_get_file() { _gf_remove_status | _gf_remove_original_name | _gf_remove_quote }
+_gf_remove_status() {
+    cut -c4-
+}
+_gf_remove_original_name() {
+    sed "s/.* -> //"
+}
+_gf_remove_quote() {
+    sed 's/^"\(.*\)"$/\1/'
+}
+_gf_get_file() {
+    _gf_remove_status | _gf_remove_original_name | _gf_remove_quote
+}
 
 _gf() {
   is_in_git_repo || return
-  git -c color.status=always status --ignore-submodules=${_git_status_ignore_submodules} --short |
+# shellcheck disable=SC2016
+  git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --short |
   fzf_down -m --ansi --nth 2..,.. \
   --preview "$(functions _gf_remove_status _gf_remove_original_name _gf_remove_quote _gf_get_file)"'
     file=$(_gf_get_file <<< {})
@@ -29,6 +38,7 @@ _gf() {
 
 _gb() {
   is_in_git_repo || return
+# shellcheck disable=SC2016
   git branch -a --color=always | grep -v '/HEAD\s' | sort |
   fzf_down --ansi --multi --tac --preview-window right:70% \
     --preview 'git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%cd %h%d %s" $(sed s/^..// <<< {} | cut -d" " -f1)' |
