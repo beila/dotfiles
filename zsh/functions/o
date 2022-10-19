@@ -7,5 +7,12 @@ then
     return
 fi
 
+OPEN=$(which open 2> /dev/null)
+if [ "$?" -eq 0 ]
+then
+    ${OPEN} "$@"
+    return
+fi
+
 echo "No sciprt for $(uname -ro)" 1>&2
 return 1
