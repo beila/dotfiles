@@ -10,7 +10,6 @@
         excludesfile = ~/.gitignore
         editor = vim
 	autocrlf = input
-	pager = delta
 	safecrlf = false
 [push]
         # See `git help config` (search for push.default)
@@ -34,15 +33,14 @@
 	defaultBranch = mainline
 [rebase]
 	autoSquash = true
-[interactive]
-    diffFilter = delta --color-only
-[add.interactive]
-    useBuiltin = false # https://github.com/dandavison/delta#get-started
-[delta]
-    navigate = true
+	updateRefs = true
 [diff]
     colorMoved = default
 [commit]
 	verbose = true
 [clone]
 	defaultRemoteName = o
+
+# Defininig a custom hunk-header in man gitattributes
+[diff "artworkstoml"]
+    xfuncname = "^title *=.*$"
