@@ -62,6 +62,15 @@ _gh() {
   grep -o "[a-f0-9]\{7,\}"
 }
 
+_ghh() {
+  is_in_git_repo || return
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
+  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
+    --header 'Press CTRL-S to toggle sort' \
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
+  grep -o "[a-f0-9]\{7,\}"
+}
+
 _gy() {
   is_in_git_repo || return
   git reflog --color=always |
