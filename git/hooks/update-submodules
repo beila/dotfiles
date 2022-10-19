@@ -1,9 +1,9 @@
 #!/bin/bash
 set -x
 git submodule sync --quiet
-git submodule update
+git submodule update --no-fetch
 
-CONFIG_FILE=${CONFIG_FILE:-.git/config}
+CONFIG_FILE=${CONFIG_FILE:-$(git rev-parse --git-dir)/config}
 MODULES_FILE=${MODULES_FILE:-.gitmodules}
 
 COMMIT_ID=${1%0}    # $1 is the previous commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
