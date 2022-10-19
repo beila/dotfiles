@@ -5,8 +5,8 @@ G="$(git rev-parse --git-dir)"
 W="$G/$BB"
 C="$G/current"
 git worktree add $W -B $B remotes/o/$B &&
+    ln -sf $G/development/{.idea,venv} $W &&
+    rm -f $W/.git &&
+    echo "gitdir: ../.git/worktrees/$BB" > $W/.git &&
     ln -sf $W $C &&
-    ln -sf $G/development/{.idea,venv} $C &&
-    rm -f $C/.git &&
-    echo "gitdir: ../.git/worktrees/$BB" > $C/.git &&
     cd $C
