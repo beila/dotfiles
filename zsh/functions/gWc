@@ -1,0 +1,12 @@
+#!env zsh
+B=${1:-$(_gb)}
+BB=${B##*/}
+G="$(git rev-parse --git-dir)"
+W="$G/$BB"
+C="$G/current"
+git worktree add $W -B $B remotes/o/$B &&
+    ln -sf $W $C &&
+    ln -sf $G/development/{.idea,venv} $C &&
+    rm -f $C/.git &&
+    echo "gitdir: ../.git/worktrees/$BB" > $C/.git &&
+    cd $C
