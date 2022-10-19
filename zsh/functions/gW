@@ -1,0 +1,2 @@
+#!env zsh
+git worktree list
