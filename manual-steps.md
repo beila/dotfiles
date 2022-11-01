@@ -20,3 +20,17 @@ sudo cp ~/resolv.header.conf /etc/resolv.conf && ipconfig.exe /all |
   tr -d '\r' |
   sudo tee --append /etc/resolv.conf
 ```
+
+##### Update Anyconnect Adapter Interface Metric for WSL2 from "Task Scheduler"
+
+- General
+  - Run with highest privileges: Check
+- Triggers
+  - Begin the task: On an event
+    - Log: Cisco AnyConnect Secure Mobility Client
+    - Source: acvpnagent
+    - Event ID: 2039
+- Actions
+  - Action: Start a program
+    - Program/script: Powershell.exe
+    - Add arguments: -ExecutionPolicy Bypass -File %HOMEPATH%\dotfiles\wsl\UpdateAnyConnectInterfaceMetric.ps1

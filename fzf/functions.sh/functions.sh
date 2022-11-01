@@ -46,6 +46,13 @@ _gb() {
   sed 's#^remotes/##'
 }
 
+_gbb() {
+  is_in_git_repo || return
+  git worktree list |
+    fzf |
+    cut -d' ' -f1
+}
+
 _gt() {
   is_in_git_repo || return
   git tag --sort -version:refname |
