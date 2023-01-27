@@ -66,7 +66,8 @@ _gh() {
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
-  grep -o "[a-f0-9]\{7,\}"
+  grep -o "[a-f0-9]\{7,\}" |
+  head -1
 }
 
 _ghh() {
@@ -75,7 +76,8 @@ _ghh() {
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
-  grep -o "[a-f0-9]\{7,\}"
+  grep -o "[a-f0-9]\{7,\}" |
+  head -1
 }
 
 _gy() {
@@ -84,7 +86,8 @@ _gy() {
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
-  grep -o "[a-f0-9]\{7,\}"
+  grep -o "[a-f0-9]\{7,\}" |
+  head -1
 }
 
 _gr() {
