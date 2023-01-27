@@ -14,11 +14,11 @@ cmd.exe /C $(wslpath -w "$(realpath ~/home/dotfiles/AutoHotkey.ahk)") &&
 #### after connecting to VPN
 
 ```
-sudo cp ~/resolv.header.conf /etc/resolv.conf && ipconfig.exe /all |
+ipconfig.exe /all |
   grep "DNS Servers.*:.*\." |
   awk '{print "nameserver " $NF}' |
   tr -d '\r' |
-  sudo tee --append /etc/resolv.conf
+  sudo tee /etc/resolv.conf
 ```
 
 ##### Update Anyconnect Adapter Interface Metric for WSL2 from "Task Scheduler"

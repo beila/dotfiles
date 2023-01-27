@@ -3,17 +3,15 @@ GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 cd $1 || {
     echo "Error: No such directory as $1"; exit
-    }
+}
 
-$GIT add --all .
-$GIT commit -m "Change from $(hostname -s)"
-$GIT pull --no-edit --recurse-submodules=no \
-    || $GIT merge --abort \
-    && $GIT push \
-    && $GIT_SUBREPO pull -v --all \
-    || $GIT_SUBREPO clean --all
+$GIT add --verbose --all .
+$GIT commit --verbose -m "Change from $(hostname -s)"
+$GIT pull --verbose --no-edit --recurse-submodules=no &&
+    ( $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all ) &&
+    $GIT push --verbose
 
-$GIT submodule foreach bash -c "$GIT add --all . ;\
-    $GIT commit -m \"Change from $(hostname -s)\" && WILL_PUSH=yes ;\
-    $GIT pull --no-edit --recurse-submodules=no ;\
+$GIT submodule foreach bash -c "$GIT add --verbose --all . ;\
+    $GIT commit --verbose -m \"Change from $(hostname -s)\" && WILL_PUSH=yes ;\
+    $GIT pull --verbose --no-edit --recurse-submodules=no ;\
     test \$WILL_PUSH && $GIT push || true"
