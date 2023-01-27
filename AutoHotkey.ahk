@@ -93,7 +93,7 @@ F12::
 	if WinActive("ahk_exe WindowsTerminal.exe")
 		WinMinimize
 	else
-		WinActivate("ahk_exe WindowsTerminal.exe")
+		WinActivate "ahk_exe WindowsTerminal.exe"
 }
 
 ;LCtrl & Tab::AltTab
