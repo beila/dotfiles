@@ -14,8 +14,8 @@ EXISTING_BRANCH=$(
     git branch -a | cut -c3- | grep -o "^${GIVEN_BRANCH}$" || # in case remotes/ is included
     git branch -a | cut -c3- | grep -o "remotes/.*/${SHORT_BRANCH}$" | head -1 # in case remote branch exists with short name
 )
-COMMIT_ISH=${EXISTING_BRANCH:-${DEFAULT_REMOTE:+${DEFAULT_REMOTE}/HEAD}}       # in case of a new branch
-COMMIT_ISH=${EXISTING_BRANCH:-HEAD}                           # in case of a new branch and there is no remote
+TARGET_BRANCH=${EXISTING_BRANCH:-${DEFAULT_REMOTE:+${DEFAULT_REMOTE}/HEAD}}       # in case of a new branch
+TARGET_BRANCH=${TARGET_BRANCH:-HEAD}                           # in case of a new branch and there is no remote
 
 WINDOWS_GIT=$(git --version|grep -o windows)
 PATH_CONVERT_COMMAND=${WINDOWS_GIT:+wslpath}        # wslpath if $WINDOWS_GIT is nonempty
@@ -23,12 +23,16 @@ PATH_CONVERT_COMMAND=${PATH_CONVERT_COMMAND:-echo}  # echo    otherwise
 pp () {$PATH_CONVERT_COMMAND "$@"}
 BASE_DIR="$(git worktree list | head -1 | cut -d' ' -f1)"
 G="$(pp "$BASE_DIR")"
-W="$(pp "$BASE_DIR/$SHORT_BRANCH")"
 C="$(pp "$BASE_DIR/current")"
 
-if [ -z $(git worktree list|grep -o "\[$COMMIT_ISH]") ]; then
-    echo "> command git worktree add $W $COMMIT_ISH -B ${SHORT_BRANCH}"
-    command git worktree add $W $COMMIT_ISH -B ${SHORT_BRANCH} || exit 1
+EXISTING_WORKTREE="$(git worktree list | grep "\[${TARGET_BRANCH}]" | cut -d' ' -f1)"
+TARGET_WORKTREE="${EXISTING_WORKTREE:-${BASE_DIR}/${SHORT_BRANCH}}"
+W="$(pp "${TARGET_WORKTREE}")"
+echo "Target directory: $W"
+
+if [ -d "$W" ]; then
+    echo "> command git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH}"
+    command git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH} || exit 1
 fi
 
 echo "Set up $W from $(pp $(git rev-parse --show-toplevel))"
