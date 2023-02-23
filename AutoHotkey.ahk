@@ -95,6 +95,13 @@ F12::
 	else
 		WinActivate "ahk_exe WindowsTerminal.exe"
 }
+PgUp::
+{
+	if WinActive("ahk_exe WindowsTerminal.exe")
+		WinMinimize
+	else
+		WinActivate "ahk_exe WindowsTerminal.exe"
+}
 
 ;LCtrl & Tab::AltTab
 ;LCtrl & =::ShiftAltTab
