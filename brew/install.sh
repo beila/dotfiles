@@ -23,6 +23,7 @@ then
     $BREW install vivaldi clion
 fi
 
+which zsh 2>&1 > /dev/null || $BREW install zsh
 which screen 2>&1 > /dev/null || $BREW install screen
 $BREW install ripgrep fzf git-delta bat exa broot
 
