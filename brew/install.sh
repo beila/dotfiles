@@ -28,7 +28,7 @@ which screen 2>&1 > /dev/null || $BREW install screen
 $BREW install ripgrep fzf git-delta bat exa broot
 
 # brew info fzf
-$($BREW --prefix fzf)/install
+#$($BREW --prefix fzf)/install
 
 #$BREW tap homebrew/versions
 
