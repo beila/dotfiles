@@ -1,7 +1,7 @@
 #!/bin/bash
 # http://superuser.com/a/350336
-export DISPLAY=":0.0"
-export XAUTHORITY=$HOME/.Xauthority
+export DISPLAY="${DISPLAY:-:0.0}"
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 (
 	sleep 1
 # https://bbs.archlinux.org/viewtopic.php?pid=1440918#p1440918
