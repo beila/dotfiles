@@ -20,12 +20,12 @@ then
     $BREW install coreutils
     #$BREW install homebrew/cask-drivers/kensington-trackball-works
     $BREW install iterm2 quicksilver karabiner-elements
-    $BREW install vivaldi clion
+    #$BREW install vivaldi clion
 fi
 
 which zsh 2>&1 > /dev/null || $BREW install zsh
 which screen 2>&1 > /dev/null || $BREW install screen
-$BREW install ripgrep fzf git-delta bat exa broot
+$BREW install ripgrep fzf bat exa broot
 
 # brew info fzf
 #$($BREW --prefix fzf)/install
