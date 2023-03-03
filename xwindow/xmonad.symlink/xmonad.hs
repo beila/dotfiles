@@ -1,3 +1,5 @@
+import Control.Monad
+import Data.Maybe
 import XMonad
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.ManageDocks
@@ -30,12 +32,17 @@ myManageHook = composeAll
 main = xmonad =<< dzen myConfig
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
-myConfig = defaultConfig $ gnomeConfig
+myConfig = gnomeConfig
 	{ startupHook = composeAll [
-	-- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
+        -- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
         setWMName "LG3D",
+                  -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
         startupHook gnomeConfig,
         fullscreenStartupHook
+    ]
+    , handleEventHook = composeAll [
+        handleEventHook gnomeConfig,
+        fullscreenEventHook
     ]
     , modMask = mod4Mask
     -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
@@ -43,8 +50,8 @@ myConfig = defaultConfig $ gnomeConfig
     -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
 	-- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
 	, manageHook = manageDocks <+> myManageHook
-                <+> manageHook defaultConfig
-	, layoutHook = avoidStruts  $  layoutHook defaultConfig
+                <+> manageHook gnomeConfig
+	, layoutHook = avoidStruts  $  layoutHook gnomeConfig
 	} `additionalKeys` myKeys
 
 myWorkspaces = ["1:mail", "2:work browser", "3:clion", "4:gvim", "5", "6", "7:browser", "8:calendar", "9:messenger"]
@@ -73,3 +80,15 @@ myGreedyView w ws
                                            : L.filter (not . wTag . W.workspace) (W.visible ws) }
      | otherwise = ws
    where wTag = (w == ) . W.tag
+
+   -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
+fullscreenStartupHook :: X ()
+fullscreenStartupHook = withDisplay $ \dpy -> do
+    r <- asks theRoot
+    a <- getAtom "_NET_SUPPORTED"
+    c <- getAtom "ATOM"
+    f <- getAtom "_NET_WM_STATE_FULLSCREEN"
+    io $ do
+        sup <- (join . maybeToList) <$> getWindowProperty32 dpy a r
+        when (fromIntegral f `notElem` sup) $
+            changeProperty32 dpy r a c propModeAppend [fromIntegral f]
