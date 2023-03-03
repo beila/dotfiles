@@ -9,6 +9,7 @@ import XMonad.Layout.PerWorkspace
 import qualified XMonad.StackSet as W
 import qualified Data.List as L (find,filter)
 import XMonad.Hooks.EwmhDesktops
+import XMonad.Config.Gnome
 
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
@@ -29,9 +30,13 @@ myManageHook = composeAll
 main = xmonad =<< dzen myConfig
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
-myConfig = defaultConfig
+myConfig = defaultConfig $ gnomeConfig
+	{ startupHook = composeAll [
 	-- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
-	{ startupHook = setWMName "LG3D"
+        setWMName "LG3D",
+        startupHook gnomeConfig,
+        fullscreenStartupHook
+    ]
     , modMask = mod4Mask
     -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
     , workspaces = myWorkspaces
