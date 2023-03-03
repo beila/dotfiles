@@ -95,3 +95,7 @@ source /home/hojin/.hishtory/config.zsh
 
 export AWS_EC2_METADATA_DISABLED=true
 
+
+# Hishtory Config:
+export PATH="$PATH:/home/ANT.AMAZON.COM/hojin/.hishtory"
+source /home/ANT.AMAZON.COM/hojin/.hishtory/config.zsh
