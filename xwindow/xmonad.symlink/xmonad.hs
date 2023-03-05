@@ -14,9 +14,9 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Config.Gnome
 
 myManageHook = composeAll
-    [ className =? "Tilda"                                   --> doFloat
+    [ --className =? "Tilda"                                   --> doFloat
     --, className =? "ignition"                                --> doFloat
-    , className =? "Thunderbird"                             --> doShift "1:mail"
+    className =? "Thunderbird"                             --> doShift "1:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "jetbrains-idea"                          --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
