@@ -25,6 +25,7 @@ myManageHook = composeAll
     , className =? "yakyak"                                  --> doShift "9:messenger"
     , className =? "AmazonChime"                             --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
+    , title     =? "Mines"                      --> doFloat
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
