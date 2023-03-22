@@ -31,8 +31,10 @@ W="$(pp "${TARGET_WORKTREE}")"
 echo "Target directory: $W"
 
 if [ ! -d "$W" ]; then
-    echo "> command git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH}"
-    command git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH} || return
+    echo "> git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH}"
+    git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH} || return
+    echo "> git branch --set-upstream-to=${GIVEN_BRANCH}"
+    git branch --set-upstream-to=${GIVEN_BRANCH}
 fi
 
 echo "Set up $W from $(pp $(git rev-parse --show-toplevel))"
