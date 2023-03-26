@@ -14,9 +14,9 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Config.Gnome
 
 myManageHook = composeAll
-    [ --className =? "Tilda"                                   --> doFloat
+    [ className =? "Tilda"                                   --> doFloat
     --, className =? "ignition"                                --> doFloat
-    className =? "Thunderbird"                             --> doShift "1:mail"
+    , className =? "Thunderbird"                             --> doShift "1:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "jetbrains-idea"                          --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
@@ -25,7 +25,6 @@ myManageHook = composeAll
     , className =? "yakyak"                                  --> doShift "9:messenger"
     , className =? "AmazonChime"                             --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
-    , title     =? "Mines"                      --> doFloat
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
