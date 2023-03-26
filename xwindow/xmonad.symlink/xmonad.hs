@@ -11,6 +11,7 @@ import XMonad.Layout.PerWorkspace
 import qualified XMonad.StackSet as W
 import qualified Data.List as L (find,filter)
 import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.WallpaperSetter
 import XMonad.Config.Gnome
 
 myManageHook = composeAll
