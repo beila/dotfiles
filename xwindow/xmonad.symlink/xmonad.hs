@@ -26,6 +26,7 @@ myManageHook = composeAll
     , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "8:calendar"
     , className =? "yakyak"                                  --> doShift "9:messenger"
     , className =? "AmazonChime"                             --> doShift "9:messenger"
+    , title     =? "Amazon Chime — Mozilla Firefox"          --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
     , className =? "firefox"                                 --> doShift "1:browser"
     ]
