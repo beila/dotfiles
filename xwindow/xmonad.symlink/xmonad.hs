@@ -37,7 +37,7 @@ main = xmonad =<< dzen myConfig
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = gnomeConfig
-	{ startupHook = composeAll [
+    { startupHook = composeAll [
         -- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
         setWMName "LG3D",
                   -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
@@ -52,11 +52,11 @@ myConfig = gnomeConfig
     -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
     , workspaces = myWorkspaces
     -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
-	-- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
-	, manageHook = manageDocks <+> myManageHook
+    -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
+    , manageHook = manageDocks <+> myManageHook
                 <+> manageHook gnomeConfig
-	, layoutHook = avoidStruts  $  layoutHook gnomeConfig
-	} `additionalKeys` myKeys
+    , layoutHook = avoidStruts  $  layoutHook gnomeConfig
+    } `additionalKeys` myKeys
 
 myWorkspaces = ["1:browser", "2:mail", "3:clion", "4:gvim", "5", "6", "7:browser", "8:calendar", "9:messenger"]
 {-myWorkspaces = ["1","2","3","4","5","6","7","8","9"]-}
