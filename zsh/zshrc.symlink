@@ -84,14 +84,6 @@ test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell
 
 export JAVA_TOOLS_OPTIONS="-Dlog4j2.formatMsgNoLookups=true"
 
-#### FIG ENV VARIABLES ####
-# Please make sure this block is at the end of this file.
-[ -s ~/.fig/fig.sh ] && source ~/.fig/fig.sh
-#### END FIG ENV VARIABLES ####
-
-# Hishtory Config:
-export PATH="$PATH:/home/hojin/.hishtory"
-source /home/hojin/.hishtory/config.zsh
-
 export AWS_EC2_METADATA_DISABLED=true
 
+export PATH=$PATH:$HOME/.toolbox/bin

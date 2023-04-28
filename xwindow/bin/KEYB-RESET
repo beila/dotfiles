@@ -1,5 +1,5 @@
 #!/bin/bash
 # https://askubuntu.com/a/980201
-export DISPLAY=":0.0"
-export XAUTHORITY=$HOME/.Xauthority
+export DISPLAY="${DISPLAY:-:0.0}"
+export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 setxkbmap -option
