@@ -72,7 +72,8 @@ _gh() {
 
 _ghh() {
   is_in_git_repo || return
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always 'HEAD^..@{u}' |
+  # Exclude (^) all parents of HEAD (HEAD^@) -> ^HEAD^@
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always '^HEAD^@' HEAD $(git rev-list @{u} 2>/dev/null|head -1) |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
