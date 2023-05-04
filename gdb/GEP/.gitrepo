@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/lebr0nli/GEP.git
+	branch = main
+	commit = 43286bb9158b165da8f28e5b6a068dd077cd5947
+	parent = b1a9cfc317fbb7e70cb8438ea25ab47b6a05c61e
+	method = merge
+	cmdver = 0.4.0
