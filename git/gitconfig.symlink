@@ -44,3 +44,24 @@
 # Defininig a custom hunk-header in man gitattributes
 [diff "artworkstoml"]
     xfuncname = "^title *=.*$"
+
+[remote "o"]
+    # development is too long
+	fetch = +refs/heads/development:refs/remotes/o/dev
+    # push with hojin/ prefix
+	fetch = +refs/heads/hojin/*:refs/remotes/o/*
+	fetch = ^refs/heads/hojin/dev
+    push = refs/heads/*:refs/heads/hojin/*
+    # Only fetch tags starting with v and not ending with rc#
+    tagopt = --no-tags
+	fetch = +refs/tags/v*:refs/tags/v*
+	fetch = ^refs/tags/*-rc
+	fetch = ^refs/tags/*-rc1
+	fetch = ^refs/tags/*-rc2
+	fetch = ^refs/tags/*-rc3
+	fetch = ^refs/tags/*-rc4
+	fetch = ^refs/tags/*-rc5
+	fetch = ^refs/tags/*-rc6
+	fetch = ^refs/tags/*-rc7
+	fetch = ^refs/tags/*-rc8
+	fetch = ^refs/tags/*-rc9
