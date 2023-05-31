@@ -51,7 +51,7 @@
     # push with hojin/ prefix
 	fetch = +refs/heads/hojin/*:refs/remotes/o/*
 	fetch = ^refs/heads/hojin/dev
-    push = refs/heads/*:refs/heads/hojin/*
+    #push = refs/heads/*:refs/heads/hojin/*
     # Only fetch tags starting with v and not ending with rc#
     tagopt = --no-tags
 	fetch = +refs/tags/v*:refs/tags/v*
