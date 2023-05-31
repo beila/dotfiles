@@ -180,7 +180,7 @@ setup_pbcopy_from_ssh () {
 }
 
 setup_gitconfig
-git submodule update --init --remote --recursive
+#git submodule update --init --remote --recursive
 for sm in $($DOTFILES_ROOT/zsh/functions/gSl); do
     git config submodule.$sm.active false
 done
