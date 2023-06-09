@@ -10,6 +10,11 @@ export FZF_CTRL_T_OPTS="--preview 'test -f {} && bat --style=numbers --color=alw
 export FZF_ALT_C_COMMAND="fasd -dlR"
 export FZF_ALT_C_OPTS="--preview 'exa -l {} || ls -l --color {}'"
 
+# The first printf removes the first \ from \\n.
+# The second printf prints \n as a newline.
+# Then fold wraps long lines
+export FZF_CTRL_R_OPTS='--preview "fold -w${COLUMNS} <<< $(printf \"$(printf {})\")" --preview-window down:6'
+
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh \
     && bindkey '^E' fzf-cd-widget
 
