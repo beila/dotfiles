@@ -39,7 +39,7 @@
 [commit]
 	verbose = true
 [clone]
-	defaultRemoteName = o
+	;defaultRemoteName = o
 
 # Defininig a custom hunk-header in man gitattributes
 [diff "artworkstoml"]
@@ -54,7 +54,7 @@
     #push = refs/heads/*:refs/heads/hojin/*
     # Only fetch tags starting with v and not ending with rc#
     tagopt = --no-tags
-	fetch = +refs/tags/v*:refs/tags/v*
+	;fetch = +refs/tags/v*:refs/tags/v*
 	fetch = ^refs/tags/*-rc
 	fetch = ^refs/tags/*-rc1
 	fetch = ^refs/tags/*-rc2
