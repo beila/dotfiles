@@ -87,5 +87,3 @@ export JAVA_TOOLS_OPTIONS="-Dlog4j2.formatMsgNoLookups=true"
 export AWS_EC2_METADATA_DISABLED=true
 
 export PATH=$PATH:$HOME/.toolbox/bin
-
-source /home/ANT.AMAZON.COM/hojin/.config/broot/launcher/bash/br
