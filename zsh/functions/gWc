@@ -7,7 +7,8 @@ done
 SHORT_BRANCH=${LOCAL_BRANCH##*/} # strip prefices included in the branch name
 
 DEFAULT_REMOTE=$(git remote | head -1)
-REMOTE_HEAD=${DEFAULT_REMOTE:+$(git remote show ${DEFAULT_REMOTE} | grep 'HEAD branch' | cut -d' ' -f5)}
+REMOTE_HEAD=$(git branch --remotes | grep ${DEFAULT_REMOTE}/HEAD | head -1 | sed -e "s:.*->[^/]*/::")
+REMOTE_HEAD=${REMOTE_HEAD:-${DEFAULT_REMOTE:+$(git remote show ${DEFAULT_REMOTE} | grep 'HEAD branch' | cut -d' ' -f5)}}
 EXISTING_BRANCH=$(
     git branch    | cut -c3- | grep -o "^${LOCAL_BRANCH}$" || # in case local branch exists
     git branch    | cut -c3- | grep -o "^${SHORT_BRANCH}$" || # in case local branch exists with short name
