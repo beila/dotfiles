@@ -39,9 +39,11 @@ if [ ! -d "$W" ]; then
     git branch --set-upstream-to=${GIVEN_BRANCH}
 fi
 
-echo "Set up $W from $(pp $(git rev-parse --show-toplevel))"
-ln -sf "$(readlink -f "$(pp $(git rev-parse --show-toplevel)/.idea)")" $W/.idea
-ln -sf "$(readlink -f "$(pp $(git rev-parse --show-toplevel)/venv)")" $W/venv
+LOCAL_REPO=$(git rev-parse --show-toplevel)
+echo "Set up $W from $(pp ${LOCAL_REPO})"
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/.idea)")" $W/.idea
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/venv)")" $W/venv
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/build/cmake-*)")" $W/build/
 rm -f $W/.git
 echo "gitdir: ../.git/worktrees/$(basename $W)" > $W/.git
 
