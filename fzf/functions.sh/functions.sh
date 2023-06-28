@@ -49,7 +49,7 @@ _gb() {
 _gbb() {
   is_in_git_repo || return
   git worktree list |
-    fzf |
+    fzf_down |
     cut -d' ' -f1
 }
 
