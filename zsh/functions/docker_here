@@ -1,0 +1,5 @@
+#!env zsh
+docker run --user $(id -u):$(id -g) \
+    --volume "$(realpath $(pwd)/..):$(realpath $(pwd)/..)" \
+    --workdir "$(realpath $(pwd))" \
+    "$@"
