@@ -1,22 +1,26 @@
 export FZF_CTRL_T_COMMAND='
-    git ls-files --cached 2> /dev/null
     fasd -flR |
-        noglob sed s:^${HOME}:~: 2> /dev/null
+        noglob sed s:^${HOME}:~:
+    git ls-files --cached 2> /dev/null
     git ls-files --others 2> /dev/null ||
         find -L . -mindepth 1 -not -path */.git/* 2> /dev/null |
         cut -b3-'
-export FZF_CTRL_T_OPTS="--preview '
-    test -f {} &&
-        bat --style=numbers --color=always --line-range :500 {} ||
-        exa -l {} ||
-        ls -l --color {}'"
+export FZF_CTRL_T_OPTS='--preview "
+    file=$(noglob sed s:^~:${HOME}: <<< {})
+    test -f $file &&
+        bat --style=numbers --color=always --line-range :500 $file ||
+        exa -l $file ||
+        ls -l --color $file"'
 
 export FZF_ALT_C_COMMAND='
-    fasd -dlR |
-        noglob sed s:^${HOME}:~: 2> /dev/null
+    fasd -dlR #|
+        #noglob sed s:^${HOME}:~: # cd command fails because of ~
     find -L . -mindepth 1 -type d -not -path */.git/* 2> /dev/null |
         cut -b3-'
-export FZF_ALT_C_OPTS="--preview 'exa -l {} || ls -l --color {}'"
+export FZF_ALT_C_OPTS='--preview "
+    file=$(noglob sed s:^~:${HOME}: <<< {})
+    exa -l $file ||
+        ls -l --color $file"'
 
 # The first printf removes the first \ from \\n.
 # The second printf prints \n as a newline.
