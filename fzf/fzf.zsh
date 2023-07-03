@@ -1,19 +1,21 @@
-export FZF_CTRL_T_COMMAND="
+export FZF_CTRL_T_COMMAND='
     git ls-files --cached 2> /dev/null
+    fasd -flR |
+        noglob sed s:^${HOME}:~: 2> /dev/null
     git ls-files --others 2> /dev/null ||
-        command find -L . -mindepth 1 -not -path '*/.git/*' 2> /dev/null |
-        cut -b3-"
+        find -L . -mindepth 1 -not -path */.git/* 2> /dev/null |
+        cut -b3-'
 export FZF_CTRL_T_OPTS="--preview '
     test -f {} &&
         bat --style=numbers --color=always --line-range :500 {} ||
         exa -l {} ||
         ls -l --color {}'"
 
-export FZF_ALT_C_COMMAND="
+export FZF_ALT_C_COMMAND='
     fasd -dlR |
-        sed s:^${HOME}:~:
-    command find -L . -mindepth 1 -type d -not -path '*/.git/*' 2> /dev/null |
-        cut -b3-"
+        noglob sed s:^${HOME}:~: 2> /dev/null
+    find -L . -mindepth 1 -type d -not -path */.git/* 2> /dev/null |
+        cut -b3-'
 export FZF_ALT_C_OPTS="--preview 'exa -l {} || ls -l --color {}'"
 
 # The first printf removes the first \ from \\n.
