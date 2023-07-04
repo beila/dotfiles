@@ -1,10 +1,9 @@
 export FZF_CTRL_T_COMMAND='
-    fasd -lR | xargs --no-run-if-empty -I I exa --color=always -d "I"
+    fasd -lR | xargs --no-run-if-empty -I I exa --color=always -d "I" &&
     (
         git ls-files -z --cached &&     # Without && processes in () are not killed
         git ls-files -z --others ||
-            find -L . -print0 -mindepth 1 -not -path "*/.git/*" |
-                cut --zero-terminated -b3-
+        fd --hidden --follow --print0 --strip-cwd-prefix
     ) 2> /dev/null |
         xargs -0 --no-run-if-empty exa --color=always -d'
 export FZF_CTRL_T_OPTS='--ansi --preview "
@@ -14,13 +13,12 @@ export FZF_CTRL_T_OPTS='--ansi --preview "
         ls -l --color {}"'
 
 export FZF_ALT_C_COMMAND='
-    fasd -dlR | xargs --no-run-if-empty -I I exa --color=always -d "I"
+    fasd -dlR | xargs --no-run-if-empty -I I exa --color=always -d "I" &&
     (
-        find -L .         -print0 -mindepth 1 -type d -not -path "*/.git/*" #&&
-        #find -L "${HOME}" -print0 -mindepth 1 -type d -not -path "*/.git/*" &&
-        #find -L /         -print0 -mindepth 1 -type d -not -path "*/.git/*"
+        fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
+        # fd --print0 --one-file-system --type d . '"${HOME}"' &&
+        # fd --print0 --one-file-system --type d . /
     ) 2> /dev/null |
-        cut --zero-terminated -b3- |
         xargs -0 --no-run-if-empty exa --color=always -d'
 export FZF_ALT_C_OPTS='--ansi --preview "
     exa -l {} ||
