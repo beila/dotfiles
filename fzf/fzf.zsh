@@ -1,10 +1,10 @@
 export FZF_CTRL_T_COMMAND='
-    fasd -flR
-    git ls-files --cached 2> /dev/null
-    git ls-files --others 2> /dev/null ||
+    fasd -lR | xargs --no-run-if-empty -I II exa --color=always -d "II"
+    git ls-files --cached 2> /dev/null | xargs --no-run-if-empty -I II exa --color=always -d "II"
+    git ls-files --others 2> /dev/null | xargs --no-run-if-empty -I II exa --color=always -d "II" ||
         find -L . -mindepth 1 -not -path "*/.git/*" 2> /dev/null |
-        cut -b3-'
-export FZF_CTRL_T_OPTS='--preview "
+        cut -b3- | xargs --no-run-if-empty -I II exa --color=always -d "II"'
+export FZF_CTRL_T_OPTS='--ansi --preview "
     test -f {} &&
         bat --style=numbers --color=always --line-range :500 {} ||
         exa -l {} ||
@@ -13,7 +13,12 @@ export FZF_CTRL_T_OPTS='--preview "
 export FZF_ALT_C_COMMAND='
     fasd -dlR
     find -L . -mindepth 1 -type d -not -path "*/.git/*" 2> /dev/null |
-        cut -b3-'
+        cut -b3-
+    find -L "${HOME}" -mindepth 1 -type d -not -path "*/.git/*" 2> /dev/null |
+        cut -b3-
+    find -L / -mindepth 1 -type d -not -path "*/.git/*" 2> /dev/null |
+        cut -b3-
+            '
 export FZF_ALT_C_OPTS='--preview "
     exa -l {} ||
         ls -l --color {}"'
