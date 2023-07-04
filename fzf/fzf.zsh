@@ -1,9 +1,12 @@
 export FZF_CTRL_T_COMMAND='
-    fasd -lR | xargs --no-run-if-empty -I II exa --color=always -d "II"
-    git ls-files --cached 2> /dev/null | xargs --no-run-if-empty -I II exa --color=always -d "II"
-    git ls-files --others 2> /dev/null | xargs --no-run-if-empty -I II exa --color=always -d "II" ||
-        find -L . -mindepth 1 -not -path "*/.git/*" 2> /dev/null |
-        cut -b3- | xargs --no-run-if-empty -I II exa --color=always -d "II"'
+    fasd -lR | xargs --no-run-if-empty -I I exa --color=always -d "I"
+    (
+        git ls-files -z --cached &&     # Without && processes in () are not killed
+        git ls-files -z --others ||
+            find -L . -print0 -mindepth 1 -not -path "*/.git/*" |
+                cut --zero-terminated -b3-
+    ) 2> /dev/null |
+        xargs -0 --no-run-if-empty exa --color=always -d'
 export FZF_CTRL_T_OPTS='--ansi --preview "
     test -f {} &&
         bat --style=numbers --color=always --line-range :500 {} ||
@@ -11,15 +14,15 @@ export FZF_CTRL_T_OPTS='--ansi --preview "
         ls -l --color {}"'
 
 export FZF_ALT_C_COMMAND='
-    fasd -dlR
-    find -L . -mindepth 1 -type d -not -path "*/.git/*" 2> /dev/null |
-        cut -b3-
-    find -L "${HOME}" -mindepth 1 -type d -not -path "*/.git/*" 2> /dev/null |
-        cut -b3-
-    find -L / -mindepth 1 -type d -not -path "*/.git/*" 2> /dev/null |
-        cut -b3-
-            '
-export FZF_ALT_C_OPTS='--preview "
+    fasd -dlR | xargs --no-run-if-empty -I I exa --color=always -d "I"
+    (
+        find -L .         -print0 -mindepth 1 -type d -not -path "*/.git/*" #&&
+        #find -L "${HOME}" -print0 -mindepth 1 -type d -not -path "*/.git/*" &&
+        #find -L /         -print0 -mindepth 1 -type d -not -path "*/.git/*"
+    ) 2> /dev/null |
+        cut --zero-terminated -b3- |
+        xargs -0 --no-run-if-empty exa --color=always -d'
+export FZF_ALT_C_OPTS='--ansi --preview "
     exa -l {} ||
         ls -l --color {}"'
 
