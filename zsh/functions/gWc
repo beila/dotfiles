@@ -43,6 +43,7 @@ LOCAL_REPO=$(git rev-parse --show-toplevel)
 echo "Set up $W from $(pp ${LOCAL_REPO})"
 ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/.idea)")" $W/.idea
 ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/venv)")" $W/venv
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/build/home)")" $W/build/
 ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/build/cmake-*)")" $W/build/
 rm -f $W/.git
 echo "gitdir: ../.git/worktrees/$(basename $W)" > $W/.git
