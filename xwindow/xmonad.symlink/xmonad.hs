@@ -17,7 +17,7 @@ import XMonad.Config.Gnome
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
     , className =? "ignition"                                --> doFloat
-    , className =? "Thunderbird"                             --> doShift "2:mail"
+    , className =? "thunderbird"                             --> doShift "2:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "jetbrains-idea"                          --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
