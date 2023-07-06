@@ -28,6 +28,7 @@ myManageHook = composeAll
     , className =? "AmazonChime"                             --> doShift "9:messenger"
     , title     =? "Amazon Chime — Mozilla Firefox"          --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
+    , className =? "Slack"                                   --> doShift "9:messenger"
     --, className =? "firefox"                                 --> doShift "1:browser"
     ]
 
