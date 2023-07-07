@@ -27,7 +27,7 @@ export FZF_ALT_C_OPTS='--ansi --preview "
 # The first printf removes the first \ from \\n.
 # The second printf prints \n as a newline.
 # Then fold wraps long lines
-export FZF_CTRL_R_OPTS='--preview "fold -w${COLUMNS} <<< $(printf \"$(printf {})\")" --preview-window down:5'
+export FZF_CTRL_R_OPTS='--preview "fold -w${COLUMNS} <<< $(printf \"$(printf {})\")" --preview-window down:6'
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
