@@ -72,18 +72,28 @@ _gh() {
 
 _ghh() {
   is_in_git_repo || return
-  local upstream_head
-  upstream_head=$(git rev-list @{u} 2>/dev/null | head -1)
-  all_parents_of_merge_base="$(gmb HEAD ${upstream_head})^@"
-  # Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
-  # leaving HEAD, upstream head and the merge-base, inclusively.
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD ${upstream_head} "^${all_parents_of_merge_base}"|
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}" |
   head -1
 }
+
+#_ghh() {
+  #is_in_git_repo || return
+  #local upstream_head
+  #upstream_head=$(git rev-list @{u} 2>/dev/null | head -1)
+  #all_parents_of_merge_base="$(gmb HEAD ${upstream_head})^@"
+  ## Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
+  ## leaving HEAD, upstream head and the merge-base, inclusively.
+  #git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD ${upstream_head} "^${all_parents_of_merge_base}"|
+  #fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
+    #--header 'Press CTRL-S to toggle sort' \
+    #--preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
+  #grep -o "[a-f0-9]\{7,\}" |
+  #head -1
+#}
 
 _gy() {
   is_in_git_repo || return
