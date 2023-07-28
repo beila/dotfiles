@@ -1,5 +1,10 @@
 #!env zsh
+this_dir=$(realpath $(pwd))
+parent_dir=$(realpath $(pwd)/..)
 docker run --user $(id -u):$(id -g) \
-    --volume "$(realpath $(pwd)/..):$(realpath $(pwd)/..)" \
-    --workdir "$(realpath $(pwd))" \
-    "$@"
+    --volume "${parent_dir}:${parent_dir}" \
+    --workdir "${this_dir}" \
+    --env HOME=${this_dir}/build/home \
+    "$1" \
+    echo "${*:2}"
+    #bash -c "export PATH=\${HOME}/bin:\${PATH}; ${*:2}"
