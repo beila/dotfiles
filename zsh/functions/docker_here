@@ -1,10 +1,15 @@
 #!env zsh
-this_dir=$(realpath $(pwd))
-parent_dir=$(realpath $(pwd)/..)
+this_dir="$(realpath $(pwd))"
+parent_dir="$(realpath $(pwd)/..)"
+new_home=${this_dir}/build/home
+new_path_array=(${new_home}/*/bin)
+new_path=$(print -R ${(j|:|)new_path_array})
+
+image="${1}"
+shift
 docker run --user $(id -u):$(id -g) \
     --volume "${parent_dir}:${parent_dir}" \
     --workdir "${this_dir}" \
     --env HOME=${this_dir}/build/home \
-    "$1" \
-    echo "${*:2}"
-    #bash -c "export PATH=\${HOME}/bin:\${PATH}; ${*:2}"
+    "${image}" \
+    bash -c "export PATH=${new_path}:\${PATH}; $*"
