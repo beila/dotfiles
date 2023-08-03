@@ -8,3 +8,5 @@ cmake-build-*
 atlassian-ide-plugin.xml
 venv
 tags
+buildr
+build_*
