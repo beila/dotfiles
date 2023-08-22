@@ -12,4 +12,4 @@ docker run --user $(id -u):$(id -g) \
     --workdir "${this_dir}" \
     --env HOME=${this_dir}/build/home \
     "${image}" \
-    bash -c "export PATH=${new_path}:\${PATH}; $*"
+    bash -c "export PATH=${new_path}:\${PATH}; xvfb-run --auto-servernum --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset' $*"
