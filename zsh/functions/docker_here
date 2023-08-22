@@ -1,5 +1,4 @@
 #!env zsh
-set -x
 this_dir="$(realpath $(pwd))"
 parent_dir="$(realpath $(pwd)/..)"
 new_home=${this_dir}/build/home
@@ -11,7 +10,7 @@ single_options=()
 double_options=()
 while [[ "$1" = -* ]]
 do
-    if [[ "${all_signle_options[@]}" =~ \<$1\> ]]
+    if [[ " ${all_signle_options[@]} " =~ " $1 " ]]
     then
         single_options+=($1)
         shift
@@ -24,12 +23,12 @@ done
 image="${1}"
 shift
 
-#docker run \
-    #--init \
-    #--user $(id -u):$(id -g) \
-    #--volume "${parent_dir}:${parent_dir}" \
-    #--workdir "${this_dir}" \
-    #--env HOME=${this_dir}/build/home \
-    #${single_options[@]} ${double_options[@]} \
-    #"${image}" \
-    #bash -c "export PATH=${new_path}:\${PATH}; xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' $*"
+docker run \
+    --init \
+    --user $(id -u):$(id -g) \
+    --volume "${parent_dir}:${parent_dir}" \
+    --workdir "${this_dir}" \
+    --env HOME="${this_dir}/build/home" \
+    "${single_options[@]}" "${double_options[@]}" \
+    "${image}" \
+    bash -c "export PATH=${new_path}:\${PATH}; xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' $*"
