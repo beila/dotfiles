@@ -31,4 +31,5 @@ docker run \
     --env HOME="${this_dir}/build/home" \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
-    bash -c "export PATH=${new_path}:\${PATH}; xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' $*"
+    xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
+        bash -c "export PATH=${new_path}:\${PATH}; $*"
