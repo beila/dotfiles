@@ -23,8 +23,11 @@ done
 image="${1}"
 shift
 
+# --init is needed for xvfb-run to run
+# --tty shows colour in the terminal
 docker run \
     --init \
+    --tty \
     --user $(id -u):$(id -g) \
     --volume "${parent_dir}:${parent_dir}" \
     --workdir "${this_dir}" \
