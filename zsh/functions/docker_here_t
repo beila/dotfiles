@@ -2,7 +2,7 @@
 this_dir="$(realpath $(pwd))"
 parent_dir="$(realpath $(pwd)/..)"
 new_home=${this_dir}/build/home
-new_path_array=($(ls ${new_home}/*/bin 2>/dev/null||true))
+new_path_array=($(ls -d ${new_home}/*/bin 2>/dev/null||true))
 new_path=$(print -R ${(j|:|)new_path_array})
 
 all_signle_options=(-d --detach --init -i --interactive --no-healthcheck --oom-kill--disable --privileged -P --publish-all --read-only --rm --sig-proxy -t --tty) # from docker run --help (20.10.25)
