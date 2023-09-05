@@ -32,6 +32,9 @@ docker run \
     --volume "${parent_dir}:${parent_dir}" \
     --workdir "${this_dir}" \
     --env HOME="${this_dir}/build/home" \
+    --env AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)" \
+    --env AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)" \
+    --env AWS_SESSION_TOKEN="$(aws configure get aws_session_token 2>/dev/null||true)" \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
     xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
