@@ -18,6 +18,7 @@ myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
     , className =? "ignition"                                --> doFloat
     , className =? "thunderbird"                             --> doShift "2:mail"
+    , className =? "evolution.real"                          --> doShift "2:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "jetbrains-idea"                          --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
