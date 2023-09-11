@@ -8,10 +8,10 @@
 #  3          8
 #      4  5
 #  2          1
-xmodmap -e "pointer = 2 3 1 5 4 6 7 8 9 10 11 12"
+xmodmap -e "pointer = 2 3 1 5 4 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20"
 #
 # logical buttons used with right hand
 #  8          3
 #      5  4
 #  1          2
-#xmodmap -e "pointer = 1 8 2 4 5 6 7 3 9 10 11 12"
+#xmodmap -e "pointer = 1 8 2 4 5 6 7 3 9 10 11 12 13 14 15 16 17 18 19 20"
