@@ -1,4 +1,7 @@
 #!/bin/bash
+(
+	sleep 1
+
 #Kensington Expert Mouse physical buttons
 #  2          8
 #      5  4
@@ -14,4 +17,6 @@
 #  8          3
 #      4  5
 #  1          2
-xmodmap -e "pointer = 1 8 2 5 4 6 7 3 9 10 11 12 13 14 15 16 17 18 19 20"
+    xmodmap -e "pointer = 1 8 2 5 4 6 7 3 9 10 11 12 13 14 15 16 17 18 19 20"
+
+)&
