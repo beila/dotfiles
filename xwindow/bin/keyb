@@ -2,11 +2,16 @@
 # http://superuser.com/a/350336
 export DISPLAY="${DISPLAY:-:0.0}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
-(
+#(
 	sleep 1
+
 # https://bbs.archlinux.org/viewtopic.php?pid=1440918#p1440918
 # Add this line to /etc/udev/rules.d/90-hojin-keyboard.rules
-# ACTION=="add", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/keyboard"
+# ACTION=="add", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/keyb"
+# ACTION=="remove", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/KEYB-RESET"
+# ACTION=="add", ATTR{product}=="Microsoft USB Optical Mouse", RUN+="/home/hojin/.dotfiles/xwindow/bin/mouseleft"
+# ACTION=="remove", ATTR{product}=="Microsoft USB Optical Mouse", RUN+="/home/hojin/.dotfiles/xwindow/bin/ken-reset"
+
 	xset r rate 200 30
 	#numlockx
 	#setxkbmap -layout "de" -variant nodeadkeys
@@ -14,4 +19,4 @@ export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 	#(killall xbindkeys || true) &> /dev/null  # Continue even if exit status is 1
 	#xbindkeys  # Only one instance will run
 	notify-send -t 5000 "Keyboard settings applied"
-)&
+#)&
