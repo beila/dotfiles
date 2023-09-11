@@ -6,11 +6,11 @@ export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
 	sleep 1
 
 # https://bbs.archlinux.org/viewtopic.php?pid=1440918#p1440918
-# Add this line to /etc/udev/rules.d/90-hojin-keyboard.rules
-# ACTION=="add", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/keyb"
-# ACTION=="remove", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/KEYB-RESET"
+# Add this line to /etc/udev/rules.d/90-hojin-keyboard-mouse.rules
 # ACTION=="add", ATTR{product}=="Microsoft USB Optical Mouse", RUN+="/home/hojin/.dotfiles/xwindow/bin/mouseleft"
 # ACTION=="remove", ATTR{product}=="Microsoft USB Optical Mouse", RUN+="/home/hojin/.dotfiles/xwindow/bin/ken-reset"
+# ACTION=="add", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/keyb"
+# ACTION=="remove", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/KEYB-RESET"
 
 	xset r rate 200 30
 	#numlockx
