@@ -17,6 +17,7 @@ import XMonad.Config.Gnome
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
     , className =? "ignition"                                --> doFloat
+    , className =? "evolution-alarm-notify"                  --> doFloat
     , className =? "thunderbird"                             --> doShift "2:mail"
     , className =? "evolution.real"                          --> doShift "2:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
