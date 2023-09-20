@@ -45,7 +45,7 @@
 [diff "artworkstoml"]
     xfuncname = "^title *=.*$"
 
-[remote "o"]
+[remote "default_remote_for_my_team"]
     # development is too long
     fetch = +refs/heads/development:refs/remotes/o/dev
     fetch = +refs/heads/development:refs/remotes/o/development
