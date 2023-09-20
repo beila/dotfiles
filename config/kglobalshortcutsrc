@@ -187,7 +187,7 @@ Window to Screen 5=none,,Window to Screen 5
 Window to Screen 6=none,,Window to Screen 6
 Window to Screen 7=none,,Window to Screen 7
 _k_friendly_name=KWin
-bismuth_decrease_master_size=Meta+Shift+H,none,Bismuth: Decrease Master Area Size
+bismuth_decrease_master_size=Meta+H,none,Bismuth: Decrease Master Area Size
 bismuth_decrease_master_win_count=Meta+[,none,Bismuth: Decrease Master Area Window Count
 bismuth_decrease_window_height=none,none,Bismuth: Decrease Window Height
 bismuth_decrease_window_width=none,none,Bismuth: Decrease Window Width
@@ -197,7 +197,7 @@ bismuth_focus_next_window=Meta+Tab,none,Bismuth: Focus Next Window
 bismuth_focus_prev_window=Meta+=,none,Bismuth: Focus Previous Window
 bismuth_focus_right_window=none,none,Bismuth: Focus Right Window
 bismuth_focus_upper_window=none,none,Bismuth: Focus Upper Window
-bismuth_increase_master_size=Meta+Shift+L,none,Bismuth: Increase Master Area Size
+bismuth_increase_master_size=Meta+L,none,Bismuth: Increase Master Area Size
 bismuth_increase_master_win_count=Meta+],none,Bismuth: Increase Master Area Window Count
 bismuth_increase_window_height=none,none,Bismuth: Increase Window Height
 bismuth_increase_window_width=none,none,Bismuth: Increase Window Width
