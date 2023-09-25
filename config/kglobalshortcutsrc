@@ -208,7 +208,7 @@ bismuth_move_window_to_prev_pos=none,none,Bismuth: Move Window to the Previous P
 bismuth_move_window_to_right_pos=none,none,Bismuth: Move Window Right
 bismuth_move_window_to_upper_pos=none,none,Bismuth: Move Window Up
 bismuth_next_layout=Meta+Space,none,Bismuth: Switch to the Next Layout
-bismuth_prev_layout=none,none,Bismuth: Switch to the Previous Layout
+bismuth_prev_layout=Meta+Shift+Space,none,Bismuth: Switch to the Previous Layout
 bismuth_push_window_to_master=Meta+Return,none,Bismuth: Push Active Window to Master Area
 bismuth_rotate=none,none,Bismuth: Rotate
 bismuth_rotate_part=none,none,Bismuth: Rotate Part
@@ -228,11 +228,11 @@ view_zoom_out=Meta+-,Meta+-,Zoom Out
 
 [mediacontrol]
 _k_friendly_name=Media Controller
-mediavolumedown=none,none,Media volume down
-mediavolumeup=none,none,Media volume up
+mediavolumedown=none,,Media volume down
+mediavolumeup=none,,Media volume up
 nextmedia=Media Next,Media Next,Media playback next
 pausemedia=Media Pause,Media Pause,Pause media playback
-playmedia=none,none,Play media playback
+playmedia=none,,Play media playback
 playpausemedia=Media Play,Media Play,Play/Pause media playback
 previousmedia=Media Previous,Media Previous,Media playback previous
 stopmedia=Media Stop,Media Stop,Stop media playback
