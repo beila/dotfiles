@@ -34,6 +34,7 @@
 [rebase]
 	autoSquash = true
 	updateRefs = true
+	autoStash = true
 [diff]
     colorMoved = default
 [commit]
