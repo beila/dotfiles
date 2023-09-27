@@ -3,4 +3,4 @@ set startup-with-shell off
 set history save on
 
 # https://github.com/lebr0nli/GEP
-source ~/.dotfiles/gdb/GEP/gdbinit-gep.py
+source ~/.local/share/GEP/gdbinit-gep.py
