@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/lebr0nli/GEP.git
 	branch = main
-	commit = 43286bb9158b165da8f28e5b6a068dd077cd5947
-	parent = b1a9cfc317fbb7e70cb8438ea25ab47b6a05c61e
+	commit = 5a5941e125ec02b46c22384f8fae787e7f456b20
+	parent = 6c3958bcf5eaa3399e8b5db268b59b27f68edf38
 	method = merge
 	cmdver = 0.4.0

@@ -17,7 +17,9 @@ import XMonad.Config.Gnome
 myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
     , className =? "ignition"                                --> doFloat
-    , className =? "Thunderbird"                             --> doShift "2:mail"
+    , className =? "evolution-alarm-notify"                  --> doFloat
+    , className =? "thunderbird"                             --> doShift "2:mail"
+    , className =? "evolution.real"                          --> doShift "2:mail"
     , className =? "jetbrains-clion"                         --> doShift "3:clion"
     , className =? "jetbrains-idea"                          --> doShift "3:clion"
     , className =? "Gvim"                                    --> doShift "4:gvim"
@@ -28,6 +30,7 @@ myManageHook = composeAll
     , className =? "AmazonChime"                             --> doShift "9:messenger"
     , title     =? "Amazon Chime — Mozilla Firefox"          --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
+    , className =? "Slack"                                   --> doShift "9:messenger"
     --, className =? "firefox"                                 --> doShift "1:browser"
     ]
 
