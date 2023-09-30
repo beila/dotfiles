@@ -5,7 +5,7 @@ local TARGET
 for TARGET in ${=_FA_TARGETS}
 do
 	echo ">>>> $TARGET:"
-	(cd $TARGET; "$@")
+    (cd $TARGET; "$@") || return $?
 done
 # refer to smart_sudo in http://zshwiki.org/home/examples/functions
 #alias fa='_fa '
