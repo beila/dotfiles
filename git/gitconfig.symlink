@@ -3,7 +3,7 @@
         path = ~/.gitconfig.local
 [color]
         diff = auto
-        status = auto
+    status = auto
         branch = auto
         ui = true
 [core]
@@ -34,20 +34,22 @@
 [rebase]
 	autoSquash = true
 	updateRefs = true
+	autoStash = true
 [diff]
     colorMoved = default
 [commit]
 	verbose = true
 [clone]
-	;defaultRemoteName = o
+	defaultRemoteName = origin
 
 # Defininig a custom hunk-header in man gitattributes
 [diff "artworkstoml"]
     xfuncname = "^title *=.*$"
 
-[remote "o"]
+[remote "default_remote_for_my_team"]
     # development is too long
-	#fetch = +refs/heads/development:refs/remotes/o/dev
+    fetch = +refs/heads/development:refs/remotes/o/dev
+    fetch = +refs/heads/development:refs/remotes/o/development
     # push with hojin/ prefix
 	fetch = +refs/heads/hojin/*:refs/remotes/o/*
 	fetch = ^refs/heads/hojin/dev

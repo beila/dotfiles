@@ -7,7 +7,8 @@ done
 SHORT_BRANCH=${LOCAL_BRANCH##*/} # strip prefices included in the branch name
 
 DEFAULT_REMOTE=$(git remote | head -1)
-REMOTE_HEAD=${DEFAULT_REMOTE:+$(git remote show ${DEFAULT_REMOTE} | grep 'HEAD branch' | cut -d' ' -f5)}
+REMOTE_HEAD=$(git branch --remotes | grep ${DEFAULT_REMOTE}/HEAD | head -1 | sed -e "s:.*->[^/]*/::")
+REMOTE_HEAD=${REMOTE_HEAD:-${DEFAULT_REMOTE:+$(git remote show ${DEFAULT_REMOTE} | grep 'HEAD branch' | cut -d' ' -f5)}}
 EXISTING_BRANCH=$(
     git branch    | cut -c3- | grep -o "^${LOCAL_BRANCH}$" || # in case local branch exists
     git branch    | cut -c3- | grep -o "^${SHORT_BRANCH}$" || # in case local branch exists with short name
@@ -38,9 +39,12 @@ if [ ! -d "$W" ]; then
     git branch --set-upstream-to=${GIVEN_BRANCH}
 fi
 
-echo "Set up $W from $(pp $(git rev-parse --show-toplevel))"
-ln -sf "$(readlink -f "$(pp $(git rev-parse --show-toplevel)/.idea)")" $W/.idea
-ln -sf "$(readlink -f "$(pp $(git rev-parse --show-toplevel)/venv)")" $W/venv
+LOCAL_REPO=$(git rev-parse --show-toplevel)
+echo "Set up $W from $(pp ${LOCAL_REPO})"
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/.idea)")" $W/.idea
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/venv)")" $W/venv
+ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/build/home)")" $W/build/
+cp -r "$(readlink -f "$(pp ${LOCAL_REPO}/build/cmake-*)")" $W/build/cmake
 rm -f $W/.git
 echo "gitdir: ../.git/worktrees/$(basename $W)" > $W/.git
 

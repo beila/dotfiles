@@ -2,4 +2,9 @@
 # https://askubuntu.com/a/980201
 export DISPLAY="${DISPLAY:-:0.0}"
 export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
-setxkbmap -option
+(
+	sleep 1
+
+    setxkbmap -option
+
+)&

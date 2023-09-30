@@ -2,21 +2,34 @@ import atexit
 import os
 import re
 import shutil
+import site
 import sys
 import tempfile
 import threading
 import traceback
-from itertools import chain
+from glob import glob
 from shutil import which
 from string import ascii_letters
 from subprocess import PIPE
 from subprocess import Popen
 from typing import Dict
-from typing import Iterable
+from typing import List
 from typing import Optional
 from typing import Tuple
 
 import gdb
+
+directory, file = os.path.split(__file__)
+directory = os.path.expanduser(directory)
+directory = os.path.abspath(directory)
+sys.path.append(directory)
+venv_path = os.path.join(directory, ".venv")
+if not os.path.exists(venv_path):
+    print("You might need to reinstall GEP, please check the latest version on Github")
+    sys.exit(1)
+site_pkgs_path = glob(os.path.join(venv_path, "lib/*/site-packages"))[0]
+site.addsitedir(site_pkgs_path)
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.application import run_in_terminal
@@ -35,6 +48,7 @@ from prompt_toolkit.shortcuts import CompleteStyle
 # global variables
 HAS_FZF = which("fzf") is not None
 HISTORY_FILENAME = ".gdb_history"
+MULTI_LINE_COMMANDS = {"commands", "if", "while", "py", "python", "define", "document"}
 # This sucks, but there's not a GDB API for checking dont-repeat now.
 # I just collect some common used commands which should not be repeated.
 # If you have some user-define function, add your command into the list manually.
@@ -55,7 +69,7 @@ DONT_REPEAT = {
     "functions",
     "gef",
     "tmux-setup",
-}
+} | MULTI_LINE_COMMANDS
 
 FZF_RUN_CMD = (
     "fzf",
@@ -73,10 +87,6 @@ FZF_PRVIEW_WINDOW_ARGS = (
 )
 
 try:
-    directory, file = os.path.split(__file__)
-    directory = os.path.expanduser(directory)
-    directory = os.path.abspath(directory)
-    sys.path.append(directory)
     from geprc import BINDINGS
     from geprc import DONT_REPEAT as USER_DONT_REPEAT
 
@@ -96,7 +106,7 @@ def print_warning(s):
     print_formatted_text(FormattedText([("#FFCC00", s)]), file=sys.__stdout__)
 
 
-def get_gdb_completes(query: str) -> Iterable[str]:
+def get_gdb_completes(query: str) -> List[str]:
     completions_limit = gdb.parameter("max-completions")
     if completions_limit == -1:
         completions_limit = 0xFFFFFFFF
@@ -111,13 +121,12 @@ def get_gdb_completes(query: str) -> Iterable[str]:
             completions = gdb.execute("complete %s" % query + c, to_string=True).splitlines()[
                 :completions_limit
             ]
-            all_completions = chain(all_completions, completions)
+            all_completions.extend(completions)
             completions_limit -= len(completions)
     else:
         all_completions = gdb.execute("complete %s" % query, to_string=True).splitlines()[
             :completions_limit
         ]
-        all_completions = iter(all_completions)
 
     return all_completions
 
@@ -142,16 +151,16 @@ def should_get_help_docs(completion: str) -> bool:
     return safe_get_help_docs(parent_command) != safe_get_help_docs(completion)
 
 
-def get_gdb_completion_and_status(query: str) -> Tuple[Iterable[str], bool]:
+def get_gdb_completion_and_status(query: str) -> Tuple[List[str], bool]:
+    """
+    Return all possible completions and whether we need to get help docs for all completions.
+    """
     all_completions = get_gdb_completes(query)
     # peek the first completion
-    first_completion = next(all_completions, None)
     should_get_all_help_docs = False
-    if first_completion:
-        # restore the iterator
-        all_completions = chain([first_completion], all_completions)
-        should_get_all_help_docs = should_get_help_docs(first_completion)
-    return all_completions, should_get_all_help_docs, first_completion is None
+    if all_completions:
+        should_get_all_help_docs = should_get_help_docs(all_completions[0])
+    return all_completions, should_get_all_help_docs
 
 
 def create_fzf_process(query, preview: str = "") -> Popen:
@@ -217,20 +226,37 @@ def fzf_tab_autocomplete(event: KeyPressEvent):
     """
 
     def _fzf_tab_autocomplete():
-        text_before_cursor = event.app.current_buffer.document.text_before_cursor
-        (
-            all_completions,
-            should_get_all_help_docs,
-            is_empty,
-        ) = get_gdb_completion_and_status(text_before_cursor)
-        if is_empty:
+        target_text = (
+            event.app.current_buffer.document.text_before_cursor.lstrip()
+        )  # Ignore leading whitespaces
+        all_completions, should_get_all_help_docs = get_gdb_completion_and_status(target_text)
+        if not all_completions:
             return
-        query = re.split(r"\W+", text_before_cursor)[-1]
+        prefix = os.path.commonprefix(all_completions)
+        prefix = os.path.commonprefix([prefix, target_text])
+        # TODO/FIXME: qeury might not be the expected one, e.g.
+        # (gdb) complete b fun
+        # b foo::B::func()
+        # b funlockfile
+        # The query should be "fun", but using the longest common prefix and split by non-word characters
+        # We get "f" as the query
+        # TODO/FIXME: For debugging C++/Rust code, we need more complex regex to get the more accurate query
+        query = re.split(r"\W+", prefix)[-1]
+        if prefix:
+            completion_idx = len(prefix) - len(query)
+        else:
+            completion_idx = 0
         p = create_fzf_process(query, FZF_PRVIEW_CMD if should_get_all_help_docs else None)
         completion_help_docs = {}
-        cursor_idx_in_completion = len(text_before_cursor.lstrip())
         for i, completion in enumerate(all_completions):
-            p.stdin.write(query + completion[cursor_idx_in_completion:] + "\n")
+            if prefix.endswith("'" + query) and not completion.endswith("'"):
+                # This is a heuristic to fix the weird behavior of gdb's `complete` command:
+                # (gdb) complete p 'm
+                # ...
+                # p 'main
+                p.stdin.write(completion[completion_idx:] + "'" + "\n")
+            else:
+                p.stdin.write(completion[completion_idx:] + "\n")
             if should_get_all_help_docs:
                 completion_help_docs[i] = safe_get_help_docs(completion)
         t = FzfTabCompletePreviewThread(FIFO_INPUT_PATH, FIFO_OUTPUT_PATH, completion_help_docs)
@@ -238,9 +264,20 @@ def fzf_tab_autocomplete(event: KeyPressEvent):
         stdout, _ = p.communicate()
         t.stop()
         if stdout:
-            # append the rest of the completion after the query
-            query_len = len(query)
-            event.app.current_buffer.insert_text(stdout[query_len:].strip())
+            # We might need to delete some characters before cursor if prefix + query != target_text
+            event.app.current_buffer.delete_before_cursor(len(target_text) - len(prefix))
+            stdout = stdout.rstrip()
+            if (
+                target_text.startswith(prefix + "'")
+                and not stdout.startswith("'")
+                and stdout.endswith("'")
+            ):
+                # This is a heuristic to fix the weird behavior of gdb's `complete` command:
+                # (gdb) complete b 'm
+                # ...
+                # b main'
+                stdout = "'" + stdout
+            event.app.current_buffer.insert_text(stdout[len(query) :].rstrip())
 
     run_in_terminal(_fzf_tab_autocomplete)
 
@@ -385,64 +422,29 @@ class GDBCompleter(Completer):
         super().__init__()
 
     def get_completions(self, document, complete_event):
-        text_before_cursor = document.text_before_cursor
-        cursor_idx_in_completion = len(text_before_cursor.lstrip())
-        (
-            all_completions,
-            should_get_all_help_docs,
-            is_empty,
-        ) = get_gdb_completion_and_status(text_before_cursor)
-        if is_empty:
+        target_text = document.text_before_cursor.lstrip()  # Ignore leading whitespaces
+
+        cursor_idx_in_completion = len(target_text)
+        all_completions, should_get_all_help_docs = get_gdb_completion_and_status(target_text)
+        if not all_completions:
             return
 
         for completion in all_completions:
+            if not completion.startswith(target_text):
+                # TODO/FIXME: This might cause some missing of completion for something like:
+                # (gdb) complete b fun
+                # b foo::B::func()
+                # b funlockfile
+                # b foo::B::func() will be ignored
+                continue
             display_meta = (
                 None if not should_get_all_help_docs else safe_get_help_docs(completion) or None
             )
             # remove some prefix of raw completion
             completion = completion[cursor_idx_in_completion:]
             # display readable completion based on the text before cursor
-            display = re.split(r"\W+", text_before_cursor)[-1] + completion
+            display = re.split(r"\W+", target_text)[-1] + completion
             yield Completion(completion, display=display, display_meta=display_meta)
-
-
-class UpdateGEPCommand(gdb.Command):
-    """
-    Update GEP to the latest version
-    """
-
-    def __init__(self):
-        # we need save __file__ because somehow when gdb invoke this command, somehow __file__ will be not defined
-        self.__gep_location = __file__
-        super(UpdateGEPCommand, self).__init__("gep-update", gdb.COMMAND_NONE)
-
-    def invoke(self, arg, from_tty):
-        print_info("Updating GEP...")
-        try:
-            import urllib.request
-
-            remote_content = urllib.request.urlopen(
-                "https://raw.githubusercontent.com/lebr0nli/GEP/main/gdbinit-gep.py"
-            ).read()
-        except Exception as e:
-            print(e)
-            print_warning("Failed to download GEP from Github")
-            return
-        with open(self.__gep_location, "r") as f:
-            content = f.read()
-        if content == remote_content.decode("utf-8"):
-            print_info("GEP is already the latest version.")
-            return
-        with open(self.__gep_location, "w") as f:
-            f.write(remote_content.decode("utf-8"))
-        print_info("GEP at %s is updated to the latest version." % self.__gep_location)
-        print_info("Please restart GDB to use the latest version of GEP.")
-        print_warning(
-            "You may need to check https://github.com/lebr0nli/GEP for more information about the new version."
-        )
-
-
-UpdateGEPCommand()
 
 
 def gep_prompt(current_prompt: str) -> None:
@@ -470,22 +472,76 @@ def gep_prompt(current_prompt: str) -> None:
         output=create_output(stdout=sys.__stdout__),
     )
     while True:
+        prompt_string = None
         try:
             # emulate the original prompt
             prompt_string = gdb.prompt_hook(current_prompt) if gdb.prompt_hook else None
-            if prompt_string is None:  # prompt string is set by gdb command
+            if prompt_string:
+                # If prompt_string is generated by gdb.prompt_hook, we update the prompt like native GDB
+                safe_prompt_string = "".join(
+                    f"\\{ord(c):o}" if ord(c) < 0x100 else c for c in prompt_string
+                )
+                gdb.execute(f"set prompt {safe_prompt_string}", from_tty=False, to_string=True)
+        except Exception as e:
+            print(f"Python Exception {type(e)}: {e}")
+        finally:
+            if prompt_string is None:
                 prompt_string = gdb.parameter("prompt")
+        try:
             prompt_string = prompt_string.replace("\001", "").replace(
                 "\002", ""
             )  # fix for ANSI prompt
-            gdb_cmd = session.prompt(ANSI(prompt_string))
-            if not gdb_cmd.strip():
-                gdb_cmd_list = gdb_history.get_strings()
-                if gdb_cmd_list:
-                    previous_gdb_cmd = gdb_cmd_list[-1]
-                    if previous_gdb_cmd.split() and previous_gdb_cmd.split()[0] not in DONT_REPEAT:
-                        gdb_cmd = previous_gdb_cmd
-            gdb.execute(gdb_cmd, from_tty=True)
+
+            full_cmd = session.prompt(ANSI(prompt_string))
+            main_cmd = re.split(r"\W+", full_cmd.strip())[0]
+            quit_input_in_multiline_mode = False
+
+            if not full_cmd.strip():
+                cmd_list = gdb_history.get_strings()
+                if cmd_list:
+                    previous_cmd = cmd_list[-1]
+                    if main_cmd not in DONT_REPEAT:
+                        full_cmd = previous_cmd
+            elif main_cmd in MULTI_LINE_COMMANDS:
+
+                def single_line_py(main_cmd: str, full_cmd: str) -> bool:
+                    # If full_cmd is something like: `py print(1)`, we don't need to handle multi-line input
+                    return main_cmd in ("py", "python") and full_cmd.strip() not in ("py", "python")
+
+                first_cmd_is_py = main_cmd in ("py", "python")
+
+                if not single_line_py(main_cmd, full_cmd):
+                    # TODO: Should we show more info when using `commands` or `define`?
+                    # e.g. In native GDB:
+                    # (gdb) commands
+                    # Type commands for breakpoint(s) 1, one per line.
+                    # End with a line saying just "end"
+                    # > (input goes here)
+                    stack_size = 1
+                    while stack_size > 0:
+                        full_cmd += "\n"
+                        try:
+                            new_line = session.prompt(">".rjust(stack_size))
+                        except EOFError:
+                            full_cmd += "end"
+                            stack_size -= 1
+                            continue
+                        except KeyboardInterrupt:
+                            quit_input_in_multiline_mode = True
+                            break
+                        main_cmd = re.split(r"\W+", new_line.strip())[0]
+                        if (
+                            not first_cmd_is_py
+                            and main_cmd in MULTI_LINE_COMMANDS
+                            and not single_line_py(main_cmd, new_line)
+                        ):
+                            stack_size += 1
+                        elif main_cmd == "end":
+                            stack_size -= 1
+                        full_cmd += new_line
+
+            if not quit_input_in_multiline_mode:
+                gdb.execute(full_cmd, from_tty=True)
         except gdb.error as e:
             print(e)
         except KeyboardInterrupt:
