@@ -2,11 +2,8 @@
 this_dir="$(realpath $(pwd))"
 git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
 new_home="${DOCKER_HERE_HOME}"
-new_path_array=($(ls -d "${new_home}" 2>/dev/null || true))
-new_path_array+=($(ls -d "${new_home:+${new_home}/*/}" 2>/dev/null || true))
-new_path_array+=($(ls -d "${new_home:+${new_home}/*/bin}" 2>/dev/null || true))
-new_path=$(print -R ${(j|:|)new_path_array})
-token="${DOCKER_HERE_ACCESS_TOKEN}"
+test -n "${new_home}" && new_path_array=($(ls -d ${new_home} ${new_home}/*/ ${new_home}/*/bin 2>/dev/null || true))
+test -n "${new_home}" && new_path=$(print -R ${(j|:|)new_path_array})
 
 all_signle_options=(-d --detach --init -i --interactive --no-healthcheck --oom-kill--disable --privileged -P --publish-all --read-only --rm --sig-proxy -t --tty) # from docker run --help (20.10.25)
 single_options=()
@@ -26,6 +23,8 @@ done
 image="${1}"
 shift
 
+test -f /tmp/fake_passwd || echo "$(id -un):x:$(id -u):$(id -g):Git User:/tmp:/bin/bash" > /tmp/fake_passwd
+
 # --init is needed for xvfb-run to run
 # --tty shows colour in the terminal
 docker run \
@@ -35,20 +34,17 @@ docker run \
     --volume "${new_home}:${new_home}" \
     --volume "${this_dir}:${this_dir}" \
     --volume "${git_dir}:${git_dir}" \
+    --volume $HOME/.ssh:${new_home}/.ssh \
+    --volume /tmp/fake_passwd:/etc/passwd  \
     --workdir "${this_dir}" \
     --env AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)" \
     --env AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)" \
     --env AWS_SESSION_TOKEN="$(aws configure get aws_session_token 2>/dev/null||true)" \
+    --env GIT_SSH_COMMAND="ssh -i ${new_home}/.ssh/id_ecdsa -i ${new_home}/.ssh/id_ed25519 -o 'StrictHostKeyChecking=no'" \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
     xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
         bash -c "
-            export HOME=${new_home:-\${HOME}}
+            export HOME=${new_home:-\$HOME}
             export PATH=${new_path}:\${PATH}
-            export USER=${USER}
-            GIT_CONFIG_COUNT=${token:+2}
-            GIT_CONFIG_KEY_0=${token:+http.extraHeader}
-            GIT_CONFIG_VALUE_0=\"${token:+Authorization: Bearer $token}\"
-            GIT_CONFIG_KEY_1=${token:+credential.username}
-            GIT_CONFIG_VALUE_1=\"${token:+$(id -un)}\"
             $*"
