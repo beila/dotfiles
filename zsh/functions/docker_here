@@ -1,10 +1,12 @@
 #!env zsh
 this_dir="$(realpath $(pwd))"
+git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
 new_home="${DOCKER_HERE_HOME}"
 new_path_array=($(ls -d "${new_home}" 2>/dev/null || true))
 new_path_array+=($(ls -d "${new_home:+${new_home}/*/}" 2>/dev/null || true))
 new_path_array+=($(ls -d "${new_home:+${new_home}/*/bin}" 2>/dev/null || true))
 new_path=$(print -R ${(j|:|)new_path_array})
+token="${DOCKER_HERE_ACCESS_TOKEN}"
 
 all_signle_options=(-d --detach --init -i --interactive --no-healthcheck --oom-kill--disable --privileged -P --publish-all --read-only --rm --sig-proxy -t --tty) # from docker run --help (20.10.25)
 single_options=()
@@ -32,6 +34,7 @@ docker run \
     --user $(id -u):$(id -g) \
     --volume "${new_home}:${new_home}" \
     --volume "${this_dir}:${this_dir}" \
+    --volume "${git_dir}:${git_dir}" \
     --workdir "${this_dir}" \
     --env AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)" \
     --env AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)" \
@@ -42,4 +45,10 @@ docker run \
         bash -c "
             export HOME=${new_home:-\${HOME}}
             export PATH=${new_path}:\${PATH}
+            export USER=${USER}
+            GIT_CONFIG_COUNT=${token:+2}
+            GIT_CONFIG_KEY_0=${token:+http.extraHeader}
+            GIT_CONFIG_VALUE_0=\"${token:+Authorization: Bearer $token}\"
+            GIT_CONFIG_KEY_1=${token:+credential.username}
+            GIT_CONFIG_VALUE_1=\"${token:+$(id -un)}\"
             $*"
