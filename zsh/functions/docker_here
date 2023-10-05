@@ -1,8 +1,9 @@
 #!env zsh
 this_dir="$(realpath $(pwd))"
-parent_dir="$(realpath $(pwd)/..)"
-new_home=${this_dir}/build/home
-new_path_array=($(ls -d ${new_home} ${new_home}/*/ ${new_home}/*/bin 2>/dev/null || true))
+new_home="${DOCKER_HERE_HOME}"
+new_path_array=($(ls -d "${new_home}" 2>/dev/null || true))
+new_path_array+=($(ls -d "${new_home:+${new_home}/*/}" 2>/dev/null || true))
+new_path_array+=($(ls -d "${new_home:+${new_home}/*/bin}" 2>/dev/null || true))
 new_path=$(print -R ${(j|:|)new_path_array})
 
 all_signle_options=(-d --detach --init -i --interactive --no-healthcheck --oom-kill--disable --privileged -P --publish-all --read-only --rm --sig-proxy -t --tty) # from docker run --help (20.10.25)
@@ -29,13 +30,16 @@ docker run \
     --init \
     --tty \
     --user $(id -u):$(id -g) \
-    --volume "${parent_dir}:${parent_dir}" \
+    --volume "${new_home}:${new_home}" \
+    --volume "${this_dir}:${this_dir}" \
     --workdir "${this_dir}" \
-    --env HOME="${this_dir}/build/home" \
     --env AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)" \
     --env AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)" \
     --env AWS_SESSION_TOKEN="$(aws configure get aws_session_token 2>/dev/null||true)" \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
     xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
-        bash -c "export PATH=${new_path}:\${PATH}; $*"
+        bash -c "
+            export HOME=${new_home:-\${HOME}}
+            export PATH=${new_path}:\${PATH}
+            $*"
