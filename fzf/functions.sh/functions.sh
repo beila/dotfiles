@@ -70,7 +70,7 @@ _gh() {
   head -1
 }
 
-_ghh() {
+_gyy() {
   is_in_git_repo || return
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
@@ -80,7 +80,7 @@ _ghh() {
   head -1
 }
 
-_ghhh() {
+_ghh() {
   is_in_git_repo || return
   local upstream_head
   upstream_head=$(git rev-list @{u} 2>/dev/null | head -1)

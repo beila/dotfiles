@@ -1,4 +1,9 @@
 #!env zsh
+test -z "$(git diff --no-ext-diff --cached)" && {
+    echo "No staged changes" > /dev/stderr
+    return 1
+}
+
 if typeset -f _gh > /dev/null; then
     git commit --verbose --fixup=$(_gh)
 else
