@@ -3,36 +3,4 @@ set -x
 git submodule sync --quiet
 git submodule update --no-fetch
 
-CONFIG_FILE=${CONFIG_FILE:-$(git rev-parse --git-dir)/config}
-MODULES_FILE=${MODULES_FILE:-.gitmodules}
-
-COMMIT_ID=${1%0}    # $1 is the previous commit ID in post-checkout, 0 or 1 in post-merge, "amend" or "rebase" in post-rewrite
-                    # 0, 1, amend, rebase are removed at the end so it's still commit ID for post-checkout and empty for others.
-COMMIT_ID=${COMMIT_ID%1}
-COMMIT_ID=${COMMIT_ID%amend}
-COMMIT_ID=${COMMIT_ID%rebase}
-BACKUP_FILE=${CONFIG_FILE}-${COMMIT_ID:-$(date +%s)}    # timestamp suffix when there isn't the commit ID.
-TEMP_FILE=${CONFIG_FILE}-temp
-
-deleted_sections=$(comm -13 <(awk -F '"' '/\[submodule /{print $0}' ${MODULES_FILE}|sort) <(awk -F '"' '/\[submodule /{print $0}' ${CONFIG_FILE}|sort))
-if [ "$deleted_sections" ]
-then
-    echo "Removing following submodule sections from ${CONFIG_FILE}:"
-    echo "$deleted_sections"
-
-    # Clean up worktree
-    deleted_submodules=$(awk -F '"' '{print $2}' <<< "$deleted_sections")
-    while read -r submodule_path
-    do
-        git clean -dff "$submodule_path" || true
-    done <<< "$deleted_submodules"
-
-    # Back up .git/config
-    cp -f ${CONFIG_FILE} ${BACKUP_FILE}
-
-    # Remove stale sections from ${CONFIG_FILE}
-    rm -f ${TEMP_FILE}
-    pattern=$(echo "$deleted_sections"|sed 's/[][]//g'|paste -sd'|' -)    # [][] matches '[' or ']' since []] matches ']'
-    awk -v pattern="$pattern" '/^\[/{a=1} $0 ~ pattern {a=0} {if (a) print $0}' ${CONFIG_FILE} > ${TEMP_FILE}
-    mv -f ${TEMP_FILE} ${CONFIG_FILE}
-fi
+# There used to be 30+ lines of magic going on here directly manipulating .git/config to remove deleted submodules. I think the latest version of git can deal with it by itself now. This is left as an epitaph to remember the dark days.
