@@ -50,9 +50,9 @@ _gbb() {
   is_in_git_repo || return
   git worktree list |
       fzf_down --ansi --multi --tac --preview-window right:70% \
-          --preview 'echo $(cut -d" " -f2 <<< {} )' |
+          --preview 'git -C $(awk "{print \$1}" <<< {}) diff --stat --color=always
+            git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%cd %h%d %s" $(awk "{print \$2}" <<< {})' |
       cut -d' ' -f1
-          #--preview 'git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%cd %h%d %s" $(cut -d" " -f2 <<< {} )' |
 }
 
 _gt() {
