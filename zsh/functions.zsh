@@ -18,8 +18,8 @@ do
 	alias ${ff#aliased_}="${ff} "
 done
 
-local EXA=$(which exa 2> /dev/null)
-if [[ -x ${EXA} ]]
+local EZA=$(which eza 2> /dev/null)
+if [[ -x ${EZA} ]]
 then
     for ff in $(cd $exafuncdir;ls *)
     do
