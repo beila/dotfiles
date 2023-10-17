@@ -23,7 +23,10 @@ export FZF_ALT_C_COMMAND='
             # fd --print0 --one-file-system --type d . '"${HOME}"' &&
             # fd --print0 --one-file-system --type d . /
         ) | xargs -0 --no-run-if-empty eza --color=always -d --sort=none
-    ) | awk --field-separator "->" "{print $1}"'
+    ) 2> /dev/null |
+        # " +[^ ]*" part removes space and invisible colour code.
+        # "->" part separates eza showing the targets of symbolic links
+        awk --field-separator " +[^ ]*->" "{print \$1}"'
 export FZF_ALT_C_OPTS='--ansi --preview "
     (
         git -C {} diff --stat --color=always &&
