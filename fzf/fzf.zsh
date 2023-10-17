@@ -13,19 +13,22 @@ export FZF_CTRL_T_OPTS='--ansi --preview "
         ls -l --color {}"'
 
 export FZF_ALT_C_COMMAND='
-    #git worktree list | cut -d" " -f1 2 2> /dev/null
-    fasd -dlR | xargs -r -I I eza --color=always -d "I"
     (
-        #fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
-        # fd --print0 --one-file-system --type d . '"${HOME}"' &&
-        # fd --print0 --one-file-system --type d . /
-    ) 2> /dev/null |
-        xargs -0 -r eza --color=always -d'
+        (
+            git worktree list | cut -d" " -f1
+            fasd -dlR
+        ) | xargs --no-run-if-empty eza --color=always -d --sort=none
+        (
+            fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
+            # fd --print0 --one-file-system --type d . '"${HOME}"' &&
+            # fd --print0 --one-file-system --type d . /
+        ) | xargs -0 --no-run-if-empty eza --color=always -d --sort=none
+    ) | awk --field-separator "->" "{print $1}"'
 export FZF_ALT_C_OPTS='--ansi --preview "
     (
-        git -C {} diff --stat --color=always
-        git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\"
-        eza -l {} ||
+        git -C {} diff --stat --color=always &&
+        git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
+            eza -l {} ||
             ls -l --color {}
     ) 2> /dev/null"'
 
