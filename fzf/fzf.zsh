@@ -25,12 +25,12 @@ export FZF_ALT_C_COMMAND='
         ) | xargs -0 --no-run-if-empty eza --color=always -d --sort=none
     ) 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
-        # "->" part separates eza showing the targets of symbolic links
+        # "->" part separates the targets of symbolic links which eza shows
         awk --field-separator " +[^ ]*->" "{print \$1}"'
 export FZF_ALT_C_OPTS='--ansi --preview "
     (
         git -C {} diff --stat --color=always &&
-        git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
+            git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
             eza -l {} ||
             ls -l --color {}
     ) 2> /dev/null"'
