@@ -25,7 +25,8 @@ fi
 
 which zsh 2>&1 > /dev/null || $BREW install zsh
 which screen 2>&1 > /dev/null || $BREW install screen
-$BREW install ripgrep fzf bat exa broot fasd dust glow
+$BREW install ripgrep fzf bat eza broot fasd dust glow
+#$BREW install exa
 
 # brew info fzf
 #$($BREW --prefix fzf)/install

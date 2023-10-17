@@ -1,28 +1,33 @@
 export FZF_CTRL_T_COMMAND='
-    fasd -lR | xargs -r -I I exa --color=always -d "I" &&
+    fasd -lR | xargs -r -I I eza --color=always -d "I" &&
     (
         git ls-files -z --cached &&     # Without && processes in () are not killed
         git ls-files -z --others ||
         fd --hidden --follow --print0 --strip-cwd-prefix
     ) 2> /dev/null |
-        xargs -0 -r exa --color=always -d'
+        xargs -0 -r eza --color=always -d'
 export FZF_CTRL_T_OPTS='--ansi --preview "
     test -f {} &&
         bat --style=numbers --color=always --line-range :500 {} ||
-        exa -l {} ||
+        eza -l {} ||
         ls -l --color {}"'
 
 export FZF_ALT_C_COMMAND='
-    fasd -dlR | xargs -r -I I exa --color=always -d "I" &&
+    #git worktree list | cut -d" " -f1 2 2> /dev/null
+    fasd -dlR | xargs -r -I I eza --color=always -d "I"
     (
-        fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
+        #fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
         # fd --print0 --one-file-system --type d . '"${HOME}"' &&
         # fd --print0 --one-file-system --type d . /
     ) 2> /dev/null |
-        xargs -0 -r exa --color=always -d'
+        xargs -0 -r eza --color=always -d'
 export FZF_ALT_C_OPTS='--ansi --preview "
-    exa -l {} ||
-        ls -l --color {}"'
+    (
+        git -C {} diff --stat --color=always
+        git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\"
+        eza -l {} ||
+            ls -l --color {}
+    ) 2> /dev/null"'
 
 # The first printf removes the first \ from \\n.
 # The second printf prints \n as a newline.

@@ -1,2 +1,2 @@
 #!env zsh
-exa --all "$@"
+eza --all "$@"
