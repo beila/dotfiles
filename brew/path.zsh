@@ -1,4 +1,4 @@
-for brew_path in $HOME/.linuxbrew /home/linuxbrew/.linuxbrew 
+for brew_path in /home/linuxbrew/.linuxbrew  $HOME/.linuxbrew
 do
     if [[ -d ${brew_path} ]]
     then
@@ -8,7 +8,7 @@ do
         path=($dir ${(@)path:#$dir})
 
         dir=${brew_path}/share/man
-        manpath=($dir ${(@)manpath:#$dir})
+        #manpath=($dir ${(@)manpath:#$dir})
 
         dir=${brew_path}/share/info
         export INFOPATH=$dir:${INFOPATH://$dir:}
@@ -23,11 +23,11 @@ then
 fi
 
 # brew info coreutils
-local dir=/usr/local/opt/coreutils/libexec/gnuman
-if [[ -d $dir ]]
-then
-    manpath=($dir ${(@)manpath:#$dir})
-fi
+#local dir=/usr/local/opt/coreutils/libexec/gnuman
+#if [[ -d $dir ]]
+#then
+    #manpath=($dir ${(@)manpath:#$dir})
+#fi
 
 # brew info curl
 #local DIR=/usr/local/opt/curl/bin

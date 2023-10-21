@@ -12,7 +12,7 @@ export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 export PROJECTS=~/dev
 
 # should be initialised otherwise default values are not used
-MANPATH=${MANPATH:-$(manpath)}
+#MANPATH=${MANPATH:-$(manpath)}
 
 # all of our zsh files
 typeset -U config_files
@@ -80,5 +80,3 @@ test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell
 export JAVA_TOOLS_OPTIONS="-Dlog4j2.formatMsgNoLookups=true"
 
 export AWS_EC2_METADATA_DISABLED=true
-
-export PATH=$PATH:$HOME/.toolbox/bin
