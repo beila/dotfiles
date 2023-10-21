@@ -8,5 +8,9 @@ do
         do
             path=($dir ${(@)path:#$dir})
         done
+        for dir in $(find -L "$local_root" -maxdepth 3 -name 'man' -type d)
+        do
+            #manpath=($dir ${(@)manpath:#$dir})
+        done
     fi
 done
