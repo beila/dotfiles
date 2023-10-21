@@ -26,7 +26,7 @@ export FZF_ALT_C_COMMAND='
     ) 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
         # "->" part separates the targets of symbolic links which eza shows
-        awk --field-separator " +[^ ]*->" "{print \$1}"'
+        awk -F " +[^ ]*->" "{print \$1}"'
 export FZF_ALT_C_OPTS='--ansi --preview "
     (
         git -C {} diff --stat --color=always &&
