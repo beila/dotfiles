@@ -15,18 +15,24 @@ for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
     fi
 done
 
+function install_if_missing(){
+    for p in "$@"
+    do
+        which $p 2>&1 > /dev/null ||
+            $BREW install $p
+    done
+}
+
+install_if_missing zsh
+$BREW install coreutils screen ripgrep fzf bat eza broot fasd dust glow feedgnuplot
+#$BREW install exa
+
 if [ "$(uname -s)" == "Darwin" ]
 then
-    $BREW install coreutils
     #$BREW install homebrew/cask-drivers/kensington-trackball-works
     $BREW install iterm2 quicksilver karabiner-elements
     #$BREW install vivaldi clion
 fi
-
-which zsh 2>&1 > /dev/null || $BREW install zsh
-which screen 2>&1 > /dev/null || $BREW install screen
-$BREW install ripgrep fzf bat eza broot fasd dust glow
-#$BREW install exa
 
 # brew info fzf
 #$($BREW --prefix fzf)/install
