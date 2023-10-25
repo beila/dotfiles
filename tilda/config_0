@@ -1,7 +1,7 @@
 tilda_config_version="1.5.4"
 command="screen"
 font="Monospace 11"
-key="F12"
+key="Page_Down"
 addtab_key="<Shift><Control>t"
 fullscreen_key="F11"
 toggle_transparency_key="F1"
@@ -34,7 +34,7 @@ normalize_font_size_key="<Control>0"
 show_on_monitor="DP-1-0"
 word_chars="-A-Za-z0-9,./?%&#:_"
 lines=5000
-x_pos=2688
+x_pos=96
 y_pos=0
 tab_pos=0
 expand_tabs=false
