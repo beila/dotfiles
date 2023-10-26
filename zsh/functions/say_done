@@ -1,0 +1,3 @@
+#!env zsh
+SAY=$(which spd-say 2> /dev/null)
+"${SAY}" "done for $(basename $(pwd))"
