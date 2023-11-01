@@ -1,6 +1,6 @@
 #!/bin/bash
 set -x
 git submodule sync --quiet
-git submodule update --no-fetch
+git submodule update || true
 
 # There used to be 30+ lines of magic going on here directly manipulating .git/config to remove deleted submodules. I think the latest version of git can deal with it by itself now. This is left as an epitaph to remember the dark days.
