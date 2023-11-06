@@ -1,5 +1,6 @@
+# TODO fasd used to have files listed, but zoxide does not. I need list of files most likely to be used. Maybe locate?
 export FZF_CTRL_T_COMMAND='
-    fasd -lR | xargs -r -I I eza --color=always -d "I" &&
+    #fasd -lR | xargs -r -I I eza --color=always -d "I" &&
     (
         git ls-files -z --cached &&     # Without && processes in () are not killed
         git ls-files -z --others ||
@@ -16,7 +17,7 @@ export FZF_ALT_C_COMMAND='
     (
         (
             git worktree list | cut -d" " -f1
-            fasd -dlR
+            zoxide query --list
         ) | xargs --no-run-if-empty eza --color=always -d --sort=none
         (
             fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&

@@ -24,8 +24,8 @@ function install_if_missing(){
 }
 
 install_if_missing zsh
-$BREW install coreutils screen ripgrep fzf bat eza broot fasd dust glow feedgnuplot git-subrepo
-#$BREW install exa
+$BREW install coreutils screen ripgrep fzf bat eza broot dust glow feedgnuplot git-subrepo zoxide
+#$BREW install exa fasd
 
 if [ "$(uname -s)" == "Darwin" ]
 then

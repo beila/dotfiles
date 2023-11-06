@@ -75,7 +75,6 @@ index 4778944..ca06e79 100644
 +  'prompt' \
 +  'archive' \
 +  'command-not-found' \
-+  'fasd' \
 +  'git' \
 +  'gnu-utility' \
 +  'history-substring-search' \
@@ -87,6 +86,7 @@ index 4778944..ca06e79 100644
 +  '' \
 +  '' \
 +  ''
+#+  'fasd' \
  
  #
  # Editor
