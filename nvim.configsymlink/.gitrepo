@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/dam9000/kickstart-modular.nvim.git
+	branch = master
+	commit = 37d62823fdf229808f1b822b61ec6f0af9300d1f
+	parent = c89de2e2615e30744e26ba6973463c2291282bec
+	method = merge
+	cmdver = 0.4.6
