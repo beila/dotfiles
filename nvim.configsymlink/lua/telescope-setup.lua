@@ -3,11 +3,11 @@
 require('telescope').setup {
   defaults = {
     mappings = {
-      i = {
+      --[[ i = {
         ['<C-u>'] = false,
         ['<C-d>'] = false,
-      },
-    },
+      }, ]]
+    },path_display = 'smart'
   },
 }
 
