@@ -9,3 +9,4 @@ return {}
 -- TODO lcd to git root
 -- TODO write files always - help updatetime CursorHold
 -- TODO keep the number column always? - grep number
+-- TODO remap F1 to esc
