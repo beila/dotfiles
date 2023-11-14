@@ -3,11 +3,14 @@
 require('telescope').setup {
   defaults = {
     mappings = {
-      --[[ i = {
-        ['<C-u>'] = false,
-        ['<C-d>'] = false,
-      }, ]]
-    },path_display = 'smart'
+      i = {
+        -- ['<C-u>'] = false,
+        -- ['<C-d>'] = false,
+        ["<C-Down>"] = require('telescope.actions').cycle_history_next,
+        ["<C-Up>"] = require('telescope.actions').cycle_history_prev,
+      },
+    },
+    -- path_display = 'smart',
   },
 }
 
@@ -55,10 +58,10 @@ vim.keymap.set('n', '<leader>?', require('telescope.builtin').oldfiles, { desc =
 vim.keymap.set('n', '<leader><space>', require('telescope.builtin').buffers, { desc = '[ ] Find existing buffers' })
 vim.keymap.set('n', '<leader>/', function()
   -- You can pass additional configuration to telescope to change theme, layout, etc.
-  require('telescope.builtin').current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
+  require('telescope.builtin').current_buffer_fuzzy_find(--[[ require('telescope.themes').get_dropdown {
     winblend = 10,
     previewer = false,
-  })
+  } ]])
 end, { desc = '[/] Fuzzily search in current buffer' })
 
 vim.keymap.set('n', '<leader>gf', require('telescope.builtin').git_files, { desc = 'Search [G]it [F]iles' })
