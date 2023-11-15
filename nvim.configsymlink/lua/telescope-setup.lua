@@ -41,7 +41,7 @@ local function find_git_root()
   return git_root
 end
 
---[[ -- Custom live_grep function to search in git root
+-- Custom live_grep function to search in git root
 local function live_grep_git_root()
   local git_root = find_git_root()
   if git_root then
@@ -51,8 +51,8 @@ local function live_grep_git_root()
   end
 end
 
--- vim.api.nvim_create_user_command('LiveGrepGitRoot', live_grep_git_root, {})
-]]
+vim.api.nvim_create_user_command('LiveGrepGitRoot', live_grep_git_root, {})
+
 -- See `:help telescope.builtin`
 vim.keymap.set('n', '<leader>b', require('telescope.builtin').oldfiles, { desc = '[ ] Find recently opened files' })
 vim.keymap.set('n', '<leader>\'', function()
@@ -89,7 +89,7 @@ vim.keymap.set('n', '<leader>cl', require('telescope.builtin').lsp_document_symb
 vim.keymap.set('n', '<leader>cs', require('telescope.builtin').lsp_workspace_symbols, { desc = '[C]ode Workspace [S]ymbols' })
 vim.keymap.set('n', '<leader>cw', require('telescope.builtin').lsp_dynamic_workspace_symbols, { desc = '[C]ode [W]orkspace symbols dynamically' })
 
-vim.keymap.set('n', '<leader>l', require('telescope.builtin').git_bcommits, { desc = 'Git [L]og for buffer' })
+vim.keymap.set({'n', 'v'}, '<leader>l', require('telescope.builtin').git_bcommits, { desc = 'Git [L]og for buffer' })
 require("telescope").setup {
   pickers = {
     git_bcommits = {
