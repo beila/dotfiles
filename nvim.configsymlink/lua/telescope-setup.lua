@@ -69,6 +69,7 @@ vim.keymap.set('n', '<leader>h', require('telescope.builtin').help_tags, { desc 
 vim.keymap.set('n', '<leader>H', require('telescope.builtin').man_pages, { desc = 'Manual Pages' })
 vim.keymap.set({'n', 'v'}, '<leader>g', require('telescope.builtin').grep_string, { desc = 'Search Current Word' })
 vim.keymap.set('n', '<leader>d', require('telescope.builtin').diagnostics, { desc = 'Search [D]iagnostics' })
+vim.keymap.set('n', '<leader>G', ':LiveGrepGitRoot<cr>', { desc = 'Search by [G]rep on Git Root' })
 
 vim.keymap.set('n', '<leader>s', require('telescope.builtin').git_status, { desc = 'Git [S]tatus' })
 vim.keymap.set('n', '<leader>t', require('telescope.builtin').builtin, { desc = '[T]elescope Builtins' })
