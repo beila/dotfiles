@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/honsiorovskyi/open-url-in-container.git
+	branch = master
+	commit = 4fa376570305de73e00b3ffc99adbbf241bed099
+	parent = 011559135108e5efde69d7d6866c50349c372484
+	method = merge
+	cmdver = 0.4.6
