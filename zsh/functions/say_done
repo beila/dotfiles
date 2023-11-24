@@ -1,3 +1,5 @@
 #!env zsh
+EXIT=$?
 SAY=$(which spd-say 2> /dev/null)
 "${SAY}" "done for $(basename $(pwd))"
+return $EXIT
