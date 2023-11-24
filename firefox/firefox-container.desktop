@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Version=1.0
+Type=Application
+NoDisplay=true
+Exec="$HOME/.dotfiles/firefox/firefox-container" %u
+Name=Firefox Container
+Comment=Open external links in a firefox container
+MimeType=text/html;
