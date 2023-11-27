@@ -50,6 +50,7 @@
     # development is too long
     fetch = +refs/heads/development:refs/remotes/o/dev
     fetch = +refs/heads/development:refs/remotes/o/development
+    fetch = +refs/heads/release/*:refs/remotes/o/release/*
     # push with hojin/ prefix
 	fetch = +refs/heads/hojin/*:refs/remotes/o/*
 	fetch = ^refs/heads/hojin/dev
