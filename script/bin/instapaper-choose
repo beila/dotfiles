@@ -1,0 +1,15 @@
+#!/bin/env ppp $(
+    tr -d '\n' << PARAMS
+        csv -H
+        -i random
+        --loop-head 'f = dic["Folder"]'
+        --loop-head 'D[f] = D.get(f,0)+1'
+        -f 'f not in ["11월", S]'
+        -n
+        'S, L[len(L):] = f, [{**dic,"findex":D[f]}]'
+        'view(L[-1])' -v
+        -p
+        #--post 'for l in random.choices(L, k=3): view(l)'
+PARAMS
+)
+# https://github.com/bugen/pypipe
