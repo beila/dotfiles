@@ -359,10 +359,6 @@ class UserParamater(gdb.Parameter):
         return "%s is %r." % (self.set_show_doc.capitalize(), svalue)
 
 
-ctrl_c_quit = UserParamater(
-    "ctrl-c-quit", False, "whether to use ctrl-c to exit the gdb", gdb.PARAM_BOOLEAN
-)
-
 single_column_tab_complete = UserParamater(
     "single-column-tab-complete",
     True,
@@ -541,12 +537,18 @@ def gep_prompt(current_prompt: str) -> None:
                         full_cmd += new_line
 
             if not quit_input_in_multiline_mode:
-                gdb.execute(full_cmd, from_tty=True)
-        except gdb.error as e:
-            print(e)
+                # This is a hack to fix the issue when debugging the kernel with qemu-system-*
+                # Without this hack, somehow pressing ctrl-c in GDB will not interrupt the kernel
+                # See #23 for more details
+                # TODO: Is there a better way to fix this issue?
+                gdb.execute(
+                    f"""python
+try: gdb.execute({full_cmd!r}, from_tty=True)
+except gdb.error as e: print(e)
+"""
+                )
         except KeyboardInterrupt:
-            if ctrl_c_quit.value:
-                gdb.execute("quit")
+            pass
         except EOFError:
             gdb.execute("quit")
         except Exception as e:
