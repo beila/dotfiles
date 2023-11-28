@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/python
 
 '''
 #!/bin/bash -x
@@ -40,7 +40,7 @@ PARAMS
 
 # IMPORT
 import sys
-from functools import partial
+from functools import partial, reduce
 from pprint import pformat
 from unicodedata import east_asian_width
 import csv
@@ -137,22 +137,57 @@ def _print(*args, sep=','):
     else:
         print(sep.join(str(v) for v in args))
 
+ui={
+        "1월": "https://www.instapaper.com/u/folder/4737137/1-",
+        "10월": "https://www.instapaper.com/u/folder/4676196/10-",
+        "11월": "https://www.instapaper.com/u/folder/4697235/11-",
+        "12월": "https://www.instapaper.com/u/folder/4716737/12-",
+        "2월": "https://www.instapaper.com/u/folder/4760978/2-",
+        "2013": "https://www.instapaper.com/u/folder/4467764/2013",
+        "2014": "https://www.instapaper.com/u/folder/4467674/2014",
+        "2015": "https://www.instapaper.com/u/folder/4467679/2015",
+        "2016": "https://www.instapaper.com/u/folder/4467687/2016",
+        "2017": "https://www.instapaper.com/u/folder/4467703/2017",
+        "2018": "https://www.instapaper.com/u/folder/4467710/2018",
+        "2019": "https://www.instapaper.com/u/folder/4467712/2019",
+        "2020": "https://www.instapaper.com/u/folder/4467732/2020",
+        "2021": "https://www.instapaper.com/u/folder/4467684/2021",
+        "2022": "https://www.instapaper.com/u/folder/4533788/2022",
+        "2023": "https://www.instapaper.com/u/folder/4753994/2023",
+        "3월": "https://www.instapaper.com/u/folder/4778123/3-",
+        "4월": "https://www.instapaper.com/u/folder/4575254/4-",
+        "5월": "https://www.instapaper.com/u/folder/4585171/5-",
+        "6월": "https://www.instapaper.com/u/folder/4593011/6-",
+        "7월": "https://www.instapaper.com/u/folder/4608754/7-",
+        "8월": "https://www.instapaper.com/u/folder/4630562/8-",
+        "9월": "https://www.instapaper.com/u/folder/4652850/9-",
+        "choi": "https://www.instapaper.com/u/folder/1538044/choi",
+        "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
+        "mouse": "https://www.instapaper.com/u/folder/1536335/mouse",
+        "oracle": "https://www.instapaper.com/u/folder/1536331/oracle",
+        "rhineheart": "https://www.instapaper.com/u/folder/1538043/rhineheart",
+        "switch": "https://www.instapaper.com/u/folder/1536336/switch",
+        "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
+        "Unread": "https://www.instapaper.com/u",
+        }
+
 folderlines = {}
 org_dicts = (dict(zip(header, r)) for r in reader)
 f_grouped = groupby(sorted(org_dicts, key=lambda d: d["Folder"]),lambda d: d["Folder"])
 f_grouped_with_count = ((g[1], count()) for g in f_grouped)
-f_indexed = ({**d, "findex":i} for fgc in f_grouped_with_count for g, c in fgc for d, i in zip(g, c))
-dicts = ({**d, "domain":urlparse(d["URL"]).netloc} for d in f_indexed)
-grouped = groupby(dicts, lambda d: urlparse(d["URL"]).netloc)
-firsts = (next(g[1]) for g in grouped)
+f_indexed = ({**d,
+                "findex":i,
+                "domain":urlparse(d["URL"]).netloc}
+                    for grouper in f_grouped
+                    for i, d in enumerate(grouper[1]))
+grouped = groupby(f_indexed, lambda d: d["domain"])
+lasts = (list(g[1])[-1] for g in grouped)
+filtered_dicts = (d for d in lasts
+                    if d["Folder"] not in ["Unread", "Starred", "Archive", "neo", "smith", "cypher", "tank", "apoc", "mouse", "switch", "dozer", "brown", "jones", "haren", "temp", "Books", "Books 2", "Books 3"]
+                    if all(map(lambda k: not d["domain"].endswith(k), [".youtube.com"])))
 
-for dic in firsts:
-    folder = dic["Folder"]
-    folderlines[folder] = folderlines.get(folder,0)+1
-    # LOOP FILTER
-    if not (folder not in ["Unread", "Starred", "Archive", "neo", "smith", "cypher", "tank", "apoc", "mouse", "switch", "dozer", "brown", "jones", "haren", "temp", "Books", "Books 2", "Books 3"]): continue
-    # MAIN
-    L[len(L):] = [{**dic,"findex":folderlines[folder]}]
-
-# POST
-for l in random.choices(L, k=4): view(l)
+for l in random.choices(list(filtered_dicts), k=4):
+    del l["Selection"]
+    del l["Timestamp"]
+    del l["domain"]
+    view(l)
