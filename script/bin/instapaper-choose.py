@@ -166,7 +166,7 @@ ui={
         "oracle": "https://www.instapaper.com/u/folder/1536331/oracle/",
         "rhineheart": "https://www.instapaper.com/u/folder/1538043/rhineheart/",
         "switch": "https://www.instapaper.com/u/folder/1536336/switch/",
-        # "trinity": "https://www.instapaper.com/u/folder/1515162/trinity/",
+        "trinity": "https://www.instapaper.com/u/folder/1515162/trinity/",
         }
 
 heavier_folders =[
@@ -178,7 +178,8 @@ heavier_folders =[
 
 folderlines = {}
 org_dicts = (dict(zip(header, r)) for r in reader)
-f_grouped = groupby(sorted(org_dicts, key=lambda d: d["Folder"]),lambda d: d["Folder"])
+timed_dicts = sorted(org_dicts, key=lambda d: d["Timestamp"], reverse=True)
+f_grouped = groupby(sorted(timed_dicts, key=lambda d: d["Folder"]),lambda d: d["Folder"])
 f_indexed = ({**d,
                 "findex":i,
                 "ui":ui[d["Folder"]]+str(int(i/40)),
