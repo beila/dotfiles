@@ -215,7 +215,7 @@ f_grouped = groupby(sorted(timed_dicts, key=lambda d: d["Folder"]),lambda d: d["
 f_indexed = ({**d,
                 "findex":i,
                 "ui":ui[d["Folder"]]+("/"+str(int(i/40)+1) if i >= 40 else ''),
-                "weight":30 if d["Folder"] in heavier_folders else 1,
+                "weight":50 if d["Folder"] in heavier_folders else 1,
                 "domain":urlparse(d["URL"]).netloc}
                     for grouper in f_grouped
                         if grouper[0] in ui.keys()
