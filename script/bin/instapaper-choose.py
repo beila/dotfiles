@@ -189,12 +189,13 @@ f_indexed = ({**d,
                         if grouper[0] in ui.keys()
                     for i, d in enumerate(grouper[1]))
 grouped = groupby(f_indexed, lambda d: d["domain"])
-# lasts = (list(g[1])[-1] for g in grouped)
-lasts = list(chain.from_iterable(g[1] for g in grouped))
+lasts = list(list(g[1])[-1] for g in grouped)
+# lasts = list(chain.from_iterable(g[1] for g in grouped))
 
-for l in random.choices(lasts, weights=(d["weight"] for d in lasts), k=4):
+for l in random.choices(lasts, weights=(d["weight"] for d in lasts), k=9):
     del l["Selection"]
     del l["Timestamp"]
     del l["domain"]
     del l["weight"]
+    del l["findex"]
     view(l)
