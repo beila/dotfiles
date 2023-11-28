@@ -1,4 +1,6 @@
-"""
+#!python
+
+'''
 #!/bin/bash -x
 # https://github.com/bugen/pypipe
 #echo $(
@@ -34,7 +36,7 @@ for l in random.choices(L, k=10): view(l)
 -p
 PARAMS
 )"
-"""
+'''
 
 # IMPORT
 import sys
