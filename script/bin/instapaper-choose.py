@@ -46,6 +46,9 @@ from unicodedata import east_asian_width
 import csv
 import random
 
+from operator import itemgetter
+from itertools import groupby
+
 def _write(*args, writer=None):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
         writer.writerow(args[0])
@@ -133,21 +136,20 @@ def _print(*args, sep=','):
     else:
         print(sep.join(str(v) for v in args))
 
-lastfolder = ""
 folderlines = {}
+dicts = [dic(zip(header, r)) for r in reader]
 
-for i, rec in enumerate(reader, 1):
+for rec in groupby(reader, itemgetter("Folder")):
     r = rec  # ABBREV
     # LOOP HEAD
-    dic = dict(zip(header, rec))
+    dic = dict(zip(header, rec[0]))
     d = dic # ABBREV
     folder = dic["Folder"]
     folderlines[folder] = folderlines.get(folder,0)+1
     # LOOP FILTER
-    if not (folder not in [lastfolder, "Unread", "Starred", "Archive", "neo", "smith", "cypher", "tank", "apoc", "mouse", "switch", "dozer", "brown", "jones", "haren", "temp", "Books", "Books 2", "Books 3"]): continue
+    if not (folder not in ["Unread", "Starred", "Archive", "neo", "smith", "cypher", "tank", "apoc", "mouse", "switch", "dozer", "brown", "jones", "haren", "temp", "Books", "Books 2", "Books 3"]): continue
     # MAIN
     L[len(L):] = [{**dic,"findex":folderlines[folder]}]
-    lastfolder = folder
 
 # POST
 for l in random.choices(L, k=10): view(l)
