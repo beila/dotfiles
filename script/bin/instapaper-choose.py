@@ -47,7 +47,8 @@ import csv
 import random
 
 from operator import itemgetter
-from itertools import groupby
+from itertools import groupby,count,chain
+from urllib.parse import urlparse
 
 def _write(*args, writer=None):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
@@ -137,13 +138,15 @@ def _print(*args, sep=','):
         print(sep.join(str(v) for v in args))
 
 folderlines = {}
-dicts = [dic(zip(header, r)) for r in reader]
+org_dicts = (dict(zip(header, r)) for r in reader)
+f_grouped = groupby(sorted(org_dicts, key=lambda d: d["Folder"]),lambda d: d["Folder"])
+f_grouped_with_count = ((g[1], count()) for g in f_grouped)
+f_indexed = ({**d, "findex":i} for fgc in f_grouped_with_count for g, c in fgc for d, i in zip(g, c))
+dicts = ({**d, "domain":urlparse(d["URL"]).netloc} for d in f_indexed)
+grouped = groupby(dicts, lambda d: urlparse(d["URL"]).netloc)
+firsts = (next(g[1]) for g in grouped)
 
-for rec in groupby(reader, itemgetter("Folder")):
-    r = rec  # ABBREV
-    # LOOP HEAD
-    dic = dict(zip(header, rec[0]))
-    d = dic # ABBREV
+for dic in firsts:
     folder = dic["Folder"]
     folderlines[folder] = folderlines.get(folder,0)+1
     # LOOP FILTER
@@ -152,4 +155,4 @@ for rec in groupby(reader, itemgetter("Folder")):
     L[len(L):] = [{**dic,"findex":folderlines[folder]}]
 
 # POST
-for l in random.choices(L, k=10): view(l)
+for l in random.choices(L, k=4): view(l)
