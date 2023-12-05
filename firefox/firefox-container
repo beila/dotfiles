@@ -1,6 +1,5 @@
 #!/bin/env bash
 
-set -x
 readonly my_dir="$(dirname $(realpath $0))"
 readonly launcher="${my_dir}/open-url-in-container/bin/launcher.sh"
 
@@ -10,11 +9,16 @@ readonly launcher="${my_dir}/open-url-in-container/bin/launcher.sh"
 # additional sub-expressions to split authority into userinfo, host and port
 #
 readonly URI_REGEX='^(([^:/?#]+):)?(//((([^:/?#]+)@)?([^:/?#]+)(:([0-9]+))?))?(/([^?#]*))?(\?([^#]*))?(#(.*))?'
-#                    ↑↑            ↑  ↑↑↑            ↑         ↑ ↑            ↑ ↑        ↑  ↑        ↑ ↑
-#                    |2 scheme     |  ||6 userinfo   7 host    | 9 port       | 11 rpath |  13 query | 15 fragment
-#                    1 scheme:     |  |5 userinfo@             8 :…           10 path    12 ?…       14 #…
+#                    ↑↑            ↑  ↑↑↑            ↑         ↑ ↑            ↑ ↑         ↑  ↑        ↑ ↑
+#                    |2 scheme     |  ||6 userinfo   7 host    | 9 port       | 11 rpath  |  13 query | 15 fragment
+#                    1 scheme:     |  |5 userinfo@             8 :…           10 path     12 ?…       14 #…
 #                                  |  4 authority
 #                                  3 //…
+
+# I added ? at the end of (/([^?#]*))? because it was not getting host without / (ex. "http://www.google.com")
+#                         ↑ ↑         
+#                         | 11 rpath  
+#                         10 path     
 
 parse_host () {
     [[ "$@" =~ $URI_REGEX ]] && echo "${BASH_REMATCH[7]}"
@@ -24,11 +28,11 @@ parse_main_domain() {
     awk -v host=$(parse_host "$@") '
         /^[:space:]*$/ {next}
         {
-            sub(/[:space:]*\/\/.*$/, "")
+            sub(/[:space:]*\/\/.*$/, "")    # remove // comments
             pattern="\\." $0 "$"
             sub_domain=gensub(pattern, "", 1, host)
             if (host != sub_domain) {
-                main_domain=gensub(/.+\./, "", "g", sub_domain)
+                main_domain=gensub(/^.+\./, "", 1, sub_domain)
                 print main_domain
                 exit
             }
@@ -36,11 +40,28 @@ parse_main_domain() {
     ' ${my_dir}/publicsuffix/list/public_suffix_list.dat
 }
 
+# https://emmer.dev/blog/hash-a-string-to-a-number-in-bash/
+# @param {string} $1 String to hash to a positive number
+stringsum() {
+    echo "${2:-md5sum,md5}" | tr ',' '\n' | while read -r cmd; do
+        if command -v "${cmd}"; then
+            num=$(( 0x$(echo "$1" | command "${cmd}" | cut -d ' ' -f 1 | head -c 15) ))
+            [[ $num -lt 0 ]] && num=$((num * -1))
+            echo $num
+            return 0
+        fi
+    done
+    return 1
+}
+
+colors=(--blue --turquoise --green --yellow --orange --red --pink --purple)
+icons=(--fingerprint --briefcase --dollar --cart --circle --gift --vacation --food --fruit --pet --tree --chill)
+bypass_options=(-n --name "${colors[@]}" "${icons[@]}")
 for a in "$@"
 do
-    if [[ "$a" = "-n" || "$a" = "--name" || "$a" = "--name=*" ]]
+    if [[ " ${bypass_options[@]} " =~ " $a " || "$a" = "--name=*" ]]
     then
-        echo "$launcher" "$@"
+        exec "$launcher" "$@"
     fi
 done
 
@@ -51,10 +72,10 @@ do
     then
         na+=("$a")
     else
-        na+=(-n "$(parse_main_domain "$a")" "$a")
+        name="$(parse_main_domain "$a")"
+        color_index=$(( "$(stringsum "$name")
+        na+=(-n "${name}" "$a")
     fi
 done
 
-#exec "$launcher" "${na[@]}"
-echo "$launcher" "${na[@]}"
-
+exec "$launcher" "${na[@]}"
