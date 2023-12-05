@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/publicsuffix/list.git
+	branch = master
+	commit = 49692510d96abae6907233ae117767e4cc61208e
+	parent = 61afb5866bf4cdc7493c5281e73743525ae88e48
+	method = merge
+	cmdver = 0.4.6
