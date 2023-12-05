@@ -1,11 +1,15 @@
 #!/bin/env bash
 
+set -x
+readonly my_dir="$(dirname $(realpath $0))"
+readonly launcher="${my_dir}/open-url-in-container/bin/launcher.sh"
+
 # https://stackoverflow.com/a/45977232
 #
 # Following regex is based on https://www.rfc-editor.org/rfc/rfc3986#appendix-B with
 # additional sub-expressions to split authority into userinfo, host and port
 #
-readonly URI_REGEX='^(([^:/?#]+):)?(//((([^:/?#]+)@)?([^:/?#]+)(:([0-9]+))?))?(/([^?#]*))(\?([^#]*))?(#(.*))?'
+readonly URI_REGEX='^(([^:/?#]+):)?(//((([^:/?#]+)@)?([^:/?#]+)(:([0-9]+))?))?(/([^?#]*))?(\?([^#]*))?(#(.*))?'
 #                    ↑↑            ↑  ↑↑↑            ↑         ↑ ↑            ↑ ↑        ↑  ↑        ↑ ↑
 #                    |2 scheme     |  ||6 userinfo   7 host    | 9 port       | 11 rpath |  13 query | 15 fragment
 #                    1 scheme:     |  |5 userinfo@             8 :…           10 path    12 ?…       14 #…
@@ -22,22 +26,21 @@ parse_main_domain() {
         {
             sub(/[:space:]*\/\/.*$/, "")
             pattern="\\." $0 "$"
-            main_domain=gensub(pattern, "", 1, host)
-            if (host != main_domain) {
+            sub_domain=gensub(pattern, "", 1, host)
+            if (host != sub_domain) {
+                main_domain=gensub(/.+\./, "", "g", sub_domain)
                 print main_domain
                 exit
             }
         }
-    ' public_suffix_list.dat
+    ' ${my_dir}/publicsuffix/list/public_suffix_list.dat
 }
-
-launcher="$(dirname $(realpath $0))/open-url-in-container/bin/launcher.sh"
 
 for a in "$@"
 do
     if [[ "$a" = "-n" || "$a" = "--name" || "$a" = "--name=*" ]]
     then
-        exec "$launcher" "$@"
+        echo "$launcher" "$@"
     fi
 done
 
@@ -48,8 +51,10 @@ do
     then
         na+=("$a")
     else
-        na+=(-n $(parse_main_domain "$a") "$a")
+        na+=(-n "$(parse_main_domain "$a")" "$a")
     fi
 done
 
-exec "$launcher" "$na[@]"
+#exec "$launcher" "${na[@]}"
+echo "$launcher" "${na[@]}"
+
