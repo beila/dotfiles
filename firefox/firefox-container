@@ -1,4 +1,4 @@
-#!env zsh
+#!/bin/env bash
 
 # https://stackoverflow.com/a/45977232
 #
@@ -17,9 +17,21 @@ parse_host () {
 }
 
 parse_main_domain() {
+    awk -v host=$(parse_host "$@") '
+        /^[:space:]*$/ {next}
+        {
+            sub(/[:space:]*\/\/.*$/, "")
+            pattern="\\." $0 "$"
+            main_domain=gensub(pattern, "", 1, host)
+            if (host != main_domain) {
+                print main_domain
+                exit
+            }
+        }
+    ' public_suffix_list.dat
 }
 
-launcher="$(dirname $(realink $0))/open-url-in-container/bin/launcher.sh"
+launcher="$(dirname $(realpath $0))/open-url-in-container/bin/launcher.sh"
 
 for a in "$@"
 do
@@ -36,7 +48,7 @@ do
     then
         na+=("$a")
     else
-        na+=(-n parse_main_domain("$a") "$a")
+        na+=(-n $(parse_main_domain "$a") "$a")
     fi
 done
 
