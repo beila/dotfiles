@@ -44,7 +44,7 @@ parse_main_domain() {
 # @param {string} $1 String to hash to a positive number
 stringsum() {
     echo "${2:-md5sum,md5}" | tr ',' '\n' | while read -r cmd; do
-        if command -v "${cmd}"; then
+        if command -v "${cmd}" > /dev/null; then
             num=$(( 0x$(echo "$1" | command "${cmd}" | cut -d ' ' -f 1 | head -c 15) ))
             [[ $num -lt 0 ]] && num=$((num * -1))
             echo $num
@@ -54,7 +54,8 @@ stringsum() {
     return 1
 }
 
-colors=(--blue --turquoise --green --yellow --orange --red --pink --purple)
+#colors=(--blue --turquoise --green --yellow --orange --red --pink --purple)
+colors=(--green --yellow --orange --pink --purple)
 icons=(--fingerprint --briefcase --dollar --cart --circle --gift --vacation --food --fruit --pet --tree --chill)
 bypass_options=(-n --name "${colors[@]}" "${icons[@]}")
 for a in "$@"
@@ -73,8 +74,9 @@ do
         na+=("$a")
     else
         name="$(parse_main_domain "$a")"
-        color_index=$(( "$(stringsum "$name")
-        na+=(-n "${name}" "$a")
+        color_index=$(( $(stringsum $name) % ${#colors} ))
+        icon_index=$(( $(stringsum $name shasum) % ${#icons} ))
+        na+=("$a" -n ${name} ${colors[$color_index]} ${icons[$icon_index]})
     fi
 done
 
