@@ -1,29 +1,30 @@
+local ls=$(which eza &> /dev/null && echo eza || echo ls)
+
 # TODO fasd used to have files listed, but zoxide does not. I need list of files most likely to be used. Maybe locate?
 export FZF_CTRL_T_COMMAND='
-    #fasd -lR | xargs -r -I I eza --color=always -d "I" &&
+    #fasd -lR | xargs -r -I I '$ls' --color=always -d "I" &&
     (
         git ls-files -z --cached &&     # Without && processes in () are not killed
         git ls-files -z --others ||
         fd --hidden --follow --print0 --strip-cwd-prefix
     ) 2> /dev/null |
-        xargs -0 -r eza --color=always -d'
+        xargs -0 -r '$ls' --color=always -d'
 export FZF_CTRL_T_OPTS='--ansi --preview "
     test -f {} &&
         bat --style=numbers --color=always --line-range :500 {} ||
-        eza -l {} ||
-        ls -l --color {}"'
+        '$ls' -l {}"'
 
 export FZF_ALT_C_COMMAND='
     (
         (
             git worktree list | cut -d" " -f1
             zoxide query --list
-        ) | xargs --no-run-if-empty eza --color=always -d --sort=none
+        ) | xargs --no-run-if-empty '$ls' --color=always -d --sort=none
         (
             fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
             # fd --print0 --one-file-system --type d . '"${HOME}"' &&
             # fd --print0 --one-file-system --type d . /
-        ) | xargs -0 --no-run-if-empty eza --color=always -d --sort=none
+        ) | xargs -0 --no-run-if-empty '$ls' --color=always -d --sort=none
     ) 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
         # "->" part separates the targets of symbolic links which eza shows
@@ -32,8 +33,7 @@ export FZF_ALT_C_OPTS='--ansi --preview "
     (
         git -C {} diff --stat --color=always &&
             git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
-            eza -l {} ||
-            ls -l --color {}
+            '$ls' -l {}
     ) 2> /dev/null"'
 
 # The first printf removes the first \ from \\n.
