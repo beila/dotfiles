@@ -136,9 +136,9 @@ Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
 
 [Containments][26][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///usr/share/desktop-base/joy-theme/wallpaper/contents/images/1920x1200.svg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20160102_211435.jpg
 SlideInterval=87300
-SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
+SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
 [Containments][27]
 ItemGeometries-2560x1440=
@@ -225,7 +225,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=84
+PreloadWeight=89
 
 [Containments][4][Applets][5][Configuration][General]
 favoritesPortedToKAstats=true
