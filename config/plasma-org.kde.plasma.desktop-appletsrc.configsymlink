@@ -8,6 +8,7 @@ RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
 lastUpdate=2024,1,19,10,20,23.219
+updateInterval=3
 
 [Containments][10]
 activityId=
@@ -79,7 +80,7 @@ immutability=1
 plugin=org.kde.plasma.notifications
 
 [Containments][10][Applets][19][Configuration]
-PreloadWeight=42
+PreloadWeight=47
 
 [Containments][10][Applets][20]
 immutability=1
@@ -93,7 +94,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=34
+PreloadWeight=49
 
 [Containments][10][Applets][24]
 immutability=1
@@ -145,6 +146,7 @@ SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
 [Containments][27]
 ItemGeometries-2560x1440=
+ItemGeometries-3840x2160=
 ItemGeometriesHorizontal=
 activityId=84e6bfcc-6c05-456e-ad2c-12287f6864c4
 formfactor=0
@@ -160,6 +162,10 @@ DialogWidth=1955
 
 [Containments][27][Configuration]
 PreloadWeight=42
+
+[Containments][27][General]
+ToolBoxButtonState=topcenter
+ToolBoxButtonX=1092
 
 [Containments][27][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
@@ -182,11 +188,11 @@ immutability=1
 lastScreen=0
 location=0
 plugin=org.kde.desktopcontainment
-wallpaperplugin=org.kde.image
+wallpaperplugin=org.kde.slideshow
 
 [Containments][28][ConfigDialog]
-DialogHeight=540
-DialogWidth=720
+DialogHeight=1433
+DialogWidth=1579
 
 [Containments][28][Configuration]
 PreloadWeight=42
@@ -201,7 +207,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20200808_204546.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20170613_160644.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -214,43 +220,34 @@ location=4
 plugin=org.kde.panel
 wallpaperplugin=org.kde.image
 
-[Containments][4][Applets][101]
-immutability=1
-plugin=org.kde.plasma.systemmonitor
-
-[Containments][4][Applets][101][Configuration][Appearance]
-chartFace=org.kde.ksysguard.piechart
-
-[Containments][4][Applets][101][Configuration][ConfigDialog]
-DialogHeight=1140
-DialogWidth=1520
-
-[Containments][4][Applets][103]
-immutability=1
-plugin=org.kde.plasma.systemmonitor
-
-[Containments][4][Applets][103][Configuration][Appearance]
-chartFace=org.kde.ksysguard.linechart
-title=Network speed
-
 [Containments][4][Applets][103][Configuration][SensorColors]
 network/all/download=61,174,233
 network/all/upload=233,120,61
-
-[Containments][4][Applets][103][Configuration][Sensors]
-highPrioritySensorIds=["network/all/download","network/all/upload"]
 
 [Containments][4][Applets][105]
 immutability=1
 plugin=org.kde.plasma.systemmonitor
 
+[Containments][4][Applets][105][Configuration]
+PreloadWeight=90
+
 [Containments][4][Applets][105][Configuration][Appearance]
-chartFace=org.kde.ksysguard.piechart
+chartFace=org.kde.ksysguard.linechart
 title=Memory Usage
 
 [Containments][4][Applets][105][Configuration][ConfigDialog]
 DialogHeight=1140
 DialogWidth=1520
+
+[Containments][4][Applets][105][Configuration][FaceGrid][Appearance]
+chartFace=org.kde.ksysguard.linechart
+showTitle=false
+
+[Containments][4][Applets][105][Configuration][FaceGrid][SensorColors]
+memory/physical/used=61,174,233
+
+[Containments][4][Applets][105][Configuration][FaceGrid][Sensors]
+highPrioritySensorIds=["memory/physical/used"]
 
 [Containments][4][Applets][105][Configuration][SensorColors]
 memory/physical/used=61,174,233
@@ -260,36 +257,54 @@ highPrioritySensorIds=["memory/physical/used"]
 lowPrioritySensorIds=["memory/physical/total"]
 totalSensors=["memory/physical/usedPercent"]
 
+[Containments][4][Applets][108]
+immutability=1
+plugin=org.kde.plasma.systemmonitor
+
+[Containments][4][Applets][108][Configuration]
+PreloadWeight=60
+
+[Containments][4][Applets][108][Configuration][Appearance]
+chartFace=org.kde.ksysguard.linechart
+title=Network speed
+
+[Containments][4][Applets][108][Configuration][SensorColors]
+network/all/download=61,174,233
+network/all/upload=233,120,61
+
+[Containments][4][Applets][108][Configuration][Sensors]
+highPrioritySensorIds=["network/all/download","network/all/upload"]
+
 [Containments][4][Applets][21]
 immutability=1
 plugin=org.kde.plasma.digitalclock
 
 [Containments][4][Applets][21][Configuration]
-PreloadWeight=42
-
-[Containments][4][Applets][31]
-immutability=1
-plugin=org.kde.plasma.battery
-
-[Containments][4][Applets][32]
-immutability=1
-plugin=org.kde.plasma.battery
-
-[Containments][4][Applets][33]
-immutability=1
-plugin=org.kde.plasma.calendar
-
-[Containments][4][Applets][34]
-immutability=1
-plugin=org.kde.plasma.calculator
+PreloadWeight=47
 
 [Containments][4][Applets][35]
 immutability=1
 plugin=org.kde.plasma.comic
 
 [Containments][4][Applets][35][Configuration]
-PreloadWeight=60
+PreloadWeight=75
+arrowsOnHover=true
+checkNewComicStripsIntervall=30
+comic=calvinandhobbes
+lastStripVisited_calvinandhobbes=true
+lastStrip_calvinandhobbes=2024-01-19
+maxComicLimit=20
+maxStripNum_calvinandhobbes=0
+middleClick=true
 savingDir=/home/ANT.AMAZON.COM/hojin/Pictures
+scaleToContent_calvinandhobbes=false
+showComicAuthor=false
+showComicIdentifier=false
+showComicTitle=false
+showComicUrl=false
+showErrorPicture=true
+storedPosition_calvinandhobbes=
+tabIdentifier=calvinandhobbes,dilbert,shithappens
 
 [Containments][4][Applets][35][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -299,17 +314,23 @@ DialogWidth=1520
 immutability=1
 plugin=org.kde.kscreen
 
-[Containments][4][Applets][37]
-immutability=1
-plugin=org.kde.plasma.devicenotifier
+[Containments][4][Applets][36][Configuration]
+PreloadWeight=65
 
 [Containments][4][Applets][38]
 immutability=1
 plugin=org.kde.plasma.systemmonitor
 
+[Containments][4][Applets][38][Configuration]
+PreloadWeight=60
+
 [Containments][4][Applets][38][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
 title=Hard Disk Activity
+
+[Containments][4][Applets][38][Configuration][ConfigDialog]
+DialogHeight=1140
+DialogWidth=1520
 
 [Containments][4][Applets][38][Configuration][SensorColors]
 disk/all/read=233,120,61
@@ -322,9 +343,16 @@ highPrioritySensorIds=["disk/all/write","disk/all/read"]
 immutability=1
 plugin=org.kde.plasma.systemmonitor
 
+[Containments][4][Applets][39][Configuration]
+PreloadWeight=65
+
 [Containments][4][Applets][39][Configuration][Appearance]
-chartFace=org.kde.ksysguard.piechart
+chartFace=org.kde.ksysguard.linechart
 title=Total CPU Use
+
+[Containments][4][Applets][39][Configuration][ConfigDialog]
+DialogHeight=1140
+DialogWidth=1520
 
 [Containments][4][Applets][39][Configuration][SensorColors]
 cpu/all/usage=61,174,233
@@ -334,12 +362,19 @@ highPrioritySensorIds=["cpu/all/usage"]
 lowPrioritySensorIds=["cpu/all/cpuCount","cpu/all/coreCount"]
 totalSensors=["cpu/all/usage"]
 
+[Containments][4][Applets][39][Configuration][org.kde.ksysguard.linechart][General]
+lineChartStacked=true
+
 [Containments][4][Applets][5]
 immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
 PreloadWeight=100
+
+[Containments][4][Applets][5][Configuration][ConfigDialog]
+DialogHeight=1140
+DialogWidth=1520
 
 [Containments][4][Applets][5][Configuration][General]
 favoritesPortedToKAstats=true
@@ -370,13 +405,14 @@ DialogWidth=1520
 
 [Containments][4][Applets][7][Configuration][General]
 groupingStrategy=0
+launchers=applications:systemsettings.desktop,preferred://browser
 maxStripes=1
 showOnlyCurrentActivity=false
 showOnlyCurrentDesktop=false
 sortingStrategy=3
 
 [Containments][4][Applets][7][Shortcuts]
-global=Home
+global=
 
 [Containments][4][Applets][8]
 immutability=1
@@ -385,12 +421,16 @@ plugin=org.kde.plasma.marginsseparator
 [Containments][4][Applets][8][Configuration]
 PreloadWeight=34
 
+[Containments][4][Applets][8][Configuration][ConfigDialog]
+DialogHeight=1140
+DialogWidth=1520
+
 [Containments][4][Applets][9]
 immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=44
+PreloadWeight=64
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
@@ -401,7 +441,7 @@ DialogWidth=3840
 PreloadWeight=34
 
 [Containments][4][General]
-AppletOrder=105;103;101;39;38;37;36;35;34;33;32;31;5;6;7;8;9;21
+AppletOrder=36;35;5;6;7;8;9;21;39;105;38;108
 
 [Containments][42]
 activityId=
