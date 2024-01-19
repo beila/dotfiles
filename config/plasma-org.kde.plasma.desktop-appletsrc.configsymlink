@@ -31,7 +31,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][10][Applets][111][Configuration]
-PreloadWeight=42
+PreloadWeight=34
 
 [Containments][10][Applets][12]
 immutability=1
@@ -180,7 +180,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_8938.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9237.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -236,7 +236,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][105][Configuration]
-PreloadWeight=90
+PreloadWeight=100
 
 [Containments][4][Applets][105][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -269,7 +269,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][108][Configuration]
-PreloadWeight=60
+PreloadWeight=65
 
 [Containments][4][Applets][108][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -329,7 +329,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][38][Configuration]
-PreloadWeight=60
+PreloadWeight=95
 
 [Containments][4][Applets][38][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -351,7 +351,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][39][Configuration]
-PreloadWeight=65
+PreloadWeight=70
 
 [Containments][4][Applets][39][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
