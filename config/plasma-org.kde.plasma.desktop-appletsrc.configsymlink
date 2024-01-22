@@ -108,7 +108,7 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][10][Applets][24][Configuration]
-PreloadWeight=47
+PreloadWeight=52
 
 [Containments][10][Applets][25]
 immutability=1
@@ -147,7 +147,7 @@ Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
 
 [Containments][26][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20160102_211435.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20170613_160644.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -299,7 +299,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-01-19
+lastStrip_calvinandhobbes=2024-01-20
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
@@ -322,7 +322,7 @@ immutability=1
 plugin=org.kde.kscreen
 
 [Containments][4][Applets][36][Configuration]
-PreloadWeight=65
+PreloadWeight=85
 
 [Containments][4][Applets][38]
 immutability=1
@@ -437,7 +437,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=74
+PreloadWeight=79
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
