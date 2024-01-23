@@ -75,12 +75,16 @@ plugin=org.kde.plasma.volume
 [Containments][10][Applets][17][Configuration]
 PreloadWeight=64
 
+[Containments][10][Applets][17][Configuration][General]
+globalMute=true
+globalMuteDevices=alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp_5__sink.0,alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__hw_sofhdadsp_4__sink.0
+
 [Containments][10][Applets][18]
 immutability=1
 plugin=org.kde.plasma.devicenotifier
 
 [Containments][10][Applets][18][Configuration]
-PreloadWeight=54
+PreloadWeight=59
 
 [Containments][10][Applets][19]
 immutability=1
@@ -101,7 +105,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=41
+PreloadWeight=61
 
 [Containments][10][Applets][24]
 immutability=1
@@ -124,26 +128,17 @@ PreloadWeight=26
 extraItems=org.kde.plasma.mediacontroller,org.kde.plasma.manage-inputmethod,org.kde.kupapplet,org.kde.plasma.clipboard,org.kde.plasma.nightcolorcontrol,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.printmanager,org.kde.plasma.keyboardindicator,org.kde.plasma.volume,org.kde.plasma.devicenotifier,org.kde.plasma.notifications,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.kdeconnect
 knownItems=org.kde.plasma.mediacontroller,org.kde.plasma.manage-inputmethod,org.kde.kupapplet,org.kde.plasma.clipboard,org.kde.plasma.nightcolorcontrol,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.printmanager,org.kde.plasma.keyboardindicator,org.kde.plasma.volume,org.kde.plasma.devicenotifier,org.kde.plasma.notifications,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.kdeconnect
 
-[Containments][115]
+[Containments][120]
+activityId=84e6bfcc-6c05-456e-ad2c-12287f6864c4
+formfactor=0
+immutability=1
 lastScreen=2
-wallpaperplugin=org.kde.slideshow
+location=0
+plugin=org.kde.plasma.folder
+wallpaperplugin=org.kde.image
 
-[Containments][115][ConfigDialog]
-DialogHeight=540
-DialogWidth=720
-
-[Containments][115][Configuration]
-PreloadWeight=42
-
-[Containments][115][Wallpaper][org.kde.image][General]
+[Containments][120][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/3840x2160.jpg
-SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
-
-[Containments][115][Wallpaper][org.kde.slideshow][General]
-FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/dscn4518.jpg
-SlideInterval=87300
-SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
 [Containments][26]
 ItemGeometries-1920x1200=
@@ -235,7 +230,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20160416_144414.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20150227_160748_nopm_.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -485,7 +480,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][42][Applets][119][Configuration]
-PreloadWeight=42
+PreloadWeight=34
 
 [Containments][42][Applets][43]
 immutability=1
@@ -599,7 +594,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][57][Applets][118][Configuration]
-PreloadWeight=42
+PreloadWeight=34
 
 [Containments][57][Applets][58]
 immutability=1
@@ -713,7 +708,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][72][Applets][117][Configuration]
-PreloadWeight=42
+PreloadWeight=34
 
 [Containments][72][Applets][73]
 immutability=1
@@ -834,7 +829,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][87][Applets][116][Configuration]
-PreloadWeight=42
+PreloadWeight=34
 
 [Containments][87][Applets][88]
 immutability=1
