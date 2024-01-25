@@ -38,84 +38,84 @@ immutability=1
 plugin=org.kde.plasma.clipboard
 
 [Containments][10][Applets][12][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Applets][13]
 immutability=1
 plugin=org.kde.plasma.nightcolorcontrol
 
 [Containments][10][Applets][13][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Applets][14]
 immutability=1
 plugin=org.kde.plasma.keyboardlayout
 
 [Containments][10][Applets][14][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Applets][15]
 immutability=1
 plugin=org.kde.plasma.printmanager
 
 [Containments][10][Applets][15][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Applets][16]
 immutability=1
 plugin=org.kde.plasma.keyboardindicator
 
 [Containments][10][Applets][16][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Applets][17]
 immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=60
+PreloadWeight=62
 
 [Containments][10][Applets][18]
 immutability=1
 plugin=org.kde.plasma.devicenotifier
 
 [Containments][10][Applets][18][Configuration]
-PreloadWeight=40
+PreloadWeight=32
 
 [Containments][10][Applets][19]
 immutability=1
 plugin=org.kde.plasma.notifications
 
 [Containments][10][Applets][19][Configuration]
-PreloadWeight=20
+PreloadWeight=12
 
 [Containments][10][Applets][20]
 immutability=1
 plugin=org.kde.kdeconnect
 
 [Containments][10][Applets][20][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Applets][23]
 immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=37
+PreloadWeight=39
 
 [Containments][10][Applets][24]
 immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][10][Applets][24][Configuration]
-PreloadWeight=20
+PreloadWeight=12
 
 [Containments][10][Applets][25]
 immutability=1
 plugin=org.kde.plasma.bluetooth
 
 [Containments][10][Applets][25][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][10][Configuration]
 PreloadWeight=0
@@ -155,7 +155,7 @@ DialogHeight=540
 DialogWidth=720
 
 [Containments][26][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][26][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
@@ -183,7 +183,7 @@ DialogHeight=1508
 DialogWidth=1955
 
 [Containments][27][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][27][General]
 ToolBoxButtonState=topcenter
@@ -217,11 +217,11 @@ DialogHeight=1433
 DialogWidth=1579
 
 [Containments][28][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][28][General]
 ToolBoxButtonState=topcenter
-ToolBoxButtonX=1092
+ToolBoxButtonX=559
 
 [Containments][28][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
@@ -229,7 +229,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20150419_180407.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_1428.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -251,7 +251,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][105][Configuration]
-PreloadWeight=60
+PreloadWeight=77
 
 [Containments][4][Applets][105][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -284,7 +284,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][108][Configuration]
-PreloadWeight=25
+PreloadWeight=27
 
 [Containments][4][Applets][108][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -297,19 +297,44 @@ network/all/upload=233,120,61
 [Containments][4][Applets][108][Configuration][Sensors]
 highPrioritySensorIds=["network/all/download","network/all/upload"]
 
+[Containments][4][Applets][122]
+immutability=1
+plugin=org.kde.plasma.systemmonitor
+
+[Containments][4][Applets][122][Configuration]
+PreloadWeight=85
+
+[Containments][4][Applets][122][Configuration][Appearance]
+chartFace=org.kde.ksysguard.linechart
+title=Battery Charge
+updateRateLimit=60000
+
+[Containments][4][Applets][122][Configuration][ConfigDialog]
+DialogHeight=540
+DialogWidth=720
+
+[Containments][4][Applets][122][Configuration][SensorColors]
+power/02690 2022/10/08/chargePercentage=233,61,61
+
+[Containments][4][Applets][122][Configuration][Sensors]
+highPrioritySensorIds=["power/02690 2022/10/08/chargePercentage"]
+
+[Containments][4][Applets][122][Configuration][org.kde.ksysguard.linechart][General]
+historyAmount=999
+
 [Containments][4][Applets][21]
 immutability=1
 plugin=org.kde.plasma.digitalclock
 
 [Containments][4][Applets][21][Configuration]
-PreloadWeight=7
+PreloadWeight=0
 
 [Containments][4][Applets][35]
 immutability=1
 plugin=org.kde.plasma.comic
 
 [Containments][4][Applets][35][Configuration]
-PreloadWeight=35
+PreloadWeight=27
 arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
@@ -337,14 +362,14 @@ immutability=1
 plugin=org.kde.kscreen
 
 [Containments][4][Applets][36][Configuration]
-PreloadWeight=60
+PreloadWeight=52
 
 [Containments][4][Applets][38]
 immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][38][Configuration]
-PreloadWeight=55
+PreloadWeight=62
 
 [Containments][4][Applets][38][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -366,7 +391,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][39][Configuration]
-PreloadWeight=30
+PreloadWeight=72
 
 [Containments][4][Applets][39][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -392,7 +417,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=92
+PreloadWeight=84
 
 [Containments][4][Applets][5][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -419,7 +444,7 @@ immutability=1
 plugin=org.kde.plasma.icontasks
 
 [Containments][4][Applets][7][Configuration]
-PreloadWeight=34
+PreloadWeight=26
 
 [Containments][4][Applets][7][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -452,18 +477,18 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=89
+PreloadWeight=97
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
-DialogHeight=175
-DialogWidth=3840
+DialogHeight=84
+DialogWidth=1920
 
 [Containments][4][Configuration]
 PreloadWeight=0
 
 [Containments][4][General]
-AppletOrder=36;35;5;6;7;8;9;21;39;105;38;108
+AppletOrder=36;35;5;6;7;8;9;21;122;39;105;38;108
 
 [Containments][42]
 activityId=
