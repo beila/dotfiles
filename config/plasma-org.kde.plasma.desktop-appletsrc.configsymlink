@@ -251,7 +251,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][105][Configuration]
-PreloadWeight=77
+PreloadWeight=82
 
 [Containments][4][Applets][105][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -284,7 +284,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][108][Configuration]
-PreloadWeight=27
+PreloadWeight=32
 
 [Containments][4][Applets][108][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -321,6 +321,7 @@ highPrioritySensorIds=["power/02690 2022/10/08/chargePercentage"]
 
 [Containments][4][Applets][122][Configuration][org.kde.ksysguard.linechart][General]
 historyAmount=999
+rangeAutoY=false
 
 [Containments][4][Applets][21]
 immutability=1
@@ -369,7 +370,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][38][Configuration]
-PreloadWeight=62
+PreloadWeight=67
 
 [Containments][4][Applets][38][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -417,7 +418,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=84
+PreloadWeight=99
 
 [Containments][4][Applets][5][Configuration][ConfigDialog]
 DialogHeight=1140
