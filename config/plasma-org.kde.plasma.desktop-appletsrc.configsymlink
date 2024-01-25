@@ -302,7 +302,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][122][Configuration]
-PreloadWeight=85
+PreloadWeight=100
 
 [Containments][4][Applets][122][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -504,7 +504,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][42][Applets][119][Configuration]
-PreloadWeight=18
+PreloadWeight=10
 
 [Containments][42][Applets][43]
 immutability=1
@@ -618,7 +618,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][57][Applets][118][Configuration]
-PreloadWeight=18
+PreloadWeight=10
 
 [Containments][57][Applets][58]
 immutability=1
@@ -732,7 +732,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][72][Applets][117][Configuration]
-PreloadWeight=18
+PreloadWeight=10
 
 [Containments][72][Applets][73]
 immutability=1
@@ -853,7 +853,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][87][Applets][116][Configuration]
-PreloadWeight=18
+PreloadWeight=10
 
 [Containments][87][Applets][88]
 immutability=1
