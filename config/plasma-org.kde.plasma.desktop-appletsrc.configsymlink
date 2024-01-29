@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=51
+PreloadWeight=56
 
 [Containments][10][Applets][18]
 immutability=1
@@ -101,7 +101,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=23
+PreloadWeight=33
 
 [Containments][10][Applets][24]
 immutability=1
@@ -418,7 +418,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=97
+PreloadWeight=100
 
 [Containments][4][Applets][5][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -478,7 +478,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=86
+PreloadWeight=100
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
@@ -589,7 +589,7 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][42][Applets][54][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][42][Applets][55]
 immutability=1
@@ -703,7 +703,7 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][57][Applets][69][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][57][Applets][70]
 immutability=1
@@ -817,7 +817,7 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][72][Applets][84][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][72][Applets][85]
 immutability=1
@@ -938,7 +938,7 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][87][Applets][99][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][87][Configuration]
 PreloadWeight=10
