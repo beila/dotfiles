@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,1,28,12,7,3.339
+lastUpdate=2024,1,31,12,41,3.624
 updateInterval=3
 
 [Containments][10]
@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=60
+PreloadWeight=57
 
 [Containments][10][Applets][18]
 immutability=1
@@ -101,7 +101,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=17
+PreloadWeight=9
 
 [Containments][10][Applets][24]
 immutability=1
@@ -196,7 +196,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_6154.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_0394.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -230,7 +230,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20160416_144414.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20150227_160748_nopm_.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -252,7 +252,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][105][Configuration]
-PreloadWeight=50
+PreloadWeight=42
 
 [Containments][4][Applets][105][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -303,7 +303,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][122][Configuration]
-PreloadWeight=86
+PreloadWeight=78
 
 [Containments][4][Applets][122][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -341,7 +341,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-01-31
+lastStrip_calvinandhobbes=2024-02-01
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
@@ -364,14 +364,14 @@ immutability=1
 plugin=org.kde.kscreen
 
 [Containments][4][Applets][36][Configuration]
-PreloadWeight=20
+PreloadWeight=12
 
 [Containments][4][Applets][38]
 immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][38][Configuration]
-PreloadWeight=35
+PreloadWeight=27
 
 [Containments][4][Applets][38][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -393,7 +393,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][39][Configuration]
-PreloadWeight=40
+PreloadWeight=32
 
 [Containments][4][Applets][39][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -479,7 +479,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=97
+PreloadWeight=92
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
