@@ -252,7 +252,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][105][Configuration]
-PreloadWeight=18
+PreloadWeight=23
 
 [Containments][4][Applets][105][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -285,7 +285,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][108][Configuration]
-PreloadWeight=0
+PreloadWeight=5
 
 [Containments][4][Applets][108][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -303,7 +303,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][122][Configuration]
-PreloadWeight=54
+PreloadWeight=59
 
 [Containments][4][Applets][122][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -336,7 +336,7 @@ immutability=1
 plugin=org.kde.plasma.comic
 
 [Containments][4][Applets][35][Configuration]
-PreloadWeight=0
+PreloadWeight=5
 arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
@@ -371,7 +371,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][38][Configuration]
-PreloadWeight=3
+PreloadWeight=8
 
 [Containments][4][Applets][38][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -393,7 +393,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][39][Configuration]
-PreloadWeight=8
+PreloadWeight=13
 
 [Containments][4][Applets][39][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
