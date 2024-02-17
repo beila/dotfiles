@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=100
+PreloadWeight=92
 
 [Containments][10][Applets][18]
 immutability=1
@@ -108,7 +108,7 @@ immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][10][Applets][24][Configuration]
-PreloadWeight=15
+PreloadWeight=7
 
 [Containments][10][Applets][25]
 immutability=1
@@ -163,7 +163,7 @@ Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
 
 [Containments][26][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20150227_160748_nopm_.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_0394.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -230,7 +230,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9067.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_3040 Copy.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -303,7 +303,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][122][Configuration]
-PreloadWeight=32
+PreloadWeight=24
 
 [Containments][4][Applets][122][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -341,7 +341,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-02-16
+lastStrip_calvinandhobbes=2024-02-17
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
@@ -419,7 +419,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=44
+PreloadWeight=41
 
 [Containments][4][Applets][5][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -479,7 +479,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=100
+PreloadWeight=92
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
