@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,2,19,10,53,50.613
+lastUpdate=2024,2,22,11,26,32.441
 updateInterval=3
 
 [Containments][10]
@@ -196,7 +196,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/DSC00894.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20180829_151935.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
