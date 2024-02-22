@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=97
+PreloadWeight=100
 
 [Containments][10][Applets][18]
 immutability=1
@@ -196,7 +196,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20150404_114251.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20150219_122018.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
