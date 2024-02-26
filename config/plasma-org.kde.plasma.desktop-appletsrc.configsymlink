@@ -73,14 +73,14 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=89
+PreloadWeight=86
 
 [Containments][10][Applets][18]
 immutability=1
 plugin=org.kde.plasma.devicenotifier
 
 [Containments][10][Applets][18][Configuration]
-PreloadWeight=5
+PreloadWeight=0
 
 [Containments][10][Applets][19]
 immutability=1
@@ -101,7 +101,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=0
+PreloadWeight=5
 
 [Containments][10][Applets][24]
 immutability=1
@@ -196,7 +196,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_3477.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_3040 Copy.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -230,7 +230,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20150404_114251.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20160102_211435.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -303,7 +303,7 @@ immutability=1
 plugin=org.kde.plasma.systemmonitor
 
 [Containments][4][Applets][122][Configuration]
-PreloadWeight=2
+PreloadWeight=0
 
 [Containments][4][Applets][122][Configuration][Appearance]
 chartFace=org.kde.ksysguard.linechart
@@ -419,7 +419,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=14
+PreloadWeight=6
 
 [Containments][4][Applets][5][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -479,7 +479,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=94
+PreloadWeight=100
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
