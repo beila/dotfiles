@@ -38,7 +38,7 @@ immutability=1
 plugin=org.kde.plasma.clipboard
 
 [Containments][10][Applets][12][Configuration]
-PreloadWeight=5
+PreloadWeight=0
 
 [Containments][10][Applets][13]
 immutability=1
@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=100
+PreloadWeight=92
 
 [Containments][10][Applets][18]
 immutability=1
@@ -101,7 +101,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=5
+PreloadWeight=0
 
 [Containments][10][Applets][24]
 immutability=1
@@ -196,7 +196,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20200808_204546.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9130.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -419,7 +419,7 @@ immutability=1
 plugin=org.kde.plasma.kickoff
 
 [Containments][4][Applets][5][Configuration]
-PreloadWeight=6
+PreloadWeight=0
 
 [Containments][4][Applets][5][Configuration][ConfigDialog]
 DialogHeight=1140
@@ -479,7 +479,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=100
+PreloadWeight=92
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
