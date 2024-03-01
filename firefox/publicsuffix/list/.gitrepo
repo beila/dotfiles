@@ -6,7 +6,7 @@
 [subrepo]
 	remote = https://github.com/publicsuffix/list.git
 	branch = master
-	commit = b7a0606a980a361fe055aeb1c908544a2488b2b6
-	parent = 1d841f5dff008ba00817475b3df44f5d4bb2a2b6
+	commit = d8a01c0e7ebeb9705782caa5a72da2dd234eb028
+	parent = 9e98b695b37cca681a54633671ce2873afc1cf54
 	method = merge
 	cmdver = 0.4.0
