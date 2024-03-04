@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,2,28,14,26,14.645
+lastUpdate=2024,3,4,10,41,1.145
 updateInterval=3
 
 [Containments][10]
@@ -196,7 +196,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/MVIMG_20180906_081129.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20160416_144414.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -230,7 +230,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_3040 Copy.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9228.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -341,7 +341,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-02-28
+lastStrip_calvinandhobbes=2024-03-04
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
