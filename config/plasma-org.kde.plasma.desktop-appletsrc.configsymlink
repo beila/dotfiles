@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=60
+PreloadWeight=52
 
 [Containments][10][Applets][18]
 immutability=1
@@ -101,7 +101,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=0
+PreloadWeight=5
 
 [Containments][10][Applets][24]
 immutability=1
@@ -163,7 +163,7 @@ Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
 
 [Containments][26][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_8938.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9067.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -230,7 +230,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_1519.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_6154.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -479,7 +479,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=77
+PreloadWeight=74
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
