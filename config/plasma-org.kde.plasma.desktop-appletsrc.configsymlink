@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,3,10,11,13,40.343
+lastUpdate=2024,3,13,11,28,11.536
 updateInterval=3
 
 [Containments][10]
@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=55
+PreloadWeight=60
 
 [Containments][10][Applets][18]
 immutability=1
@@ -479,7 +479,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=77
+PreloadWeight=82
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
