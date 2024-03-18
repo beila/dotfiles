@@ -76,7 +76,7 @@ do
         name="$(parse_main_domain "$a")"
         color_index=$(( $(stringsum $name) % ${#colors} ))
         icon_index=$(( $(stringsum $name shasum) % ${#icons} ))
-        na+=("$a" -n ${name} ${colors[$color_index]} ${icons[$icon_index]})
+        na+=("$a" ${name:+-n} ${name} ${colors[$color_index]} ${icons[$icon_index]})
     fi
 done
 
