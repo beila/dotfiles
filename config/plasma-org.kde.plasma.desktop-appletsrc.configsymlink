@@ -101,7 +101,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=14
+PreloadWeight=19
 
 [Containments][10][Applets][24]
 immutability=1
@@ -341,7 +341,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-03-23
+lastStrip_calvinandhobbes=2024-03-24
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
