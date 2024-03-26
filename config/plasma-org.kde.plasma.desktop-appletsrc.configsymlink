@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,3,23,12,17,33.38
+lastUpdate=2024,3,26,12,59,20.831
 updateInterval=3
 
 [Containments][10]
