@@ -200,7 +200,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][27][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_3682.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20170613_160644.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -345,7 +345,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-03-27
+lastStrip_calvinandhobbes=2024-03-28
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
