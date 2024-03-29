@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,3,26,12,59,20.831
+lastUpdate=2024,3,29,15,6,23.478
 updateInterval=3
 
 [Containments][10]
@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=92
+PreloadWeight=84
 
 [Containments][10][Applets][17][Configuration][General]
 globalMute=true
@@ -105,7 +105,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][10][Applets][23][Configuration]
-PreloadWeight=5
+PreloadWeight=0
 
 [Containments][10][Applets][24]
 immutability=1
@@ -167,7 +167,7 @@ Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
 
 [Containments][26][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9228.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_6038.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -234,7 +234,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/20150404_114251.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_2297.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -345,7 +345,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-03-28
+lastStrip_calvinandhobbes=2024-03-29
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
@@ -483,7 +483,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=100
+PreloadWeight=92
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
