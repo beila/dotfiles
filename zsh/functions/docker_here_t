@@ -1,4 +1,4 @@
-#!env zsh
+#/bin/zsh
 this_dir="$(realpath $(pwd))"
 parent_dir="$(realpath $(pwd)/..)"
 git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
@@ -46,6 +46,7 @@ docker run \
     bash -c "
         export HOME=${new_home:-\$HOME}
         export PATH=${new_path}:\${PATH}
+        export DOCKER_HERE_HOME=${DOCKER_HERE_HOME}
         $*"
     #--volume "${this_dir}:${this_dir}" \
     #--volume "${git_dir}:${git_dir}" \
