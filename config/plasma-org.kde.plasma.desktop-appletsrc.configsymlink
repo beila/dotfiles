@@ -167,6 +167,32 @@ wallpaperplugin=org.kde.image
 [Containments][124][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
 
+[Containments][125]
+ItemGeometries-2560x1440=
+ItemGeometriesHorizontal=
+activityId=84e6bfcc-6c05-456e-ad2c-12287f6864c4
+formfactor=0
+immutability=1
+lastScreen=1
+location=0
+plugin=org.kde.plasma.folder
+wallpaperplugin=org.kde.image
+
+[Containments][125][Wallpaper][org.kde.image][General]
+Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
+
+[Containments][126]
+activityId=84e6bfcc-6c05-456e-ad2c-12287f6864c4
+formfactor=0
+immutability=1
+lastScreen=4
+location=0
+plugin=org.kde.plasma.folder
+wallpaperplugin=org.kde.image
+
+[Containments][126][Wallpaper][org.kde.image][General]
+Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
+
 [Containments][26]
 ItemGeometries-1920x1200=
 ItemGeometries-2560x1440=
@@ -259,7 +285,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/2014-10-09 14.31.59.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_2586-ANIMATION.gif
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
