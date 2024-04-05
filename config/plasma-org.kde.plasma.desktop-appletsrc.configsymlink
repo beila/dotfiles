@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,4,2,11,8,3.152
+lastUpdate=2024,4,5,11,23,40.753
 updateInterval=3
 
 [Containments][10]
@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=60
+PreloadWeight=52
 
 [Containments][10][Applets][17][Configuration][General]
 globalMute=true
@@ -152,6 +152,9 @@ location=0
 plugin=org.kde.plasma.folder
 wallpaperplugin=org.kde.image
 
+[Containments][123][Configuration]
+PreloadWeight=42
+
 [Containments][123][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
 
@@ -163,6 +166,9 @@ lastScreen=7
 location=0
 plugin=org.kde.plasma.folder
 wallpaperplugin=org.kde.image
+
+[Containments][124][Configuration]
+PreloadWeight=42
 
 [Containments][124][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
@@ -182,11 +188,15 @@ wallpaperplugin=org.kde.slideshow
 DialogHeight=892
 DialogWidth=1118
 
+[Containments][125][Configuration]
+PreloadWeight=42
+
 [Containments][125][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
 
 [Containments][125][Wallpaper][org.kde.slideshow][General]
 FillMode=1
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_2593.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -203,12 +213,15 @@ wallpaperplugin=org.kde.slideshow
 DialogHeight=540
 DialogWidth=720
 
+[Containments][126][Configuration]
+PreloadWeight=42
+
 [Containments][126][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
 
 [Containments][126][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/CAM00394.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_1519.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -304,7 +317,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_2586-ANIMATION.gif
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20150219_122018.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -553,7 +566,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=68
+PreloadWeight=60
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
