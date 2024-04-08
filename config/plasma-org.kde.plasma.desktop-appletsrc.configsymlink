@@ -7,7 +7,7 @@ wheel:Vertical;NoModifier=org.kde.switchdesktop
 RightButton;NoModifier=org.kde.contextmenu
 
 [AppletGlobals][org.kde.plasma.comic]
-lastUpdate=2024,4,5,11,23,40.753
+lastUpdate=2024,4,8,12,30,33.628
 updateInterval=3
 
 [Containments][10]
@@ -73,7 +73,7 @@ immutability=1
 plugin=org.kde.plasma.volume
 
 [Containments][10][Applets][17][Configuration]
-PreloadWeight=20
+PreloadWeight=12
 
 [Containments][10][Applets][17][Configuration][General]
 globalMute=true
@@ -153,7 +153,7 @@ plugin=org.kde.plasma.folder
 wallpaperplugin=org.kde.image
 
 [Containments][123][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][123][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
@@ -168,7 +168,7 @@ plugin=org.kde.plasma.folder
 wallpaperplugin=org.kde.image
 
 [Containments][124][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][124][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
@@ -189,7 +189,7 @@ DialogHeight=892
 DialogWidth=1118
 
 [Containments][125][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][125][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
@@ -214,7 +214,7 @@ DialogHeight=540
 DialogWidth=720
 
 [Containments][126][Configuration]
-PreloadWeight=10
+PreloadWeight=2
 
 [Containments][126][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
@@ -228,6 +228,7 @@ SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 [Containments][26]
 ItemGeometries-1920x1200=
 ItemGeometries-2560x1440=
+ItemGeometries-3440x1440=
 ItemGeometries-3840x2160=
 ItemGeometriesHorizontal=
 activityId=84e6bfcc-6c05-456e-ad2c-12287f6864c4
@@ -250,7 +251,7 @@ Image=file:///usr/share/wallpapers/Next/contents/images/2560x1600.jpg
 
 [Containments][26][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/PXL_20220313_133102073.MP.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9130.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -317,7 +318,7 @@ SlidePaths=/usr/share/plasma/wallpapers,/usr/share/wallpapers
 
 [Containments][28][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_9067.JPG
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/DSC00894.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -428,7 +429,7 @@ arrowsOnHover=true
 checkNewComicStripsIntervall=30
 comic=calvinandhobbes
 lastStripVisited_calvinandhobbes=true
-lastStrip_calvinandhobbes=2024-04-07
+lastStrip_calvinandhobbes=2024-04-08
 maxComicLimit=20
 maxStripNum_calvinandhobbes=0
 middleClick=true
@@ -566,7 +567,7 @@ immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][4][Applets][9][Configuration]
-PreloadWeight=33
+PreloadWeight=25
 SystrayContainmentId=10
 
 [Containments][4][ConfigDialog]
