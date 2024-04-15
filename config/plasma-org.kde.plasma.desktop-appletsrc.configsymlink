@@ -22,12 +22,15 @@ wallpaperplugin=org.kde.slideshow
 DialogHeight=540
 DialogWidth=720
 
+[Containments][1][Configuration]
+PreloadWeight=42
+
 [Containments][1][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
 
 [Containments][1][Wallpaper][org.kde.slideshow][General]
 FillMode=1
-Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_20180829_151935.jpg
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_6038.JPG
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -44,13 +47,22 @@ wallpaperplugin=org.kde.image
 immutability=1
 plugin=org.kde.plasma.digitalclock
 
+[Containments][2][Applets][19][Configuration]
+PreloadWeight=42
+
 [Containments][2][Applets][20]
 immutability=1
 plugin=org.kde.plasma.showdesktop
 
+[Containments][2][Applets][20][Configuration]
+PreloadWeight=42
+
 [Containments][2][Applets][3]
 immutability=1
 plugin=org.kde.plasma.kickoff
+
+[Containments][2][Applets][3][Configuration]
+PreloadWeight=92
 
 [Containments][2][Applets][3][Configuration][General]
 favoritesPortedToKAstats=true
@@ -62,21 +74,33 @@ global=Alt+F1
 immutability=1
 plugin=org.kde.plasma.pager
 
+[Containments][2][Applets][4][Configuration]
+PreloadWeight=42
+
 [Containments][2][Applets][5]
 immutability=1
 plugin=org.kde.plasma.icontasks
 
+[Containments][2][Applets][5][Configuration]
+PreloadWeight=42
+
 [Containments][2][Applets][6]
 immutability=1
 plugin=org.kde.plasma.marginsseparator
+
+[Containments][2][Applets][6][Configuration]
+PreloadWeight=42
 
 [Containments][2][Applets][7]
 immutability=1
 plugin=org.kde.plasma.systemtray
 
 [Containments][2][Applets][7][Configuration]
-PreloadWeight=65
+PreloadWeight=62
 SystrayContainmentId=8
+
+[Containments][2][Configuration]
+PreloadWeight=42
 
 [Containments][2][General]
 AppletOrder=3;4;5;6;7;19;20
@@ -95,6 +119,9 @@ wallpaperplugin=org.kde.slideshow
 [Containments][21][ConfigDialog]
 DialogHeight=540
 DialogWidth=720
+
+[Containments][21][Configuration]
+PreloadWeight=42
 
 [Containments][21][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/1920x1200.jpg
@@ -118,6 +145,9 @@ wallpaperplugin=org.kde.slideshow
 DialogHeight=540
 DialogWidth=720
 
+[Containments][24][Configuration]
+PreloadWeight=42
+
 [Containments][24][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/2560x1440.jpg
 
@@ -140,12 +170,37 @@ wallpaperplugin=org.kde.slideshow
 DialogHeight=540
 DialogWidth=720
 
+[Containments][25][Configuration]
+PreloadWeight=42
+
 [Containments][25][Wallpaper][org.kde.image][General]
 Image=file:///usr/share/wallpapers/Next/contents/images/3840x2160.jpg
 
 [Containments][25][Wallpaper][org.kde.slideshow][General]
 FillMode=1
 Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/IMG_1406.JPG
+SlideInterval=87300
+SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
+
+[Containments][26]
+activityId=84e6bfcc-6c05-456e-ad2c-12287f6864c4
+formfactor=0
+immutability=1
+lastScreen=3
+location=0
+plugin=org.kde.plasma.folder
+wallpaperplugin=org.kde.slideshow
+
+[Containments][26][ConfigDialog]
+DialogHeight=1140
+DialogWidth=1520
+
+[Containments][26][Wallpaper][org.kde.image][General]
+Image=file:///usr/share/wallpapers/Next/contents/images/3840x2160.jpg
+
+[Containments][26][Wallpaper][org.kde.slideshow][General]
+FillMode=1
+Image=file:///home/ANT.AMAZON.COM/hojin/Pictures/favourites/CAM00394.jpg
 SlideInterval=87300
 SlidePaths=/home/ANT.AMAZON.COM/hojin/Pictures/favourites
 
@@ -162,66 +217,102 @@ wallpaperplugin=org.kde.image
 immutability=1
 plugin=org.kde.plasma.clipboard
 
+[Containments][8][Applets][10][Configuration]
+PreloadWeight=42
+
 [Containments][8][Applets][11]
 immutability=1
 plugin=org.kde.plasma.nightcolorcontrol
+
+[Containments][8][Applets][11][Configuration]
+PreloadWeight=42
 
 [Containments][8][Applets][12]
 immutability=1
 plugin=org.kde.plasma.keyboardlayout
 
+[Containments][8][Applets][12][Configuration]
+PreloadWeight=42
+
 [Containments][8][Applets][13]
 immutability=1
 plugin=org.kde.plasma.printmanager
+
+[Containments][8][Applets][13][Configuration]
+PreloadWeight=42
 
 [Containments][8][Applets][14]
 immutability=1
 plugin=org.kde.plasma.keyboardindicator
 
+[Containments][8][Applets][14][Configuration]
+PreloadWeight=42
+
 [Containments][8][Applets][15]
 immutability=1
 plugin=org.kde.plasma.volume
+
+[Containments][8][Applets][15][Configuration]
+PreloadWeight=42
 
 [Containments][8][Applets][16]
 immutability=1
 plugin=org.kde.plasma.devicenotifier
 
+[Containments][8][Applets][16][Configuration]
+PreloadWeight=42
+
 [Containments][8][Applets][17]
 immutability=1
 plugin=org.kde.plasma.notifications
 
+[Containments][8][Applets][17][Configuration]
+PreloadWeight=42
+
 [Containments][8][Applets][18]
 immutability=1
 plugin=org.kde.kdeconnect
+
+[Containments][8][Applets][18][Configuration]
+PreloadWeight=42
 
 [Containments][8][Applets][21]
 immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][8][Applets][21][Configuration]
-PreloadWeight=55
+PreloadWeight=52
 
 [Containments][8][Applets][22]
 immutability=1
 plugin=org.kde.plasma.networkmanagement
 
 [Containments][8][Applets][22][Configuration]
-PreloadWeight=55
+PreloadWeight=47
 
 [Containments][8][Applets][23]
 immutability=1
 plugin=org.kde.plasma.bluetooth
+
+[Containments][8][Applets][23][Configuration]
+PreloadWeight=42
 
 [Containments][8][Applets][24]
 immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][8][Applets][24][Configuration]
-PreloadWeight=42
+PreloadWeight=34
 
 [Containments][8][Applets][9]
 immutability=1
 plugin=org.kde.plasma.manage-inputmethod
+
+[Containments][8][Applets][9][Configuration]
+PreloadWeight=42
+
+[Containments][8][Configuration]
+PreloadWeight=42
 
 [Containments][8][General]
 extraItems=org.kde.plasma.mediacontroller,org.kde.plasma.manage-inputmethod,org.kde.kupapplet,org.kde.plasma.clipboard,org.kde.plasma.nightcolorcontrol,org.kde.plasma.keyboardlayout,org.kde.plasma.battery,org.kde.plasma.printmanager,org.kde.plasma.keyboardindicator,org.kde.plasma.volume,org.kde.plasma.devicenotifier,org.kde.plasma.notifications,org.kde.plasma.networkmanagement,org.kde.plasma.bluetooth,org.kde.kdeconnect
