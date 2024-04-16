@@ -1,1 +1,0 @@
-/home/ANT.AMAZON.COM/hojin/.dotfiles/vim.symlink/vimrc.symlink
