@@ -24,7 +24,7 @@ _gf_get_file() {
 
 _gf() {
   is_in_git_repo || return
-# shellcheck disable=SC2016
+# shellcheck disable=SC2016,SC2154
   git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --short |
   fzf_down -m --ansi --nth 2..,.. \
   --preview "$(functions _gf_remove_status _gf_remove_original_name _gf_remove_quote _gf_get_file)"'
@@ -48,6 +48,7 @@ _gb() {
 
 _gbb() {
   is_in_git_repo || return
+# shellcheck disable=SC2016
   git worktree list |
       fzf_down --ansi --multi --tac --preview-window right:70% \
           --preview 'git -C $(awk "{print \$1}" <<< {}) diff --stat --color=always
@@ -85,11 +86,11 @@ _gyy() {
 _ghh() {
   is_in_git_repo || return
   local upstream_head
-  upstream_head=$(git rev-list @{u} 2>/dev/null | head -1)
-  all_parents_of_merge_base="$(gmb HEAD ${upstream_head})^@"
+  upstream_head=$(git rev-list '@{u}' 2>/dev/null | head -1)
+  all_parents_of_merge_base="$(gmb HEAD "${upstream_head}")^@"
   # Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
   # leaving HEAD, upstream head and the merge-base, inclusively.
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD ${upstream_head} "^${all_parents_of_merge_base}"|
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "${upstream_head}" "^${all_parents_of_merge_base}"|
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |

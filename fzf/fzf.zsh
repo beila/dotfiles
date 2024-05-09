@@ -31,11 +31,12 @@ export FZF_ALT_C_COMMAND='
         # "->" part separates the targets of symbolic links which eza shows
         awk -F " +[^ ]*->" "{print \$1}" |
         #sed "s:$(pwd)/::" |
-        sed "s:$(pwd):.:" |
-        sed "s:$HOME:~:" |
+        #sed "s:$(pwd):.:" |
+        #sed "s:$HOME:~:" |
         awk "!d[\$0]++"
                 '
-export FZF_ALT_C_OPTS='--ansi --preview "
+
+export FZF_ALT_C_OPTS='--ansi -d"'$HOME/'" --with-nth 2 --preview "
     (
         git -C {} diff --stat --color=always -- .
             #git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
