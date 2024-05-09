@@ -26,18 +26,20 @@ export FZF_ALT_C_COMMAND='
             # fd --print0 --one-file-system --type d . '"${HOME}"' &&
             # fd --print0 --one-file-system --type d . /
         ) | xargs -0 --no-run-if-empty '$ls' --color=always -d --sort=none
-    ) 2> /dev/null |
+    ) |# 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
         # "->" part separates the targets of symbolic links which eza shows
         awk -F " +[^ ]*->" "{print \$1}" |
+        #sed "s:$(pwd)/::" |
         sed "s:$(pwd):.:" |
-        sed "s:$HOME:~:"
+        sed "s:$HOME:~:" |
+        awk "!d[\$0]++"
                 '
 export FZF_ALT_C_OPTS='--ansi --preview "
     (
-        git -C {} diff --stat --color=always &&
-            git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
-            '$ls' -l {}
+        git -C {} diff --stat --color=always -- .
+            #git -C {} log --oneline --graph --date=short --color=always --pretty=\"format:%C(auto)%cd %h%d %s\" ||
+            '$ls' --color=always -l {}
     ) 2> /dev/null"'
 
 # The first printf removes the first \ from \\n.
