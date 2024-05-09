@@ -10,3 +10,7 @@ venv
 tags
 buildr
 build_*
+compile_commands.json
+CMakeUserPresets.json
+.gdb_history
+.cache/
