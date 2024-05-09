@@ -8,7 +8,7 @@ cmake-build-*
 atlassian-ide-plugin.xml
 venv
 tags
-buildr
+rbuildr
 build_*
 compile_commands.json
 CMakeUserPresets.json
