@@ -17,6 +17,7 @@ export FZF_CTRL_T_OPTS='--ansi --preview "
 export FZF_ALT_C_COMMAND='
     (
         (
+            dirs -lp
             git worktree list | cut -d" " -f1
             zoxide query --list
         ) | xargs --no-run-if-empty '$ls' --color=always -d --sort=none
@@ -28,7 +29,10 @@ export FZF_ALT_C_COMMAND='
     ) 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
         # "->" part separates the targets of symbolic links which eza shows
-        awk -F " +[^ ]*->" "{print \$1}"'
+        awk -F " +[^ ]*->" "{print \$1}" |
+        sed "s:$(pwd):.:" |
+        sed "s:$HOME:~:"
+                '
 export FZF_ALT_C_OPTS='--ansi --preview "
     (
         git -C {} diff --stat --color=always &&
