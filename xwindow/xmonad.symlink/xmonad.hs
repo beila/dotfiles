@@ -3,6 +3,7 @@ import Data.Maybe
 import XMonad
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.SetWMName
 import XMonad.Actions.CycleWS
 import XMonad.Util.EZConfig(additionalKeys)
@@ -14,27 +15,35 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.WallpaperSetter
 import XMonad.Config.Gnome
 
-myManageHook = composeAll
-    [ className =? "Tilda"                                   --> doFloat
-    , className =? "ignition"                                --> doFloat
-    , className =? "evolution-alarm-notify"                  --> doFloat
-    , className =? "Alert"                                   --> doFloat -- alert from firefox
-    , className =? "thunderbird"                             --> doShift "2:mail"
-    , className =? "evolution.real"                          --> doShift "2:mail"
-    , className =? "jetbrains-clion"                         --> doShift "3:nvim"
-    , className =? "jetbrains-idea"                          --> doShift "3:nvim"
-    , className =? "neovide"                                 --> doShift "3:nvim"
-    , className =? "Gvim"                                    --> doShift "3:nvim"
-    , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
-    , title     =? "Google Calendar - Vivaldi"               --> doShift "8:calendar"
-    , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "8:calendar"
-    , className =? "yakyak"                                  --> doShift "9:messenger"
-    , className =? "AmazonChime"                             --> doShift "9:messenger"
-    , title     =? "Amazon Chime — Mozilla Firefox"          --> doShift "9:messenger"
-    , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
-    , title     =? "WhatsApp - Mozilla Firefox"              --> doShift "9:messenger"
-    , className =? "Slack"                                   --> doShift "9:messenger"
-    --, className =? "firefox"                                 --> doShift "1:browser"
+myManageHook = composeOne
+    [ appName   =? "Alert"                                           -?> doFloat
+    , className =? "Tilda"                                           -?> doFloat
+    , className =? "ignition"                                        -?> doFloat
+    , className =? "Evolution-alarm-notify"                          -?> doFloat
+    , appName   =? "gnome-panel"                                     -?> doFloat
+    , className =? "Gnome-panel"                                     -?> doFloat
+    , title     =? "Run Application"                                 -?> doFloat
+    , appName   =? "Mail"                                            -?> doShift "2:mail"
+    , className =? "thunderbird"                                     -?> doShift "2:mail"
+    , className =? "evolution.real"                                  -?> doShift "2:mail"
+    , className =? "jetbrains-clion"                                 -?> doShift "3:nvim"
+    , className =? "jetbrains-idea"                                  -?> doShift "3:nvim"
+    , className =? "neovide"                                         -?> doShift "3:nvim"
+    , className =? "Gvim"                                            -?> doShift "3:nvim"
+    , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi"         -?> doShift "7:calendar"
+    , title     =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox" -?> doShift "7:calendar"
+    , title     =? "Google Calendar - Vivaldi"                       -?> doShift "7:calendar"
+    , title     =? "Google Calendar - Mozilla Firefox"               -?> doShift "7:calendar"
+    , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" -?> doShift "7:calendar"
+    , title     =? "Email - hojin@amazon.co.uk — Mozilla Firefox"    -?> doShift "7:calendar"
+    , className =? "AmazonChime"                                     -?> doShift "8:meeting"
+    , title     =? "Amazon Chime — Mozilla Firefox"                  -?> doShift "8:meeting"
+    , className =? "yakyak"                                          -?> doShift "9:messenger"
+    , title     =? "WhatsApp - Vivaldi"                              -?> doShift "9:messenger"
+    , title     =? "WhatsApp - Mozilla Firefox"                      -?> doShift "9:messenger"
+    , title     =? "Gmail - Mozilla Firefox"                         -?> doShift "9:messenger"
+    , className =? "Slack"                                           -?> doShift "9:messenger"
+    , className =? "firefox"                                         -?> doShift "1:browser"
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
@@ -64,7 +73,7 @@ myConfig = gnomeConfig
     , layoutHook = avoidStruts  $  layoutHook gnomeConfig
     } `additionalKeys` myKeys
 
-myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:browser", "8:calendar", "9:messenger"]
+myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
 {-myWorkspaces = ["1","2","3","4","5","6","7","8","9"]-}
 
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
