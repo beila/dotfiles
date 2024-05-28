@@ -18,11 +18,13 @@ myManageHook = composeAll
     [ className =? "Tilda"                                   --> doFloat
     , className =? "ignition"                                --> doFloat
     , className =? "evolution-alarm-notify"                  --> doFloat
+    , className =? "Alert"                                   --> doFloat -- alert from firefox
     , className =? "thunderbird"                             --> doShift "2:mail"
     , className =? "evolution.real"                          --> doShift "2:mail"
-    , className =? "jetbrains-clion"                         --> doShift "3:clion"
-    , className =? "jetbrains-idea"                          --> doShift "3:clion"
-    , className =? "Gvim"                                    --> doShift "4:gvim"
+    , className =? "jetbrains-clion"                         --> doShift "3:nvim"
+    , className =? "jetbrains-idea"                          --> doShift "3:nvim"
+    , className =? "neovide"                                 --> doShift "3:nvim"
+    , className =? "Gvim"                                    --> doShift "3:nvim"
     , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "8:calendar"
     , title     =? "Google Calendar - Vivaldi"               --> doShift "8:calendar"
     , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "8:calendar"
@@ -30,6 +32,7 @@ myManageHook = composeAll
     , className =? "AmazonChime"                             --> doShift "9:messenger"
     , title     =? "Amazon Chime — Mozilla Firefox"          --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                      --> doShift "9:messenger"
+    , title     =? "WhatsApp - Mozilla Firefox"              --> doShift "9:messenger"
     , className =? "Slack"                                   --> doShift "9:messenger"
     --, className =? "firefox"                                 --> doShift "1:browser"
     ]
@@ -61,7 +64,7 @@ myConfig = gnomeConfig
     , layoutHook = avoidStruts  $  layoutHook gnomeConfig
     } `additionalKeys` myKeys
 
-myWorkspaces = ["1:browser", "2:mail", "3:clion", "4:gvim", "5", "6", "7:browser", "8:calendar", "9:messenger"]
+myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:browser", "8:calendar", "9:messenger"]
 {-myWorkspaces = ["1","2","3","4","5","6","7","8","9"]-}
 
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
@@ -72,7 +75,7 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     ] ++
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
-    | (i, k) <- zip myWrokspaces [xK_1 .. xK_9]
+    | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
     , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (myGreedyView, mod1Mask)]
     ]
 
