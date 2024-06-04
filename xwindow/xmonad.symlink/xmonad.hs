@@ -78,6 +78,7 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
+    , ((mod4Mask, xK_equal), nextScreen)
     , ((mod4Mask, xK_0), moveTo Next EmptyWS)  -- find a free workspace
     ] ++
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
