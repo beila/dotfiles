@@ -15,33 +15,35 @@ import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.WallpaperSetter
 import XMonad.Config.Gnome
 
-myManageHook = composeOne
-    [ appName   =? "Alert"                                           -?> doFloat
-    , className =? "Tilda"                                           -?> doFloat
-    , className =? "ignition"                                        -?> doFloat
-    , className =? "Evolution-alarm-notify"                          -?> doFloat
-    , appName   =? "gnome-panel"                                     -?> doFloat
-    , appName   =? "Mail"                                            -?> doShift "2:mail"
-    , className =? "thunderbird"                                     -?> doShift "2:mail"
-    , className =? "evolution.real"                                  -?> doShift "2:mail"
-    , className =? "jetbrains-clion"                                 -?> doShift "3:nvim"
-    , className =? "jetbrains-idea"                                  -?> doShift "3:nvim"
-    , className =? "neovide"                                         -?> doShift "3:nvim"
-    , className =? "Gvim"                                            -?> doShift "3:nvim"
-    , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi"         -?> doShift "7:calendar"
-    , title     =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox" -?> doShift "7:calendar"
-    , title     =? "Google Calendar - Vivaldi"                       -?> doShift "7:calendar"
-    , title     =? "Google Calendar - Mozilla Firefox"               -?> doShift "7:calendar"
-    , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" -?> doShift "7:calendar"
-    , title     =? "Email - hojin@amazon.co.uk — Mozilla Firefox"    -?> doShift "7:calendar"
-    , className =? "AmazonChime"                                     -?> doShift "8:meeting"
-    , title     =? "Amazon Chime — Mozilla Firefox"                  -?> doShift "8:meeting"
-    , className =? "yakyak"                                          -?> doShift "9:messenger"
-    , title     =? "WhatsApp - Vivaldi"                              -?> doShift "9:messenger"
-    , title     =? "WhatsApp - Mozilla Firefox"                      -?> doShift "9:messenger"
-    , title     =? "Gmail - Mozilla Firefox"                         -?> doShift "9:messenger"
-    , className =? "Slack"                                           -?> doShift "9:messenger"
-    , className =? "firefox"                                         -?> doShift "1:browser"
+myManageHook = composeAll
+    [ appName   =? "Alert"                                           --> doFloat
+    , className =? "Tilda"                                           --> doFloat
+    , className =? "ignition"                                        --> doFloat
+    , className =? "Evolution-alarm-notify"                          --> doFloat
+    , appName   =? "gnome-panel"                                     --> doFloat
+    , appName   =? "Mail"                                            --> doShift "2:mail"
+    , className =? "thunderbird"                                     --> doShift "2:mail"
+    , className =? "evolution.real"                                  --> doShift "2:mail"
+    , className =? "jetbrains-clion"                                 --> doShift "3:nvim"
+    , className =? "jetbrains-idea"                                  --> doShift "3:nvim"
+    , className =? "neovide"                                         --> doShift "3:nvim"
+    , className =? "Gvim"                                            --> doShift "3:nvim"
+    , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi"         --> doShift "7:calendar"
+    , title     =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox" --> doShift "7:calendar"
+    , title     =? "Google Calendar - Vivaldi"                       --> doShift "7:calendar"
+    , title     =? "Google Calendar - Mozilla Firefox"               --> doShift "7:calendar"
+    , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "7:calendar"
+    , title     =? "Email - hojin@amazon.co.uk — Mozilla Firefox"    --> doShift "7:calendar"
+    , className =? "AmazonChime"                                     --> doShift "8:meeting"
+    , title     =? "Amazon Chime — Mozilla Firefox"                  --> doShift "8:meeting"
+    , className =? "yakyak"                                          --> doShift "9:messenger"
+    , title     =? "WhatsApp - Vivaldi"                              --> doShift "9:messenger"
+    , title     =? "WhatsApp - Mozilla Firefox"                      --> doShift "9:messenger"
+    , title     =? "Gmail - Mozilla Firefox"                         --> doShift "9:messenger"
+    , className =? "Slack"                                           --> doShift "9:messenger"
+    , className =? "firefox"                                         --> doShift "1:browser"
+    , manageHook gnomeConfig
+    , manageDocks
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
@@ -66,8 +68,7 @@ myConfig = gnomeConfig
     , workspaces = myWorkspaces
     -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
-    , manageHook = manageDocks <+> myManageHook
-                <+> manageHook gnomeConfig
+    , manageHook = myManageHook
     , layoutHook = avoidStruts  $  layoutHook gnomeConfig
     } `additionalKeys` myKeys
 
