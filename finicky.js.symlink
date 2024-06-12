@@ -37,7 +37,7 @@ module.exports = {
     /*
      *{
      *  // rewrite http[s]://quip.com/<documentID>[> to quip://<documentID>
-     *  match: finicky.matchHostnames(["quip-amazon.com"]),
+     *  match: finicky.matchHostnames(["quip-*.com"]),
      *  url: ({ url }) => ({
      *    ...url,
      *    host: "",
@@ -47,16 +47,6 @@ module.exports = {
      *        ? decodeURIComponent(url.search).split("/")[2].split("&")[0]
      *        : url.pathname.split("/")[1],
      *    protocol: "quip",
-     *  }),
-     *},
-     */
-    /*
-     *{
-     *  // rewrite t.corp.amazon.com to SIM
-     *  match: finicky.matchHostnames(["t.corp.amazon.com"]),
-     *  url: ({ url }) => ({
-     *    ...url,
-     *    host: "issues.amazon.com",
      *  }),
      *},
      */
