@@ -20,6 +20,7 @@ myManageHook = composeAll
     , className =? "Tilda"                                           --> doFloat
     , className =? "ignition"                                        --> doFloat
     , className =? "Evolution-alarm-notify"                          --> doFloat
+    , className =? "Gnome-panel"                                     --> doFloat
     , appName   =? "gnome-panel"                                     --> doFloat
     , appName   =? "Mail"                                            --> doShift "2:mail"
     , className =? "thunderbird"                                     --> doShift "2:mail"
