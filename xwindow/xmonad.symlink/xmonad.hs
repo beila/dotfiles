@@ -86,7 +86,7 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
     | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
-    , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask), (W.view, controlMask), (myGreedyView, mod1Mask)]
+    , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask), (W.view, controlMask), (myGreedyView, mod2Mask)]
     ]
 
 -- TODO let's make it lruView
