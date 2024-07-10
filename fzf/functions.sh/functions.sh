@@ -121,6 +121,8 @@ _gr() {
 
 _gs() {
   is_in_git_repo || return
-  git stash list | fzf_down --reverse -d: --preview 'git show --remerge-diff --patch-with-stat --color=always {1}' |
+  git stash list | fzf_down --reverse -d: \
+    --preview-window=right,70% \
+    --preview 'DFT_COLOR=always DFT_DISPLAY=inline git show --remerge-diff --patch-with-stat --color=always {1} --ext-diff' |
   cut -d: -f1
 }
