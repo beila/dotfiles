@@ -30,13 +30,15 @@
 [protocol "codecommit"]
 	allow = always
 [init]
-	defaultBranch = mainline
+	defaultBranch = main
 [rebase]
 	autoSquash = true
 	updateRefs = true
 	autoStash = true
 [diff]
     colorMoved = default
+	submodule = log
+	external = difft
 [commit]
 	verbose = true
 [clone]
