@@ -18,6 +18,10 @@ _gf_remove_original_name() {
 _gf_remove_quote() {
     sed 's/^"\(.*\)"$/\1/'
 }
+_gf_show_diff() {
+    DFT_COLOR=always DFT_DISPLAY=inline git diff --color=always --cached HEAD "$@"
+    DFT_COLOR=always DFT_DISPLAY=inline git diff --color=always "$@"
+}
 _gf_get_file() {
     _gf_remove_status | _gf_remove_original_name | _gf_remove_quote
 }
@@ -26,14 +30,13 @@ _gf() {
   is_in_git_repo || return
 # shellcheck disable=SC2016,SC2154
   git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --short |
-  fzf_down -m --ansi --nth 2..,.. \
-  --preview "$(functions _gf_remove_status _gf_remove_original_name _gf_remove_quote _gf_get_file)"'
-    file=$(_gf_get_file <<< {})
-    diff=$(git diff --color=always --cached HEAD -- "$file" | sed 1,4d
-           git diff --color=always -- "$file" | sed 1,4d)
-    if [[ "$diff" ]]; then echo "$diff"
-    else; bat "$file" 2>/dev/null || cat "$file" 2>/dev/null || ls -l --color=always "$file" ; fi' |
-  _gf_get_file
+    fzf_down -m --ansi --nth 2..,.. \
+      --preview-window=right,70% \
+      --preview "$(functions _gf_remove_status _gf_remove_original_name _gf_remove_quote _gf_show_diff _gf_get_file)"'
+        file=$(_gf_get_file <<< {})
+        if [[ "$(_gf_show_diff --no-ext-diff "$file")" ]]; then _gf_show_diff "$file"
+        else; bat "$file" 2>/dev/null || cat "$file" 2>/dev/null || ls -l --color=always "$file" ; fi' |
+    _gf_get_file
 }
 
 _gb() {
