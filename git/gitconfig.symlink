@@ -19,7 +19,7 @@
 	default = upstream
 [merge]
 	conflictStyle = zdiff3
-	tool = gvimdiff
+	tool = nvimdiff
 [rerere]
 	enabled = true
 [alias]
@@ -70,3 +70,6 @@
 	#fetch = ^refs/tags/*-rc7
 	#fetch = ^refs/tags/*-rc8
 	#fetch = ^refs/tags/*-rc9
+[fetch]
+	prunetags = true
+	prune = true
