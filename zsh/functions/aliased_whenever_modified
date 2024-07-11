@@ -1,0 +1,16 @@
+#!env zsh
+set -x
+PS4="+++++++++++++++++++++++++++++ "
+D=1 
+while [ -n "$(fd --changed-after @$D | head -1)" ] || (
+    inotifywait -e modify -r .
+    while inotifywait -e modify -r . -t 10
+    do
+        :
+    done
+)
+do
+    D=$(date +%s) 
+    time "$@"
+    date
+done
