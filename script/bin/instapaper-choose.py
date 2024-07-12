@@ -178,6 +178,7 @@ ui = {
     "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
     "oracle": "https://www.instapaper.com/u/folder/1536331/oracle",
     "rhineheart": "https://www.instapaper.com/u/folder/1538043/rhineheart",
+    "smith": "https://www.instapaper.com/u/folder/1514058/smith",
     "switch": "https://www.instapaper.com/u/folder/1536336/switch",
     "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
 }
@@ -199,6 +200,7 @@ biggest_page = {
     "2021": 9999,
     "2022": 9999,
     "2023": 9999,
+    "2024": 9999,
     "3월": 9999,
     "4월": 9999,
     "5월": 9999,
@@ -207,11 +209,12 @@ biggest_page = {
     "8월": 9999,
     "9월": 9999,
     "choi": 9999,
-    "morpheus": 3,
-    "oracle": 4,
+    "morpheus": 2,
+    "oracle": 2,
     "rhineheart": 9999,
+    "smith": 9999,
     "switch": 9999,
-    "trinity": 7,
+    "trinity": 3,
 }
 
 heavier_folders = ["choi", "morpheus", "oracle", "rhineheart", "trinity"]
@@ -226,7 +229,7 @@ f_indexed = (
     {
         **d,
         "findex": i,
-        "ui": ui[d["Folder"]] + ("/" + str(int(i / 40) + 1) if i >= 40 else ""),
+        "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
         "weight": 50 if d["Folder"] in heavier_folders else 1,
         "domain": urlparse(d["URL"]).netloc,
     }
@@ -239,7 +242,7 @@ grouped = groupby(f_indexed, lambda d: d["domain"])
 lasts = list(list(g[1])[-1] for g in grouped)
 # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
-for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=9):
+for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=10):
     del line["Selection"]
     del line["Timestamp"]
     del line["domain"]
