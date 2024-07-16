@@ -225,22 +225,22 @@ timed_dicts = sorted(org_dicts, key=lambda d: d["Timestamp"], reverse=True)
 f_grouped = groupby(
     sorted(timed_dicts, key=lambda d: d["Folder"]), lambda d: d["Folder"]
 )
-f_indexed = (
+f_indexed = [
     {
         **d,
         "findex": i,
         "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
         "weight": 50 if d["Folder"] in heavier_folders else 1,
-        "domain": urlparse(d["URL"]).netloc,
+        "domain": urlparse(d["URL"]).netloc,    # heavy에선 하지 말자
     }
     for grouper in f_grouped
     if grouper[0] in ui.keys()
     for i, d in enumerate(grouper[1])
     if i / 40 + 1 < biggest_page[d["Folder"]]
-)
+]
 grouped = groupby(f_indexed, lambda d: d["domain"])
 lasts = list(list(g[1])[-1] for g in grouped)
-# lasts = list(chain.from_iterable(g[1] for g in grouped))
+# # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
 for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=10):
     del line["Selection"]
