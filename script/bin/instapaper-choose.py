@@ -231,18 +231,19 @@ f_indexed = [
         "findex": i,
         "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
         "weight": 50 if d["Folder"] in heavier_folders else 1,
-        "domain": urlparse(d["URL"]).netloc,    # heavy에선 하지 말자
+        "domain": urlparse(d["URL"]).netloc,
     }
     for grouper in f_grouped
     if grouper[0] in ui.keys()
     for i, d in enumerate(grouper[1])
     if i / 40 + 1 < biggest_page[d["Folder"]]
 ]
-grouped = groupby(f_indexed, lambda d: d["domain"])
-lasts = list(list(g[1])[-1] for g in grouped)
+# grouped = groupby(f_indexed, lambda d: d["domain"])
+# lasts = list(list(g[1])[-1] for g in grouped)
 # # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
-for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=10):
+# for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=10):
+for line in random.choices(f_indexed, weights=(d["weight"] for d in f_indexed), k=9):
     del line["Selection"]
     del line["Timestamp"]
     del line["domain"]
