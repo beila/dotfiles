@@ -1,5 +1,5 @@
 #!env zsh
-local grep_pattern="\\b$*\\b"
+
 local grep_pattern_partial_word="$@"
 
 function _m_highlight() {
