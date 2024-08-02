@@ -1,5 +1,7 @@
 local ls=$(which eza &> /dev/null && echo eza || echo ls)
 
+export FZF_DEFAULT_OPTS='--bind "ctrl-n:preview-half-page-down" --bind "ctrl-p:preview-half-page-up"'
+
 # TODO fasd used to have files listed, but zoxide does not. I need list of files most likely to be used. Maybe locate?
 export FZF_CTRL_T_COMMAND='
     #fasd -lR | xargs -r -I I '$ls' --color=always -d "I" &&
