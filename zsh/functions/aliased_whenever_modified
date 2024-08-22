@@ -3,7 +3,9 @@ set -x
 FILES_TO_WATCH=${FILES_TO_WATCH:-.}
 PS4="+++++++++++++++++++++++++++++ "
 D=1 
-while [ -n "$(fd --changed-after @$D | head -1)" ] || (
+while [ -n "$(fd --changed-after @$D |
+    git check-ignore --stdin --non-matching --verbose |
+    head -1)" ] || (
     inotifywait -e modify -r ${FILES_TO_WATCH}
     while inotifywait -e modify -r ${FILES_TO_WATCH} -t 10
     do
