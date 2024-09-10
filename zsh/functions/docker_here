@@ -34,6 +34,7 @@ docker run \
     --user $(id -u):$(id -g) \
     --volume "${parent_dir}:${parent_dir}" \
     ${new_home:+--volume} ${new_home:+"${new_home}:${new_home}"} \
+    ${new_home:+--volume} ${new_home:+"${new_home}:/home/linuxbrew"} \
     ${new_home:+--volume} ${new_home:+"$HOME/.ssh:${new_home}/.ssh"} \
     --volume /tmp/fake_passwd:/etc/passwd  \
     --workdir "${this_dir}" \
