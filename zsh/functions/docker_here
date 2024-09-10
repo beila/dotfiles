@@ -1,7 +1,7 @@
 #!/usr/bin/zsh
 this_dir="$(realpath $(pwd))"
 parent_dir="$(realpath $(pwd)/..)"
-git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
+#git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
 new_home="${DOCKER_HERE_HOME}"
 test -n "${new_home}" && new_path_array=($(ls -d ${new_home} ${new_home}/*/ ${new_home}/*/bin ${new_home}/.*/bin 2>/dev/null || true))
 test -n "${new_home}" && new_path=$(print -R ${(j|:|)new_path_array})
