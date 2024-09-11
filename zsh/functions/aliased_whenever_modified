@@ -1,8 +1,8 @@
 #!env zsh
-set -x
 FILES_TO_WATCH=${FILES_TO_WATCH:-.}
 PS4="+++++++++++++++++++++++++++++ "
 D=1 
+set -x
 while [ -n "$(fd --changed-after @$D | head -1)" ] || (
     inotifywait -e modify -r ${FILES_TO_WATCH}
     while inotifywait -e modify -r ${FILES_TO_WATCH} -t 10
