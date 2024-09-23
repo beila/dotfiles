@@ -1,6 +1,5 @@
 #!env zsh
 FILES_TO_WATCH=${FILES_TO_WATCH:-.}
-PS4="+++++++++++++++++++++++++++++ "
 D=1 
 set -x
 while [ -n "$(fd --changed-after @$D | head -1)" ] || (
