@@ -180,41 +180,12 @@ ui = {
     "rhineheart": "https://www.instapaper.com/u/folder/1538043/rhineheart",
     "smith": "https://www.instapaper.com/u/folder/1514058/smith",
     "switch": "https://www.instapaper.com/u/folder/1536336/switch",
-    "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
+    # "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
 }
 
 biggest_page = {
-    "1월": 9999,
-    "10월": 9999,
-    "11월": 9999,
-    "12월": 9999,
-    "2월": 9999,
-    "2013": 9999,
-    "2014": 9999,
-    "2015": 9999,
-    "2016": 9999,
-    "2017": 9999,
-    "2018": 9999,
-    "2019": 9999,
-    "2020": 9999,
-    "2021": 9999,
-    "2022": 9999,
-    "2023": 9999,
-    "2024": 9999,
-    "3월": 9999,
-    "4월": 9999,
-    "5월": 9999,
-    "6월": 9999,
-    "7월": 9999,
-    "8월": 9999,
-    "9월": 9999,
-    "choi": 9999,
     "morpheus": 2,
-    "oracle": 2,
-    "rhineheart": 9999,
-    "smith": 9999,
-    "switch": 9999,
-    "trinity": 3,
+    "oracle": 5,
 }
 
 heavier_folders = ["choi", "morpheus", "oracle", "rhineheart", "trinity"]
@@ -236,14 +207,14 @@ f_indexed = [
     for grouper in f_grouped
     if grouper[0] in ui.keys()
     for i, d in enumerate(grouper[1])
-    if i / 40 + 1 < biggest_page[d["Folder"]]
+    if i / 40 + 1 < biggest_page.get(d["Folder"], 9999)
 ]
-# grouped = groupby(f_indexed, lambda d: d["domain"])
-# lasts = list(list(g[1])[-1] for g in grouped)
+grouped = groupby(f_indexed, lambda d: d["domain"])
+lasts = list(random.choice(list(g[1])) for g in grouped)
 # # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
-# for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=10):
-for line in random.choices(f_indexed, weights=(d["weight"] for d in f_indexed), k=9):
+for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=50):
+    # for line in random.choices(f_indexed, weights=(d["weight"] for d in f_indexed), k=9):
     del line["Selection"]
     del line["Timestamp"]
     del line["domain"]
