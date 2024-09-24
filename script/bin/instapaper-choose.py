@@ -201,7 +201,7 @@ f_indexed = [
         **d,
         "findex": i,
         "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
-        "weight": 50 if d["Folder"] in heavier_folders else 1,
+        "weight": 40 if d["Folder"] in heavier_folders else 1,
         "domain": urlparse(d["URL"]).netloc,
     }
     for grouper in f_grouped
