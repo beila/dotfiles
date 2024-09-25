@@ -31,6 +31,7 @@ test -f /tmp/fake_passwd || echo "$(id -un):x:$(id -u):$(id -g):Git User:/tmp:/b
 docker run \
     --init \
     --tty \
+    --interactive \
     --user $(id -u):$(id -g) \
     --volume "${parent_dir}:${parent_dir}" \
     ${new_home:+--volume} ${new_home:+"${new_home}:${new_home}"} \
@@ -45,7 +46,7 @@ docker run \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
     xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
-        bash -c "
+        zsh -c "
             export HOME=${new_home:-\$HOME}
             export PATH=${new_path}:\${PATH}:/home/linuxbrew/.linuxbrew/bin
             export DOCKER_HERE_HOME=${DOCKER_HERE_HOME}
