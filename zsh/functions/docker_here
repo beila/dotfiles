@@ -29,6 +29,7 @@ test -f /tmp/fake_passwd || echo "$(id -un):x:$(id -u):$(id -g):Git User:/tmp:/b
 
 # --init is needed for xvfb-run to run
 # --tty shows colour in the terminal
+# --interactive enables terminal input including ctrl-c
 docker run \
     --init \
     --tty \
