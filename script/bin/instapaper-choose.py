@@ -43,10 +43,12 @@ import csv
 import random
 import sys
 from functools import partial
-from itertools import groupby
+from itertools import filterfalse, groupby, islice
+from operator import itemgetter
 from pprint import pformat
 from unicodedata import east_asian_width
-from urllib.parse import urlparse
+
+# from urllib.parse import urlparse
 
 
 def _write(*args, writer=None):
@@ -192,32 +194,51 @@ heavier_folders = ["choi", "morpheus", "oracle", "rhineheart", "trinity"]
 
 folderlines = {}
 org_dicts = (dict(zip(header, r)) for r in reader)
-timed_dicts = sorted(org_dicts, key=lambda d: d["Timestamp"], reverse=True)
-f_grouped = groupby(
-    sorted(timed_dicts, key=lambda d: d["Folder"]), lambda d: d["Folder"]
-)
+timed_dicts = sorted(org_dicts, key=itemgetter("Timestamp"), reverse=True)
+f_grouped = groupby(sorted(timed_dicts, key=itemgetter("Folder")), itemgetter("Folder"))
 f_indexed = [
     {
         **d,
         "findex": i,
         "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
         "weight": 40 if d["Folder"] in heavier_folders else 1,
-        "domain": urlparse(d["URL"]).netloc,
+        # "domain": urlparse(d["URL"]).netloc,
     }
-    for grouper in f_grouped
-    if grouper[0] in ui.keys()
-    for i, d in enumerate(grouper[1])
+    for key, group in f_grouped
+    if key in ui.keys()
+    for i, d in enumerate(group)
     if i / 40 + 1 < biggest_page.get(d["Folder"], 9999)
 ]
-grouped = groupby(f_indexed, lambda d: d["domain"])
-lasts = list(random.choice(list(g[1])) for g in grouped)
+# grouped = groupby(f_indexed, lambda d: d["domain"])
+grouped = groupby(sorted(f_indexed, key=itemgetter("ui")), itemgetter("ui"))
+lasts = list(random.choice(list(group)) for key, group in grouped)
 # # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
-for line in random.choices(lasts, weights=(d["weight"] for d in lasts), k=50):
-    # for line in random.choices(f_indexed, weights=(d["weight"] for d in f_indexed), k=9):
-    del line["Selection"]
-    del line["Timestamp"]
-    del line["domain"]
-    del line["weight"]
-    del line["findex"]
-    view(line)
+
+def _chooser():
+    for line in random.choices(
+        lasts, weights=(d["weight"] for d in lasts), k=len(lasts)
+    ):
+        yield line
+
+
+# https://docs.python.org/3/library/itertools.html#itertools-recipes
+def unique_everseen(iterable, key=None):
+    "Yield unique elements, preserving order. Remember all elements ever seen."
+    # unique_everseen('AAAABBBCCDAABBB') → A B C D
+    # unique_everseen('ABBcCAD', str.casefold) → A B c D
+    seen = set()
+    if key is None:
+        for element in filterfalse(seen.__contains__, iterable):
+            seen.add(element)
+            yield element
+    else:
+        for element in iterable:
+            k = key(element)
+            if k not in seen:
+                seen.add(k)
+                yield element
+
+
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 50):
+    view(dict((k, line[k]) for k in ["Folder", "Title", "URL", "ui"]))
