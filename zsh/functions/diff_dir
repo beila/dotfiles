@@ -1,0 +1,2 @@
+#!env zsh
+diff <(cd $1 && find .|sort) <(cd $2 && find .|sort)
