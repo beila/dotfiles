@@ -46,6 +46,7 @@ docker run \
     ${new_home:+--volume} ${new_home:+"${new_home}/linuxbrew:/home/linuxbrew"} \
     ${new_home:+--volume} ${new_home:+"$HOME/.ssh:${new_home}/.ssh"} \
     --volume /tmp/fake_passwd:/etc/passwd  \
+    --volume /etc/localtime:/etc/localtime:ro \
     --workdir "${this_dir}" \
     --env AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
     --env AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
