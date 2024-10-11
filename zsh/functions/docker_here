@@ -33,6 +33,10 @@ AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)"
 AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)"
 AWS_SESSION_TOKEN="$(aws configure get aws_session_token 2>/dev/null||true)"
 
+BOLDLIGHTBLUE="\e[1;94m"
+ENDCOLOR="\e[0m"
+BASH_PS4="${BOLDLIGHTBLUE}+${ENDCOLOR} "
+
 # --init is needed for xvfb-run to run
 # --tty shows colour in the terminal
 # --interactive enables terminal input including ctrl-c
@@ -52,6 +56,7 @@ docker run \
     --env AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
     --env AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
     --env GIT_SSH_COMMAND="${new_home:+ssh -i ${new_home}/.ssh/id_ecdsa -i ${new_home}/.ssh/id_ed25519 -o 'StrictHostKeyChecking=no'}" \
+    --env PS4=${BASH_PS4} \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
     xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
