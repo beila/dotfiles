@@ -51,3 +51,4 @@
 [fetch]
 	prunetags = true
 	prune = true
+	parallel = 0
