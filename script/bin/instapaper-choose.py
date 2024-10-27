@@ -216,6 +216,9 @@ lasts = list(random.choice(list(group)) for key, group in grouped)
 
 
 def _chooser():
+    if not lasts:
+        return
+
     for line in random.choices(
         lasts, weights=(d["weight"] for d in lasts), k=len(lasts)
     ):
