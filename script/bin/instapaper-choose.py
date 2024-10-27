@@ -190,7 +190,7 @@ biggest_page = {
     "oracle": 5,
 }
 
-heavier_folders = ["choi", "morpheus", "oracle", "rhineheart", "trinity"]
+heavier_folders = ["morpheus", "oracle", "rhineheart", "trinity"]
 
 folderlines = {}
 org_dicts = (dict(zip(header, r)) for r in reader)
