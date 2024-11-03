@@ -176,6 +176,7 @@ ui = {
     "7월": "https://www.instapaper.com/u/folder/4608754/7-",
     "8월": "https://www.instapaper.com/u/folder/4630562/8-",
     "9월": "https://www.instapaper.com/u/folder/4652850/9-",
+    # "brown": "https://www.instapaper.com/u/folder/1538041/brown",
     "choi": "https://www.instapaper.com/u/folder/1538044/choi",
     "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
     "oracle": "https://www.instapaper.com/u/folder/1536331/oracle",
@@ -211,16 +212,18 @@ f_indexed = [
 ]
 # grouped = groupby(f_indexed, lambda d: d["domain"])
 grouped = groupby(sorted(f_indexed, key=itemgetter("ui")), itemgetter("ui"))
-lasts = list(random.choice(list(group)) for key, group in grouped)
-# # lasts = list(chain.from_iterable(g[1] for g in grouped))
+chosen_in_page = list(random.choice(list(group)) for key, group in grouped)
+# lasts = list(chain.from_iterable(g[1] for g in grouped))
 
 
 def _chooser():
-    if not lasts:
+    if not chosen_in_page:
         return
 
     for line in random.choices(
-        lasts, weights=(d["weight"] for d in lasts), k=len(lasts)
+        chosen_in_page,
+        weights=(d["weight"] for d in chosen_in_page),
+        k=len(chosen_in_page),
     ):
         yield line
 
