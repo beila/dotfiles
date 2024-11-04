@@ -140,7 +140,7 @@ class Viewer:
         self.num += 1
 
 
-viewer = Viewer(colored=False)
+viewer = Viewer(colored=True)
 view = viewer.view
 
 
@@ -247,4 +247,4 @@ def unique_everseen(iterable, key=None):
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 50):
-    view(dict((k, line[k]) for k in ["Folder", "Title", "URL", "ui"]))
+    view(dict((k, line[k]) for k in ["Title", "URL", "ui"]))
