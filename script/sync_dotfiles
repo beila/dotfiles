@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 cd $1 || {
