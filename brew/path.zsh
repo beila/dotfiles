@@ -12,6 +12,8 @@ do
 
         dir=${brew_path}/share/info
         export INFOPATH=$dir:${INFOPATH://$dir:}
+
+        break
     fi
 done
 
