@@ -1,0 +1,2 @@
+#!/bin/bash
+/usr/bin/ghc -package xmonad -package xmonad-contrib --make xmonad.hs -i -ilib -main-is main -fforce-recomp -o xmonad

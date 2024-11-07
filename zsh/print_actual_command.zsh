@@ -2,4 +2,4 @@
 function print_actual_command (){
     [ "$1" = "$3" ] || echo "$PS4[1,1] $3"
 }
-add-zsh-hook -Uz preexec print_actual_command
+#add-zsh-hook -Uz preexec print_actual_command

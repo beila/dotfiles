@@ -60,8 +60,11 @@ unset config_files
 
 export EDITOR=vim
 export VISUAL=vim
-which mvim >/dev/null 2>&1 && export VISUAL=mvim
 export SUDO_EDITOR=vim
+which nvim >/dev/null 2>&1 && export EDITOR=nvim
+which nvim >/dev/null 2>&1 && export VISUAL=nvim
+which nvim >/dev/null 2>&1 && export SUDO_EDITOR=nvim
+which mvim >/dev/null 2>&1 && export VISUAL=mvim
 
 export LESS="${LESS} --quit-if-one-screen --jump-target=.4"
 
@@ -73,10 +76,30 @@ then
   source ~/.localrc
 fi
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-
-test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
-
 export JAVA_TOOLS_OPTIONS="-Dlog4j2.formatMsgNoLookups=true"
 
 export AWS_EC2_METADATA_DISABLED=true
+
+# https://martinheinz.dev/blog/110
+HISTSIZE=10000000
+SAVEHIST=10000000
+HISTORY_IGNORE="(ls|l|la|lal|ll|lla|ls|sl|cd|pwd|exit) *"
+HIST_STAMPS="yyyy-mm-dd"
+setopt EXTENDED_HISTORY
+setopt INC_APPEND_HISTORY
+setopt SHARE_HISTORY
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+unsetopt HIST_IGNORE_SPACE
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_VERIFY
+setopt APPEND_HISTORY
+setopt HIST_NO_STORE
+setopt HIST_REDUCE_BLANKS
+
+# Hishtory Config:
+export PATH="$PATH:/home/ANT.AMAZON.COM/hojin/.hishtory"
+source /home/ANT.AMAZON.COM/hojin/.hishtory/config.zsh
+
+# https://unix.stackexchange.com/a/595628
+export PS4='+%F{blue}%B+%N:%i>%b%f '
