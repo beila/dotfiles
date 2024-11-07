@@ -35,18 +35,18 @@ echo "Target directory: $W"
 if [ ! -d "$W" ]; then
     echo "> git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH}"
     git worktree add $W $TARGET_BRANCH -B ${SHORT_BRANCH} || return
-    echo "> git branch --set-upstream-to=${GIVEN_BRANCH}"
-    git branch --set-upstream-to=${GIVEN_BRANCH}
+    #echo "> git branch --set-upstream-to=${GIVEN_BRANCH}"
+    #git branch --set-upstream-to=${GIVEN_BRANCH}
 fi
+
+rm -f $W/.git
+echo "gitdir: ../.git/worktrees/$(basename $W)" > $W/.git
 
 LOCAL_REPO=$(git rev-parse --show-toplevel)
 echo "Set up $W from $(pp ${LOCAL_REPO})"
-ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/.idea)")" $W/.idea
-ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/venv)")" $W/venv
-ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/build/home)")" $W/build/
-cp -r "$(readlink -f "$(pp ${LOCAL_REPO}/build/cmake-*)")" $W/build/cmake
-rm -f $W/.git
-echo "gitdir: ../.git/worktrees/$(basename $W)" > $W/.git
+[ -f "$(pp ${LOCAL_REPO}/.idea)" ] && ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/.idea)")" $W/.idea
+[ -f "$(pp ${LOCAL_REPO}/venv)" ] && ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/venv)")" $W/venv
+[ -f "$(pp ${LOCAL_REPO}/CMakeUserPresets.json)" ] && ln -f "$(readlink -f "$(pp ${LOCAL_REPO}/CMakeUserPresets.json)")" $W/CMakeUserPresets.json
 
 echo "Link $W to $C"
 rm -f $C

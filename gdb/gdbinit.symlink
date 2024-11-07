@@ -1,6 +1,8 @@
 set prompt \1\033[1;36m\2(gdb) \1\033[0m\2
 set startup-with-shell off
 set history save on
+set history size unlimited
+set history filename ~/.gdbhistory
 
 # https://github.com/lebr0nli/GEP
 source ~/.local/share/GEP/gdbinit-gep.py
