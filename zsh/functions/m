@@ -1,14 +1,26 @@
 #!env zsh
-local grep_pattern="\\b$*\\b"
+
 local grep_pattern_partial_word="$@"
 
 function _m_highlight() {
-    command head -30 | command grep --color=auto -C30 "${grep_pattern}"
+    command head -20 | command grep --color=auto -C99 "${grep_pattern}"
 }
 
 function _m_highlight_partial_word() {
-    command head -30 | command grep --color=auto -C30 "${grep_pattern_partial_word}"
+    command head -20 | command grep --color=auto -C99 "${grep_pattern_partial_word}"
 }
+
+# fun in keys of ${functions} associative array with keys starting with "_" removed
+for fun in ${${(k)=functions:/_*/}:/prompt_*/}
+do
+	autoload +X -- $fun
+	functions -- $fun | command grep -q "${grep_pattern}" && functions -- $fun | _m_highlight
+done
+
+# functions which are prefixed with "aliased_" which are added from ../functions.zsh
+functions "aliased_$@" | _m_highlight_partial_word
+
+alias | command grep "${grep_pattern}" | _m_highlight
 
 (
     command which -a "$@" 2>&1 |
@@ -18,18 +30,6 @@ function _m_highlight_partial_word() {
         command xargs strings 2>/dev/null |
         _m_highlight
 ) 2>&1
-
-# fun in keys of ${functions} associative array with keys starting with "_" removed
-for fun in ${${(k)=functions:/_*/}:/prompt_*/}
-do
-	autoload +X -- $fun
-	functions -- $fun | command grep -q "${grep_pattern}" && functions $fun | _m_highlight
-done
-
-# functions which are prefixed with "aliased_" which are added from ../functions.zsh
-functions "aliased_$@" | _m_highlight_partial_word
-
-alias | command grep "${grep_pattern}" | _m_highlight
 
 # tldr shows the error message to stdout, not stderr
 command tldr "$@" >/dev/null 2>&1 && command tldr "$@"

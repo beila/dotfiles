@@ -1,8 +1,9 @@
-#!env zsh
+#!/usr/bin/zsh
 this_dir="$(realpath $(pwd))"
 parent_dir="$(realpath $(pwd)/..)"
 git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
 new_home="${DOCKER_HERE_HOME}"
+test -z "${DOCKER_HERE_HOME}" && mkdir -p ${new_home}/linuxbrew
 test -n "${new_home}" && new_path_array=($(ls -d ${new_home} ${new_home}/*/ ${new_home}/*/bin ${new_home}/.*/bin 2>/dev/null || true))
 test -n "${new_home}" && new_path=$(print -R ${(j|:|)new_path_array})
 
@@ -26,28 +27,42 @@ shift
 
 test -f /tmp/fake_passwd || echo "$(id -un):x:$(id -u):$(id -g):Git User:/tmp:/bin/bash" > /tmp/fake_passwd
 
+my_user=$(id -u)
+my_group=$(id -g)
+AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)"
+AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)"
+AWS_SESSION_TOKEN="$(aws configure get aws_session_token 2>/dev/null||true)"
+
+BOLDLIGHTBLUE="\e[1;94m"
+ENDCOLOR="\e[0m"
+BASH_PS4="${BOLDLIGHTBLUE}+${ENDCOLOR} "
+
 # --init is needed for xvfb-run to run
 # --tty shows colour in the terminal
+# --interactive enables terminal input including ctrl-c
 docker run \
     --init \
     --tty \
-    --user $(id -u):$(id -g) \
+    --interactive \
+    --user ${my_user}:${my_group} \
     --volume "${parent_dir}:${parent_dir}" \
+    ${git_dir:+--volume} ${git_dir:+"${git_dir}:${git_dir}"} \
     ${new_home:+--volume} ${new_home:+"${new_home}:${new_home}"} \
+    ${new_home:+--volume} ${new_home:+"${new_home}/linuxbrew:/home/linuxbrew"} \
     ${new_home:+--volume} ${new_home:+"$HOME/.ssh:${new_home}/.ssh"} \
     --volume /tmp/fake_passwd:/etc/passwd  \
+    --volume /etc/localtime:/etc/localtime:ro \
     --workdir "${this_dir}" \
-    --env AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id 2>/dev/null||true)" \
-    --env AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key 2>/dev/null||true)" \
-    --env AWS_SESSION_TOKEN="$(aws configure get aws_session_token 2>/dev/null||true)" \
+    --env AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+    --env AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+    --env AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
     --env GIT_SSH_COMMAND="${new_home:+ssh -i ${new_home}/.ssh/id_ecdsa -i ${new_home}/.ssh/id_ed25519 -o 'StrictHostKeyChecking=no'}" \
+    --env PS4=${BASH_PS4} \
     "${single_options[@]}" "${double_options[@]}" \
     "${image}" \
     xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
         bash -c "
             export HOME=${new_home:-\$HOME}
-            export PATH=${new_path}:\${PATH}
+            export PATH=${new_path}:\${PATH}:/home/linuxbrew/.linuxbrew/bin
             export DOCKER_HERE_HOME=${DOCKER_HERE_HOME}
             $*"
-    #--volume "${this_dir}:${this_dir}" \
-    #--volume "${git_dir}:${git_dir}" \

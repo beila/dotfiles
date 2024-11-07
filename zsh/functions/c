@@ -77,7 +77,7 @@ After setting up OSX, update your ~/.ssh/config to setup remote port forward Rem
  
 Sample ssh config with remote port forward
 Host dev-host
-    HostName dev-host.aka.corp.amazon.com
+    HostName dev-host.mydomain.com
     User developer
     ForwardAgent yes
     RemoteForward 2224 127.0.0.1:2224

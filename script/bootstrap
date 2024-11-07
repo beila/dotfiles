@@ -165,7 +165,7 @@ setup_dotfiles_sync () {
 
         MINUTE=$RANDOM
     let "MINUTE %= 60"
-        echo "#$MINUTE * * * * $DOTFILES_ROOT/script/bin/send-ip-address-to hojin@amazon.com"
+        echo "#$MINUTE * * * * $DOTFILES_ROOT/script/bin/send-ip-address-to $git_authoremail"
     ) | crontab -
   fi
 }

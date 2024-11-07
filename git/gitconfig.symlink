@@ -19,7 +19,7 @@
 	default = upstream
 [merge]
 	conflictStyle = zdiff3
-	tool = gvimdiff
+	tool = nvimdiff
 [rerere]
 	enabled = true
 [alias]
@@ -30,13 +30,15 @@
 [protocol "codecommit"]
 	allow = always
 [init]
-	defaultBranch = mainline
+	defaultBranch = main
 [rebase]
 	autoSquash = true
 	updateRefs = true
 	autoStash = true
 [diff]
     colorMoved = default
+	submodule = log
+	external = difft
 [commit]
 	verbose = true
 [clone]
@@ -46,25 +48,7 @@
 [diff "artworkstoml"]
     xfuncname = "^title *=.*$"
 
-[remote "default_remote_for_my_team"]
-    # development is too long
-    #fetch = +refs/heads/development:refs/remotes/o/dev
-    #fetch = +refs/heads/development:refs/remotes/o/development
-    #fetch = +refs/heads/release/*:refs/remotes/o/release/*
-    # push with hojin/ prefix
-	#fetch = +refs/heads/hojin/*:refs/remotes/o/*
-	#fetch = ^refs/heads/hojin/dev
-    #push = refs/heads/*:refs/heads/hojin/*
-    # Only fetch tags starting with v and not ending with rc#
-    #tagopt = --no-tags
-	;fetch = +refs/tags/v*:refs/tags/v*
-	#fetch = ^refs/tags/*-rc
-	#fetch = ^refs/tags/*-rc1
-	#fetch = ^refs/tags/*-rc2
-	#fetch = ^refs/tags/*-rc3
-	#fetch = ^refs/tags/*-rc4
-	#fetch = ^refs/tags/*-rc5
-	#fetch = ^refs/tags/*-rc6
-	#fetch = ^refs/tags/*-rc7
-	#fetch = ^refs/tags/*-rc8
-	#fetch = ^refs/tags/*-rc9
+[fetch]
+	prunetags = true
+	prune = true
+	parallel = 0
