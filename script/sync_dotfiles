@@ -2,7 +2,7 @@
 set -x
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
-cd $1 || {
+cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
 

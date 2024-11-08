@@ -1,30 +1,21 @@
 #!/usr/bin/env bash
 
 BREW=$(which brew 2> /dev/null)
-if [ "$?" -ne 0 ]
+if [ "$BREW" == "" ]
 then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
-for f in /home/linuxbrew/.linuxbrew/bin $HOME/.linuxbrew/bin; do
-    if [[ -x $f/brew ]]; then
-        BREW=${BREW:-$f/brew}
-        mkdir -p $HOME/local
-        ln -sf $f/.. $HOME/local/linuxbrew
-		break
-    fi
-done
-
 function install_if_missing(){
     for p in "$@"
     do
-        which $p 2>&1 > /dev/null ||
-            $BREW install $p
+        which "$p" > /dev/null 2>&1 ||
+            $BREW install "$p"
     done
 }
 
 install_if_missing zsh
-$BREW install coreutils screen ripgrep fzf bat broot dust glow feedgnuplot git-subrepo zoxide
+$BREW install coreutils screen ripgrep fzf bat broot dust glow feedgnuplot git-subrepo zoxide neovim just
 $BREW install eza || $BREW install exa
 #$BREW install exa fasd
 
