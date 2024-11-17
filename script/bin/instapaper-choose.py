@@ -186,6 +186,41 @@ ui = {
     # "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
 }
 
+folder_weights = {
+    "10월": 11,
+    "11월": 11,
+    "12월": 11,
+    "1월": 11,
+    "2013": 1,
+    "2014": 2,
+    "2015": 3,
+    "2016": 4,
+    "2017": 5,
+    "2018": 6,
+    "2019": 7,
+    "2020": 8,
+    "2021": 9,
+    "2022": 10,
+    "2023": 11,
+    "2024": 12,
+    "2월": 11,
+    "3월": 11,
+    "4월": 11,
+    "5월": 11,
+    "6월": 11,
+    "7월": 11,
+    "8월": 11,
+    "9월": 11,
+    "brown": 12,
+    "choi": 12,
+    "morpheus": 40,
+    "oracle": 40,
+    "rhineheart": 40,
+    "smith": 12,
+    "switch": 12,
+    "trinity": 40,
+}
+
 biggest_page = {
     "morpheus": 2,
     "oracle": 5,
@@ -202,7 +237,7 @@ f_indexed = [
         **d,
         "findex": i,
         "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
-        "weight": 40 if d["Folder"] in heavier_folders else 1,
+        "weight": folder_weights[d["Folder"]],
         # "domain": urlparse(d["URL"]).netloc,
     }
     for key, group in f_grouped
