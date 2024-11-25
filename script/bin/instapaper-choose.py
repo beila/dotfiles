@@ -247,6 +247,7 @@ f_indexed = [
 ]
 # grouped = groupby(f_indexed, lambda d: d["domain"])
 grouped = groupby(sorted(f_indexed, key=itemgetter("ui")), itemgetter("ui"))
+# FIXME change to deduplication inside the page
 chosen_in_page = list(random.choice(list(group)) for key, group in grouped)
 # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
