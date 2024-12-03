@@ -52,3 +52,6 @@
 	prunetags = true
 	prune = true
 	parallel = 0
+[credential]
+	helper = !aws codecommit credential-helper $@
+	UseHttpPath = true
