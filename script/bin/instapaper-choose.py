@@ -49,6 +49,7 @@ from pprint import pformat
 from unicodedata import east_asian_width
 
 from urllib.parse import urlparse
+from urllib.parse import quote_plus
 
 
 def _write(*args, writer=None):
@@ -151,12 +152,11 @@ def _print(*args, sep=","):
         print(sep.join(str(v) for v in args))
 
 
-ui = {
-    "1월": "https://www.instapaper.com/u/folder/4737137/1-",
+folder = {
     "10월": "https://www.instapaper.com/u/folder/4676196/10-",
     "11월": "https://www.instapaper.com/u/folder/4697235/11-",
     "12월": "https://www.instapaper.com/u/folder/4716737/12-",
-    "2월": "https://www.instapaper.com/u/folder/4760978/2-",
+    "1월": "https://www.instapaper.com/u/folder/4737137/1-",
     "2013": "https://www.instapaper.com/u/folder/4467764/2013",
     "2014": "https://www.instapaper.com/u/folder/4467674/2014",
     "2015": "https://www.instapaper.com/u/folder/4467679/2015",
@@ -169,6 +169,7 @@ ui = {
     "2022": "https://www.instapaper.com/u/folder/4533788/2022",
     "2023": "https://www.instapaper.com/u/folder/4753994/2023",
     "2024": "https://www.instapaper.com/u/folder/4949749/2024",
+    "2월": "https://www.instapaper.com/u/folder/4760978/2-",
     "3월": "https://www.instapaper.com/u/folder/4778123/3-",
     "4월": "https://www.instapaper.com/u/folder/4575254/4-",
     "5월": "https://www.instapaper.com/u/folder/4585171/5-",
@@ -176,17 +177,17 @@ ui = {
     "7월": "https://www.instapaper.com/u/folder/4608754/7-",
     "8월": "https://www.instapaper.com/u/folder/4630562/8-",
     "9월": "https://www.instapaper.com/u/folder/4652850/9-",
-    # "brown": "https://www.instapaper.com/u/folder/1538041/brown",
+    "Books 2": "https://www.instapaper.com/u/folder/4845144/books-2",
+    "Books": "https://www.instapaper.com/u/folder/4845142/books",
     "choi": "https://www.instapaper.com/u/folder/1538044/choi",
+    "jones": "https://www.instapaper.com/u/folder/1538042/jones",
     "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
     "oracle": "https://www.instapaper.com/u/folder/1536331/oracle",
     "rhineheart": "https://www.instapaper.com/u/folder/1538043/rhineheart",
     "smith": "https://www.instapaper.com/u/folder/1514058/smith",
     "switch": "https://www.instapaper.com/u/folder/1536336/switch",
+    # "brown": "https://www.instapaper.com/u/folder/1538041/brown",
     # "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
-    "jones": "https://www.instapaper.com/u/folder/1538042/jones",
-    "Books": "https://www.instapaper.com/u/folder/4845142/books",
-    "Books 2": "https://www.instapaper.com/u/folder/4845144/books-2",
 }
 
 folder_weights = {
@@ -214,22 +215,23 @@ folder_weights = {
     "7월": 11,
     "8월": 11,
     "9월": 11,
+    "Books 2": 1,
+    "Books": 1,
     "brown": 12,
     "choi": 12,
+    "jones": 1,
     "morpheus": 40,
     "oracle": 40,
     "rhineheart": 40,
     "smith": 12,
     "switch": 12,
     "trinity": 40,
-    "jones": 1,
-    "Books": 1,
-    "Books 2": 1,
 }
 
 biggest_page = {
     "morpheus": 2,
     "oracle": 5,
+    "smith": 4,
 }
 
 folderlines = {}
@@ -240,17 +242,22 @@ f_indexed = [
     {
         **d,
         "findex": i,
-        "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
+        "page": folder[d["Folder"]] + "/" + str(int(i / 40) + 1),
+        "loc": folder[d["Folder"]]
+        + "/"
+        + str(int(i / 40) + 1)
+        + "#:~:text="
+        + quote_plus(d["Title"]),
         "weight": folder_weights[d["Folder"]],
         "domain": urlparse(d["URL"]).netloc,
     }
     for key, group in f_grouped
-    if key in ui.keys()
+    if key in folder.keys()
     for i, d in enumerate(group)
     if i / 40 + 1 < biggest_page.get(d["Folder"], 9999)
 ]
 # grouped = groupby(f_indexed, lambda d: d["domain"])
-grouped = groupby(sorted(f_indexed, key=itemgetter("ui")), itemgetter("ui"))
+grouped = groupby(sorted(f_indexed, key=itemgetter("page")), itemgetter("page"))
 # FIXME change to deduplication inside the page
 chosen_in_page = list(
     random.choice(list(domain_group))
@@ -290,5 +297,5 @@ def unique_everseen(iterable, key=None):
                 yield element
 
 
-for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 50):
-    view(dict((k, line[k]) for k in ["Title", "URL", "ui"]))
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
+    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
