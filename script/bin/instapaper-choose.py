@@ -48,7 +48,7 @@ from operator import itemgetter
 from pprint import pformat
 from unicodedata import east_asian_width
 
-# from urllib.parse import urlparse
+from urllib.parse import urlparse
 
 
 def _write(*args, writer=None):
@@ -184,6 +184,9 @@ ui = {
     "smith": "https://www.instapaper.com/u/folder/1514058/smith",
     "switch": "https://www.instapaper.com/u/folder/1536336/switch",
     # "trinity": "https://www.instapaper.com/u/folder/1515162/trinity",
+    "jones": "https://www.instapaper.com/u/folder/1538042/jones",
+    "Books": "https://www.instapaper.com/u/folder/4845142/books",
+    "Books 2": "https://www.instapaper.com/u/folder/4845144/books-2",
 }
 
 folder_weights = {
@@ -219,14 +222,15 @@ folder_weights = {
     "smith": 12,
     "switch": 12,
     "trinity": 40,
+    "jones": 1,
+    "Books": 1,
+    "Books 2": 1,
 }
 
 biggest_page = {
     "morpheus": 2,
     "oracle": 5,
 }
-
-heavier_folders = ["morpheus", "oracle", "rhineheart", "trinity"]
 
 folderlines = {}
 org_dicts = (dict(zip(header, r)) for r in reader)
@@ -238,7 +242,7 @@ f_indexed = [
         "findex": i,
         "ui": ui[d["Folder"]] + "/" + str(int(i / 40) + 1),
         "weight": folder_weights[d["Folder"]],
-        # "domain": urlparse(d["URL"]).netloc,
+        "domain": urlparse(d["URL"]).netloc,
     }
     for key, group in f_grouped
     if key in ui.keys()
@@ -248,7 +252,11 @@ f_indexed = [
 # grouped = groupby(f_indexed, lambda d: d["domain"])
 grouped = groupby(sorted(f_indexed, key=itemgetter("ui")), itemgetter("ui"))
 # FIXME change to deduplication inside the page
-chosen_in_page = list(random.choice(list(group)) for key, group in grouped)
+chosen_in_page = list(
+    random.choice(list(domain_group))
+    for _, page_group in grouped
+    for _, domain_group in groupby(page_group, itemgetter("domain"))
+)
 # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
 
