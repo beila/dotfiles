@@ -148,7 +148,7 @@ view = viewer.view
 def _print(*args, sep=","):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
         print(sep.join(str(v) for v in args[0]))
-    else:
+    lse:
         print(sep.join(str(v) for v in args))
 
 
