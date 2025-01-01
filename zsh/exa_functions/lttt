@@ -1,0 +1,2 @@
+#!env zsh
+eza --tree "$@"
