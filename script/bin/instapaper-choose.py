@@ -148,11 +148,11 @@ view = viewer.view
 def _print(*args, sep=","):
     if len(args) == 1 and isinstance(args[0], (list, tuple)):
         print(sep.join(str(v) for v in args[0]))
-    lse:
+    else:
         print(sep.join(str(v) for v in args))
 
 
-folder = {
+folders = {
     "10월": "https://www.instapaper.com/u/folder/4676196/10-",
     "11월": "https://www.instapaper.com/u/folder/4697235/11-",
     "12월": "https://www.instapaper.com/u/folder/4716737/12-",
@@ -169,6 +169,7 @@ folder = {
     "2022": "https://www.instapaper.com/u/folder/4533788/2022",
     "2023": "https://www.instapaper.com/u/folder/4753994/2023",
     "2024": "https://www.instapaper.com/u/folder/4949749/2024",
+    "2025": "https://www.instapaper.com/u/folder/5111825/2025",
     "2월": "https://www.instapaper.com/u/folder/4760978/2-",
     "3월": "https://www.instapaper.com/u/folder/4778123/3-",
     "4월": "https://www.instapaper.com/u/folder/4575254/4-",
@@ -191,40 +192,41 @@ folder = {
 }
 
 folder_weights = {
-    "10월": 11,
-    "11월": 11,
-    "12월": 11,
-    "1월": 11,
-    "2013": 1,
-    "2014": 2,
-    "2015": 3,
-    "2016": 4,
-    "2017": 5,
+    "10월": 6,
+    "11월": 6,
+    "12월": 6,
+    "1월": 6,
+    "2013": 6,
+    "2014": 6,
+    "2015": 6,
+    "2016": 6,
+    "2017": 6,
     "2018": 6,
-    "2019": 7,
-    "2020": 8,
-    "2021": 9,
-    "2022": 10,
-    "2023": 11,
+    "2019": 6,
+    "2020": 6,
+    "2021": 6,
+    "2022": 6,
+    "2023": 6,
     "2024": 12,
-    "2월": 11,
-    "3월": 11,
-    "4월": 11,
-    "5월": 11,
-    "6월": 11,
-    "7월": 11,
-    "8월": 11,
-    "9월": 11,
+    "2025": 12,
+    "2월": 6,
+    "3월": 6,
+    "4월": 6,
+    "5월": 6,
+    "6월": 6,
+    "7월": 6,
+    "8월": 6,
+    "9월": 6,
     "Books 2": 1,
     "Books": 1,
-    "brown": 12,
-    "choi": 12,
+    "brown": 6,
+    "choi": 6,
     "jones": 1,
     "morpheus": 40,
     "oracle": 40,
     "rhineheart": 40,
-    "smith": 12,
-    "switch": 12,
+    "smith": 1,
+    "switch": 6,
     "trinity": 40,
 }
 
@@ -241,28 +243,28 @@ f_grouped = groupby(sorted(timed_dicts, key=itemgetter("Folder")), itemgetter("F
 f_indexed = [
     {
         **d,
-        "findex": i,
-        "page": folder[d["Folder"]] + "/" + str(int(i / 40) + 1),
-        "loc": folder[d["Folder"]]
+        "findex": index_in_the_folder,
+        "page": folders[d["Folder"]] + "/" + str(int(index_in_the_folder / 40) + 1),
+        "loc": folders[d["Folder"]]
         + "/"
-        + str(int(i / 40) + 1)
+        + str(int(index_in_the_folder / 40) + 1)
         + "#:~:text="
         + quote_plus(d["Title"]),
         "weight": folder_weights[d["Folder"]],
         "domain": urlparse(d["URL"]).netloc,
     }
-    for key, group in f_grouped
-    if key in folder.keys()
-    for i, d in enumerate(group)
-    if i / 40 + 1 < biggest_page.get(d["Folder"], 9999)
+    for folder_name, all_data_in_a_folder in f_grouped
+    if folder_name in folders.keys()
+    for index_in_the_folder, d in enumerate(all_data_in_a_folder)
+    if index_in_the_folder / 40 + 1 < biggest_page.get(d["Folder"], 9999)
 ]
 # grouped = groupby(f_indexed, lambda d: d["domain"])
 grouped = groupby(sorted(f_indexed, key=itemgetter("page")), itemgetter("page"))
 # FIXME change to deduplication inside the page
 chosen_in_page = list(
-    random.choice(list(domain_group))
-    for _, page_group in grouped
-    for _, domain_group in groupby(page_group, itemgetter("domain"))
+    random.choice(list(all_data_in_consecutive_domain))
+    for _, all_data_in_a_page in grouped
+    for _, all_data_in_consecutive_domain in groupby(all_data_in_a_page, itemgetter("domain"))
 )
 # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
