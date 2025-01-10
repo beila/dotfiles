@@ -261,22 +261,24 @@ f_indexed = [
 # grouped = groupby(f_indexed, lambda d: d["domain"])
 grouped = groupby(sorted(f_indexed, key=itemgetter("page")), itemgetter("page"))
 # FIXME change to deduplication inside the page
-chosen_in_page = list(
+chosen_data_in_each_page = list(
     random.choice(list(all_data_in_consecutive_domain))
     for _, all_data_in_a_page in grouped
-    for _, all_data_in_consecutive_domain in groupby(all_data_in_a_page, itemgetter("domain"))
+    for _, all_data_in_consecutive_domain in groupby(
+        all_data_in_a_page, itemgetter("domain")
+    )
 )
 # lasts = list(chain.from_iterable(g[1] for g in grouped))
 
 
 def _chooser():
-    if not chosen_in_page:
+    if not chosen_data_in_each_page:
         return
 
     for line in random.choices(
-        chosen_in_page,
-        weights=(d["weight"] for d in chosen_in_page),
-        k=len(chosen_in_page),
+        chosen_data_in_each_page,
+        weights=(d["weight"] for d in chosen_data_in_each_page),
+        k=len(chosen_data_in_each_page),
     ):
         yield line
 
