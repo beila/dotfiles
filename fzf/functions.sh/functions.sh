@@ -101,7 +101,7 @@ _ghh() {
 
 _gy() {
   is_in_git_repo || return
-  git reflog --color=always |
+  git reflog --date=relative --color=always |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |
