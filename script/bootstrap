@@ -150,15 +150,15 @@ install_dotfiles () {
 }
 
 setup_dotfiles_sync () {
-  local GIT_EXECUTABLE_FINDING
-  GIT_EXECUTABLE_FINDING="$(which -a git.exe git 2>/dev/null | head -1)"
-  local GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
   (
-    for SYNC_TARGET in $DOTFILES_ROOT $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/pp/insuk-www $HOME/dev/i;
+    GIT_EXECUTABLE_FINDING="$(which -a git.exe git 2>/dev/null | head -1)"
+    GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
+    TARGETS="$DOTFILES_ROOT $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/pp/insuk-www $HOME/dev/i"
+    info "setup periodic sync for $TARGETS"
+    for SYNC_TARGET in $TARGETS;
     do
       if [ -d "$SYNC_TARGET" ]
       then
-        info "setup periodic sync for $SYNC_TARGET"
         echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_dotfiles $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
       fi
      done
