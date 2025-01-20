@@ -150,11 +150,11 @@ install_dotfiles () {
 }
 
 setup_dotfiles_sync () {
+  TARGETS="$DOTFILES_ROOT $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/pp/insuk-www $HOME/dev/i"
+  info "setup periodic sync for $TARGETS"
   (
     GIT_EXECUTABLE_FINDING="$(which -a git.exe git 2>/dev/null | head -1)"
     GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
-    TARGETS="$DOTFILES_ROOT $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/pp/insuk-www $HOME/dev/i"
-    info "setup periodic sync for $TARGETS"
     for SYNC_TARGET in $TARGETS;
     do
       if [ -d "$SYNC_TARGET" ]
@@ -166,7 +166,7 @@ setup_dotfiles_sync () {
     #MINUTE=$RANDOM
     #let "MINUTE %= 60"
     #echo "#$MINUTE * * * * $DOTFILES_ROOT/script/bin/send-ip-address-to $git_authoremail"
-  )# | crontab -
+  ) | tee /tmp/bootstrap-debug-crontab | crontab -
 }
 
 setup_pbcopy_from_ssh () {
