@@ -104,3 +104,7 @@ source $HOME/.hishtory/config.zsh
 # https://unix.stackexchange.com/a/595628
 export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
 
+
+# Hishtory Config:
+export PATH="$PATH:/home/hojin/.hishtory"
+source /home/hojin/.hishtory/config.zsh
