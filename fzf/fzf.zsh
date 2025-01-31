@@ -50,7 +50,6 @@ export FZF_ALT_C_OPTS='--ansi -d"'$HOME/'" --with-nth 2 --preview "
 # Then fold wraps long lines
 export FZF_CTRL_R_OPTS='--preview "fold -w${COLUMNS} <<< $(printf \"$(printf {})\")" --preview-window down:6'
 
-echo FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFf
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 bindkey '^E' fzf-cd-widget
@@ -58,3 +57,5 @@ bindkey '^E' fzf-cd-widget
 local DIR=$(dirname $(readlink -f $0))
 source ${DIR}/functions.sh/functions.sh
 source ${DIR}/functions.sh/key-binding.zsh
+
+source <(fzf --zsh)
