@@ -8,9 +8,6 @@ fi
 # shortcut to this dotfiles path is $DOTFILES_ROOT
 export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 
-# your project folder that we can `c [tab]` to
-export PROJECTS=~/dev
-
 # should be initialised otherwise default values are not used
 #MANPATH=${MANPATH:-$(manpath)}
 
@@ -97,10 +94,5 @@ setopt APPEND_HISTORY
 setopt HIST_NO_STORE
 setopt HIST_REDUCE_BLANKS
 
-# Hishtory Config:
-export PATH="$PATH:$HOME/.hishtory"
-source $HOME/.hishtory/config.zsh
-
 # https://unix.stackexchange.com/a/595628
 export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
-
