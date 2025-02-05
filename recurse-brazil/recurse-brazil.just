@@ -110,7 +110,7 @@ _run_package_recipe recipe dir force *previous_recipes:
                 filter_ignored |
                 head -1
         )"
-        # FIXME - check if head commit changed in the current branch
+        # TODO - check if head commit changed in the current branch
         [ -n "${newer_file}" -a "${timestamp}" -ot ".git/HEAD" ] && {
             log "RUN due to the new commit: $(git log -1 --pretty=oneline --decorate)"
             need_to_run=3
@@ -281,8 +281,8 @@ clean_all:
     rm -rf ../*/build/* ../*/node_modules
 
 [no-cd]
-clean_everything:
-    rm -rf ../../env/ ../*/build/*
+clean_everything: clean_all
+    rm -rf ../../env/
     brazil-package-cache stop
     rm -rf $(brazil-package-cache cache_root)
     brazil-package-cache start
