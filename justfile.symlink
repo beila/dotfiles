@@ -9,6 +9,7 @@ set allow-duplicate-recipes
 default:
     @just --list --unsorted
 
+# TODO completion too
 [no-cd]
 make_alias:
     #!/usr/bin/env zsh
