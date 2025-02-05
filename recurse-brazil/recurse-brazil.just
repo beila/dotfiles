@@ -168,8 +168,9 @@ _find_package_recipe_and_run recipe dir:
 
     package_name=$(basename $(pwd))
     package_specific_recipe={{ recipe }}_${package_name}
+    all_recipes=( $(just --summary) )
 
-    if grep -q "^$package_specific_recipe:" {{ justfile() }}
+    if (($all_recipes[(Ie)$package_specific_recipe]))
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
         just run "
@@ -194,6 +195,7 @@ init dir="." force="true": mwinit
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
+
     just recurse "{{ dir }}"
     just init_only "{{ dir }}" "{{ force }}"
 
@@ -203,6 +205,7 @@ init_only dir="." force="true":
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
+
     just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
@@ -211,6 +214,7 @@ pre_build dir="." force="true":
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
+
     just pre_build_only "{{ dir }}" "{{ force }}"
 
 [no-cd]
@@ -218,6 +222,7 @@ pre_build_only dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
+
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
@@ -226,6 +231,7 @@ build dir="." force="true": mwinit
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
+
     just recurse "{{ dir }}"
     just init_only "{{ dir }}" ""
     just pre_build_only "{{ dir }}" ""
@@ -236,6 +242,7 @@ build_only dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
+
     just \
         default_command="echo 'Error: Need to specify _build_"$(basename {{ dir }})" recipe in {{ justfile() }}'; exit 1" \
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
@@ -246,6 +253,7 @@ release dir="." force="true": mwinit
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
+
     just recurse "{{ dir }}"
     just init_only "{{ dir }}" ""
     just pre_build_only "{{ dir }}" ""
@@ -257,6 +265,7 @@ release_only dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
+
     just _run_package_recipe release "{{ dir }}" "{{ force }}" build
 
 [no-cd]
