@@ -188,7 +188,7 @@ _find_package_recipe_and_run recipe dir:
     fi
 
 [no-cd]
-init dir="." force="true": m
+init dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -221,7 +221,7 @@ pre_build_only dir="." force="true":
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
-build dir="." force="true": m
+build dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
@@ -241,7 +241,7 @@ build_only dir="." force="true":
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
-release dir="." force="true": m
+release dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
@@ -277,101 +277,6 @@ clean_everything:
     brazil-package-cache stop
     rm -rf $(brazil-package-cache cache_root)
     brazil-package-cache start
-
-init_AVLivingRoomClientHybridCommon:
-    brazil-build install
-
-build_AVLivingRoomClientHybridCommon:
-    brazil-build release
-
-init_AVLivingRoomClientBootstrap:
-    brazil-build install
-
-build_AVLivingRoomClientBootstrap:
-    npm run build
-
-init_AVLivingRoomClient:
-    brazil-build install
-
-build_AVLivingRoomClient:
-    brazil-build run build-prod -- --env deviceType=Default-Ignite-XP --env sourceMap=eval-source-map
-
-build_RokuNDK:
-    brazil-build
-
-pre_build_RustStdRoku:
-    rm -f build/private/src/config.toml
-
-build_RustStdRoku:
-    brazil-build
-
-init_Brotli:
-    git checkout --force origin/Brotli-1.1.0
-
-build_Brotli:
-    brazil-build
-
-init_AVLivingRoomRustClient: m
-    brazil-build build
-    cargo brazil fetch --target all
-
-pre_build_AVLivingRoomRustClient:
-    rm -f Cargo.lock
-
-build_AVLivingRoomRustClient:
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty rm
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty rm
-    build-tools/bin/generate-bundles all #native
-    #brazil-build build
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
-
-init_AVLivingRoomClientBundle:
-    brazil-build install
-
-build_AVLivingRoomClientBundle:
-    brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
-
-release_AVLivingRoomClientBundle: m
-    brazil-build run put-this-on-that --string-bundles en_GB -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcdhojinabcd
-
-[no-cd]
-native_app:
-    #!/usr/bin/env zsh
-    name=native_app just run "
-        just pre_build &&
-        cd ../AVLivingRoomRustClient/crates/app-start &&
-        cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local
-    "
-
-[no-cd]
-native_example:
-    #!/usr/bin/env zsh
-    name=native_example just run "
-        just pre_build &&
-        cd ../AVLivingRoomRustClient/crates/app-start &&
-        cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local
-    "
-
-[no-cd]
-native_roku:
-    #!/usr/bin/env zsh
-    name=native_roku just run "
-        just pre_build &&
-        cd ../AVLivingRoomRustClient/crates/app-start &&
-        cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local --target=arm-unknown-linux-gnueabi
-    "
-
-[no-cd]
-bundle_native:
-    #!/usr/bin/env zsh
-    name=bundle_native just run "
-        fd -tf amzn_av_living_room_rust_client.\*so build/ | xargs rm
-        build-tools/bin/generate-bundles native &&
-            fd -ltf amzn_av_living_room_rust_client.\*so build/ &&
-            fd -tf amzn_av_living_room_rust_client.\*so build/ | xargs file
-    "
 
 [no-cd]
 run +commands:
@@ -411,19 +316,19 @@ b *subcommands:
     @name=bb just run "just pre_build && (set -x; brazil-build {{ subcommands }} )"
 
 [no-cd]
-ws *subcommands: m
+ws *subcommands: mwinit
     brazil ws {{ subcommands }}
 
 [no-cd]
-s: m
+sync: mwinit
     brazil ws sync
 
 [no-cd]
-sm: m
+syncmd: mwinit
     brazil ws sync --md
 
 [no-cd]
-m *command:
+mwinit *command:
     #!/usr/bin/env zsh
     mwinit_command="
         mwinit -o -s --fido2 ||
@@ -441,23 +346,13 @@ m *command:
     exec ${SHELL} -ic "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
 
 [no-cd]
-mf *command:
+mwinitf *command:
     rm -rf ~/.ada ~/.aws ~/.midway ~/.config/ada
-    just m {{ command }}
-
-make_alias:
-    #!/usr/bin/env zsh
-    for recipe in `just --summary`
-    do
-        echo "alias j$recipe=\"just $recipe\""
-    done
-
-c *command: m
-    ssh dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
+    just mwinit {{ command }}
 
 work_branch := ""
 
-new-ws dir main_package *more_packages: m
+new-ws dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
     set -xeo pipefail
     (
@@ -494,5 +389,5 @@ new-ws dir main_package *more_packages: m
     ) | {{ log_decorator }}
 
 [no-cd]
-upload-diff-for-review *args: m
+upload-diff-for-review *args: mwinit
     git diff --no-ext-diff {{ args }} | cr --arbitrary-diff - --arbitrary-diff-create-personal-pkg
