@@ -1,0 +1,20 @@
+#!/usr/bin/env -S just --justfile
+
+import? 'dev/hjdocs/public-docs/recurse-brazil/justfile'
+import? 'dev/hjdocs/public-docs/justfile'
+
+set allow-duplicate-recipes
+
+[private]
+default:
+    @just --list --unsorted
+
+# TODO completion too
+[no-cd]
+make_alias:
+    #!/usr/bin/env zsh
+    for recipe in `just --summary`
+    do
+        echo "alias j$recipe=\"just $recipe\""
+    done
+
