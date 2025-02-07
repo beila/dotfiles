@@ -1,48 +1,48 @@
 import 'recurse-brazil.just'
 
 # FIXME doc no-cd
-# FIXME group commands
-init_AVLivingRoomClientHybridCommon:
+
+_init_AVLivingRoomClientHybridCommon:
     brazil-build install
 
-build_AVLivingRoomClientHybridCommon:
+_build_AVLivingRoomClientHybridCommon:
     brazil-build release
 
-init_AVLivingRoomClientBootstrap:
+_init_AVLivingRoomClientBootstrap:
     brazil-build install
 
-build_AVLivingRoomClientBootstrap:
+_build_AVLivingRoomClientBootstrap:
     npm run build
 
-init_AVLivingRoomClient:
+_init_AVLivingRoomClient:
     brazil-build install
 
-build_AVLivingRoomClient:
+_build_AVLivingRoomClient:
     brazil-build run build-prod -- --env deviceType=Default-Ignite-XP --env sourceMap=eval-source-map
 
-build_RokuNDK:
+_build_RokuNDK:
     brazil-build
 
-pre_build_RustStdRoku:
+_pre_build_RustStdRoku:
     rm -f build/private/src/config.toml
 
-build_RustStdRoku:
+_build_RustStdRoku:
     brazil-build
 
-init_Brotli:
+_init_Brotli:
     git checkout --force origin/Brotli-1.1.0
 
-build_Brotli:
+_build_Brotli:
     brazil-build
 
-init_AVLivingRoomRustClient:
+_init_AVLivingRoomRustClient:
     brazil-build build || true
     cargo brazil fetch --target all
 
-pre_build_AVLivingRoomRustClient:
+_pre_build_AVLivingRoomRustClient:
     rm -f Cargo.lock
 
-build_AVLivingRoomRustClient:
+_build_AVLivingRoomRustClient:
     build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
     #brazil-build build
@@ -51,13 +51,13 @@ build_AVLivingRoomRustClient:
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
 
-init_AVLivingRoomClientBundle:
+_init_AVLivingRoomClientBundle:
     brazil-build install
 
-build_AVLivingRoomClientBundle:
+_build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads #--nonativebundle=false
 
-release_AVLivingRoomClientBundle:
+_release_AVLivingRoomClientBundle:
     brazil-build run put-this-on-that --string-bundles en_GB -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd
 
 [no-cd]

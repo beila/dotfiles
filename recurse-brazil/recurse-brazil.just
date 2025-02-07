@@ -1,5 +1,7 @@
 #!/usr/bin/env -S just --justfile
 
+# FIXME group commands
+
 log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |"`
 log_decorator2 := `which wl 2>&1 > /dev/null && echo wl || echo cat`
 log_decorator := log_decorator1 + log_decorator2
@@ -168,10 +170,10 @@ _find_package_recipe_and_run recipe dir:
     export LD_LIBRARY_PATH=$(IFS=: ; echo "${dependent_libs[*]}")${old_ld_library_path}
 
     package_name=$(basename $(pwd))
-    package_specific_recipe={{ recipe }}_${package_name}
+    package_specific_recipe=_{{ recipe }}_${package_name}
     all_recipes=( $(just --summary) )
 
-    if (($all_recipes[(Ie)$package_specific_recipe]))
+    if (($all_recipes[(Ie)$package_specific_recipe]))   # if all_recipes includes $package_specific_recipe
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
         just run "
