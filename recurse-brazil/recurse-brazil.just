@@ -393,6 +393,8 @@ new-ws dir main_package *more_packages: mwinit
                 git -C "{{ dir }}/src/$p" checkout {{ work_branch }} || true
             done
         fi
+
+        echo "{{ dir }}/src/{{ main_package }}"
     ) | {{ log_decorator }}
 
 [no-cd]
