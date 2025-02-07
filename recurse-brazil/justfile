@@ -42,10 +42,10 @@ pre_build_AVLivingRoomRustClient:
     rm -f Cargo.lock
 
 build_AVLivingRoomRustClient:
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty rm
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty rm
-    build-tools/bin/generate-bundles all #native
+    build-tools/bin/generate-bundles native
+    #build-tools/bin/generate-bundles all
     #brazil-build build
+
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
@@ -57,7 +57,7 @@ build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads #--nonativebundle=false
 
 release_AVLivingRoomClientBundle:
-    brazil-build run put-this-on-that --string-bundles en_GB -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcdhojinabcd
+    brazil-build run put-this-on-that --string-bundles en_GB -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd
 
 [no-cd]
 native_app:

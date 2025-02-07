@@ -98,7 +98,7 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     if [ -z "$need_to_run" ]
     then
-        filter_ignored() { git check-ignore --stdin --non-matching --verbose | grep '^::' }
+        filter_ignored() { git check-ignore --stdin --non-matching --verbose | grep '^::' | sed 's/^:: *//' }
         newer_file="$(
             find . \
                     -type f \
@@ -113,7 +113,7 @@ _run_package_recipe recipe dir force *previous_recipes:
         )"
         # TODO - check if head commit changed in the current branch
         [ -n "${newer_file}" -a "${timestamp}" -ot ".git/HEAD" ] && {
-            log "RUN due to the new commit: $(git log -1 --pretty=oneline --decorate)"
+            log "RUN due to switching the branch to: $(cat .git/HEAD)"
             need_to_run=3
         } ||
             [ -z "${newer_file}" ] || {
