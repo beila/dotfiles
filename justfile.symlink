@@ -8,10 +8,11 @@ set allow-duplicate-recipes
 default:
     @just --list --unsorted
 
-# TODO completion too
 [no-cd]
-make_alias:
+setup_shell:
     #!/usr/bin/env zsh
+    just --completions $(basename $SHELL)
+
     for recipe in `just --summary`
     do
         echo "alias j$recipe=\"just $recipe\""
