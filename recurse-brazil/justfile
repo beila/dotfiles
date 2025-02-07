@@ -1,5 +1,6 @@
 import 'recurse-brazil.just'
 
+# FIXME doc no-cd
 init_AVLivingRoomClientHybridCommon:
     brazil-build install
 
@@ -95,9 +96,6 @@ bundle_native:
             fd -tf amzn_av_living_room_rust_client.\*so build/ | xargs file
     "
 
-alias m := mwinit
-alias mf := mwinitf
-
 setup_shell:
     #!/usr/bin/env zsh
     just --completions $(basename $SHELL)
@@ -106,6 +104,11 @@ setup_shell:
     do
         echo "alias j$recipe=\"just $recipe\""
     done
+    echo "alias jm=just mwinit"
+    echo "alias jmf=just mwinitf"
+
+alias m := mwinit
+alias mf := mwinitf
 
 c *command: mwinit
     ssh dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
