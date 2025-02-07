@@ -42,9 +42,10 @@ recurse dir=".":
         caller_dir="$(readlink -f {{ dir }})" \
             just_recurse_indent="${just_recurse_indent}    " \
             just release $d ''
-            #just recurse $d
+            #just recurse $d    # For testing recurse without actual build
     done
 
+# TODO prevent error messages for not finding timestamp-recurse-run-NO_CALLER
 export caller_dir := env('caller_dir', 'NO_CALLER')
 
 [no-cd]
