@@ -22,7 +22,6 @@ logger := """
 recurse dir=".":
     #!/usr/bin/env zsh
     set -eo pipefail
-    default_recurse_log_dir="$(readlink -f "{{ dir }}")"
     {{ logger }}
 
     possible_dependencies=( $(IFS='=' awk '/=/ {print $1}' < "{{ dir }}/Config" | sort | uniq) )
@@ -53,23 +52,22 @@ export caller_dir := env('caller_dir', 'NO_CALLER')
 [no-cd]
 _run_package_recipe recipe dir force *previous_recipes:
     #!/usr/bin/env zsh
-    caller_dir="$(readlink -f "{{ caller_dir }}")"
+    {{ logger }}
 
     cd "{{ dir }}"
-    default_recurse_log_dir="$(readlink -f "$(pwd)")"
-    {{ logger }}
     log () { log_with_name "$(basename $(pwd)) {{ recipe }}" "$*"; }
 
     my_name=$(basename $(pwd))
-    caller_name=$(basename ${caller_dir})
+    caller_name=$(basename "{{ caller_dir }}")
 
     timestamp="build/timestamp-{{ recipe }}-$my_name"
     previous_recipes=({{ previous_recipes }})
     previous_recipe_timestamps=("${previous_recipes[@]/#/build/timestamp-}")
     previous_recipe_timestamps=("${previous_recipe_timestamps[@]/%/-$my_name}")
-    reporting_to_caller_timestamp="${caller_dir}/build/timestamp-recurse-run-$caller_name"
+
+    reporting_to_caller_timestamp="{{ caller_dir }}/build/timestamp-recurse-run-$caller_name"
     reported_by_callee_timestamp="build/timestamp-recurse-run-$my_name"
-    caller_first_timestamp="${caller_dir}/build/timestamp-init-$caller_name"
+    caller_first_timestamp="{{ caller_dir }}/build/timestamp-init-$caller_name"
 
     need_to_run={{ force }}
 
