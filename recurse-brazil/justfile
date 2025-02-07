@@ -95,8 +95,13 @@ bundle_native:
             fd -tf amzn_av_living_room_rust_client.\*so build/ | xargs file
     "
 
-make_alias:
+alias m := mwinit
+alias mf := mwinitf
+
+setup_shell:
     #!/usr/bin/env zsh
+    just --completions $(basename $SHELL)
+
     for recipe in `just --summary`
     do
         echo "alias j$recipe=\"just $recipe\""
