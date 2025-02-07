@@ -1,7 +1,7 @@
 #!/usr/bin/env -S just --justfile
 
-import? 'dev/hjdocs/public-docs/recurse-brazil/justfile'
-import? 'dev/hjdocs/public-docs/justfile'
+import? '~/dev/hjdocs/public-docs/recurse-brazil/justfile'
+import? '~/dev/hjdocs/public-docs/justfile'
 
 set allow-duplicate-recipes
 
