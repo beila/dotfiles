@@ -34,7 +34,7 @@ build_Brotli:
     brazil-build
 
 init_AVLivingRoomRustClient:
-    brazil-build build
+    brazil-build build || true
     cargo brazil fetch --target all
 
 pre_build_AVLivingRoomRustClient:
