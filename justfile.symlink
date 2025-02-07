@@ -7,14 +7,3 @@ set allow-duplicate-recipes
 [private]
 default:
     @just --list --unsorted
-
-[no-cd]
-setup_shell:
-    #!/usr/bin/env zsh
-    just --completions $(basename $SHELL)
-
-    for recipe in `just --summary`
-    do
-        echo "alias j$recipe=\"just $recipe\""
-    done
-
