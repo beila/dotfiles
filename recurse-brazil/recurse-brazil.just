@@ -178,7 +178,7 @@ _find_package_recipe_and_run recipe dir:
             echo Recurse log: $just_recurse_log
             just --justfile={{ justfile() }} --working-directory=$(pwd) $package_specific_recipe
         "
-        # TODO show recurse log at the end without losing exit status
+        # TODO show recurse log at the end of the recipe log without losing exit status
     else
         if [ -n "{{ default_command }}" ]
         then
