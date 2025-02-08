@@ -103,14 +103,14 @@ c *command: mwinit
 # Run `eval $(just setup_shell)` for aliases (jbuild, jrelase, etc) and command completion
 setup_shell:
     #!/usr/bin/env zsh
-    just --completions $(basename $SHELL)
-
     for recipe in `just --summary`
     do
         echo "alias j$recipe=\"just $recipe\""
     done
     echo "alias jm=\"just mwinit\""
     echo "alias jmf=\"just mwinitf\""
+
+    just --completions $(basename $SHELL)
 
 alias m := mwinit
 alias mf := mwinitf
