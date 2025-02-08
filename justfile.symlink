@@ -8,18 +8,16 @@ set allow-duplicate-recipes
 default:
     @just --list --unsorted
 
-# Run `eval $(just setup_shell)` for aliases (jbuild, jrelase, etc) and command completion
+# Run `eval $(just setup_shell)` for aliases and command completion
 setup_shell:
     #!/usr/bin/env zsh
-    [ -f '~/dev/hjdocs/public-docs/recurse-brazil/justfile'
-    just --completions $(basename $SHELL)
-
     for recipe in `just --summary`
     do
         echo "alias j$recipe=\"just $recipe\""
     done
-    echo "alias jm=just mwinit"
-    echo "alias jmf=just mwinitf"
 
-alias m := mwinit
-alias mf := mwinitf
+    # this has completions at the end and we want them after aliases. It doesn't work otherwise for some reason.
+    [ -f $HOME/dev/hjdocs/public-docs/recurse-brazil/justfile ] &&
+        just --justfile=$HOME/dev/hjdocs/public-docs/recurse-brazil/justfile setup_shell
+
+    just --completions $(basename $SHELL)
