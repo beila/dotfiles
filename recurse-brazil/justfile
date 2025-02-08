@@ -109,8 +109,8 @@ setup_shell:
     do
         echo "alias j$recipe=\"just $recipe\""
     done
-    echo "alias jm=just mwinit"
-    echo "alias jmf=just mwinitf"
+    echo "alias jm=\"just mwinit\""
+    echo "alias jmf=\"just mwinitf\""
 
 alias m := mwinit
 alias mf := mwinitf
