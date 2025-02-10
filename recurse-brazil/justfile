@@ -58,7 +58,7 @@ build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
 
 release_AVLivingRoomClientBundle:
-    brazil-build run put-this-on-that -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd --stringBundles en_GB
+    brazil-build run put-this-on-that -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd --stringBundles en_US
 
 [no-cd]
 native_app:
