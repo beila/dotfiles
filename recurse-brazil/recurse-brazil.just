@@ -46,7 +46,6 @@ recurse dir=".":
             #just recurse $d    # For testing recurse without actual build
     done
 
-# TODO prevent error messages for not finding timestamp-recurse-run-NO_CALLER
 export caller_dir := env('caller_dir', 'NO_CALLER')
 
 [no-cd]
@@ -134,8 +133,8 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     [ -n "${need_to_run}" ] || {
         # Caller might need to run even when I don't, if I already ran before.
-        [ "${timestamp}" -ot "${caller_first_timestamp}" ] ||
-            echo "$my_name" 2> /dev/null >! "${reporting_to_caller_timestamp}"
+        [ "${timestamp}" -nt "${caller_first_timestamp}" ] &&
+            echo "$my_name" >! "${reporting_to_caller_timestamp}"
 
         log "NOT_RUN due to no change"
         exit 0
@@ -152,7 +151,8 @@ _run_package_recipe recipe dir force *previous_recipes:
         exit $my_exit_code
     }
 
-    echo "$my_name" 2> /dev/null >! "${reporting_to_caller_timestamp}"
+    [ -d "$(basename "${reporting_to_caller_timestamp}")" ] &&
+        echo "$my_name" >! "${reporting_to_caller_timestamp}"
     touch "${timestamp}"
     echo "Recurse log: $just_recurse_log"
 
