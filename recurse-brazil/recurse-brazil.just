@@ -168,7 +168,7 @@ _find_package_recipe_and_run recipe dir:
     export LD_LIBRARY_PATH=$(IFS=: ; echo "${dependent_libs[*]}")${old_ld_library_path}
 
     package_name=$(basename $(pwd))
-    package_specific_recipe=_{{ recipe }}_${package_name}
+    package_specific_recipe={{ recipe }}_${package_name}
     all_recipes=( $(just --summary) )
 
     if (($all_recipes[(Ie)$package_specific_recipe]))   # if all_recipes includes $package_specific_recipe
@@ -245,7 +245,7 @@ build_only dir="." force="true":
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just \
-        default_command="echo 'Error: Need to define _build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
+        default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
