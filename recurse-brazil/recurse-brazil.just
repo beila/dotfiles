@@ -50,6 +50,7 @@ recurse dir=".":
 export caller_dir := env('caller_dir', 'NO_CALLER')
 
 [no-cd]
+[no-exit-message]
 _run_package_recipe recipe dir force *previous_recipes:
     #!/usr/bin/env zsh
     {{ logger }}
@@ -158,6 +159,7 @@ _run_package_recipe recipe dir force *previous_recipes:
 export default_command := env('default_command', '')
 
 [no-cd]
+[no-exit-message]
 _find_package_recipe_and_run recipe dir:
     #!/usr/bin/env zsh
     set -eo pipefail
@@ -176,13 +178,13 @@ _find_package_recipe_and_run recipe dir:
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
         just run "
             echo Recurse log: $just_recurse_log
-            just --justfile={{ justfile() }} --working-directory=$(pwd) $package_specific_recipe
+            just --justfile={{ justfile() }} --working-directory=$(pwd) --color always $package_specific_recipe
         "
         # TODO show recurse log at the end of the recipe log without losing exit status
     else
         if [ -n "{{ default_command }}" ]
         then
-            just --justfile={{ justfile() }} --working-directory=$(pwd) run "
+            just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run "
                 echo Recurse log: $just_recurse_log
                 {{ default_command }}
             "
@@ -198,7 +200,8 @@ init dir="." force="true": mwinit
     set -x
 
     just recurse "{{ dir }}"
-    just init_only "{{ dir }}" "{{ force }}"
+
+    just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
 init_only dir="." force="true":
@@ -216,7 +219,7 @@ pre_build dir="." force="true":
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
 
-    just pre_build_only "{{ dir }}" "{{ force }}"
+    just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
 pre_build_only dir="." force="true":
@@ -234,9 +237,12 @@ build dir="." force="true": mwinit
     set -x
 
     just recurse "{{ dir }}"
-    just init_only "{{ dir }}" ""
-    just pre_build_only "{{ dir }}" ""
-    just build_only "{{ dir }}" "{{ force }}"
+
+    just _run_package_recipe init "{{ dir }}" "{{ force }}"
+    just _find_package_recipe_and_run pre_build "{{ dir }}" || true
+    just \
+        default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
+        _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
 build_only dir="." force="true":
@@ -256,10 +262,13 @@ release dir="." force="true": mwinit
     set -x
 
     just recurse "{{ dir }}"
-    just init_only "{{ dir }}" ""
-    just pre_build_only "{{ dir }}" ""
-    just build_only "{{ dir }}" ""
-    just release_only "{{ dir }}" "{{ force }}"
+
+    just _run_package_recipe init "{{ dir }}" "{{ force }}"
+    just _find_package_recipe_and_run pre_build "{{ dir }}" || true
+    just \
+        default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
+        _run_package_recipe build "{{ dir }}" "{{ force }}" init
+    just _run_package_recipe release "{{ dir }}" "{{ force }}" build
 
 [no-cd]
 release_only dir="." force="true":
@@ -289,6 +298,7 @@ clean_everything: clean_all
     brazil-package-cache start
 
 [no-cd]
+[no-exit-message]
 run +commands:
     #!/bin/bash
     # zsh fails with >&
