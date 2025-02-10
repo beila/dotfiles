@@ -245,7 +245,7 @@ build_only dir="." force="true":
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just \
-        default_command="echo 'Error: Need to specify _build_"$(basename {{ dir }})" recipe in {{ justfile() }}'; exit 1" \
+        default_command="echo 'Error: Need to define _build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
