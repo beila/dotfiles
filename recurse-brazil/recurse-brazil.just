@@ -216,6 +216,7 @@ init_only dir="." force="true":
 pre_build dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
 
@@ -225,6 +226,7 @@ pre_build dir="." force="true":
 pre_build_only dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
@@ -233,6 +235,7 @@ pre_build_only dir="." force="true":
 build dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
 
@@ -248,6 +251,7 @@ build dir="." force="true": mwinit
 build_only dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just \
@@ -258,6 +262,7 @@ build_only dir="." force="true":
 release dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
 
@@ -274,6 +279,7 @@ release dir="." force="true": mwinit
 release_only dir="." force="true":
     #!/usr/bin/env zsh
     set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just _run_package_recipe release "{{ dir }}" "{{ force }}" build
