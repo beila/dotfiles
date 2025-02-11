@@ -402,7 +402,7 @@ new-ws dir main_package *more_packages: mwinit
             just ws use ${more_packages[@]/#/--package }
         fi
 
-        if [ -n {{ work_branch }} ]
+        if [ -n "{{ work_branch }}" ]
         then
             for p in {{ main_package }} ${more_packages[@]}
             do
