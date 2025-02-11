@@ -8,11 +8,8 @@ init_AVLivingRoomClientHybridCommon:
 build_AVLivingRoomClientHybridCommon:
     brazil-build release
 
-init_AVLivingRoomClientBootstrap:
-    brazil-build install
-
 build_AVLivingRoomClientBootstrap:
-    npm run build
+    brazil-build
 
 init_AVLivingRoomClient:
     brazil-build install
@@ -50,9 +47,6 @@ build_AVLivingRoomRustClient:
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
-
-init_AVLivingRoomClientBundle:
-    brazil-build install
 
 build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
