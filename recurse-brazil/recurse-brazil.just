@@ -241,7 +241,7 @@ build dir="." force="true": mwinit
 
     just recurse "{{ dir }}"
 
-    just _run_package_recipe init "{{ dir }}" "{{ force }}"
+    just _run_package_recipe init "{{ dir }}" ""
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
     just \
         default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
@@ -268,11 +268,11 @@ release dir="." force="true": mwinit
 
     just recurse "{{ dir }}"
 
-    just _run_package_recipe init "{{ dir }}" "{{ force }}"
+    just _run_package_recipe init "{{ dir }}" ""
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
     just \
         default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
-        _run_package_recipe build "{{ dir }}" "{{ force }}" init
+        _run_package_recipe build "{{ dir }}" "" init
     just _run_package_recipe release "{{ dir }}" "{{ force }}" build
 
 [no-cd]
