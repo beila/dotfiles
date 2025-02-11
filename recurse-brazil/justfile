@@ -8,8 +8,11 @@ init_AVLivingRoomClientHybridCommon:
 build_AVLivingRoomClientHybridCommon:
     brazil-build release
 
+init_AVLivingRoomClientBootstrap:
+    brazil-build install
+
 build_AVLivingRoomClientBootstrap:
-    brazil-build
+    npm run build
 
 init_AVLivingRoomClient:
     brazil-build install
