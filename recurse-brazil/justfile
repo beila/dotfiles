@@ -35,6 +35,9 @@ init_Brotli:
 build_Brotli:
     brazil-build
 
+init_IgnitionXRustBundle:
+    brazil-build install
+
 build_IgnitionXRustBundle:
     build-tools/release-quick --lib
 
