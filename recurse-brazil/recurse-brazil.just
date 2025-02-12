@@ -111,15 +111,21 @@ _run_package_recipe recipe dir force *previous_recipes:
                 filter_ignored |
                 head -1
         )"
-        # TODO - check if head commit changed in the current branch
-        [ -n "${newer_file}" -a "${timestamp}" -ot ".git/HEAD" ] && {
-            log "RUN due to switching the branch to: $(cat .git/HEAD)"
-            need_to_run=3
-        } ||
-            [ -z "${newer_file}" ] || {
-                log "RUN due to modified file: ${newer_file}"
+        set -x  # FIXME
+        [ -n "${newer_file}" ] &&
+            if [ "${timestamp}" -ot ".git/HEAD" ]
+            then
+                log "RUN due to switching the branch to: $(cat .git/HEAD)"
+                need_to_run=3
+            elif [ "${timestamp}" -ot "$(awk '{print $2}' < .git/HEAD)" ]
+            then
+                log "RUN due to a new HEAD in  the branch: $(cat .git/HEAD)"
                 need_to_run=4
-            }
+            else
+                log "RUN due to modified file: ${newer_file}"
+                need_to_run=5
+            fi
+        set +x  # FIXME
     fi
 
     if [ -z "$need_to_run" ]
@@ -127,7 +133,7 @@ _run_package_recipe recipe dir force *previous_recipes:
         [ "${timestamp}" -ot "${reported_by_callee_timestamp}" ] && {
             log "RUN because $(cat ${reported_by_callee_timestamp}) is built" \
                 "at $(command stat -c %y ${reported_by_callee_timestamp})"
-            need_to_run=5
+            need_to_run=6
         }
     fi
 
