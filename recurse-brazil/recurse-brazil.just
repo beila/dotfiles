@@ -119,7 +119,7 @@ _run_package_recipe recipe dir force *previous_recipes:
                 need_to_run=3
             elif [ "${timestamp}" -ot "$(awk '{print $2}' < .git/HEAD)" ]
             then
-                log "RUN due to a new HEAD in  the branch: $(cat .git/HEAD)"
+                log "RUN due to a new HEAD in the branch: $(cat .git/HEAD)"
                 need_to_run=4
             else
                 log "RUN due to modified file: ${newer_file}"
