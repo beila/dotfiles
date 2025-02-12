@@ -35,6 +35,9 @@ init_Brotli:
 build_Brotli:
     brazil-build
 
+build_IgnitionXRustBundle:
+    build-tools/release-quick --lib
+
 init_AVLivingRoomRustClient:
     brazil-build build || true
     cargo brazil fetch --target all
