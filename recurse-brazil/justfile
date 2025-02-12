@@ -36,7 +36,8 @@ build_Brotli:
     brazil-build
 
 init_IgnitionXRustBundle:
-    brazil-build install
+    brazil-build build || true
+    cargo brazil fetch --target all
 
 build_IgnitionXRustBundle:
     build-tools/release-quick --lib
