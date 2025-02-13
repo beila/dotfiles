@@ -55,7 +55,7 @@ _gbb() {
   git worktree list |
       fzf_down --ansi --multi --tac --preview-window right:70% \
           --preview 'git -C $(awk "{print \$1}" <<< {}) diff --stat --color=always
-            git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%cd %h%d %s" $(awk "{print \$2}" <<< {})' |
+            git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%d %s (%an)" --graph --color=always "$(awk "{print \$2}" <<< {})" "@{u}" "^$(gmb "$(awk "{print \$2}" <<< {})" "@{u}")^@"' |
       cut -d' ' -f1
 }
 
