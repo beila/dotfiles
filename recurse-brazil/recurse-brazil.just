@@ -268,6 +268,7 @@ build_only dir="." force="true":
 release dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
+    set -x
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
     set -x
