@@ -55,7 +55,7 @@ _gbb() {
   git worktree list |
       fzf_down --ansi --multi --tac --preview-window right:70% \
           --preview 'git -C $(awk "{print \$1}" <<< {}) diff --stat --color=always
-            git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%d %s (%an)" --graph --color=always "$(awk "{print \$2}" <<< {})" "@{u}" "^$(gmb "$(awk "{print \$2}" <<< {})" "@{u}")^@"' |
+            git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%d %s (%an)" --color=always "$(awk "{print \$2}" <<< {})" "^$(git merge-base "$(awk "{print \$2}" <<< {})" "origin/HEAD")^@"' |
       cut -d' ' -f1
 }
 
@@ -88,7 +88,7 @@ _gyy() {
 
 _ghh() {
   is_in_git_repo || return
-  all_parents_of_merge_base="$(gmb HEAD "@{u}")^@"
+  all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
   # Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
   # leaving HEAD, upstream head and the merge-base, inclusively.
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
