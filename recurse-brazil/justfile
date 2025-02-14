@@ -39,7 +39,7 @@ init_IgnitionXRustBundle:
     brazil-build release
 
 build_IgnitionXRustBundle:
-    build-tools/release-quick --lib
+    IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
 
 init_AVLivingRoomRustClient:
     brazil-build build || true

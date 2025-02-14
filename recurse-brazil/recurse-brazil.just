@@ -171,7 +171,6 @@ _find_package_recipe_and_run recipe dir:
     set -eo pipefail
     cd "{{ dir }}"
 
-    set -x
     old_ld_library_path=${LD_LIBRARY_PATH:+:}${LD_LIBRARY_PATH}
     dependent_libs=($(readlink -f ../*/build/lib || true)) 
     export LD_LIBRARY_PATH=$(IFS=: ; echo "${dependent_libs[*]}")${old_ld_library_path}
