@@ -171,8 +171,9 @@ _find_package_recipe_and_run recipe dir:
     set -eo pipefail
     cd "{{ dir }}"
 
+    set -x
     old_ld_library_path=${LD_LIBRARY_PATH:+:}${LD_LIBRARY_PATH}
-    dependent_libs=($(readlink -f ../*/build/lib || true))
+    dependent_libs=($(readlink -f ../*/build/lib || true)) 
     export LD_LIBRARY_PATH=$(IFS=: ; echo "${dependent_libs[*]}")${old_ld_library_path}
 
     package_name=$(basename $(pwd))
@@ -250,7 +251,7 @@ build dir="." force="true": mwinit
     just _run_package_recipe init "{{ dir }}" ""
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
     just \
-        default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
+        default_command="echo 'Error: Need to define build_"$(basename $(readlink -f {{ dir }}))" recipe.'; exit 1" \
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
@@ -261,7 +262,7 @@ build_only dir="." force="true":
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just \
-        default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
+        default_command="echo 'Error: Need to define build_"$(basename $(readlink -f {{ dir }}))" recipe.'; exit 1" \
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
@@ -278,7 +279,7 @@ release dir="." force="true": mwinit
     just _run_package_recipe init "{{ dir }}" ""
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
     just \
-        default_command="echo 'Error: Need to define build_"$(readlink -f $(basename {{ dir }}))" recipe.'; exit 1" \
+        default_command="echo 'Error: Need to define build_"$(basename $(readlink -f {{ dir }}))" recipe.'; exit 1" \
         _run_package_recipe build "{{ dir }}" "" init
     just _run_package_recipe release "{{ dir }}" "{{ force }}" build
 
