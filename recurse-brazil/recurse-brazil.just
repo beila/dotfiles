@@ -203,7 +203,6 @@ init dir="." force="true": mwinit
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-    set -x
 
     just recurse "{{ dir }}"
 
@@ -224,7 +223,6 @@ pre_build dir="." force="true":
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-    set -x
 
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
@@ -243,7 +241,6 @@ build dir="." force="true": mwinit
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-    set -x
 
     just recurse "{{ dir }}"
 
@@ -268,10 +265,8 @@ build_only dir="." force="true":
 release dir="." force="true": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
-    set -x
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-    set -x
 
     just recurse "{{ dir }}"
 
