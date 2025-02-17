@@ -69,11 +69,10 @@ _run_package_recipe recipe dir force *previous_recipes:
     reported_by_callee_timestamp="build/timestamp-recurse-run-$my_name"
     caller_first_timestamp="{{ caller_dir }}/build/timestamp-init-$caller_name"
 
-    need_to_run={{ force }}
-
-    if [ -n "$need_to_run" ]
+    if [ "{{ force }}" = "--force" ]
     then
         log "RUN because you asked"
+        need_to_run=1
     fi
 
     if [ -z "$need_to_run" ]
@@ -121,7 +120,7 @@ _run_package_recipe recipe dir force *previous_recipes:
             then
                 log "RUN due to a new HEAD in the branch: $(cat .git/HEAD)"
                 need_to_run=4
-            else
+            elif [ "{{ force }}" != "--only-once" ]
                 log "RUN due to modified file: ${newer_file}"
                 need_to_run=5
             fi
@@ -198,7 +197,7 @@ _find_package_recipe_and_run recipe dir:
     fi
 
 [no-cd]
-init dir="." force="true": mwinit
+init dir="." force="--force": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -209,7 +208,7 @@ init dir="." force="true": mwinit
     just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
-init_only dir="." force="true":
+init_only dir="." force="--force":
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -218,7 +217,7 @@ init_only dir="." force="true":
     just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
-pre_build dir="." force="true":
+pre_build dir="." force="--force":
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -227,7 +226,7 @@ pre_build dir="." force="true":
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
-pre_build_only dir="." force="true":
+pre_build_only dir="." force="--force":
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -236,7 +235,7 @@ pre_build_only dir="." force="true":
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
-build dir="." force="true": mwinit
+build dir="." force="--force": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -251,7 +250,7 @@ build dir="." force="true": mwinit
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
-build_only dir="." force="true":
+build_only dir="." force="--force":
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -262,7 +261,7 @@ build_only dir="." force="true":
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
 
 [no-cd]
-release dir="." force="true": mwinit
+release dir="." force="--force": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
@@ -278,7 +277,7 @@ release dir="." force="true": mwinit
     just _run_package_recipe release "{{ dir }}" "{{ force }}" build
 
 [no-cd]
-release_only dir="." force="true":
+release_only dir="." force="--force":
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
