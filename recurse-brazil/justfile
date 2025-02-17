@@ -50,13 +50,12 @@ init_IgnitionXRustBundle:
 
 [no-cd]
 build_IgnitionXRustBundle:
-    #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
-    brazil-build build
+    IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
 
 [no-cd]
 init_AVLivingRoomRustClient:
     brazil-build build
-    #cargo brazil fetch --target all
+    cargo brazil fetch --target all
 
 [no-cd]
 pre_build_AVLivingRoomRustClient:
@@ -64,7 +63,7 @@ pre_build_AVLivingRoomRustClient:
 
 [no-cd]
 build_AVLivingRoomRustClient:
-    build-tools/bin/generate-bundles native
+    bash -c "set -x; build-tools/bin/generate-bundles native"
     #build-tools/bin/generate-bundles all
     #brazil-build build
 
@@ -80,6 +79,7 @@ release_AVLivingRoomRustClient:
 [no-cd]
 build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
+    strings build/lib_debug/*client-*.so|grep 'always_return_true'
 
 [no-cd]
 release_AVLivingRoomClientBundle:
