@@ -110,7 +110,7 @@ _run_package_recipe recipe dir force *previous_recipes:
                 filter_ignored |
                 head -1
         )"
-        set -x  # FIXME
+        set -x  # FIXME check running well
         [ -n "${newer_file}" ] &&
             if [ "${timestamp}" -ot ".git/HEAD" ]
             then
@@ -128,7 +128,7 @@ _run_package_recipe recipe dir force *previous_recipes:
                 log "RUN due to modified file: ${newer_file}"
                 need_to_run=5
             fi
-        set +x  # FIXME
+        set +x  # FIXME check running well
     fi
 
     if [ -z "$need_to_run" ]
@@ -140,7 +140,8 @@ _run_package_recipe recipe dir force *previous_recipes:
         }
     fi
 
-    [ -n "${need_to_run}" ] || {
+    if [ -z "$need_to_run" ]
+    then
         # Caller might need to run even when I don't, if I already ran before.
         [ "${timestamp}" -nt "${caller_first_timestamp}" ] &&
             echo "$my_name" >! "${reporting_to_caller_timestamp}"
@@ -152,12 +153,13 @@ _run_package_recipe recipe dir force *previous_recipes:
             log "NOT_RUN due to no change"
         fi
         exit 0
-    }
+    fi
 
     echo "Recurse log: $just_recurse_log"
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Logs: $recipe_log_path"
 
+    set -x  # FIXME check if reporting_to_caller_timestamp is written with empty recipe
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" . || {
         my_exit_code=$?
         log "RUN FAILED"
@@ -165,7 +167,7 @@ _run_package_recipe recipe dir force *previous_recipes:
         exit $my_exit_code
     }
 
-    [ -d "$(basename "${reporting_to_caller_timestamp}")" ] &&
+    [ -d "$(dirname "${reporting_to_caller_timestamp}")" ] &&
         echo "$my_name" >! "${reporting_to_caller_timestamp}"
     touch "${timestamp}"
     echo "Recurse log: $just_recurse_log"
