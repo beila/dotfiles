@@ -120,7 +120,10 @@ _run_package_recipe recipe dir force *previous_recipes:
             then
                 log "RUN due to a new HEAD in the branch: $(cat .git/HEAD)"
                 need_to_run=4
-            elif [ "{{ force }}" != "--only-once" ]
+            elif [ "{{ force }}" = "--only-once" ]
+                reason_not_to_run="due to already run"
+                # do not set need_to_run
+            else
                 log "RUN due to modified file: ${newer_file}"
                 need_to_run=5
             fi
@@ -141,7 +144,12 @@ _run_package_recipe recipe dir force *previous_recipes:
         [ "${timestamp}" -nt "${caller_first_timestamp}" ] &&
             echo "$my_name" >! "${reporting_to_caller_timestamp}"
 
-        log "NOT_RUN due to no change"
+        if [ -n "$reason_not_to_run" ]
+        then
+            log "NOT_RUN $reason_not_to_run"
+        else
+            log "NOT_RUN due to no change"
+        fi
         exit 0
     }
 
@@ -243,7 +251,7 @@ build dir="." force="--force": mwinit
 
     just recurse "{{ dir }}"
 
-    just _run_package_recipe init "{{ dir }}" ""
+    just _run_package_recipe init "{{ dir }}" "--only-once"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
     just \
         default_command="echo 'Error: Need to define build_"$(basename $(readlink -f {{ dir }}))" recipe.'; exit 1" \
@@ -269,7 +277,7 @@ release dir="." force="--force": mwinit
 
     just recurse "{{ dir }}"
 
-    just _run_package_recipe init "{{ dir }}" ""
+    just _run_package_recipe init "{{ dir }}" "--only-once"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
     just \
         default_command="echo 'Error: Need to define build_"$(basename $(readlink -f {{ dir }}))" recipe.'; exit 1" \
