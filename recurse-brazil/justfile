@@ -36,14 +36,15 @@ build_Brotli:
     brazil-build
 
 init_IgnitionXRustBundle:
-    brazil-build release
+    brazil-build sync
 
 build_IgnitionXRustBundle:
-    IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
+    #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
+    brazil-build build
 
 init_AVLivingRoomRustClient:
     brazil-build build
-    cargo brazil fetch --target all
+    #cargo brazil fetch --target all
 
 pre_build_AVLivingRoomRustClient:
     rm -f Cargo.lock
@@ -56,6 +57,9 @@ build_AVLivingRoomRustClient:
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
+
+release_AVLivingRoomRustClient:
+    cp -r build/lib/* $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
 
 build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
