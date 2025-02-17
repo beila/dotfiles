@@ -42,7 +42,8 @@ build_IgnitionXRustBundle:
     IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
 
 init_AVLivingRoomRustClient:
-    brazil-build sync
+    brazil-build build
+    cargo brazil fetch --target all
 
 pre_build_AVLivingRoomRustClient:
     rm -f Cargo.lock
