@@ -182,9 +182,8 @@ _find_package_recipe_and_run recipe dir:
     set -eo pipefail
     cd "{{ dir }}"
 
-    old_ld_library_path=${LD_LIBRARY_PATH:+:}${LD_LIBRARY_PATH}
-    dependent_libs=($(readlink -f ../*/build/lib || true)) 
-    export LD_LIBRARY_PATH=$(IFS=: ; echo "${dependent_libs[*]}")${old_ld_library_path}
+    export PATH="$(brazil-path all.bin)":$PATH
+    export LD_LIBRARY_PATH="$(brazil-path all.lib)"
 
     package_name=$(basename $(pwd))
     package_specific_recipe={{ recipe }}_${package_name}
@@ -251,7 +250,6 @@ build dir="." force="--force": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    path+=( $(brazil-path all.bin) )
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just recurse "{{ dir }}"
