@@ -121,6 +121,7 @@ _run_package_recipe recipe dir force *previous_recipes:
                 log "RUN due to a new HEAD in the branch: $(cat .git/HEAD)"
                 need_to_run=4
             elif [ "{{ force }}" = "--only-once" ]
+            then
                 reason_not_to_run="due to already run"
                 # do not set need_to_run
             else
