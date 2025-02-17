@@ -1,58 +1,72 @@
 import 'recurse-brazil.just'
 
-# FIXME doc no-cd
-
+[no-cd]
 init_AVLivingRoomClientHybridCommon:
     brazil-build install
 
+[no-cd]
 build_AVLivingRoomClientHybridCommon:
     brazil-build release
 
+[no-cd]
 init_AVLivingRoomClientBootstrap:
     brazil-build install
 
+[no-cd]
 build_AVLivingRoomClientBootstrap:
     npm run build
 
+[no-cd]
 init_AVLivingRoomClient:
     brazil-build install
 
+[no-cd]
 build_AVLivingRoomClient:
     brazil-build run build-prod -- --env deviceType=Default-Ignite-XP --env sourceMap=eval-source-map
 
+[no-cd]
 build_RokuNDK:
     brazil-build
 
+[no-cd]
 pre_build_RustStdRoku:
     rm -f build/private/src/config.toml
 
+[no-cd]
 build_RustStdRoku:
     brazil-build
 
+[no-cd]
 init_Brotli:
     git checkout --force origin/Brotli-1.1.0
 
+[no-cd]
 build_Brotli:
     brazil-build
 
+[no-cd]
 init_IgnitionXRustBundle:
     brazil-build sync
 
+[no-cd]
 build_IgnitionXRustBundle:
     #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
     brazil-build build
 
+[no-cd]
 init_AVLivingRoomRustClient:
     brazil-build build
     #cargo brazil fetch --target all
 
+[no-cd]
 pre_build_AVLivingRoomRustClient:
     rm -f Cargo.lock
 
+[no-cd]
 build_AVLivingRoomRustClient:
-    #build-tools/bin/generate-bundles native
+    build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
-    brazil-build build
+    #brazil-build build
 
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
@@ -63,9 +77,11 @@ release_AVLivingRoomRustClient:
     cp -r build/lib/* $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
     ls -l $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
 
+[no-cd]
 build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
 
+[no-cd]
 release_AVLivingRoomClientBundle:
     brazil-build run put-this-on-that -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd --stringBundles en_US
 
