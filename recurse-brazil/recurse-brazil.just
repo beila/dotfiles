@@ -143,8 +143,10 @@ _run_package_recipe recipe dir force *previous_recipes:
     if [ -z "$need_to_run" ]
     then
         # Caller might need to run even when I don't, if I already ran before.
-        [ "${timestamp}" -nt "${caller_first_timestamp}" ] &&
-            echo "$my_name" >! "${reporting_to_caller_timestamp}"
+        [ "${timestamp}" -ot "${caller_first_timestamp}" ] || {
+            [ -d "$(dirname "${reporting_to_caller_timestamp}")" ] &&
+                echo "$my_name" >! "${reporting_to_caller_timestamp}"
+        }
 
         if [ -n "$reason_not_to_run" ]
         then
@@ -159,7 +161,6 @@ _run_package_recipe recipe dir force *previous_recipes:
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Logs: $recipe_log_path"
 
-    set -x  # FIXME check if reporting_to_caller_timestamp is written with empty recipe
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" . || {
         my_exit_code=$?
         log "RUN FAILED"
@@ -197,14 +198,14 @@ _find_package_recipe_and_run recipe dir:
             just --justfile={{ justfile() }} --working-directory=$(pwd) --color always $package_specific_recipe
         "
         # TODO show recurse log at the end of the recipe log without losing exit status
+    elif [ -n "{{ default_command }}" ]
+    then
+        just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run "
+            echo Recurse log: $just_recurse_log
+            {{ default_command }}
+        "
     else
-        if [ -n "{{ default_command }}" ]
-        then
-            just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run "
-                echo Recurse log: $just_recurse_log
-                {{ default_command }}
-            "
-        fi
+        echo "$package_specific_recipe is not defined." > "$log_path"
     fi
 
 [no-cd]
