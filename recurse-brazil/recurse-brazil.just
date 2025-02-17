@@ -251,6 +251,7 @@ build dir="." force="--force": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
+    path+=( $(brazil-path all.bin) )
     export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just recurse "{{ dir }}"
