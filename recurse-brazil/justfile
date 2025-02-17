@@ -58,8 +58,10 @@ build_AVLivingRoomRustClient:
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
 
+[no-cd]
 release_AVLivingRoomRustClient:
     cp -r build/lib/* $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
+    ls -l $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
 
 build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
