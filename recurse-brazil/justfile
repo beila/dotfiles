@@ -50,9 +50,9 @@ pre_build_AVLivingRoomRustClient:
     rm -f Cargo.lock
 
 build_AVLivingRoomRustClient:
-    build-tools/bin/generate-bundles native
+    #build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
-    #brazil-build build
+    brazil-build build
 
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
