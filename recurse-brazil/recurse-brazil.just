@@ -191,6 +191,7 @@ _find_package_recipe_and_run recipe dir:
     set -eo pipefail
     cd "{{ dir }}"
 
+    set -x  # FIXME see LD_LIBRARY_PATH works well
     export PATH="$(brazil-path all.bin)":$PATH
     export LD_LIBRARY_PATH="$(brazil-path all.lib)":$LD_LIBRARY_PATH
 
