@@ -63,7 +63,7 @@ pre_build_AVLivingRoomRustClient:
 
 [no-cd]
 build_AVLivingRoomRustClient:
-    bash -c "set -x; build-tools/bin/generate-bundles native"
+    build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
     #brazil-build build
 
@@ -89,8 +89,8 @@ release_AVLivingRoomClientBundle:
 native_app:
     #!/usr/bin/env zsh
     name=native_app just run "
-        just pre_build &&
         cd ../AVLivingRoomRustClient/crates/app-start &&
+        just pre_build &&
         cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local
     "
 
@@ -98,8 +98,8 @@ native_app:
 native_example:
     #!/usr/bin/env zsh
     name=native_example just run "
-        just pre_build &&
         cd ../AVLivingRoomRustClient/crates/app-start &&
+        just pre_build &&
         cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local
     "
 
@@ -107,19 +107,9 @@ native_example:
 native_roku:
     #!/usr/bin/env zsh
     name=native_roku just run "
-        just pre_build &&
         cd ../AVLivingRoomRustClient/crates/app-start &&
-        cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local --target=arm-unknown-linux-gnueabi
-    "
-
-[no-cd]
-bundle_native:
-    #!/usr/bin/env zsh
-    name=bundle_native just run "
-        fd -tf amzn_av_living_room_rust_client.\*so build/ | xargs rm
-        build-tools/bin/generate-bundles native &&
-            fd -ltf amzn_av_living_room_rust_client.\*so build/ &&
-            fd -tf amzn_av_living_room_rust_client.\*so build/ | xargs file
+        just pre_build &&
+        cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/use_ignx_local --target=arm-unknown-linux-gnueabi
     "
 
 c *command: mwinit
