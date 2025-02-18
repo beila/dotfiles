@@ -50,7 +50,7 @@ init_IgnitionXRustBundle:
 
 [no-cd]
 build_IgnitionXRustBundle:
-    IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
+    #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
 
 [no-cd]
 init_AVLivingRoomRustClient:

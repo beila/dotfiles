@@ -151,7 +151,7 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     if [ -z "$need_to_run" ]
     then
-        # Caller might need to run even when I don't, if I already ran before.
+        # Caller might need to run even when I don't, if I already ran before in this recursion.
         [ "${timestamp}" -ot "${caller_first_timestamp}" ] || {
             [ -d "$(dirname "${reporting_to_caller_timestamp}")" ] &&
                 echo "$my_name" >! "${reporting_to_caller_timestamp}"
