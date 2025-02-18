@@ -69,6 +69,9 @@ _run_package_recipe recipe dir force *previous_recipes:
     reported_by_callee_timestamp="build/timestamp-recurse-run-$my_name"
     caller_first_timestamp="{{ caller_dir }}/build/timestamp-init-$caller_name"
 
+    [ "{{ force }}" = "--only-once" ] && only_once="true" || only_once=
+    need_to_run=
+
     if [ "{{ force }}" = "--force" ]
     then
         log "RUN because you asked"
@@ -83,7 +86,7 @@ _run_package_recipe recipe dir force *previous_recipes:
         }
     fi
 
-    if [ -z "$need_to_run" ]
+    if [ -z "$need_to_run" -a -z "$only_once" ]
     then
         for previous_timestamp in "${previous_recipe_timestamps[@]}"
         do
@@ -120,9 +123,9 @@ _run_package_recipe recipe dir force *previous_recipes:
             then
                 log "RUN due to a new HEAD in the branch: $(cat .git/HEAD)"
                 need_to_run=4
-            elif [ "{{ force }}" = "--only-once" ]
+            elif [ -n "$only_once" ]
             then
-                reason_not_to_run="due to already run"
+                reason_not_to_run="due to already run even though a file is modified"
                 # do not set need_to_run
             else
                 log "RUN due to modified file: ${newer_file}"
@@ -134,9 +137,15 @@ _run_package_recipe recipe dir force *previous_recipes:
     if [ -z "$need_to_run" ]
     then
         [ "${timestamp}" -ot "${reported_by_callee_timestamp}" ] && {
-            log "RUN because $(cat ${reported_by_callee_timestamp}) is built" \
-                "at $(command stat -c %y ${reported_by_callee_timestamp})"
-            need_to_run=6
+            if [ -n "$only_once" ]
+            then
+                reason_not_to_run="due to already run even though a depenency is built"
+                # do not set need_to_run
+            else
+                log "RUN because $(cat ${reported_by_callee_timestamp}) is built" \
+                    "at $(command stat -c %y ${reported_by_callee_timestamp})"
+                need_to_run=6
+            fi
         }
     fi
 
