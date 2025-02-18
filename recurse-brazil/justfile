@@ -67,9 +67,9 @@ build_AVLivingRoomRustClient:
     #build-tools/bin/generate-bundles all
     #brazil-build build
 
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
-    find build/ -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
+    find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
+    find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
+    find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
 
 [no-cd]
 release_AVLivingRoomRustClient:
