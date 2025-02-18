@@ -3,6 +3,7 @@
 # FIXME group commands
 
 log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |"`
+# https://gitlab.com/kevincox/watchlog/-/tree/v1
 log_decorator2 := `which wl 2>&1 > /dev/null && echo wl || echo cat`
 log_decorator := log_decorator1 + log_decorator2
 export just_recurse_log := env('just_recurse_log', '')
