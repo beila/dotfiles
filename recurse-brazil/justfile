@@ -63,7 +63,7 @@ pre_build_AVLivingRoomRustClient:
 
 [no-cd]
 build_AVLivingRoomRustClient:
-    bash -c "set -x; build-tools/bin/generate-bundles native"
+    build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
     #brazil-build build
 
