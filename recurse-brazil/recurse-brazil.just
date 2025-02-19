@@ -166,18 +166,18 @@ _run_package_recipe recipe dir force *previous_recipes:
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Log: $recipe_log_path"
 
-    log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" . || {
-        my_exit_code=$?
-        log "RUN FAILED"
-        echo "Recurse log: $just_recurse_log"
-        exit $my_exit_code
-    }
+    log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" .
+    my_exit_code=$?
+
+    (( my_exit_code != 0 )) && log "RUN FAILED"
+    echo "Recurse log: $just_recurse_log"
+    echo "Recurse log: $just_recurse_log" >> "$log_path"
+
+    (( my_exit_code != 0 )) && exit $my_exit_code
 
     touch "${timestamp}"
     [ -d "$(dirname "${reporting_to_caller_timestamp}")" ] &&
         echo "$my_name" >! "${reporting_to_caller_timestamp}"
-
-    echo "Recurse log: $just_recurse_log"
 
 export default_command := env('default_command', '')
 
