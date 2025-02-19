@@ -193,7 +193,9 @@ _find_package_recipe_and_run recipe dir:
     cd "{{ dir }}"
 
     export PATH="$(brazil-path all.bin)":$PATH
+    set -x # FIXME
     export LD_LIBRARY_PATH="$(brazil-path all.lib)":$LD_LIBRARY_PATH
+    set +x # FIXME
 
     package_name=$(basename $(pwd))
     package_specific_recipe={{ recipe }}_${package_name}

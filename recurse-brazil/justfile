@@ -51,12 +51,13 @@ init_IgnitionXRustBundle:
 [no-cd]
 build_IgnitionXRustBundle:
     #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
-    cargo build --bins --release --target arm-unknown-linux-gnueabi
+    #cargo build --bins --release --target arm-unknown-linux-gnueabi
 
 [no-cd]
 init_AVLivingRoomRustClient:
-    brazil-build build
-    cargo brazil fetch --target all
+    #brazil-build build
+    #cargo brazil fetch --target all
+    brazil-build sync
 
 [no-cd]
 pre_build_AVLivingRoomRustClient:
