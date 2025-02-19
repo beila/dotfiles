@@ -171,7 +171,7 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     (( my_exit_code != 0 )) && log "RUN FAILED"
     echo "Recurse log: $just_recurse_log"
-    echo "Recurse log: $just_recurse_log" >> "$log_path"
+    echo "Recurse log: $just_recurse_log" >> "$recipe_log_path"
 
     (( my_exit_code != 0 )) && exit $my_exit_code
 
