@@ -169,7 +169,7 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     echo "Recurse log: $just_recurse_log"
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
-    log "Logs: $recipe_log_path"
+    log "Log: $recipe_log_path"
 
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" . || {
         my_exit_code=$?
@@ -356,7 +356,7 @@ run +commands:
 
     exec 1<&4 4>&- 2<&5 5>&-
 
-    [ -d build ] && mv -f $log_path build/ 2> /dev/null || true
+    echo "Log: $log_path"
     exit $exit_code
 
 [no-cd]
