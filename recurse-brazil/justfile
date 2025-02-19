@@ -65,9 +65,10 @@ pre_build_AVLivingRoomRustClient:
 
 [no-cd]
 build_AVLivingRoomRustClient:
-    build-tools/bin/generate-bundles native
+    #build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
     #brazil-build build
+    just native_roku
 
     find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
