@@ -87,7 +87,7 @@ _run_package_recipe recipe dir force *previous_recipes:
         }
     fi
 
-    if [ -z "$need_to_run" -a -z "$only_once" ]
+    if [ -z "$need_to_run" ]
     then
         for previous_timestamp in "${previous_recipe_timestamps[@]}"
         do
@@ -158,12 +158,7 @@ _run_package_recipe recipe dir force *previous_recipes:
                 echo "$my_name" >! "${reporting_to_caller_timestamp}"
         }
 
-        if [ -n "$reason_not_to_run" ]
-        then
-            log "NOT_RUN $reason_not_to_run"
-        else
-            log "NOT_RUN due to no change"
-        fi
+        log "NOT_RUN ${reason_not_to_run:-due to no change}"
         exit 0
     fi
 
@@ -178,9 +173,10 @@ _run_package_recipe recipe dir force *previous_recipes:
         exit $my_exit_code
     }
 
+    touch "${timestamp}"
     [ -d "$(dirname "${reporting_to_caller_timestamp}")" ] &&
         echo "$my_name" >! "${reporting_to_caller_timestamp}"
-    touch "${timestamp}"
+
     echo "Recurse log: $just_recurse_log"
 
 export default_command := env('default_command', '')
