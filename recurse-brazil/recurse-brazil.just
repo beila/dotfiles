@@ -192,8 +192,8 @@ _find_package_recipe_and_run recipe dir:
     set -eo pipefail
     cd "{{ dir }}"
 
-    export PATH=$PATH:"$(brazil-path all.bin)"
-    export LD_LIBRARY_PATH="$(brazil-path all.lib)"${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH
+    export PATH="$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH"
+    export LD_LIBRARY_PATH="$(brazil-path all.lib)${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH"
 
     package_name=$(basename $(pwd))
     package_specific_recipe={{ recipe }}_${package_name}
