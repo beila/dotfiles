@@ -29,7 +29,7 @@ _gf_get_file() {
 _gf() {
   is_in_git_repo || return
 # shellcheck disable=SC2016,SC2154
-  git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --short |
+  git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --porcelain |
     fzf_down -m --ansi --nth 2..,.. \
       --preview-window=right,70% \
       --preview "$(functions _gf_remove_status _gf_remove_original_name _gf_remove_quote _gf_show_diff _gf_get_file)"'
