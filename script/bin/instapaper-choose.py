@@ -260,7 +260,6 @@ f_indexed = [
 ]
 # grouped = groupby(f_indexed, lambda d: d["domain"])
 grouped = groupby(sorted(f_indexed, key=itemgetter("page")), itemgetter("page"))
-# FIXME change to deduplication inside the page
 chosen_data_in_each_page = list(
     random.choice(list(all_data_in_consecutive_domain))
     for _, all_data_in_a_page in grouped
