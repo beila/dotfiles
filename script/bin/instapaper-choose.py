@@ -49,7 +49,7 @@ from pprint import pformat
 from unicodedata import east_asian_width
 
 from urllib.parse import urlparse
-from urllib.parse import quote_plus
+from urllib.parse import quote
 
 
 def _write(*args, writer=None):
@@ -249,7 +249,7 @@ f_indexed = [
         + "/"
         + str(int(index_in_the_folder / 40) + 1)
         + "#:~:text="
-        + quote_plus(d["Title"]),
+        + quote(d["Title"]),
         "weight": folder_weights[d["Folder"]],
         "domain": urlparse(d["URL"]).netloc,
     }
