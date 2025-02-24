@@ -65,10 +65,10 @@ pre_build_AVLivingRoomRustClient:
 
 [no-cd]
 build_AVLivingRoomRustClient:
-    #build-tools/bin/generate-bundles native
+    build-tools/bin/generate-bundles native
     #build-tools/bin/generate-bundles all
     #brazil-build build
-    just native_roku
+    #just native_roku
 
     find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
     find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
@@ -80,24 +80,15 @@ release_AVLivingRoomRustClient:
     ls -l $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
 
 [no-cd]
-build_AVLivingRoomClientBundle:
-    brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
-    strings build/lib_debug/*client-*.so|grep 'always_return_true'
-
-[no-cd]
-release_AVLivingRoomClientBundle:
-    brazil-build run put-this-on-that -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd --stringBundles en_US
-
-[no-cd]
-collect_deps_AVLivingRoomClientBundle:
+collect_deps_AVLivingRoomRustClient:
     #!/usr/bin/env python3
     import tomllib
     import os
     import pathlib
     with open("Cargo.toml") as main_file:
         for line in main_file:
-            if line = :
-                exit
+            if line == '[patch.crates-io]\n':
+                exit()
 
     source_dir = pathlib.Path('../IgnitionXRustBundle')
     patches=({'name':p['name'], 'path':str(path.parent)}
@@ -118,6 +109,14 @@ collect_deps_AVLivingRoomClientBundle:
         for p in patches:
             main_file.write(p['name'] + ' = { path = "' + p['path'] + '"}\n')
 
+[no-cd]
+build_AVLivingRoomClientBundle:
+    brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
+    strings build/lib_debug/*client-*.so|grep 'always_return_true'
+
+[no-cd]
+release_AVLivingRoomClientBundle:
+    brazil-build run put-this-on-that -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd --stringBundles en_US
 
 [no-cd]
 native_app:
