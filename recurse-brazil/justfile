@@ -93,20 +93,20 @@ collect_deps_AVLivingRoomClientBundle:
     #!/usr/bin/env python3
     import tomllib
     with open("Cargo.toml", "rb") as main_file:
-        print(tomllib.load(main_file))
+        print(main_file)
+        #print(tomllib.load(main_file))
 
     import os
     import pathlib
-    patches=(
-    )
     source_dir = pathlib.Path(os.getcwd() + '/../IgnitionXRustBundle')
-    source_dir.rglob('Cargo.toml')
-        print(file)
-        with open(file, "rb") as dep_file:
-            d=tomllib.load(dep_file)
-            if 'package' not in d:
-                continue
-            print(d["package"]["name"])
+    patches=(#{'name':name, 'path':path}
+        f
+        for p in source_dir.rglob('Cargo.toml')
+        for f in (open(p, "rb"))
+        #for t in (tomllib.load(f))
+    )
+    for p in patches:
+        print(p)
 
 [no-cd]
 native_app:
