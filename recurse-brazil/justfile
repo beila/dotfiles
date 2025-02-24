@@ -97,8 +97,10 @@ collect_deps_AVLivingRoomClientBundle:
 
     import os
     import pathlib
+    patches=(
+    )
     source_dir = pathlib.Path(os.getcwd() + '/../IgnitionXRustBundle')
-    for file in source_dir.rglob('Cargo.toml'):
+    source_dir.rglob('Cargo.toml')
         print(file)
         with open(file, "rb") as dep_file:
             d=tomllib.load(dep_file)
