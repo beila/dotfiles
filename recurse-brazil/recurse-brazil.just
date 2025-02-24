@@ -190,6 +190,7 @@ _find_package_recipe_and_run recipe dir:
     package_specific_recipe={{ recipe }}_${package_name}
     all_recipes=( $(just --summary) )
 
+    set -x  # FIXME recipe succeeded but fail?
     if (($all_recipes[(Ie)$package_specific_recipe]))   # if all_recipes includes $package_specific_recipe
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
@@ -197,7 +198,6 @@ _find_package_recipe_and_run recipe dir:
             echo Recurse log: $just_recurse_log
             just --justfile={{ justfile() }} --working-directory=$(pwd) --color always $package_specific_recipe
         "
-        # TODO show recurse log at the end of the recipe log without losing exit status
     elif [ -n "{{ default_command }}" ]
     then
         just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run "
@@ -207,6 +207,7 @@ _find_package_recipe_and_run recipe dir:
     else
         echo "$package_specific_recipe is not defined." > "$log_path"
     fi
+    # TODO show recurse log at the end of the recipe log without losing exit status
 
 [no-cd]
 init dir="." force="--force": mwinit

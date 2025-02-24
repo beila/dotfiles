@@ -46,7 +46,7 @@ build_Brotli:
 
 [no-cd]
 init_IgnitionXRustBundle:
-    brazil-build
+    #brazil-build
 
 [no-cd]
 build_IgnitionXRustBundle:
