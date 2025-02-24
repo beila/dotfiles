@@ -57,7 +57,7 @@ build_IgnitionXRustBundle:
 init_AVLivingRoomRustClient:
     #brazil-build build
     #cargo brazil fetch --target all
-    brazil-build sync
+    #brazil-build sync
 
 [no-cd]
 pre_build_AVLivingRoomRustClient:
