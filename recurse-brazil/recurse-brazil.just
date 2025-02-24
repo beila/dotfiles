@@ -166,6 +166,7 @@ _run_package_recipe recipe dir force *previous_recipes:
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Log: $recipe_log_path"
 
+    set -x  # FIXME failed after succeeded?
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" .
     my_exit_code=$?
 
