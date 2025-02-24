@@ -94,6 +94,11 @@ collect_deps_AVLivingRoomClientBundle:
     import tomllib
     import os
     import pathlib
+    with open("Cargo.toml") as main_file:
+        for line in main_file:
+            if line = :
+                exit
+
     source_dir = pathlib.Path('../IgnitionXRustBundle')
     patches=({'name':p['name'], 'path':str(path.parent)}
         for path in source_dir.rglob('Cargo.toml')
@@ -102,11 +107,16 @@ collect_deps_AVLivingRoomClientBundle:
         if 'package' in toml
         for p in [toml['package']]
     )
-    for p in patches: print(p)
-    with open("Cargo.toml", "r+") as main_file:
-        toml = tomllib.loads(main_file)
-        toml.update({'patch.crates-io':list(patches)})
-        main_file.write(toml)
+
+    #for p in patches: print(p)
+    #with open("Cargo.toml", "r+") as main_file:
+        #toml = tomllib.loads(main_file)
+        #toml.update({'patch.crates-io':list(patches)})
+        #main_file.write(toml.dump(toml))
+    with open("Cargo.toml", "a") as main_file:
+        main_file.write('[patch.crates-io]\n')
+        for p in patches:
+            main_file.write(p['name'] + ' = { path = "' + p['path'] + '"}\n')
 
 
 [no-cd]
