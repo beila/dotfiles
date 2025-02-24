@@ -92,22 +92,22 @@ release_AVLivingRoomClientBundle:
 collect_deps_AVLivingRoomClientBundle:
     #!/usr/bin/env python3
     import tomllib
-    with open("Cargo.toml", "rb") as main_file:
-        print(main_file)
-        #print(tomllib.load(main_file))
-
     import os
     import pathlib
-    source_dir = pathlib.Path(os.getcwd() + '/../IgnitionXRustBundle')
+    source_dir = pathlib.Path('../IgnitionXRustBundle')
     patches=({'name':p['name'], 'path':str(path.parent)}
         for path in source_dir.rglob('Cargo.toml')
-        for file in [open(path, "rb")]
+        for file in [open(path, 'rb')]
         for toml in [tomllib.load(file)]
         if 'package' in toml
         for p in [toml['package']]
     )
-    for p in patches:
-        print(p)
+    for p in patches: print(p)
+    with open("Cargo.toml", "r+") as main_file:
+        toml = tomllib.loads(main_file)
+        toml.update({'patch.crates-io':list(patches)})
+        main_file.write(toml)
+
 
 [no-cd]
 native_app:
