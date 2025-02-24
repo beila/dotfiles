@@ -115,35 +115,34 @@ collect_deps_AVLivingRoomRustClient2:
     import tomllib
     import os
     import pathlib
-    with open("Cargo.toml") as f:
-        for line in f:
-            if line == '[patch.crates-io]\n':
-                exit()
-
     source_dir = pathlib.Path('../IgnitionXRustBundle')
     patches=({'name':p['name'], 'path':str(path.parent)}
         for path in source_dir.rglob('Cargo.toml')
         for file in [open(path, 'rb')]
         for toml in [tomllib.load(file)]
         if 'package' in toml
+        for _ in [file.close()] # FIXME will it work???
         for p in [toml['package']]
     )
 
-    with open("Cargo.toml", "a+") as f:
+    section_name = 'patch.crates-io' 
+    with open("Cargo.toml", "r+") as f:
         main_file = f.read()
         toml = tomllib.loads(main_file)
-        lines=main_file.split('\n')
+        lines = main_file.split('\n')
 
-        if 'patch.crates-io' not in toml
+        if section_name not in toml
             lines += ''
-            lines += '[patch.crates-io]'
+            lines += section_name
 
-        section_index = lines.index('[patch.crates-io]');
+        section_index = lines.index(section_name);
         for p in patches:
-            if p['name'] not in toml['patch.crates-io' ]
-                lines.insert(section_index, p['name'] + ' = { path = "' + p['path'] + '"}\n')
+            if p['name'] in toml[section_name]: continue
+            lines.insert(section_index+1, p['name'] + ' = { path = "' + p['path'] + '"}\n')
 
+        f.seek(0)
         f.write('\n'.join(lines))
+        f.truncate()
 
 [no-cd]
 build_AVLivingRoomClientBundle:
