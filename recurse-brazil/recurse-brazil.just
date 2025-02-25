@@ -192,7 +192,6 @@ _find_package_recipe_and_run recipe dir:
     package_specific_recipe={{ recipe }}_${package_name}
     all_recipes=( $(just --summary) )
 
-    set -x  # FIXME recipe succeeded but fail?
     if (($all_recipes[(Ie)$package_specific_recipe]))   # if all_recipes includes $package_specific_recipe
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
