@@ -115,7 +115,7 @@ collect_deps_AVLivingRoomRustClient2:
     import tomllib
     import os
     import pathlib
-    source_dir = pathlib.Path('../IgnitionXRustBundle')
+    source_dir = pathlib.Path('..')
     patches=({'name':p['name'], 'path':str(path.parent)}
         for path in source_dir.rglob('Cargo.toml')
         for file in [open(path, 'rb')]
@@ -125,20 +125,21 @@ collect_deps_AVLivingRoomRustClient2:
         for p in [toml['package']]
     )
 
-    section_name = 'patch.crates-io' 
+    section_name = 'patch.crates-io'
+    section_line = '[patch.crates-io]' 
     with open("Cargo.toml", "r+") as f:
         main_file = f.read()
         toml = tomllib.loads(main_file)
         lines = main_file.split('\n')
 
-        if section_name not in toml
-            lines += ''
-            lines += section_name
+        if section_name not in toml:
+            lines.append('')
+            lines.append(section_line)
 
-        section_index = lines.index(section_name);
+        section_index = lines.index(section_line);
         for p in patches:
-            if p['name'] in toml[section_name]: continue
-            lines.insert(section_index+1, p['name'] + ' = { path = "' + p['path'] + '"}\n')
+            if section_name in toml and p['name'] in toml[section_name]: continue
+            lines.insert(section_index+1, p['name'] + ' = { path = "' + p['path'] + '"}')
 
         f.seek(0)
         f.write('\n'.join(lines))
