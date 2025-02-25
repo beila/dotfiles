@@ -329,7 +329,7 @@ run +commands:
     # sed expression modified as https://stackoverflow.com/a/18000433
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
-    time ${SHELL} -ic "set -x; {{ commands }}"
+    time ${SHELL} -c "set -x; {{ commands }}"
     exit_code=$?
 
     exec 1<&4 4>&- 2<&5 5>&-
