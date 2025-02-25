@@ -211,10 +211,12 @@ _find_package_recipe_and_run recipe dir:
 
 define_preamble := """
     run_preamble() {
+        set -x
         set -eo pipefail
         ln -sf $(cd "$1" && brazil-path package-build-root) "$1"
         export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/build/log-recurse-$(date +%F-%H-%M).txt}"
     }
+    run_preamble \
 """
 
 [no-cd]
@@ -230,9 +232,8 @@ init dir="." force="--force": mwinit
 [no-cd]
 init_only dir="." force="--force":
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
+    {{ define_preamble }} "{{ dir }}"
+    echo FIXME; exit
 
     just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
@@ -257,8 +258,9 @@ pre_build_only dir="." force="--force":
 [no-cd]
 build dir="." force="--force": mwinit
     #!/usr/bin/env zsh
-    {{ define_preamble }}
-    run_preamble("{{ dir }}")
+    set -eo pipefail
+    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
+    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
 
     just recurse "{{ dir }}"
     just _run_package_recipe init "{{ dir }}" "--only-once"
