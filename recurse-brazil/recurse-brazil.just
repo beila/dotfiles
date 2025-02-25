@@ -447,8 +447,8 @@ collect_rust_deps:
         for file in [open(path, 'rb')]
         for toml in [tomllib.load(file)]
         if 'package' in toml
-        for _ in [file.close()]
         for p in [toml['package']]
+        for _ in [file.close()]
     )
 
     section_name = 'patch.crates-io'
@@ -466,6 +466,7 @@ collect_rust_deps:
         for p in patches:
             if toml.get('patch', {}).get('crates-io', {}).get(p['name']): continue
             new_line = p['name'] + ' = { path = "' + p['path'] + '"}'
+            print('Adding: ' + new_line)
             lines.insert(section_index+1, new_line)
 
         f.seek(0)
