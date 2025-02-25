@@ -8,6 +8,8 @@ log_decorator2 := `which wl 2>&1 > /dev/null && echo wl || echo cat`
 log_decorator := log_decorator1 + log_decorator2
 export just_recurse_log := env('just_recurse_log', '')
 
+set shell := [ 'zsh', '-c' ]
+
 logger := """
     log_with_name() {
         log_name=$1
@@ -216,7 +218,7 @@ run_preamble := """
             ln -sf $(cd "$1" && brazil-path package-build-root) "$1"
         export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/build/log-recurse-$(date +%F-%H-%M).txt}"
     }
-    run_preamble \
+    run_preamble\
 """
 
 [no-cd]
@@ -228,9 +230,10 @@ init dir="." force="--force": mwinit
 
 [no-cd]
 init_only dir="." force="--force":
-    #!/usr/bin/env zsh
+    set -x
+    #cp $0 /tmp
     {{ run_preamble }} "{{ dir }}"
-    just _run_package_recipe init "{{ dir }}" "{{ force }}"
+    #just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
 pre_build dir="." force="--force":

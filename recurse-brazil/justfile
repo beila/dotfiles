@@ -89,9 +89,8 @@ release_AVLivingRoomClientBundle:
 native_app:
     #!/usr/bin/env zsh
     name=native_app just run "
-        cd ../AVLivingRoomRustClient/ &&
-        just pre_build &&
-        cd crates/app-start &&
+        cd ../AVLivingRoomRustClient/crates/app-start &&
+        just pre_build ../.. &&
         cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local
     "
 
@@ -99,9 +98,8 @@ native_app:
 native_example:
     #!/usr/bin/env zsh
     name=native_example just run "
-        cd ../AVLivingRoomRustClient/ &&
-        just pre_build &&
-        cd crates/app-start &&
+        cd ../AVLivingRoomRustClient/crates/app-start &&
+        just pre_build ../.. &&
         cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local
     "
 
@@ -109,9 +107,8 @@ native_example:
 native_roku:
     #!/usr/bin/env zsh
     name=native_roku just run "
-        cd ../AVLivingRoomRustClient/ &&
-        just pre_build &&
-        cd crates/app-start &&
+        cd ../AVLivingRoomRustClient/crates/app-start &&
+        just pre_build ../.. &&
         cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/use_ignx_local --target=arm-unknown-linux-gnueabi
     "
 
