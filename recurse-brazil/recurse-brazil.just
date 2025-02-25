@@ -434,3 +434,40 @@ new-ws dir main_package *more_packages: mwinit
 [no-cd]
 upload-diff-for-review *args: mwinit
     git diff --no-ext-diff {{ args }} | cr --arbitrary-diff - --arbitrary-diff-create-personal-pkg
+
+[no-cd]
+collect_rust_deps:
+    #!/usr/bin/env python3
+    import tomllib
+    import os
+    import pathlib
+    source_dir = pathlib.Path('..')
+    patches=({'name':p['name'], 'path':str(path.parent)}
+        for path in source_dir.rglob('Cargo.toml')
+        for file in [open(path, 'rb')]
+        for toml in [tomllib.load(file)]
+        if 'package' in toml
+        for _ in [file.close()]
+        for p in [toml['package']]
+    )
+
+    section_name = 'patch.crates-io'
+    section_line = '[patch.crates-io]' 
+    with open("Cargo.toml", "r+") as f:
+        main_file = f.read()
+        toml = tomllib.loads(main_file)
+        lines = main_file.split('\n')
+
+        if toml.get('patch', {}).get('crates-io') is None:
+            print('Adding: ' + section_line)
+            lines.append(section_line)
+
+        section_index = lines.index(section_line);
+        for p in patches:
+            if toml.get('patch', {}).get('crates-io', {}).get(p['name']): continue
+            new_line = p['name'] + ' = { path = "' + p['path'] + '"}'
+            lines.insert(section_index+1, new_line)
+
+        f.seek(0)
+        f.write('\n'.join(lines))
+        f.truncate()
