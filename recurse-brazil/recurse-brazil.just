@@ -209,11 +209,11 @@ _find_package_recipe_and_run recipe dir:
     fi
     # TODO show recurse log at the end of the recipe log without losing exit status
 
-define_preamble := """
+run_preamble := """
     run_preamble() {
-        set -x
         set -eo pipefail
-        ln -sf $(cd "$1" && brazil-path package-build-root) "$1"
+        [ ! -d "${1:?}/build" ] &&
+            ln -sf $(cd "$1" && brazil-path package-build-root) "$1"
         export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/build/log-recurse-$(date +%F-%H-%M).txt}"
     }
     run_preamble \
@@ -222,46 +222,32 @@ define_preamble := """
 [no-cd]
 init dir="." force="--force": mwinit
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just recurse "{{ dir }}"
     just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
 init_only dir="." force="--force":
     #!/usr/bin/env zsh
-    {{ define_preamble }} "{{ dir }}"
-    echo FIXME; exit
-
+    {{ run_preamble }} "{{ dir }}"
     just _run_package_recipe init "{{ dir }}" "{{ force }}"
 
 [no-cd]
 pre_build dir="." force="--force":
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
 pre_build_only dir="." force="--force":
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
 [no-cd]
 build dir="." force="--force": mwinit
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just recurse "{{ dir }}"
     just _run_package_recipe init "{{ dir }}" "--only-once"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
@@ -272,10 +258,7 @@ build dir="." force="--force": mwinit
 [no-cd]
 build_only dir="." force="--force":
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just \
         default_command="echo 'Error: Need to define build_"$(basename $(readlink -f {{ dir }}))" recipe.'; exit 1" \
         _run_package_recipe build "{{ dir }}" "{{ force }}" init
@@ -283,10 +266,7 @@ build_only dir="." force="--force":
 [no-cd]
 release dir="." force="--force": mwinit
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just recurse "{{ dir }}"
     just _run_package_recipe init "{{ dir }}" "--only-once"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
@@ -298,10 +278,7 @@ release dir="." force="--force": mwinit
 [no-cd]
 release_only dir="." force="--force":
     #!/usr/bin/env zsh
-    set -eo pipefail
-    ln -sf $(cd "{{ dir }}" && brazil-path package-build-root) "{{ dir }}/"
-    export just_recurse_log="${just_recurse_log:-$(readlink -f "{{ dir }}")/build/log-recurse-$(date +%F-%H-%M).txt}"
-
+    {{ run_preamble }} "{{ dir }}"
     just _run_package_recipe release "{{ dir }}" "{{ force }}" build
 
 [no-cd]
