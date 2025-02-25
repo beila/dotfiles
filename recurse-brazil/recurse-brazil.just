@@ -166,6 +166,7 @@ _run_package_recipe recipe dir force *previous_recipes:
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Log: $recipe_log_path"
 
+    set -x  # FIXME recipe succeeded but fail?
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" .
     my_exit_code=$?
 
@@ -175,9 +176,9 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     (( my_exit_code != 0 )) && exit $my_exit_code
 
-    touch "${timestamp}"
+    touch "${timestamp}" || true
     [ -d "$(dirname "${reporting_to_caller_timestamp}")" ] &&
-        echo "$my_name" >! "${reporting_to_caller_timestamp}"
+        echo "$my_name" >! "${reporting_to_caller_timestamp}" || true
 
 export default_command := env('default_command', '')
 
