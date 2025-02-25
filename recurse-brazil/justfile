@@ -133,12 +133,11 @@ collect_deps_AVLivingRoomRustClient2:
         lines = main_file.split('\n')
 
         if section_name not in toml:
-            lines.append('')
             lines.append(section_line)
 
         section_index = lines.index(section_line);
         for p in patches:
-            if section_name in toml and p['name'] in toml[section_name]: continue
+            if toml.get(section_name, {}).get(p['name']): continue
             lines.insert(section_index+1, p['name'] + ' = { path = "' + p['path'] + '"}')
 
         f.seek(0)
