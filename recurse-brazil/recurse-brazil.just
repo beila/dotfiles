@@ -246,13 +246,13 @@ pre_build_only dir="." force="--force":
     {{ run_preamble }}                          "{{ dir }}"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
 
-just__run_package_recipe_build := """
-    just__run_package_recipe_build() {
+just_run_package_recipe_build := """
+    just_run_package_recipe_build() {
         just \
             default_command="echo 'Error: Need to define build_"$(basename $(readlink -f "$1"))" recipe.'; exit 1" \
             _run_package_recipe build "$@"
     }
-    just__run_package_recipe_build\
+    just_run_package_recipe_build\
 """
 
 [no-cd]
@@ -262,13 +262,13 @@ build dir="." force="--force": mwinit
     just recurse                                "{{ dir }}"
     just _run_package_recipe init               "{{ dir }}" "--only-once"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
-    just__run_package_recipe_build              "{{ dir }}" "{{ force }}" init
+    {{ just_run_package_recipe_build }}         "{{ dir }}" "{{ force }}" init
 
 [no-cd]
 build_only dir="." force="--force":
     #!/usr/bin/env zsh
-    {{ run_preamble }}             "{{ dir }}"
-    just__run_package_recipe_build "{{ dir }}" "{{ force }}" init
+    {{ run_preamble }}                   "{{ dir }}"
+    {{ just_run_package_recipe_build }}  "{{ dir }}" "{{ force }}" init
 
 [no-cd]
 release dir="." force="--force": mwinit
@@ -277,7 +277,7 @@ release dir="." force="--force": mwinit
     just recurse                                "{{ dir }}"
     just _run_package_recipe init               "{{ dir }}" "--only-once"
     just _find_package_recipe_and_run pre_build "{{ dir }}" || true
-    just__run_package_recipe_build              "{{ dir }}" ""            init
+    {{ just_run_package_recipe_build }}         "{{ dir }}" ""            init
     just _run_package_recipe release            "{{ dir }}" "{{ force }}" build
 
 [no-cd]
