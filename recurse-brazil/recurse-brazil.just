@@ -421,9 +421,9 @@ upload-diff-for-review *args: mwinit
 [no-cd]
 collect_rust_deps:
     #!/usr/bin/env python3
-    import tomllib
-    import os
     import pathlib
+    import tomllib
+
     source_dir = pathlib.Path('..')
     patches=({'name':p['name'], 'path':str(path.parent)}
         for path in source_dir.rglob('Cargo.toml')
@@ -434,13 +434,12 @@ collect_rust_deps:
         for _ in [file.close()]
     )
 
-    section_name = 'patch.crates-io'
-    section_line = '[patch.crates-io]' 
     with open("Cargo.toml", "r+") as f:
         main_file = f.read()
         toml = tomllib.loads(main_file)
         lines = main_file.split('\n')
 
+        section_line = '[patch.crates-io]' 
         if toml.get('patch', {}).get('crates-io') is None:
             print('Adding: ' + section_line)
             lines.append(section_line)
