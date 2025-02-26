@@ -321,9 +321,6 @@ run +commands:
         log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
     fi
 
-    export PATH="$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH"
-    export LD_LIBRARY_PATH="$(brazil-path all.lib)${LD_LIBRARY_PATH:+:}$LD_LIBRARY_PATH"
-
     if [ -z "${log_decorator_invoked}" ]
     then
         export log_decorator_invoked=1
@@ -334,7 +331,12 @@ run +commands:
     # sed expression modified as https://stackoverflow.com/a/18000433
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
-    time ${SHELL} -c "set -x; {{ commands }}"
+    time ${SHELL} -ic "
+        export PATH="$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH"
+        export LD_LIBRARY_PATH="$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+        set -x
+        {{ commands }}
+    "
     exit_code=$?
 
     exec 1<&4 4>&- 2<&5 5>&-
