@@ -1,14 +1,15 @@
 #!/usr/bin/env -S just --justfile
-
 # FIXME group commands
 
 log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |"`
+
 # https://gitlab.com/kevincox/watchlog/-/tree/v1
+
 log_decorator2 := `which wl 2>&1 > /dev/null && echo wl || echo cat`
 log_decorator := log_decorator1 + log_decorator2
 export just_recurse_log := env('just_recurse_log', '')
 
-set shell := [ 'zsh', '-c' ]
+set shell := ['zsh', '-c']
 
 logger := """
     log_with_name() {
@@ -438,6 +439,7 @@ collect_rust_deps:
         for toml in [tomllib.load(file)]
         if 'package' in toml
         for p in [toml['package']]
+        if 'name' in p
         for _ in [file.close()]
     )
 
@@ -451,8 +453,7 @@ collect_rust_deps:
             print('Adding: ' + section_line)
             lines.append(section_line)
 
-        map(str.strip, lines)
-        section_index = lines.index(section_line);
+        section_index = list(map(str.strip, lines)).index(section_line)
         for p in patches:
             if toml.get('patch', {}).get('crates-io', {}).get(p['name']): continue
             new_line = p['name'] + ' = { path = "' + p['path'] + '"}'
