@@ -451,6 +451,7 @@ collect_rust_deps:
             print('Adding: ' + section_line)
             lines.append(section_line)
 
+        map(str.strip, lines)
         section_index = lines.index(section_line);
         for p in patches:
             if toml.get('patch', {}).get('crates-io', {}).get(p['name']): continue
