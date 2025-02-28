@@ -1,0 +1,74 @@
+#!/bin/bash
+ 
+# passing PID of IgnitionX process which we'll be foregrounding and sending commands to
+PID=$1
+ 
+# hardcode code for arrow keyboard buttons
+DOWN=125
+UP=126
+LEFT=123
+RIGHT=124
+SPACE=49
+ 
+# Press key with code $1 $2 times 
+function key_press() {
+    for i in $(seq 1 $2)
+    do
+    osascript <<EOF
+    tell application "System Events"
+    set frontmost of the first process whose unix id is $PID to true
+    key code $1  # Simulate key press
+    end tell
+EOF
+    sleep 1
+    done
+}
+ 
+ 
+# Press key with code $1 $2 times 
+function key_stroke() {
+    for i in $(seq 1 $2)
+    do
+    osascript <<EOF
+    tell application "System Events"
+    set frontmost of the first process whose unix id is $PID to true
+    key down $1  # Simulate key press
+    delay (random number from 0.5 to 3)
+    key up $1
+    end tell
+EOF
+    sleep 1
+    done
+}
+ 
+ 
+# Main loop it just repeats the sequence
+CAROUSELS_TO_SCROLL=2
+ITERATIONS=1
+#for k in $(seq 1 $ITERATIONS)
+while /usr/bin/true;
+do
+ 
+key_stroke $SPACE 2
+
+for i in $(seq 1 $CAROUSELS_TO_SCROLL)
+do
+key_stroke $DOWN 5
+key_stroke $SPACE 2
+key_stroke $RIGHT 1
+done
+ 
+key_stroke $SPACE 2
+
+# reverse loop returning to the initial state for next iteration
+for i in $(seq 1 $CAROUSELS_TO_SCROLL)
+do
+key_stroke $LEFT 1
+key_stroke $SPACE 2
+key_stroke $UP 5
+done
+ 
+done
+ 
+#echo 'Test finished successfully'
+#kill -9 $1
