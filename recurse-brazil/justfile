@@ -1,6 +1,12 @@
 import 'recurse-brazil.just'
 
 [no-cd]
+build_AvLrcMinervaMetricSchemas:
+    pushd src/schemas/lrnp/utils && python ./main.py"
+    brazil-build run env -- jest --updateSnapshot -t "LRNP Minerva Metric Schemas"
+    brazil-build test
+
+[no-cd]
 init_AVLivingRoomClientHybridCommon:
     brazil-build install
 
