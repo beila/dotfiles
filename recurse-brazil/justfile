@@ -54,6 +54,10 @@ build_IgnitionXRustBundle:
     #cargo build --bins --release --target arm-unknown-linux-gnueabi
 
 [no-cd]
+release_IgnitionXRustBundle:
+    for i in amzn* ignx*; do cd $i; cargo brazil publish --allow-dirty; cd -; done
+
+[no-cd]
 init_AVLivingRoomRustClient: collect_rust_deps
     #brazil-build build
     #cargo brazil fetch --target all
