@@ -36,7 +36,18 @@
       # conflicts with nix-darwin’s native Nix management.
       nix.enable = false;
 
-      security.pam.enableSudoTouchIdAuth = true;
+      # https://nixcademy.com/posts/nix-on-macos/#unlocking-sudo-via-fingerprint
+      # This option has been renamed to `security.pam.services.sudo_local.touchIdAuth` for consistency with NixOS.
+      security.pam.services.sudo_local.touchIdAuth = true;
+
+      # https://nixcademy.com/posts/nix-on-macos/#setting-system-defaults
+      system.defaults = {
+        dock.autohide = true;
+        dock.mru-spaces = false;
+        finder.AppleShowAllExtensions = true;
+        finder.FXPreferredViewStyle = "clmv";
+        screensaver.askForPasswordDelay = 10;
+      };
     };
   in
   {
