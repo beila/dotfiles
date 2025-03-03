@@ -12,6 +12,9 @@ init:
     nix flake init -t nix-darwin 
     nix run nix-darwin -- switch --flake .\#simple
     rustup default stable
+    cd
+    < .tool-versions awk 'print $1' | xargs -N 1 asdf plugin add
+    asdf install
 
 [macos]
 install:
