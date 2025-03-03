@@ -16,7 +16,7 @@
         [
           bat
           broot
-          diffstatic
+          difftastic
           fd
           fzf
           just
