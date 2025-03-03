@@ -2,7 +2,7 @@ update:
     nix flake update
     darwin-rebuild build --flake .\#simple
 
-build:
+switch:
     darwin-rebuild switch --flake .\#simple
 
 init:

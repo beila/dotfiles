@@ -19,6 +19,7 @@
           just
           neovide
           neovim
+          rustup
           zoxide
         ];
 
