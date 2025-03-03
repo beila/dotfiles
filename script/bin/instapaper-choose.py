@@ -263,11 +263,11 @@ indexed_entries = [
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
 chosen_data_in_each_page = list(
-    random.choice(list(all_data_in_consecutive_domain))
+    random.choice(list(all_data_in_a_page))
     for _, all_data_in_a_page in pages
-    for _, all_data_in_consecutive_domain in groupby(
-        all_data_in_a_page, itemgetter("domain")
-    )
+    # for _, all_data_in_consecutive_domain in groupby(
+    #     all_data_in_a_page, itemgetter("domain")
+    # )
 )
 # lasts = list(chain.from_iterable(g[1] for g in pages))
 
