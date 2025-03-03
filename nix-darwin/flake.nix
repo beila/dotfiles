@@ -20,6 +20,7 @@
           just
           neovide
           neovim
+          ripgrep
           rustup
           zoxide
         ];
