@@ -1,4 +1,8 @@
 update:
+    nix flake update
+    darwin-rebuild build --flake .\#simple
+
+build:
     darwin-rebuild build --flake .\#simple
 
 init:
