@@ -14,6 +14,7 @@
       # $ nix-env -qaP | grep wget
       environment.systemPackages = with pkgs;
         [
+          asdf-vm
           bat
           broot
           difftastic
