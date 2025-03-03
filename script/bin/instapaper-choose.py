@@ -152,7 +152,7 @@ def _print(*args, sep=","):
         print(sep.join(str(v) for v in args))
 
 
-folders = {
+folder_uis = {
     "10월": "https://www.instapaper.com/u/folder/4676196/10-",
     "11월": "https://www.instapaper.com/u/folder/4697235/11-",
     "12월": "https://www.instapaper.com/u/folder/4716737/12-",
@@ -237,15 +237,17 @@ biggest_page = {
 }
 
 folderlines = {}
-org_dicts = (dict(zip(header, r)) for r in reader)
-timed_dicts = sorted(org_dicts, key=itemgetter("Timestamp"), reverse=True)
-f_grouped = groupby(sorted(timed_dicts, key=itemgetter("Folder")), itemgetter("Folder"))
-f_indexed = [
+entries = (dict(zip(header, r)) for r in reader)
+time_sorted_entries = sorted(entries, key=itemgetter("Timestamp"), reverse=True)
+folders = groupby(
+    sorted(time_sorted_entries, key=itemgetter("Folder")), itemgetter("Folder")
+)
+indexed_entries = [
     {
         **d,
         "findex": index_in_the_folder,
-        "page": folders[d["Folder"]] + "/" + str(int(index_in_the_folder / 40) + 1),
-        "loc": folders[d["Folder"]]
+        "page": folder_uis[d["Folder"]] + "/" + str(int(index_in_the_folder / 40) + 1),
+        "loc": folder_uis[d["Folder"]]
         + "/"
         + str(int(index_in_the_folder / 40) + 1)
         + "#:~:text="
@@ -253,21 +255,21 @@ f_indexed = [
         "weight": folder_weights[d["Folder"]],
         "domain": urlparse(d["URL"]).netloc,
     }
-    for folder_name, all_data_in_a_folder in f_grouped
-    if folder_name in folders.keys()
+    for folder_name, all_data_in_a_folder in folders
+    if folder_name in folder_uis
     for index_in_the_folder, d in enumerate(all_data_in_a_folder)
     if index_in_the_folder / 40 + 1 < biggest_page.get(d["Folder"], 9999)
 ]
-# grouped = groupby(f_indexed, lambda d: d["domain"])
-grouped = groupby(sorted(f_indexed, key=itemgetter("page")), itemgetter("page"))
+# grouped = groupby(indexed_entries, lambda d: d["domain"])
+pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
 chosen_data_in_each_page = list(
     random.choice(list(all_data_in_consecutive_domain))
-    for _, all_data_in_a_page in grouped
+    for _, all_data_in_a_page in pages
     for _, all_data_in_consecutive_domain in groupby(
         all_data_in_a_page, itemgetter("domain")
     )
 )
-# lasts = list(chain.from_iterable(g[1] for g in grouped))
+# lasts = list(chain.from_iterable(g[1] for g in pages))
 
 
 def _chooser():
