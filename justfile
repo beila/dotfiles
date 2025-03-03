@@ -3,7 +3,7 @@ update:
     darwin-rebuild build --flake .\#simple
 
 build:
-    darwin-rebuild build --flake .\#simple
+    darwin-rebuild switch --flake .\#simple
 
 init:
     nix flake init -t nix-darwin 
