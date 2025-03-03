@@ -150,7 +150,8 @@ install_dotfiles () {
 }
 
 setup_dotfiles_sync () {
-  TARGETS="$DOTFILES_ROOT $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/pp/insuk-www $HOME/dev/i"
+  TARGETS="$DOTFILES_ROOT $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i $HOME/pp/insuk-www"
+  TARGETS="$TARGETS $HOME/devm/hjdocs $HOME/devm/hjdocs/public-docs $HOME/devm/i"
   info "setup periodic sync for $TARGETS"
   (
     GIT_EXECUTABLE_FINDING="$(which -a git.exe git 2>/dev/null | head -1)"
