@@ -14,6 +14,7 @@
       # $ nix-env -qaP | grep wget
       environment.systemPackages = with pkgs;
         [
+          bat
           broot
           fd
           fzf
