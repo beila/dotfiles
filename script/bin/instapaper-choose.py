@@ -245,42 +245,43 @@ indexed_entries = [
     {
         **d,
         # "findex": index_in_the_folder,
-        "page": folder_uis[d["Folder"]] + "/" + str(int(index_in_the_folder / 40) + 1),
+        "page": folder_uis[d["Folder"]] + "/" + str(page_index),
         "loc": folder_uis[d["Folder"]]
         + "/"
-        + str(int(index_in_the_folder / 40) + 1)
+        + str(page_index)
         + "#:~:text="
         + quote(d["Title"]),
         "weight": folder_weights[d["Folder"]] / float(folder_size),
         # "domain": urlparse(d["URL"]).netloc,
     }
-    for folder_name, all_data_in_a_folder_iter in folders
+    for folder_name, all_entries_in_a_folder_iter in folders
     if folder_name in folder_uis
-    for all_data_in_a_folder in [list(all_data_in_a_folder_iter)]
-    for index_in_the_folder, d in enumerate(all_data_in_a_folder)
-    if index_in_the_folder / 40 + 1 < biggest_page.get(d["Folder"], 9999)
-    for folder_size in [len(all_data_in_a_folder)]
+    for all_entries_in_a_folder in [list(all_entries_in_a_folder_iter)]
+    for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
+    for page_index in [int(index_in_the_folder / 40) + 1]
+    if page_index < biggest_page.get(d["Folder"], 9999)
+    for folder_size in [len(all_entries_in_a_folder)]
 ]
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
-chosen_data_in_each_page = list(
-    random.choice(list(all_data_in_a_page))
-    for _, all_data_in_a_page in pages
+entries_chosen_from_pages = list(
+    random.choice(list(all_entries_in_a_page))
+    for _, all_entries_in_a_page in pages
     # for _, all_data_in_consecutive_domain in groupby(
-    #     all_data_in_a_page, itemgetter("domain")
+    #     all_entries_in_a_page, itemgetter("domain")
     # )
 )
 # lasts = list(chain.from_iterable(g[1] for g in pages))
 
 
 def _chooser():
-    if not chosen_data_in_each_page:
+    if not entries_chosen_from_pages:
         return
 
     for line in random.choices(
-        chosen_data_in_each_page,
-        weights=(d["weight"] for d in chosen_data_in_each_page),
-        k=len(chosen_data_in_each_page),
+        entries_chosen_from_pages,
+        weights=(d["weight"] for d in entries_chosen_from_pages),
+        k=len(entries_chosen_from_pages),
     ):
         yield line
 
@@ -304,4 +305,4 @@ def unique_everseen(iterable, key=None):
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
-    view(dict((k, line[k]) for k in ["Title", "URL", "loc", "weight"]))
+    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
