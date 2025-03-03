@@ -15,6 +15,7 @@
       environment.systemPackages = with pkgs;
         [
           broot
+          fd
           fzf
           just
           neovide
