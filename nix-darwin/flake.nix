@@ -16,6 +16,7 @@
         [
           bat
           broot
+          diffstatic
           fd
           fzf
           just
