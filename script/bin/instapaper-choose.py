@@ -48,7 +48,6 @@ from operator import itemgetter
 from pprint import pformat
 from unicodedata import east_asian_width
 
-from urllib.parse import urlparse
 from urllib.parse import quote
 
 
@@ -245,20 +244,22 @@ folders = groupby(
 indexed_entries = [
     {
         **d,
-        "findex": index_in_the_folder,
+        # "findex": index_in_the_folder,
         "page": folder_uis[d["Folder"]] + "/" + str(int(index_in_the_folder / 40) + 1),
         "loc": folder_uis[d["Folder"]]
         + "/"
         + str(int(index_in_the_folder / 40) + 1)
         + "#:~:text="
         + quote(d["Title"]),
-        "weight": folder_weights[d["Folder"]],
-        "domain": urlparse(d["URL"]).netloc,
+        "weight": folder_weights[d["Folder"]] / float(folder_size),
+        # "domain": urlparse(d["URL"]).netloc,
     }
-    for folder_name, all_data_in_a_folder in folders
+    for folder_name, all_data_in_a_folder_iter in folders
     if folder_name in folder_uis
+    for all_data_in_a_folder in [list(all_data_in_a_folder_iter)]
     for index_in_the_folder, d in enumerate(all_data_in_a_folder)
     if index_in_the_folder / 40 + 1 < biggest_page.get(d["Folder"], 9999)
+    for folder_size in [len(all_data_in_a_folder)]
 ]
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
@@ -303,4 +304,4 @@ def unique_everseen(iterable, key=None):
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
-    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    view(dict((k, line[k]) for k in ["Title", "URL", "loc", "weight"]))
