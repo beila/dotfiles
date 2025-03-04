@@ -23,6 +23,10 @@ build_AVLivingRoomClientBootstrap:
     npm run build
 
 [no-cd]
+build_IgnitionXJSBundle:
+    brazil-build
+
+[no-cd]
 init_AVLivingRoomClient:
     brazil-build install
 
