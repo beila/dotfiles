@@ -60,7 +60,7 @@ init_IgnitionXRustBundle:
 
 [no-cd]
 build_IgnitionXRustBundle:
-    #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
+    IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
     #cargo build --bins --release --target arm-unknown-linux-gnueabi
 
 [no-cd]
@@ -68,7 +68,7 @@ release_IgnitionXRustBundle:
     for i in amzn* ignx*; do cd $i; cargo brazil publish --allow-dirty; cd -; done
 
 [no-cd]
-init_AVLivingRoomRustClient: collect_rust_deps
+init_AVLivingRoomRustClient: #collect_rust_deps
     #brazil-build build
     #cargo brazil fetch --target all
     #brazil-build sync
