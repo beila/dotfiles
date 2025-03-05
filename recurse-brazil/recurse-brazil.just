@@ -297,9 +297,9 @@ clean dir=".":
 [no-cd]
 clean_all:
     #!/usr/bin/env zsh
-    setopt +o nullglob
+    setopt -o nullglob
     set -x
-    rm -rf ../*/build/* ../*/node_modules
+    rm -rf ../*/build ../*/node_modules
 
 [no-cd]
 clean_everything: clean_all
