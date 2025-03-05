@@ -69,7 +69,7 @@ release_IgnitionXRustBundle:
     for i in amzn* ignx*; do cd $i; cargo brazil publish --allow-dirty; cd -; done
 
 [no-cd]
-init_AVLivingRoomRustClient: #collect_rust_deps
+init_AVLivingRoomRustClient:
     brazil-build build
     cargo brazil fetch --target all
 
