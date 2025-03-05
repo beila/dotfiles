@@ -62,13 +62,14 @@ init_IgnitionXRustBundle:
 build_IgnitionXRustBundle:
     #IGNITION_X_PATH=~/dev/i/dev/build/install build-tools/release-quick --lib
     #cargo build --bins --release --target arm-unknown-linux-gnueabi
+    brazil-build
 
 [no-cd]
 release_IgnitionXRustBundle:
-    #for i in amzn* ignx*; do cd $i; cargo brazil publish --allow-dirty; cd -; done
+    for i in amzn* ignx*; do cd $i; cargo brazil publish --allow-dirty; cd -; done
 
 [no-cd]
-init_AVLivingRoomRustClient: collect_rust_deps
+init_AVLivingRoomRustClient: #collect_rust_deps
     #brazil-build build
     #cargo brazil fetch --target all
     #brazil-build sync
@@ -79,11 +80,13 @@ pre_build_AVLivingRoomRustClient:
 
 [no-cd]
 build_AVLivingRoomRustClient:
-    build-tools/bin/generate-bundles native
+    #build-tools/bin/generate-bundles native
 
-    find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
-    find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
-    find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
+    #find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty ls -l
+    #find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
+    #find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
+
+    cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local,amzn-ignx-compositron/debug_overlay
 
 [no-cd]
 release_AVLivingRoomRustClient:
