@@ -221,12 +221,12 @@ folder_weights = {
     "brown": 6,
     "choi": 6,
     "jones": 1,
-    "morpheus": 40,
-    "oracle": 40,
-    "rhineheart": 40,
+    "morpheus": 80,
+    "oracle": 80,
+    "rhineheart": 80,
     "smith": 1,
     "switch": 6,
-    "trinity": 40,
+    "trinity": 80,
 }
 
 biggest_page = {
@@ -245,6 +245,7 @@ indexed_entries = [
     {
         **d,
         # "findex": index_in_the_folder,
+        "folder": folder_name,
         "page": folder_uis[d["Folder"]] + "/" + str(page_index),
         "loc": folder_uis[d["Folder"]]
         + "/"
@@ -306,3 +307,4 @@ def unique_everseen(iterable, key=None):
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
     view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    # view(dict((k, line[k]) for k in ["folder"]))
