@@ -26,6 +26,8 @@
           ripgrep
           rustup
           zoxide
+          # insuk-www
+          rclone
         ];
 
       # Necessary for using flakes on this system.
