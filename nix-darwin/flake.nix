@@ -27,6 +27,7 @@
           rustup
           zoxide
           # insuk-www
+          imagemagick
           rclone
         ];
 
