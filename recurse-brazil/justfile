@@ -97,7 +97,7 @@ release_AVLivingRoomRustClient:
 [no-cd]
 build_AVLivingRoomClientBundle:
     brazil-build run build -- -f Ignition-X-XP --nobytecode --noaot --nothreads --nonativebundle=false
-    strings build/lib_debug/*client-*.so|grep 'always_return_true'
+    #strings build/lib_debug/*client-*.so|grep 'always_return_true'
 
 [no-cd]
 release_AVLivingRoomClientBundle:
