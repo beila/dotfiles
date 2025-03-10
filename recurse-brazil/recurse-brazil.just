@@ -207,7 +207,7 @@ _find_package_recipe_and_run recipe dir:
             {{ default_command }}
         "
     else
-        echo "$package_specific_recipe is not defined." > "$log_path"
+        [ -n "$log_path" ] && echo "$package_specific_recipe is not defined." >> "$log_path"
     fi
     # TODO show recurse log at the end of the recipe log without losing exit status
 
