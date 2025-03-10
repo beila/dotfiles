@@ -25,6 +25,7 @@
           neovim
           ripgrep
           rustup
+          yabai
           zoxide
           # insuk-www
           imagemagick
