@@ -165,6 +165,7 @@ _run_package_recipe recipe dir force *previous_recipes:
 
     echo "Recurse log: $just_recurse_log"
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
+    log "Log: $recipe_log_path"
 
     set -x  # FIXME recipe succeeded but fail?
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" .
@@ -323,8 +324,6 @@ run +commands:
         log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
         log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
     fi
-
-    echo "Log: $log_path"
 
     if [ -z "${log_decorator_invoked}" ]
     then
