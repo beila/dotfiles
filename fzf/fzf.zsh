@@ -17,6 +17,7 @@ export FZF_CTRL_T_OPTS='--ansi --preview "
         '$ls' -l {}"'
 
 export FZF_ALT_C_COMMAND='
+    set -x  # FIXME
     (
         (
             dirs -lp
