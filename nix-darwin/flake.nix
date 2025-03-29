@@ -18,8 +18,10 @@
           bat
           broot
           difftastic
+          eza
           fd
           fzf
+          hishtory
           just
           neovide
           neovim
