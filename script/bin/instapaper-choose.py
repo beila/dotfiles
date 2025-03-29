@@ -306,10 +306,13 @@ def unique_everseen(iterable, key=None):
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
-    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    # view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    continue
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 60):
-    # print("\n".join(line[k] for k in ["folder"]))
+    # print("\n".join(line["folder"]))
     continue
 
+for line in (line for line in indexed_entries if line["folder"] == "morpheus"):
+    print(line["Title"])
