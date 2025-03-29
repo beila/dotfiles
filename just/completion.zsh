@@ -1,1 +1,1 @@
-(which just >& /dev/null && test -f $HOME/.justfile) && eval $(just setup_shell)
+(which just >& /dev/null && test -f $HOME/.justfile) && eval $(just --justfile $HOME/.justfile setup_shell)
