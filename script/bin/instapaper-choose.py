@@ -191,10 +191,10 @@ folder_uis = {
 }
 
 folder_weights = {
-    "10월": 6,
-    "11월": 6,
-    "12월": 6,
-    "1월": 6,
+    "10월": 0.6,  # needs to be divided by 12 from what other years have, but what the hell, I'm dividing with 10
+    "11월": 0.6,
+    "12월": 0.6,
+    "1월": 0.6,
     "2013": 6,
     "2014": 6,
     "2015": 6,
@@ -208,31 +208,31 @@ folder_weights = {
     "2023": 6,
     "2024": 12,
     "2025": 12,
-    "2월": 6,
-    "3월": 6,
-    "4월": 6,
-    "5월": 6,
-    "6월": 6,
-    "7월": 6,
-    "8월": 6,
-    "9월": 6,
+    "2월": 0.6,
+    "3월": 0.6,
+    "4월": 0.6,
+    "5월": 0.6,
+    "6월": 0.6,
+    "7월": 0.6,
+    "8월": 0.6,
+    "9월": 0.6,
     "Books 2": 1,
     "Books": 1,
     "brown": 6,
     "choi": 6,
     "jones": 1,
-    "morpheus": 80,
-    "oracle": 80,
-    "rhineheart": 80,
+    "morpheus": 60,
+    "oracle": 60,
+    "rhineheart": 60,
     "smith": 1,
     "switch": 6,
-    "trinity": 80,
+    "trinity": 60,
 }
 
 biggest_page = {
-    "morpheus": 2,
-    "oracle": 5,
-    "smith": 4,
+    "morpheus": 99999,  # 2,
+    "oracle": 99999,  # 5,
+    "smith": 99999,  # 4,
 }
 
 folderlines = {}
@@ -305,6 +305,6 @@ def unique_everseen(iterable, key=None):
                 yield element
 
 
-for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
-    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
-    # view(dict((k, line[k]) for k in ["folder"]))
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 40):
+    # view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    print("\n".join(line[k] for k in ["folder"]))
