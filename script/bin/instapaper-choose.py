@@ -230,9 +230,9 @@ folder_weights = {
 }
 
 biggest_page = {
-    "morpheus": 99999,  # 2,
-    "oracle": 99999,  # 5,
-    "smith": 99999,  # 4,
+    "morpheus": 2,
+    "oracle": 5,
+    "smith": 4,
 }
 
 folderlines = {}
