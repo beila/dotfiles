@@ -6,11 +6,13 @@ cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
 
-$GIT add --verbose --all .
-$GIT commit --verbose -m "Change from $(hostname -s)"
-$GIT pull --ff --verbose --no-edit --recurse-submodules=no &&
-    ( $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all ) &&
-    $GIT push --verbose
+(
+    $GIT add --verbose --all .
+    $GIT commit --verbose -m "Change from $(hostname -s)" || exit 0
+    $GIT pull --ff --verbose --no-edit --recurse-submodules=no &&
+        ( $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all ) &&
+        $GIT push --verbose
+)
 
 $GIT submodule foreach bash -c "$GIT add --verbose --all . ;\
     $GIT commit --verbose -m \"Change from $(hostname -s)\" && WILL_PUSH=yes ;\
