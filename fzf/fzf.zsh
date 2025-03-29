@@ -22,16 +22,17 @@ export FZF_ALT_C_COMMAND='
             dirs -lp
             git worktree list | cut -d" " -f1
             zoxide query --list
-        ) | xargs --no-run-if-empty '$ls' --color=always -d --sort=none
+        ) | xargs --no-run-if-empty '$ls' --color=always -d --sort=none --oneline
         (
             fd --hidden --follow --print0 --strip-cwd-prefix --type d   # &&
             # fd --print0 --one-file-system --type d . '"${HOME}"' &&
             # fd --print0 --one-file-system --type d . /
-        ) | xargs -0 --no-run-if-empty '$ls' --color=always -d --sort=none
+        ) | xargs -0 --no-run-if-empty '$ls' --color=always -d --sort=none --oneline
     ) 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
         # "->" part separates the targets of symbolic links which eza shows
         awk -F " +[^ ]*->" "{print \$1}" |
+        grep -v "\^$(pwd)\$" |
         #sed "s:$(pwd)/::" |
         #sed "s:$(pwd):.:" |
         #sed "s:$HOME:~:" |
