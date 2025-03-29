@@ -191,42 +191,42 @@ folder_uis = {
 }
 
 folder_weights = {
-    "10월": 0.6,  # needs to be divided by 12 from what other years have, but what the hell, I'm dividing with 10
-    "11월": 0.6,
-    "12월": 0.6,
-    "1월": 0.6,
-    "2013": 6,
-    "2014": 6,
-    "2015": 6,
-    "2016": 6,
-    "2017": 6,
-    "2018": 6,
-    "2019": 6,
-    "2020": 6,
-    "2021": 6,
-    "2022": 6,
-    "2023": 6,
-    "2024": 12,
-    "2025": 12,
-    "2월": 0.6,
-    "3월": 0.6,
-    "4월": 0.6,
-    "5월": 0.6,
-    "6월": 0.6,
-    "7월": 0.6,
-    "8월": 0.6,
-    "9월": 0.6,
-    "Books 2": 1,
-    "Books": 1,
-    "brown": 6,
-    "choi": 6,
-    "jones": 1,
-    "morpheus": 60,
-    "oracle": 60,
-    "rhineheart": 60,
-    "smith": 1,
-    "switch": 6,
-    "trinity": 60,
+    "10월": 1 / 12,
+    "11월": 1 / 12,
+    "12월": 1 / 12,
+    "1월": 1 / 12,
+    "2013": 1,
+    "2014": 1,
+    "2015": 1,
+    "2016": 1,
+    "2017": 1,
+    "2018": 1,
+    "2019": 1,
+    "2020": 1,
+    "2021": 1,
+    "2022": 1,
+    "2023": 1,
+    "2024": 2,
+    "2025": 2,
+    "2월": 1 / 12,
+    "3월": 1 / 12,
+    "4월": 1 / 12,
+    "5월": 1 / 12,
+    "6월": 1 / 12,
+    "7월": 1 / 12,
+    "8월": 1 / 12,
+    "9월": 1 / 12,
+    "Books 2": 1 / 40,
+    "Books": 1 / 40,
+    "brown": 1,
+    "choi": 1,
+    "jones": 1 / 40,
+    "morpheus": 4,
+    "oracle": 4,
+    "rhineheart": 4,
+    "smith": 1 / 40,
+    "switch": 1,
+    "trinity": 4,
 }
 
 biggest_page = {
@@ -305,6 +305,10 @@ def unique_everseen(iterable, key=None):
                 yield element
 
 
-for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 40):
-    # view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
-    print("\n".join(line[k] for k in ["folder"]))
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
+    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+
+
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 60):
+    # print("\n".join(line[k] for k in ["folder"]))
+    continue
