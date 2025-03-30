@@ -20,6 +20,7 @@
           difftastic
           eza
           fd
+          ffmpeg
           fzf
           hishtory
           just
@@ -27,6 +28,7 @@
           neovim
           ripgrep
           rustup
+          yt-dlp
           zoxide
           # insuk-www
           imagemagick
