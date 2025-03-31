@@ -18,14 +18,17 @@
           bat
           broot
           difftastic
+          eza
           fd
+          ffmpeg
           fzf
+          hishtory
           just
           neovide
           neovim
           ripgrep
           rustup
-          yabai
+          yt-dlp
           zoxide
           # insuk-www
           imagemagick

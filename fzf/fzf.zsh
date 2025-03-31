@@ -28,7 +28,7 @@ export FZF_ALT_C_COMMAND='
             # fd --print0 --one-file-system --type d . '"${HOME}"' &&
             # fd --print0 --one-file-system --type d . /
         ) | xargs -0 --no-run-if-empty '$ls' --color=always -d --sort=none
-    ) |# 2> /dev/null |
+    ) 2> /dev/null |
         # " +[^ ]*" part removes space and invisible colour code.
         # "->" part separates the targets of symbolic links which eza shows
         awk -F " +[^ ]*->" "{print \$1}" |
@@ -36,7 +36,7 @@ export FZF_ALT_C_COMMAND='
         #sed "s:$(pwd):.:" |
         #sed "s:$HOME:~:" |
         awk "!d[\$0]++"
-                '
+    '
 
 export FZF_ALT_C_OPTS='--ansi -d"'$HOME/'" --with-nth 2 --preview "
     (
