@@ -260,8 +260,10 @@ indexed_entries = [
     for all_entries_in_a_folder in [list(all_entries_in_a_folder_iter)]
     for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
     for page_index in [int(index_in_the_folder / 40) + 1]
-    if page_index < biggest_page.get(d["Folder"], 9999)
-    for folder_size in [len(all_entries_in_a_folder)]
+    if page_index <= biggest_page.get(d["Folder"], 9999)
+    for folder_size in [
+        min(len(all_entries_in_a_folder), biggest_page.get(d["Folder"], 9999))
+    ]
 ]
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
