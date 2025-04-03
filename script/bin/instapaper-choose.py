@@ -179,6 +179,7 @@ folder_uis = {
     "9월": "https://www.instapaper.com/u/folder/4652850/9-",
     "Books 2": "https://www.instapaper.com/u/folder/4845144/books-2",
     "Books": "https://www.instapaper.com/u/folder/4845142/books",
+    "apoc": "https://www.instapaper.com/u/folder/1536334/apoc",
     "choi": "https://www.instapaper.com/u/folder/1538044/choi",
     "jones": "https://www.instapaper.com/u/folder/1538042/jones",
     "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
@@ -218,6 +219,7 @@ folder_weights = {
     "9월": 1 / 12,
     "Books 2": 1 / 40,
     "Books": 1 / 40,
+    "apoc": 4,
     "brown": 1,
     "choi": 1,
     "jones": 1 / 40,
@@ -230,6 +232,7 @@ folder_weights = {
 }
 
 biggest_page = {
+    "apoc": 1,
     "morpheus": 2,
     "oracle": 5,
     "smith": 4,
@@ -252,7 +255,7 @@ indexed_entries = [
         + str(page_index)
         + "#:~:text="
         + quote(d["Title"]),
-        "weight": folder_weights[d["Folder"]] / float(folder_size),
+        "weight": folder_weights[d["Folder"]] / float(valid_folder_size),
         # "domain": urlparse(d["URL"]).netloc,
     }
     for folder_name, all_entries_in_a_folder_iter in folders
@@ -260,8 +263,10 @@ indexed_entries = [
     for all_entries_in_a_folder in [list(all_entries_in_a_folder_iter)]
     for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
     for page_index in [int(index_in_the_folder / 40) + 1]
-    if page_index < biggest_page.get(d["Folder"], 9999)
-    for folder_size in [len(all_entries_in_a_folder)]
+    if page_index <= biggest_page.get(d["Folder"], 9999)
+    for valid_folder_size in [
+        min(len(all_entries_in_a_folder), biggest_page.get(d["Folder"], 9999))
+    ]
 ]
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
@@ -306,11 +311,11 @@ def unique_everseen(iterable, key=None):
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
-    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    # view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
     continue
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 60):
-    # print("\n".join(line["folder"]))
+    print(line["folder"])
     continue
 
 for line in (line for line in indexed_entries if line["folder"] == "morpheus"):
