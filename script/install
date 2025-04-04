@@ -4,11 +4,11 @@
 
 set -e
 
-cd "$(dirname $0)"/..
+cd "$(dirname "$0")"/..
 
 # Run Homebrew through the Brewfile
 #echo "› brew bundle"
 #brew bundle
 
 # find the installers and run them iteratively
-git ls-files | grep 'install.sh$' | while read installer ; do sh -c "${installer}" ; done
+git ls-files | grep 'install.sh$' | while read installer ; do zsh -c "${installer}" ; done
