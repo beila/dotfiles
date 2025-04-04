@@ -1,6 +1,6 @@
 #!/usr/bin/env -S just --justfile
 
-import? '~/dev/hjdocs/public-docs/recurse-brazil/justfile'
+import? '~/hjdocs/public-docs/recurse-brazil/justfile'
 
 set allow-duplicate-recipes
 
@@ -17,7 +17,7 @@ setup_shell:
     done
 
     # this has completions at the end and we want them after aliases. It doesn't work otherwise for some reason.
-    [ -f $HOME/dev/hjdocs/public-docs/recurse-brazil/justfile ] &&
-        just --justfile=$HOME/dev/hjdocs/public-docs/recurse-brazil/justfile setup_shell
+    [ -f $HOME/hjdocs/public-docs/recurse-brazil/justfile ] &&
+        just --justfile=$HOME/hjdocs/public-docs/recurse-brazil/justfile setup_shell
 
     just --completions $(basename $SHELL)
