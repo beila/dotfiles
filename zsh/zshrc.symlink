@@ -36,7 +36,7 @@ fi
 # load everything but the path and completion files
 for file in ${${${${config_files:#*/path.zsh}:#*/completion.zsh}:#*/vimshell/*}:#*/zprezto.symlink/modules/*}
 do
-  #echo "sourcing: $file"
+  echo "sourcing: $file"
   source $file
 done
 
