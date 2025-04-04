@@ -131,7 +131,8 @@ native_roku:
     "
 
 c *command: mwinit
-    ssh dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
+    #ssh dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
+    ssh dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com "{{ command }}"
 
 # Run `eval $(just setup_shell)` for aliases (jbuild, jrelase, etc) and command completion
 setup_shell:
