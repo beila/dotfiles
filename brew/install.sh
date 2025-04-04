@@ -3,7 +3,7 @@
 BREW=$(which brew 2> /dev/null)
 if [ "$BREW" == "" ]
 then
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 
 function install_if_missing(){
