@@ -18,6 +18,9 @@ install_if_missing zsh
 $BREW install coreutils screen ripgrep fzf bat git-subrepo zoxide neovim just eza difftastic fd broot dust glow feedgnuplot neovide spacer
 #$BREW install exa fasd
 
+# https://gitlab.com/kevincox/watchlog#user-content-nix
+#nix-env -i -f https://gitlab.com/kevincox/watchlog/-/archive/v1/watchlog-v1.tar.bz2 -A watchlog
+
 if [ "$(uname -s)" == "Darwin" ]
 then
     #$BREW install homebrew/cask-drivers/kensington-trackball-works
