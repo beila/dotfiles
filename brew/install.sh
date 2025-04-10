@@ -15,8 +15,17 @@ function install_if_missing(){
 }
 
 install_if_missing zsh
+<<<<<<< HEAD
 $BREW install coreutils screen ripgrep fzf bat git-subrepo zoxide neovim just eza difftastic fd broot dust glow feedgnuplot neovide hishtory
+||||||| 90eff8fc
+$BREW install coreutils screen ripgrep fzf bat git-subrepo zoxide neovim just eza difftastic fd broot dust glow feedgnuplot neovide
+=======
+$BREW install coreutils screen ripgrep fzf bat git-subrepo zoxide neovim just eza difftastic fd broot dust glow feedgnuplot neovide spacer
+>>>>>>> 98d20a3d4fb0de612c9a317aeda9a96f177595d8
 #$BREW install exa fasd
+
+# https://gitlab.com/kevincox/watchlog#user-content-nix
+#nix-env -i -f https://gitlab.com/kevincox/watchlog/-/archive/v1/watchlog-v1.tar.bz2 -A watchlog
 
 if [ "$(uname -s)" == "Darwin" ]
 then
