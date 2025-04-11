@@ -1,3 +1,6 @@
+set allow-duplicate-recipes
+set fallback
+
 [macos]
 update:
     nix flake update
