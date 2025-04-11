@@ -47,6 +47,7 @@ echo "Set up $W from $(pp ${LOCAL_REPO})"
 [ -f "$(pp ${LOCAL_REPO}/.idea)" ] && ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/.idea)")" $W/.idea
 [ -f "$(pp ${LOCAL_REPO}/venv)" ] && ln -sf "$(readlink -f "$(pp ${LOCAL_REPO}/venv)")" $W/venv
 [ -f "$(pp ${LOCAL_REPO}/CMakeUserPresets.json)" ] && ln -f "$(readlink -f "$(pp ${LOCAL_REPO}/CMakeUserPresets.json)")" $W/CMakeUserPresets.json
+[ -f "$(pp ${LOCAL_REPO}/justfile)" ] && ln -f "$(readlink -f "$(pp ${LOCAL_REPO}/justfile)")" $W/justfile
 
 echo "Link $W to $C"
 rm -f $C
