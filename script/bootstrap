@@ -152,6 +152,7 @@ install_dotfiles () {
 setup_dotfiles_sync () {
   TARGETS="$DOTFILES_ROOT $HOME/hjdocs $HOME/hjdocs/public-docs $HOME/pp/insuk-www"
   TARGETS="$TARGETS $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i"
+  TARGETS="$TARGETS $HOME/devc/hjdocs $HOME/devc/hjdocs/public-docs $HOME/devc/i"
   TARGETS="$TARGETS $HOME/devm/hjdocs $HOME/devm/hjdocs/public-docs $HOME/devm/i"
   info "setup periodic sync for $TARGETS"
   (
