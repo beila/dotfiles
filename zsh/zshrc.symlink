@@ -98,3 +98,5 @@ setopt HIST_REDUCE_BLANKS
 export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
 
 export PATH=$PATH:$HOME/.toolbox/bin
+
+export PATH=$HOME/.toolbox/bin:$PATH
