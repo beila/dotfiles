@@ -28,7 +28,7 @@
           
           packages = with pkgs; [
             git
-            libjpeg # ignite
+            libjpeg_original    # ignite
             neovim
             nodejs  # biome from Mason
           ];
