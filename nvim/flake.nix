@@ -34,14 +34,8 @@
 
           
           shellHook = ''
-            echo $LD_LIBRARY_PATH
-            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH
-            #nvim
+            exec nvim
           '';
-
-          LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
-            libjpeg8   # ignite
-          ];
         };
       });
     };
