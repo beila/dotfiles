@@ -28,17 +28,20 @@
           
           packages = with pkgs; [
             git
-            libjpeg # ignite
             neovim
             nodejs  # biome from Mason
           ];
 
           
           shellHook = ''
-            nvim
+            echo $LD_LIBRARY_PATH
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+            #nvim
           '';
 
-          LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.libjpeg ];
+          LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
+            libjpeg8   # ignite
+          ];
         };
       });
     };
