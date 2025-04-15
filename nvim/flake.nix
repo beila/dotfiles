@@ -34,11 +34,12 @@
 
           
           shellHook = ''
-            nvim
+            #nvim
           '';
 
           LD_LIBRARY_PATH = with pkgs; lib.makeLibraryPath [
-            libjpeg8   # ignite
+            SDL2    # debugging ignite
+            libjpeg8   # debugging ignite
           ];
         };
       });
