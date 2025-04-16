@@ -1,2 +1,2 @@
 #!env zsh
-git submodule foreach "$@"
+nix develop --command zsh -ic "$@"
