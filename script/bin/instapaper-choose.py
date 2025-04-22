@@ -234,7 +234,7 @@ folder_weights = {
 biggest_page = {
     "apoc": 1,
     "morpheus": 2,
-    "oracle": 5,
+    "oracle": 4,
     "smith": 4,
 }
 
