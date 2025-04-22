@@ -314,7 +314,7 @@ for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
     view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
     continue
 
-for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 60):
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 50):
     # print(line["folder"])
     continue
 
