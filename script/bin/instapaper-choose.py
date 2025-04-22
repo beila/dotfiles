@@ -219,16 +219,16 @@ folder_weights = {
     "9월": 1 / 12,
     "Books 2": 1 / 40,
     "Books": 1 / 40,
-    "apoc": 4,
+    "apoc": 2,
     "brown": 1,
     "choi": 1,
     "jones": 1 / 40,
-    "morpheus": 4,
-    "oracle": 4,
-    "rhineheart": 4,
+    "morpheus": 2,
+    "oracle": 2,
+    "rhineheart": 2,
     "smith": 1 / 40,
     "switch": 1,
-    "trinity": 4,
+    "trinity": 2,
 }
 
 biggest_page = {
