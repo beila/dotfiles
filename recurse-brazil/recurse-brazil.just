@@ -321,8 +321,8 @@ run +commands:
         name=${name##*$'\n'}
         name=${name// /-}
         name=${name//\//-}
-        log_file="log-${name}-$(date +%F-%H-%M-%S)"
-        log_file="${log_file:0:200}.txt"    # file name limit https://serverfault.com/a/9548
+        name="${name:0:200}"    # file name limit https://serverfault.com/a/9548
+        log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
         log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
     fi
 
