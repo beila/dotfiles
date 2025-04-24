@@ -11,3 +11,12 @@ clean:
 
 build:
     just run nix develop --command bash -x "build_sysroots.sh && build_toolchain.sh && build_examples.sh mixed"
+
+build_sysroots:
+    just run nix develop --command build_sysroots.sh
+
+build_toolchain:
+    just run nix develop --command build_toolchain.sh
+
+build_mixed:
+    just run nix develop --command build_examples.sh mixed
