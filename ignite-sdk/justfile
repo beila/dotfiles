@@ -6,7 +6,10 @@ import? '~/.justfile'
 default:
     @just --list --unsorted
 
-clean:
+clean: clean_mixed
+    rm -rf sysroots/ install/
+
+clean_all:
     rm -rf build/{llvm,sysroots} sysroots/ install/
 
 build:
@@ -21,7 +24,10 @@ build_toolchain:
 build_mixed:
     rm -rf build/examples/mixed/
     nix develop --command ./build_examples.sh mixed
-    readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep iswupper_l
+    readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
+
+clean_mixed:
+    rm -rf build/examples/mixed/
 
 build_musl:
     nix develop --command just _build_musl
@@ -57,6 +63,6 @@ build_sye:
 
     DIR=$(pwd)
     cd ../syewasmbundle
-    BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake
+    nix develop --command bash -c "BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake"
 
     readelf --all build-native/_CPack_Packages/Linux/TGZ/sye-lr-ota-native.unknown-abi.1.0-301568c/lib/stripped_libsye_wasm_bundle.so |grep iswupper_l
