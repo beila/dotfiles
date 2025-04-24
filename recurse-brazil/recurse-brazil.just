@@ -197,13 +197,13 @@ _find_package_recipe_and_run recipe dir:
     if (($all_recipes[(Ie)$package_specific_recipe]))   # if all_recipes includes $package_specific_recipe
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
-        just run "
+        just run_with_brazil_env "
             echo Recurse log: $just_recurse_log
             just --justfile={{ justfile() }} --working-directory=$(pwd) --color always $package_specific_recipe
         "
     elif [ -n "{{ default_command }}" ]
     then
-        just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run "
+        just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run_with_brazil_env "
             echo Recurse log: $just_recurse_log
             {{ default_command }}
         "
@@ -311,7 +311,7 @@ clean_everything: clean_all
 
 [no-cd]
 [no-exit-message]
-run +commands:
+run_with_brazil_env +commands:
     #!/bin/bash
     # zsh fails with >&
 
@@ -351,7 +351,7 @@ run +commands:
 
 [no-cd]
 b *subcommands:
-    @name=bb just run "just pre_build && (set -x; brazil-build {{ subcommands }} )"
+    @name=bb just run_with_brazil_env "just pre_build && (set -x; brazil-build {{ subcommands }} )"
 
 [no-cd]
 ws *subcommands: mwinit
