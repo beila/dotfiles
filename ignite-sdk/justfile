@@ -15,13 +15,13 @@ clean_all:
 build:
     nix develop --command bash -xc "./build_sysroots.sh && ./build_toolchain.sh && ./build_examples.sh mixed"
 
-build_sysroots:
+sysroots:
     nix develop --command ./build_sysroots.sh
 
-build_toolchain:
+toolchain:
     nix develop --command ./build_toolchain.sh
 
-build_mixed:
+mixed:
     rm -rf build/examples/mixed/
     nix develop --command ./build_examples.sh mixed
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
@@ -29,10 +29,10 @@ build_mixed:
 clean_mixed:
     rm -rf build/examples/mixed/
 
-build_musl:
-    nix develop --command just _build_musl
+musl:
+    nix develop --command just _musl
 
-_build_musl:
+_musl:
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
@@ -58,13 +58,19 @@ _build_musl:
     readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
     mv build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libstaticc.a
 
-build_sye:
+clean_musl:
+    rm -rf build/sysroots/musl*
+
+sye:
+    nix develop ../syewasmbundle --command just _sye
+
+_sye:
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
     DIR=$(pwd)
     cd ../syewasmbundle
-    nix develop --command bash -c "BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake"
+    BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake
 
     readelf --all build-native/_CPack_Packages/Linux/TGZ/sye-lr-ota-native.unknown-abi.1.0-301568c/lib/stripped_libsye_wasm_bundle.so |grep iswupper_l
 
