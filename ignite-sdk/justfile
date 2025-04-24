@@ -19,7 +19,9 @@ build_toolchain:
     nix develop --command ./build_toolchain.sh
 
 build_mixed:
+    rm -rf build/examples/mixed/
     nix develop --command ./build_examples.sh mixed
+    readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep iswupper_l
 
 build_musl:
     nix develop --command just _build_musl
