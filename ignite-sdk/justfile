@@ -1,0 +1,13 @@
+#!/usr/bin/env -S just --justfile
+
+import? '~/.justfile'
+
+[private]
+default:
+    @just --list --unsorted
+
+clean:
+    rm -rf build/{llvm,sysroots} sysroots/ install/
+
+build:
+    just run nix develop --command bash -x "build_sysroots.sh && build_toolchain.sh && build_examples.sh mixed"
