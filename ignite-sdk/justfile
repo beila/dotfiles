@@ -10,7 +10,7 @@ clean:
     rm -rf build/{llvm,sysroots} sysroots/ install/
 
 build:
-    nix develop --command bash -x "build_sysroots.sh && build_toolchain.sh && build_examples.sh mixed"
+    nix develop --command bash -xc "./build_sysroots.sh && ./build_toolchain.sh && ./build_examples.sh mixed"
 
 build_sysroots:
     nix develop --command ./build_sysroots.sh
