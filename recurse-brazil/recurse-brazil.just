@@ -312,6 +312,16 @@ clean_everything: clean_all
 [no-cd]
 [no-exit-message]
 run_with_brazil_env +commands:
+    #!/usr/bin/env zsh
+    just run "
+        export PATH=$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH
+        export LD_LIBRARY_PATH=$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+        {{ commands }}
+    "
+
+[no-cd]
+[no-exit-message]
+run +commands:
     #!/bin/bash
     # zsh fails with >&
 
@@ -337,8 +347,6 @@ run_with_brazil_env +commands:
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
     time ${SHELL} -ic "
-        export PATH="$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH"
-        export LD_LIBRARY_PATH="$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
         set -x
         {{ commands }}
     "
