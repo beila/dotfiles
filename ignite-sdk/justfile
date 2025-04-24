@@ -13,10 +13,34 @@ build:
     just run nix develop --command bash -x "build_sysroots.sh && build_toolchain.sh && build_examples.sh mixed"
 
 build_sysroots:
-    just run nix develop --command build_sysroots.sh
+    just run nix develop --command ./build_sysroots.sh
 
 build_toolchain:
-    just run nix develop --command build_toolchain.sh
+    just run nix develop --command ./build_toolchain.sh
 
 build_mixed:
-    just run nix develop --command build_examples.sh mixed
+    just run nix develop --command ./build_examples.sh mixed
+
+build_musl:
+    just run nix develop --command just _build_musl
+
+_build_musl:
+    #!/usr/bin/env zsh
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    targets=(
+        "x86_64-unknown-linux-gnu"
+        "armv7-unknown-linux-gnueabihf"
+        "armv7-unknown-linux-gnueabi"
+        "aarch64-unknown-linux-gnu"
+    )
+
+    for target in "${targets[@]}"; do
+        pushd "$SCRIPT_DIR/build/sysroots/musl-${target}"
+        export AR="$SCRIPT_DIR/build/llvm/bin/llvm-ar"
+        export RANLIB="$SCRIPT_DIR/build/llvm/bin/llvm-ranlib"
+        export CC="$SCRIPT_DIR/build/llvm/bin/clang --no-default-config --target=${target} --rtlib=compiler-rt -fuse-ld=lld -fno-stack-protector --sysroot=$SCRIPT_DIR/sysroots/${target}/"
+        export LIBCC="$SCRIPT_DIR/build/sysroots/builtins-${target}/lib/${target}/libclang_rt.builtins.a"
+        "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
+        make -j64 install
+        popd
+    done
