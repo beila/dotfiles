@@ -14,9 +14,11 @@ clean_all:
 
 build:
     nix develop --command bash -xc "./build_sysroots.sh && ./build_toolchain.sh && ./build_examples.sh mixed"
+    mv build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libstaticc.a
 
 sysroots:
     nix develop --command ./build_sysroots.sh
+    mv build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libstaticc.a
 
 toolchain:
     nix develop --command ./build_toolchain.sh
