@@ -69,9 +69,15 @@ _sye:
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
-    DIR=$(pwd)
-    cd ../syewasmbundle
-    BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake
+    #-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,iswprint_l -Wl,--trace-symbol,iswalpha_l -Wl,--trace-symbol,iswupper_l -Wl,--trace-symbol,uselocale -Wl,--trace-symbol,isupper_l -Wl,--trace-symbol,iswspace_l -Wl,--trace-symbol,iswblank_l -Wl,--trace-symbol,strxfrm_l -Wl,--trace-symbol,iswpunct_l -Wl,--trace-symbol,isxdigit_l -Wl,--trace-symbol,wcsxfrm_l -Wl,--trace-symbol,newlocale -Wl,--trace-symbol,isdigit_l -Wl,--trace-symbol,strftime_l -Wl,--trace-symbol,strcoll_l -Wl,--trace-symbol,toupper_l -Wl,--trace-symbol,freelocale -Wl,--trace-symbol,towlower_l -Wl,--trace-symbol,iswxdigit_l -Wl,--trace-symbol,iswlower_l -Wl,--trace-symbol,towupper_l -Wl,--trace-symbol,tolower_l -Wl,--trace-symbol,iswcntrl_l -Wl,--trace-symbol,islower_l -Wl,--trace-symbol,iswdigit_l -Wl,--trace-symbol,wcscoll_l -Wl,--trace-symbol,wcscoll_l " \
+    #-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,pthread_cond_broadcast -Wl,--trace-symbol,pthread_mutexattr_destroy -Wl,--trace-symbol,pthread_key_create -Wl,--trace-symbol,pthread_cond_wait -Wl,--trace-symbol,pthread_mutexattr_init -Wl,--trace-symbol,pthread_cond_signal -Wl,--trace-symbol,pthread_setspecific  -Wl,--trace-symbol,pthread_once -Wl,--trace-symbol,pthread_cond_timedwait -Wl,--trace-symbol,pthread_cond_destroy -Wl,--trace-symbol,pthread_mutex_init -Wl,--trace-symbol,pthread_join  -Wl,--trace-symbol,pthread_mutex_lock -Wl,--trace-symbol,pthread_mutex_destroy -Wl,--trace-symbol,pthread_detach -Wl,--trace-symbol,pthread_mutex_trylock -Wl,--trace-symbol,pthread_getspecific -Wl,--trace-symbol,pthread_mutexattr_settype -Wl,--trace-symbol,pthread_create -Wl,--trace-symbolpthread_self -Wl,--trace-symbol,pthread_mutex_unlock " \
+
+    BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake --build-target sye_wasm_bundle
+
+    export BUILD_TARGET=x86_64-unknown-linux-gnu
+
+    cmake -Bbuild/sye -DPLATFORM_NAME=native -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    cmake --bnuild build/sye --target sye_wasm_bundle
 
     readelf --all build-native/src/wasm_bundle/libsye_wasm_bundle.so |grep iswupper_l
 
