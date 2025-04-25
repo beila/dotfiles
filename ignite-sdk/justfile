@@ -12,7 +12,7 @@ clean: clean_mixed
     rm -rf sysroots/ install/
 
 clean_all:
-    rm -rf build/{llvm,sysroots} sysroots/ install/
+    rm -rf build/{llvm,sysroots,sye} sysroots/ install/
 
 sdk:
     nix develop --command bash -xc "./build_sysroots.sh && ./build_toolchain.sh && ./build_examples.sh mixed"
@@ -76,18 +76,10 @@ _sye:
 
     export BUILD_TARGET=x86_64-unknown-linux-gnu
 
-    cmake -Bbuild/sye -DPLATFORM_NAME=native -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
-    cmake --bnuild build/sye --target sye_wasm_bundle
+    cmake -Bbuild/sye -DPLATFORM_NAME=native -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../syewasmbundle
+    cmake --build build/sye --target sye_wasm_bundle
 
-    readelf --all build-native/src/wasm_bundle/libsye_wasm_bundle.so |grep iswupper_l
-
-clean_sye:
-    #!/usr/bin/env zsh
-    set -xe -o pipefail
-
-    DIR=$(pwd)
-    cd ../syewasmbundle
-    rm -rf build-native
+    readelf --all build/sye/src/wasm_bundle/libsye_wasm_bundle.so |grep iswupper_l
 
 symbol_wrapper:
     #!/usr/bin/env zsh
