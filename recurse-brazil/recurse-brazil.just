@@ -384,7 +384,7 @@ mwinit *command:
         }
     "
     expiration=$(cat ~/.midway/cookie 2> /dev/null |
-            cut -d $'\t' -f 5 --only-delimited |
+            cut -d $'\t' -f 5 -s |
             sort -n |
             head -1)
     [ "0$expiration" -gt $(date +%s) ] && mwinit_command=
