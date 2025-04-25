@@ -88,6 +88,7 @@ _gyy() {
 
 _ghh() {
   is_in_git_repo || return
+  git rev-parse "@{u}" || { echo "No upstream"; return }
   all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
   # Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
   # leaving HEAD, upstream head and the merge-base, inclusively.
