@@ -219,22 +219,22 @@ folder_weights = {
     "9월": 1 / 12,
     "Books 2": 1 / 40,
     "Books": 1 / 40,
-    "apoc": 4,
+    "apoc": 2,
     "brown": 1,
     "choi": 1,
     "jones": 1 / 40,
-    "morpheus": 4,
-    "oracle": 4,
-    "rhineheart": 4,
+    "morpheus": 2,
+    "oracle": 2,
+    "rhineheart": 2,
     "smith": 1 / 40,
     "switch": 1,
-    "trinity": 4,
+    "trinity": 2,
 }
 
 biggest_page = {
     "apoc": 1,
     "morpheus": 2,
-    "oracle": 5,
+    "oracle": 4,
     "smith": 4,
 }
 
@@ -311,11 +311,11 @@ def unique_everseen(iterable, key=None):
 
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
-    # view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
+    view(dict((k, line[k]) for k in ["Title", "URL", "loc"]))
     continue
 
-for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 60):
-    print(line["folder"])
+for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 50):
+    # print(line["folder"])
     continue
 
 for line in (line for line in indexed_entries if line["folder"] == "morpheus"):
