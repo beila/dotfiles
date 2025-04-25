@@ -14,7 +14,7 @@ clean: clean_mixed
 clean_all:
     rm -rf build/{llvm,sysroots} sysroots/ install/
 
-build:
+sdk:
     nix develop --command bash -xc "./build_sysroots.sh && ./build_toolchain.sh && ./build_examples.sh mixed"
 
 sysroots:
