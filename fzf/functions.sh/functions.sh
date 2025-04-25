@@ -88,10 +88,12 @@ _gyy() {
 
 _ghh() {
   is_in_git_repo || return
-  all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
+  set -x
+  upstream="$(git rev-parse "@{u}")"
+  all_parents_of_merge_base="$(git merge-base HEAD "${upstream}")^@"
   # Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
   # leaving HEAD, upstream head and the merge-base, inclusively.
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "${upstream}" "^${all_parents_of_merge_base}"|
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |
