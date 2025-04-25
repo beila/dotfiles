@@ -6,6 +6,8 @@ import? '~/.justfile'
 default:
     @just --list --unsorted
 
+all: sysroots toolchain mixed sye symbol_wrapper
+
 clean: clean_mixed
     rm -rf sysroots/ install/
 
@@ -71,7 +73,7 @@ _sye:
     cd ../syewasmbundle
     BUILD_TARGET=x86_64-unknown-linux-gnu ./ci-build.sh --toolchain $DIR/toolchain.cmake
 
-    readelf --all build-native/_CPack_Packages/Linux/TGZ/sye-lr-ota-native.unknown-abi.1.0-301568c/lib/stripped_libsye_wasm_bundle.so |grep iswupper_l
+    readelf --all build-native/src/wasm_bundle/libsye_wasm_bundle.so |grep iswupper_l
 
 clean_sye:
     #!/usr/bin/env zsh
@@ -80,3 +82,12 @@ clean_sye:
     DIR=$(pwd)
     cd ../syewasmbundle
     rm -rf build-native
+
+symbol_wrapper:
+    #!/usr/bin/env zsh
+    set -xe -o pipefail
+
+    DIR=$(pwd)
+    cd ../i/devc1/src/elf-loader/scripts
+
+    nix develop --command python3 symbol_wrapper.py $DIR/build-native/src/wasm_bundle/libsye_wasm_bundle.so
