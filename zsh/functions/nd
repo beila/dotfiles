@@ -1,2 +1,3 @@
 #!env zsh
-nix develop --command "$@"
+nd() { which nix &> /dev/null && test -f flake.nix && echo "nix develop --command" }
+$(nd) "$@"
