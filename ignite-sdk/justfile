@@ -11,7 +11,7 @@ all: sysroots toolchain mixed sye symbol_wrapper
 clean: clean_mixed
     rm -rf sysroots/ install/
 
-clean_all:
+clean_all: clean_mixed
     rm -rf build/{llvm,sysroots,sye} sysroots/ install/
 
 sdk:
@@ -80,7 +80,7 @@ _sye:
     cmake -Bbuild/sye -DPLATFORM_NAME=native -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../syewasmbundle
     cmake --build build/sye --target sye_wasm_bundle
 
-    readelf --all build/sye/src/wasm_bundle/libsye_wasm_bundle.so |grep iswupper_l
+    readelf --all build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep iswupper_l
 
 symbol_wrapper:
     #!/usr/bin/env zsh
