@@ -1,2 +1,3 @@
 #!env zsh
-just --justfile ~/.justfile run just "$@"
+nd() { which nix &> /dev/null && test -f flake.nix && echo "nix develop --command" }
+just --justfile ~/.justfile run $(nd) "$@"
