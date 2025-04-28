@@ -62,7 +62,13 @@ clean_musl:
     rm -rf build/sysroots/musl*
 
 sye:
-    nix develop ../syewasmbundle --command just _sye
+    #!/usr/bin/env zsh
+    if [ -f ../syewasmbundle/flake.nix ]
+    then
+        nix develop ../syewasmbundle --command just _sye
+    else
+        just _sye
+    fi
 
 _sye:
     #!/usr/bin/env zsh
@@ -87,4 +93,9 @@ symbol_wrapper:
     DIR=$(pwd)
     cd ../i/devc1/src/elf-loader/scripts
 
-    nix develop --command python3 symbol_wrapper.py $DIR/../syewasmbundle/build-native/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
+    if [ -f flake.nix ]
+    then
+        nix develop --command python3 symbol_wrapper.py $DIR/../syewasmbundle/build-native/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
+    else
+        python3 symbol_wrapper.py $DIR/../syewasmbundle/build-native/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
+    fi
