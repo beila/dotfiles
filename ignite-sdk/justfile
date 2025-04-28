@@ -8,11 +8,11 @@ default:
 
 all: sysroots toolchain mixed sye symbol_wrapper
 
-clean: clean_mixed
+clean: clean_mixed clean_musl
     rm -rf sysroots/ install/
 
-clean_all: clean_mixed
-    rm -rf build/{llvm,sysroots,sye} sysroots/ install/
+clean_all:
+    rm -rf build/{llvm,sysroots,examples,sye} sysroots/ install/
 
 sdk:
     ./build_sysroots.sh
@@ -77,10 +77,14 @@ _sye:
 
     export BUILD_TARGET=x86_64-unknown-linux-gnu
 
-    cmake -Bbuild/sye -DPLATFORM_NAME=native -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../syewasmbundle
+    cmake -Bbuild/sye -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake -DPLATFORM_NAME=native -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo ../syewasmbundle
     cmake --build build/sye --target sye_wasm_bundle
 
-    readelf --all build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep iswupper_l
+    readelf --all build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "WEAK .* iswupper_l"
+    readelf --all build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "UND pthread_create"
+
+clean_sye:
+    rm -rf build/sye
 
 symbol_wrapper:
     #!/usr/bin/env zsh
