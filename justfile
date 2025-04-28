@@ -2,13 +2,13 @@ set allow-duplicate-recipes
 set fallback
 
 [macos]
+switch:
+    darwin-rebuild switch --flake .\#simple
+
+[macos]
 update:
     nix flake update
     darwin-rebuild build --flake .\#simple
-
-[macos]
-switch:
-    darwin-rebuild switch --flake .\#simple
 
 [macos]
 init:
