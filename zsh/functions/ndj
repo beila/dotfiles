@@ -1,0 +1,2 @@
+#!env zsh
+nix develop --command just "$@"
