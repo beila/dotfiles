@@ -1,0 +1,2 @@
+#!env zsh
+just --justfile ~/.justfile run just "$@"
