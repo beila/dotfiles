@@ -1,7 +1,7 @@
 #!/usr/bin/env -S just --justfile
 # FIXME group commands
 
-log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
+log_decorator1 := ''
 #log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
 
 # https://gitlab.com/kevincox/watchlog/-/tree/v1
