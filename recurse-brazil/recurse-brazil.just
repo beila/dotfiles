@@ -328,6 +328,10 @@ run +commands:
     if [ -z "${log_path}" ]
     then
         name="${name:-{{ commands }}}"
+        name=${name#nix develop --command }
+        name=${name#just }
+        name=${name#nix develop --command }
+        name=${name#just }
         name=${name##*$'\n'}
         name=${name// /-}
         name=${name//\//-}
