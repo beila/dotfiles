@@ -89,10 +89,10 @@ symbol_wrapper:
     set -xe -o pipefail
 
     DIR=$(pwd)
-    cd ../i/devc1/src/elf-loader/scripts
+    cd ../i/devc1/src/elf-loader/scripts/posix_emu
 
-    nd() { which nix &> /dev/null && test -f flake.nix && echo "nix develop --command" }
-    $(nd) python3 symbol_wrapper.py $DIR/../syewasmbundle/build-native/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
+    nd() { which nix &> /dev/null && test -f ../flake.nix && echo "nix develop .. --command" }
+    $(nd) python3 ../symbol_wrapper.py $DIR/../syewasmbundle/build-native/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
 
 ignite_test_assets:
     ../i/devc1/tests/assets/elf/build.sh $(pwd)
