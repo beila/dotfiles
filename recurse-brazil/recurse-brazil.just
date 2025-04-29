@@ -338,6 +338,7 @@ run +commands:
         name="${name:0:200}"    # file name limit https://serverfault.com/a/9548
         log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
         log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
+        echo "Log: $log_path"
     fi
 
     if [ -z "${log_decorator_invoked}" ]
