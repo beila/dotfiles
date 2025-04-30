@@ -24,6 +24,7 @@
           fzf
           hishtory
           just
+          kitty
           neovide
           neovim
           ripgrep
