@@ -362,7 +362,14 @@ run +commands:
 
     exec 1<&4 4>&- 2<&5 5>&-
 
-    echo "Log: $log_path"
+    if [ $exit_code ]
+    then
+        failed_log_path=${log_path/%.txt/.FAILED.txt}
+        mv $log_path $failed_log_path
+        log_path=
+    fi
+
+    echo "Log: $log_path$failed_log_path"
     exit $exit_code
 
 [no-cd]
