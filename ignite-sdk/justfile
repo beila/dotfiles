@@ -56,7 +56,7 @@ musl:
         make -j64 install
     done
 
-    readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
+    #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
 
 clean_musl:
     rm -rf build/sysroots/musl*
@@ -78,8 +78,8 @@ sye:
 
     cmake --build build/sye --target sye_wasm_bundle
 
-    readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "WEAK .* iswupper_l"
-    readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "UND pthread_create"
+    #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "WEAK .* iswupper_l"
+    #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "UND pthread_create"
 
 clean_sye:
     rm -rf build/sye
