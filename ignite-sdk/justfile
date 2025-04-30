@@ -11,8 +11,9 @@ all: sysroots toolchain mixed sye symbol_wrapper
 clean: clean_mixed clean_musl
     rm -rf sysroots/ install/
 
-clean_all:
-    rm -rf build/{llvm,sysroots,examples,sye} sysroots/ install/
+clean_all: clean
+    rm -rf build/{sysroots,examples,sye}
+    #rm -rf build/llvm  # We don't need to change this anyway
 
 sdk:
     ./build_sysroots.sh
