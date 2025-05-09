@@ -30,7 +30,7 @@
             git
             neovim
             nodejs  # biome from Mason
-                        uv
+            uv  # nvim-dap-python
           ];
 
           
