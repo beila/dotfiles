@@ -21,3 +21,28 @@ setup_shell:
         just --justfile=$HOME/hjdocs/public-docs/recurse-brazil/justfile setup_shell
 
     just --completions $(basename $SHELL)
+
+setup_git:
+    #!/usr/bin/env zsh
+    set -xeuo pipefail
+
+    git remote | grep '^o$' ||
+        git remote add o $(git remote get-url origin)
+
+    for r in origin o
+    do
+        git config unset --all remote.$r.fetch
+        for rt in origin o
+        do
+            # Only fetch particular branches (with some shortcuts like dev for development)
+            git config --add remote.$r.fetch +refs/heads/development:refs/remotes/$rt/dev
+            git config --add remote.$r.fetch +refs/heads/development:refs/remotes/$rt/development
+            git config --add remote.$r.fetch +refs/heads/release/\*:refs/remotes/$rt/release/\*
+
+            git config --add remote.$r.fetch +refs/heads/$(whoami)/\*:refs/remotes/$rt/\*
+        done
+
+        # push with $(whoami)/ prefix
+        git config --add remote.$r.fetch ^refs/heads/$(whoami)/dev
+        git config --replace-all remote.$r.push refs/heads/\*:refs/heads/$(whoami)/\*
+    done
