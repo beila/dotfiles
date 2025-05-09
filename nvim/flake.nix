@@ -30,6 +30,7 @@
             git
             neovim
             nodejs  # biome from Mason
+                        uv
           ];
 
           
