@@ -1,7 +1,8 @@
 #!/usr/bin/env -S just --justfile
 # FIXME group commands
 
-log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
+log_decorator1 := ''
+#log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
 
 # https://gitlab.com/kevincox/watchlog/-/tree/v1
 
@@ -328,12 +329,19 @@ run +commands:
     if [ -z "${log_path}" ]
     then
         name="${name:-{{ commands }}}"
+        name=${name#nix develop --command }
+        name=${name#just }
+        name=${name#nix develop --command }
+        name=${name#just }
         name=${name##*$'\n'}
         name=${name// /-}
         name=${name//\//-}
+        name=${name//\\/-}
+        name=${name//\*/-}
         name="${name:0:200}"    # file name limit https://serverfault.com/a/9548
         log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
         log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
+        echo "Log: $log_path"
     fi
 
     if [ -z "${log_decorator_invoked}" ]
@@ -354,7 +362,14 @@ run +commands:
 
     exec 1<&4 4>&- 2<&5 5>&-
 
-    echo "Log: $log_path"
+    if [ $exit_code -ne 0 ]
+    then
+        failed_log_path=${log_path/%.txt/.FAILED.txt}
+        mv $log_path $failed_log_path
+        log_path=
+    fi
+
+    echo "Log: $log_path$failed_log_path"
     exit $exit_code
 
 [no-cd]
