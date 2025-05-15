@@ -105,7 +105,7 @@ ignite_test: ignite_test_assets
     #!/usr/bin/env zsh
     set -eo pipefail
     cd ../i/devc1
-    just unit '--gtest_filter=ElfLoaderTest.pthread_t'
+    just unit '--gtest_filter=ElfLoaderTest.pthread_t' --log-level=all:info,script_engine:trace
 
 clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
