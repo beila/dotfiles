@@ -34,11 +34,7 @@ setup_git:
         git config unset --all remote.$r.fetch
         for rt in origin o
         do
-            # Only fetch particular branches (with some shortcuts like dev for development)
-            git config --add remote.$r.fetch +refs/heads/development:refs/remotes/$rt/dev
-            git config --add remote.$r.fetch +refs/heads/development:refs/remotes/$rt/development
-            git config --add remote.$r.fetch +refs/heads/release/\*:refs/remotes/$rt/release/\*
-
+            git config --add remote.$r.fetch +HEAD:refs/remotes/$rt/main
             git config --add remote.$r.fetch +refs/heads/$(whoami)/\*:refs/remotes/$rt/\*
         done
 
