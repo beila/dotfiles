@@ -101,5 +101,11 @@ symbol_wrapper:
 ignite_test_assets:
     ../i/devc1/tests/assets/elf/build.sh $(pwd)
 
+ignite_test: ignite_test_assets
+    #!/usr/bin/env zsh
+    set -eo pipefail
+    cd ../i/devc1
+    just unit '--gtest_filter=ElfLoaderTest.\*'
+
 clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
