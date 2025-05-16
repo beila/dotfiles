@@ -54,7 +54,7 @@ musl:
         export CC="$SCRIPT_DIR/build/llvm/bin/clang --no-default-config --target=${target} --rtlib=compiler-rt -fuse-ld=lld -fno-stack-protector --sysroot=$SCRIPT_DIR/sysroots/${target}/"
         export LIBCC="$SCRIPT_DIR/build/sysroots/builtins-${target}/lib/${target}/libclang_rt.builtins.a"
         "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
-        make -j64 install
+        make -j64 install-headers
     done
 
     #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
