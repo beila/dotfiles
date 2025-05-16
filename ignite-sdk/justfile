@@ -8,7 +8,7 @@ default:
 
 all: sysroots toolchain mixed sye
 
-clean: clean_mixed clean_musl
+clean: clean_examples clean_musl
     rm -rf sysroots/ install/
 
 clean_all: clean
@@ -31,8 +31,8 @@ mixed:
     ./build_examples.sh mixed
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
 
-clean_mixed:
-    rm -rf build/examples/mixed/
+clean_examples:
+    rm -rf build/examples
 
 musl:
     #!/usr/bin/env zsh
@@ -97,7 +97,7 @@ symbol_wrapper:
     $(nd) python3 symbol_wrapper.py $DIR/build/sye/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
 
 ignite_test_assets:
-    ../i/devc1/tests/assets/elf/build.sh $(pwd)
+    ./build_examples.sh ignite-elf-test
 
 ignite_test: ignite_test_assets
     #!/usr/bin/env zsh
