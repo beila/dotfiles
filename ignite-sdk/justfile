@@ -63,7 +63,7 @@ musl:
     #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
 
 clean_musl:
-    rm -rf build/sysroots/musl* || true # in case * fails to expand
+    rm -rf build/sysroots/musl* sysroots/*/include || true # in case * fails to expand
 
 sye:
     #!/usr/bin/env zsh
