@@ -41,9 +41,6 @@ musl:
     SCRIPT_DIR=$(pwd)
     targets=(
         "x86_64-unknown-linux-gnu"
-        "armv7-unknown-linux-gnueabihf"
-        "armv7-unknown-linux-gnueabi"
-        "aarch64-unknown-linux-gnu"
         #"armv7-unknown-linux-gnueabihf"
         #"armv7-unknown-linux-gnueabi"
         #"aarch64-unknown-linux-gnu"
@@ -63,7 +60,8 @@ musl:
     #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
 
 clean_musl:
-    rm -rf build/sysroots/musl* sysroots/*/include || true # in case * fails to expand
+    rm -rf sysroots/
+    rm -rf build/sysroots/musl* || true # in case * fails to expand
 
 sye:
     #!/usr/bin/env zsh
