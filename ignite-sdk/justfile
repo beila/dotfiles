@@ -105,9 +105,9 @@ ignite_test: ignite_test_assets
     DIR=$(pwd)
     cd ../i/devc1
 
-    #cp -r ${DIR}/build/examples/ignite-elf-test/aarch64-unknown-linux-gnu/*.so tests/assets/elf/aarch64/
-    #cp -r ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabi/*.so tests/assets/elf/armv7/
-    #cp -r ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabihf/*.so tests/assets/elf/armv7_vfp/
+    cp -r ${DIR}/build/examples/ignite-elf-test/aarch64-unknown-linux-gnu/*.so tests/assets/elf/aarch64/ || true
+    cp -r ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabi/*.so tests/assets/elf/armv7/ || true
+    cp -r ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabihf/*.so tests/assets/elf/armv7_vfp/ || true
     cp -r ${DIR}/build/examples/ignite-elf-test/x86_64-unknown-linux-gnu/*.so tests/assets/elf/x86_64/
 
     just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info
