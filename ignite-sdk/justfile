@@ -22,14 +22,17 @@ sdk:
 
 sysroots:
     ./build_sysroots.sh
+    just merge_compile_commands
 
 toolchain:
     ./build_toolchain.sh
+    just merge_compile_commands
 
 mixed:
     rm -rf build/examples/mixed/
     ./build_examples.sh mixed
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
+    just merge_compile_commands
 
 clean_examples:
     rm -rf build/examples
@@ -56,6 +59,7 @@ musl:
         "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
         make -j64 install-headers
     done
+    just merge_compile_commands
 
     #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
 
@@ -79,6 +83,7 @@ sye:
         -G Ninja
 
     cmake --build build/sye --target sye_wasm_bundle
+    just merge_compile_commands
 
     #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "WEAK .* iswupper_l"
     #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "UND pthread_create"
@@ -114,3 +119,10 @@ ignite_test: ignite_test_assets
 
 clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
+
+# Merge all compile_commands.json under build_dir
+[group('Utilities')]
+merge_compile_commands:
+    @rm -f build/compile_commands.json
+    jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json || true
+
