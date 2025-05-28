@@ -125,4 +125,4 @@ clean_ignite_test_assets:
 merge_compile_commands:
     @rm -f build/compile_commands.json
     jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json || true
-
+BRARY_PATH=/home/hojin/devc/ignite-sdk/build/llvm/lib/ /home/hojin/devc/ignite-sdk/install/bin/lldb -- build/unit-tests/bin/test_ignition '--gtest_filter=ElfLoader*.*'
