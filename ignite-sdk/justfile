@@ -78,6 +78,7 @@ sye:
     cmake ../syewasmbundle \
         -Bbuild/sye \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,localtime_r" \
         -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
         -DPLATFORM_NAME=native \
         -G Ninja
