@@ -1,3 +1,4 @@
 #!env zsh
 nix_develop_command() { which nix &> /dev/null && test -f flake.nix && echo "nix develop --command" }
-just --justfile ~/.justfile run $(nix_develop_command) "$@"
+log_prefix_ignore="$(nix_develop_command) "\
+    just --justfile ~/.justfile run $(nix_develop_command) "$@"
