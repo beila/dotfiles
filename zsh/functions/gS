@@ -1,4 +1,2 @@
 #!env zsh
-[ -z "$1" ] &&
-    git submodule ||
-    git submodule | grep "$1"
+git submodule $@
