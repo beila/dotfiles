@@ -1,2 +1,4 @@
 #!env zsh
-gS "$@" |cut -c2-|cut -f2 -d " "
+[ -z "$1" ] &&
+    gS "$@" |cut -c2-|cut -f2 -d " "
+    git submodule | grep "$1"
