@@ -71,9 +71,6 @@ sye:
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
-    #-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,iswprint_l -Wl,--trace-symbol,iswalpha_l -Wl,--trace-symbol,iswupper_l -Wl,--trace-symbol,uselocale -Wl,--trace-symbol,isupper_l -Wl,--trace-symbol,iswspace_l -Wl,--trace-symbol,iswblank_l -Wl,--trace-symbol,strxfrm_l -Wl,--trace-symbol,iswpunct_l -Wl,--trace-symbol,isxdigit_l -Wl,--trace-symbol,wcsxfrm_l -Wl,--trace-symbol,newlocale -Wl,--trace-symbol,isdigit_l -Wl,--trace-symbol,strftime_l -Wl,--trace-symbol,strcoll_l -Wl,--trace-symbol,toupper_l -Wl,--trace-symbol,freelocale -Wl,--trace-symbol,towlower_l -Wl,--trace-symbol,iswxdigit_l -Wl,--trace-symbol,iswlower_l -Wl,--trace-symbol,towupper_l -Wl,--trace-symbol,tolower_l -Wl,--trace-symbol,iswcntrl_l -Wl,--trace-symbol,islower_l -Wl,--trace-symbol,iswdigit_l -Wl,--trace-symbol,wcscoll_l -Wl,--trace-symbol,wcscoll_l " \
-    #-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,pthread_cond_broadcast -Wl,--trace-symbol,pthread_mutexattr_destroy -Wl,--trace-symbol,pthread_key_create -Wl,--trace-symbol,pthread_cond_wait -Wl,--trace-symbol,pthread_mutexattr_init -Wl,--trace-symbol,pthread_cond_signal -Wl,--trace-symbol,pthread_setspecific  -Wl,--trace-symbol,pthread_once -Wl,--trace-symbol,pthread_cond_timedwait -Wl,--trace-symbol,pthread_cond_destroy -Wl,--trace-symbol,pthread_mutex_init -Wl,--trace-symbol,pthread_join  -Wl,--trace-symbol,pthread_mutex_lock -Wl,--trace-symbol,pthread_mutex_destroy -Wl,--trace-symbol,pthread_detach -Wl,--trace-symbol,pthread_mutex_trylock -Wl,--trace-symbol,pthread_getspecific -Wl,--trace-symbol,pthread_mutexattr_settype -Wl,--trace-symbol,pthread_create -Wl,--trace-symbolpthread_self -Wl,--trace-symbol,pthread_mutex_unlock " \
-
     export BUILD_TARGET=x86_64-unknown-linux-gnu
     cmake ../syewasmbundle \
         -Bbuild/sye \
@@ -84,10 +81,10 @@ sye:
         -G Ninja
 
     cmake --build build/sye --target sye_wasm_bundle
-    just merge_compile_commands
 
-    #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "WEAK .* iswupper_l"
-    #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "UND pthread_create"
+    readelf -s --wide build/sye/src/wasm_bundle/libsye_wasm_bundle.so | awk '/ UND /{print $8}' | sort | uniq
+
+    just merge_compile_commands
 
 clean_sye:
     rm -rf build/sye
@@ -105,6 +102,9 @@ symbol_wrapper:
 ignite_test_assets:
     ./build_examples.sh ignite-elf-test
 
+clean_ignite_test_assets:
+    rm -rf ../i/devc1/tests/assets/elf/build/*
+
 ignite_test: ignite_test_assets
     #!/usr/bin/env zsh
     set -eo pipefail
@@ -117,9 +117,6 @@ ignite_test: ignite_test_assets
     cp -r ${DIR}/build/examples/ignite-elf-test/x86_64-unknown-linux-gnu/*.so tests/assets/elf/x86_64/
 
     just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info
-
-clean_ignite_test_assets:
-    rm -rf ../i/devc1/tests/assets/elf/build/*
 
 # Merge all compile_commands.json under build_dir
 [group('Utilities')]
