@@ -15,6 +15,7 @@
       environment.systemPackages = with pkgs;
         [
           asdf-vm
+          awscli2
           bat
           broot
           difftastic
