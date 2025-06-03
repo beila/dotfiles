@@ -8,5 +8,5 @@ nix_develop_command() {
         echo "nix develop --command" ||
         echo "nix develop path:. --command"
 }
-log_prefix_ignore="$(nix_develop_command) just "\
-    just --justfile ~/.justfile run $(nix_develop_command) just "$@"
+log_prefix_ignore="$(nix_develop_command) "\
+    just --justfile ~/.justfile run $(nix_develop_command) "$@"
