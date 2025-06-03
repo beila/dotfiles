@@ -22,6 +22,7 @@
           fd
           ffmpeg
           fzf
+          git
           hishtory
           just
           kitty
