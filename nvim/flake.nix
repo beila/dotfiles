@@ -30,11 +30,12 @@
             git
             neovim
             nodejs  # biome from Mason
+            uv  # nvim-dap-python
           ];
 
           
           shellHook = ''
-            exec nvim
+            #exec nvim
           '';
         };
       });

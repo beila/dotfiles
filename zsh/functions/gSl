@@ -1,2 +1,5 @@
 #!env zsh
-gS "$@" |cut -c2-|cut -f2 -d " "
+local gr
+gr=${1:+grep}
+gr=${gr:-cat}
+git submodule | cut -c2- | cut -f2 -d " " | $gr "$@"
