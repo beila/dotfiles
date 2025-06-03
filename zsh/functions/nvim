@@ -1,0 +1,2 @@
+#!env zsh
+nix develop path:$(readlink $HOME)/.dotfiles/nvim --command nvim "$@"
