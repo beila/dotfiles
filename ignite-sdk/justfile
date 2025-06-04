@@ -6,9 +6,9 @@ import? '~/.justfile'
 default:
     @just --list --unsorted
 
-all: sysroots toolchain mixed sye symbol_wrapper
+all: sysroots toolchain mixed sye
 
-clean: clean_mixed clean_musl
+clean: clean_examples clean_musl
     rm -rf sysroots/ install/
 
 clean_all: clean
@@ -22,17 +22,20 @@ sdk:
 
 sysroots:
     ./build_sysroots.sh
+    just merge_compile_commands
 
 toolchain:
     ./build_toolchain.sh
+    just merge_compile_commands
 
 mixed:
     rm -rf build/examples/mixed/
     ./build_examples.sh mixed
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
+    just merge_compile_commands
 
-clean_mixed:
-    rm -rf build/examples/mixed/
+clean_examples:
+    rm -rf build/examples
 
 musl:
     #!/usr/bin/env zsh
@@ -41,9 +44,6 @@ musl:
     SCRIPT_DIR=$(pwd)
     targets=(
         "x86_64-unknown-linux-gnu"
-        "armv7-unknown-linux-gnueabihf"
-        "armv7-unknown-linux-gnueabi"
-        "aarch64-unknown-linux-gnu"
         #"armv7-unknown-linux-gnueabihf"
         #"armv7-unknown-linux-gnueabi"
         #"aarch64-unknown-linux-gnu"
@@ -57,33 +57,42 @@ musl:
         export CC="$SCRIPT_DIR/build/llvm/bin/clang --no-default-config --target=${target} --rtlib=compiler-rt -fuse-ld=lld -fno-stack-protector --sysroot=$SCRIPT_DIR/sysroots/${target}/"
         export LIBCC="$SCRIPT_DIR/build/sysroots/builtins-${target}/lib/${target}/libclang_rt.builtins.a"
         "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
-        make -j64 install
+        make -j64 install-headers
     done
+    just merge_compile_commands
 
     #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
 
 clean_musl:
+    rm -rf sysroots/
     rm -rf build/sysroots/musl* || true # in case * fails to expand
 
 sye:
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
-    #-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,iswprint_l -Wl,--trace-symbol,iswalpha_l -Wl,--trace-symbol,iswupper_l -Wl,--trace-symbol,uselocale -Wl,--trace-symbol,isupper_l -Wl,--trace-symbol,iswspace_l -Wl,--trace-symbol,iswblank_l -Wl,--trace-symbol,strxfrm_l -Wl,--trace-symbol,iswpunct_l -Wl,--trace-symbol,isxdigit_l -Wl,--trace-symbol,wcsxfrm_l -Wl,--trace-symbol,newlocale -Wl,--trace-symbol,isdigit_l -Wl,--trace-symbol,strftime_l -Wl,--trace-symbol,strcoll_l -Wl,--trace-symbol,toupper_l -Wl,--trace-symbol,freelocale -Wl,--trace-symbol,towlower_l -Wl,--trace-symbol,iswxdigit_l -Wl,--trace-symbol,iswlower_l -Wl,--trace-symbol,towupper_l -Wl,--trace-symbol,tolower_l -Wl,--trace-symbol,iswcntrl_l -Wl,--trace-symbol,islower_l -Wl,--trace-symbol,iswdigit_l -Wl,--trace-symbol,wcscoll_l -Wl,--trace-symbol,wcscoll_l " \
-    #-DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,pthread_cond_broadcast -Wl,--trace-symbol,pthread_mutexattr_destroy -Wl,--trace-symbol,pthread_key_create -Wl,--trace-symbol,pthread_cond_wait -Wl,--trace-symbol,pthread_mutexattr_init -Wl,--trace-symbol,pthread_cond_signal -Wl,--trace-symbol,pthread_setspecific  -Wl,--trace-symbol,pthread_once -Wl,--trace-symbol,pthread_cond_timedwait -Wl,--trace-symbol,pthread_cond_destroy -Wl,--trace-symbol,pthread_mutex_init -Wl,--trace-symbol,pthread_join  -Wl,--trace-symbol,pthread_mutex_lock -Wl,--trace-symbol,pthread_mutex_destroy -Wl,--trace-symbol,pthread_detach -Wl,--trace-symbol,pthread_mutex_trylock -Wl,--trace-symbol,pthread_getspecific -Wl,--trace-symbol,pthread_mutexattr_settype -Wl,--trace-symbol,pthread_create -Wl,--trace-symbolpthread_self -Wl,--trace-symbol,pthread_mutex_unlock " \
+    targets=(
+        "x86_64-unknown-linux-gnu"
+        "armv7-unknown-linux-gnueabihf"
+        "armv7-unknown-linux-gnueabi"
+        "aarch64-unknown-linux-gnu"
+    )
 
-    export BUILD_TARGET=x86_64-unknown-linux-gnu
-    cmake ../syewasmbundle \
-        -Bbuild/sye \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-        -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
-        -DPLATFORM_NAME=native \
-        -G Ninja
+    for BUILD_TARGET in "${targets[@]}"; do
+        export BUILD_TARGET
+        cmake ../syewasmbundle \
+            -Bbuild/sye/$BUILD_TARGET/ \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--trace-symbol,localtime_r" \
+            -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
+            -DPLATFORM_NAME=native \
+            -G Ninja
+        cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
+    done
 
-    cmake --build build/sye --target sye_wasm_bundle
+    readelf -s --wide build/sye/*/src/wasm_bundle/libsye_wasm_bundle.so | awk '/ UND /{print $8}' | sort | uniq
 
-    #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "WEAK .* iswupper_l"
-    #readelf -s build/sye/src/wasm_bundle/libsye_wasm_bundle.so | grep "UND pthread_create"
+    just merge_compile_commands
 
 clean_sye:
     rm -rf build/sye
@@ -99,7 +108,28 @@ symbol_wrapper:
     $(nd) python3 symbol_wrapper.py $DIR/build/sye/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
 
 ignite_test_assets:
-    ../i/devc1/tests/assets/elf/build.sh $(pwd)
+    ./build_examples.sh ignite-elf-test
+
+    cp -r ${DIR}/build/examples/ignite-elf-test/aarch64-unknown-linux-gnu/*.so tests/assets/elf/aarch64/ || true
+    cp -r ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabi/*.so tests/assets/elf/armv7/ || true
+    cp -r ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabihf/*.so tests/assets/elf/armv7_vfp/ || true
+    cp -r ${DIR}/build/examples/ignite-elf-test/x86_64-unknown-linux-gnu/*.so tests/assets/elf/x86_64/
 
 clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
+
+ignite_test: ignite_test_assets
+    #!/usr/bin/env zsh
+    set -eo pipefail
+    DIR=$(pwd)
+    cd ../i/devc1
+
+    just unit '--gtest_filter=ElfLoaderTest.\*'
+    #just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info
+
+# Merge all compile_commands.json under build_dir
+[group('Utilities')]
+merge_compile_commands:
+    @rm -f build/compile_commands.json
+    jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json || true
+
