@@ -134,8 +134,9 @@ c *command: mwinit
     #ssh dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
     ssh -t dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com "{{ command }}"
 
-cp src dst: mwinit
-    scp -R dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com:"{{ src }}" "{{ dst }}"
+[no-cd]
+cp src dst=".": mwinit
+    scp -r dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com:"{{ src }}" "{{ dst }}"
 
 # Run `eval $(just setup_shell)` for aliases (jbuild, jrelase, etc) and command completion
 setup_shell:
