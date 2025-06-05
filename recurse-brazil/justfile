@@ -136,7 +136,7 @@ c *command: mwinit
 
 [no-cd]
 cp src dst=".": mwinit
-    scp -r dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com:"{{ src }}" "{{ dst }}"
+    scp -r "dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com:{{ src }}" "{{ dst }}"
 
 # Run `eval $(just setup_shell)` for aliases (jbuild, jrelase, etc) and command completion
 setup_shell:

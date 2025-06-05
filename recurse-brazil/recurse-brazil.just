@@ -396,6 +396,7 @@ syncmd: mwinit
 [no-cd]
 mwinit *command:
     #!/usr/bin/env zsh
+    set -x
     mwinit_command="
         mwinit -o -s --fido2 ||
         {
