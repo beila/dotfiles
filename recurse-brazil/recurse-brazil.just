@@ -396,7 +396,6 @@ syncmd: mwinit
 [no-cd]
 mwinit *command:
     #!/usr/bin/env zsh
-    set -x
     mwinit_command="
         mwinit -o -s --fido2 ||
         {
@@ -410,7 +409,7 @@ mwinit *command:
             head -1)
     [ "0$expiration" -gt $(date +%s) ] && mwinit_command=
 
-    exec ${SHELL} -ic "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
+    exec zsh -ic "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
 
 [no-cd]
 mwinitf *command:
