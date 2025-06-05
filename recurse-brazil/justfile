@@ -131,8 +131,8 @@ native_roku:
     "
 
 @c *command: mwinit
-    #ssh dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
-    ssh -t dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com "{{ command }}"
+    #ssh -t dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
+    ssh dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com "{{ command }}"
 
 [no-cd]
 cp src dst=".": mwinit
