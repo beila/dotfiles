@@ -330,9 +330,6 @@ run +commands:
     then
         name="${name:-{{ commands }}}"
         name=${name#${log_prefix_ignore}}
-        name=${name#nix develop --command }
-        name=${name#just }
-        name=${name#nix develop --command }
         name=${name#just }
         name=${name// /-}
         name=${name//|/-}
@@ -359,7 +356,7 @@ run +commands:
     # sed expression modified as https://stackoverflow.com/a/18000433
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
-    time ${SHELL} -ic "
+    time zsh -ic "
         set -x
         {{ commands }}
     "
