@@ -1,12 +1,2 @@
 #!env zsh
-nix_develop_command() {
-    which nix &> /dev/null &&
-        test ! -f flake.nix &&
-        return
-
-    git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop --command" ||
-        echo "nix develop path:. --command"
-}
-log_prefix_ignore="$(nix_develop_command) "\
-    just --justfile ~/.justfile run $(nix_develop_command) "$@"
+just --justfile ~/.justfile run "$@"
