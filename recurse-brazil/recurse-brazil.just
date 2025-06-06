@@ -336,6 +336,7 @@ run +commands:
         name=${name#just }
         name=${name// /-}
         name=${name//|/-}
+        name=${name//&/-}
         name=${name//\//-}
         name=${name//\\/-}
         name=${name//\*/-}
