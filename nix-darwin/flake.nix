@@ -29,6 +29,7 @@
           kitty
           neovide
           neovim
+          nerd-fonts.jetbrains-mono
           ripgrep
           rustup
           yt-dlp
