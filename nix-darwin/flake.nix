@@ -15,6 +15,7 @@
       environment.systemPackages = with pkgs;
         [
           asdf-vm
+          awscli2
           bat
           broot
           difftastic
@@ -22,11 +23,13 @@
           fd
           ffmpeg
           fzf
+          git
           hishtory
           just
           kitty
           neovide
           neovim
+          nerd-fonts.jetbrains-mono
           ripgrep
           rustup
           yt-dlp
@@ -62,6 +65,7 @@
 
       # https://nixcademy.com/posts/nix-on-macos/#setting-system-defaults
       system.defaults = {
+        dock.appswitcher-all-displays = true;
         dock.autohide = true;
         dock.mru-spaces = false;
         finder.AppleShowAllExtensions = true;
