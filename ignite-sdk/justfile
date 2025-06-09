@@ -13,7 +13,9 @@ clean: clean_examples clean_musl
 
 clean_all: clean
     rm -rf build/{sysroots,examples,sye}
-    #rm -rf build/llvm  # We don't need to change this anyway
+
+clean_everything: clean_all
+    rm -rf build/llvm  # We don't usually need to change this
 
 sdk:
     ./build_sysroots.sh
