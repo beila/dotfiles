@@ -8,5 +8,6 @@ nix_develop_command() {
         echo "nix develop --command" ||
         echo "nix develop path:. --command"
 }
+set -x  # FIXME log name includes nix-shell-env
 log_prefix_ignore="$(nix_develop_command) just "\
     just --justfile ~/.justfile run $(nix_develop_command) just "$@"
