@@ -6,7 +6,7 @@ import? '~/.justfile'
 default:
     @just --list --unsorted
 
-all: sysroots toolchain mixed sye
+all: sysroots toolchain sye
 
 clean: clean_examples clean_musl
     rm -rf sysroots/ install/
