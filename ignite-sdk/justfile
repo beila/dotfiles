@@ -26,6 +26,8 @@ sysroots:
     ./build_sysroots.sh
     just merge_compile_commands
 
+    readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
+
 toolchain:
     ./build_toolchain.sh
     just merge_compile_commands
@@ -46,9 +48,9 @@ musl:
     SCRIPT_DIR=$(pwd)
     targets=(
         "x86_64-unknown-linux-gnu"
-        #"armv7-unknown-linux-gnueabihf"
-        #"armv7-unknown-linux-gnueabi"
-        #"aarch64-unknown-linux-gnu"
+        "armv7-unknown-linux-gnueabihf"
+        "armv7-unknown-linux-gnueabi"
+        "aarch64-unknown-linux-gnu"
     )
 
     for target in "${targets[@]}"; do
@@ -63,8 +65,6 @@ musl:
     done
     just merge_compile_commands
 
-    #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
-
 clean_musl:
     rm -rf sysroots/
     rm -rf build/sysroots/musl* || true # in case * fails to expand
@@ -75,9 +75,9 @@ sye:
 
     targets=(
         "x86_64-unknown-linux-gnu"
-        "armv7-unknown-linux-gnueabihf"
-        "armv7-unknown-linux-gnueabi"
-        "aarch64-unknown-linux-gnu"
+        #"armv7-unknown-linux-gnueabihf"
+        #"armv7-unknown-linux-gnueabi"
+        #"aarch64-unknown-linux-gnu"
     )
 
     for BUILD_TARGET in "${targets[@]}"; do
