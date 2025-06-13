@@ -6,14 +6,16 @@ import? '~/.justfile'
 default:
     @just --list --unsorted
 
-all: sysroots toolchain mixed sye
+all: sysroots toolchain sye
 
 clean: clean_examples clean_musl
     rm -rf sysroots/ install/
 
 clean_all: clean
     rm -rf build/{sysroots,examples,sye}
-    #rm -rf build/llvm  # We don't need to change this anyway
+
+clean_everything: clean_all
+    rm -rf build/llvm  # We don't usually need to change this
 
 sdk:
     ./build_sysroots.sh
@@ -23,6 +25,8 @@ sdk:
 sysroots:
     ./build_sysroots.sh
     just merge_compile_commands
+
+    readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
 
 toolchain:
     ./build_toolchain.sh
@@ -44,9 +48,9 @@ musl:
     SCRIPT_DIR=$(pwd)
     targets=(
         "x86_64-unknown-linux-gnu"
-        #"armv7-unknown-linux-gnueabihf"
-        #"armv7-unknown-linux-gnueabi"
-        #"aarch64-unknown-linux-gnu"
+        "armv7-unknown-linux-gnueabihf"
+        "armv7-unknown-linux-gnueabi"
+        "aarch64-unknown-linux-gnu"
     )
 
     for target in "${targets[@]}"; do
@@ -61,8 +65,6 @@ musl:
     done
     just merge_compile_commands
 
-    #readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep iswupper_l
-
 clean_musl:
     rm -rf sysroots/
     rm -rf build/sysroots/musl* || true # in case * fails to expand
@@ -73,9 +75,9 @@ sye:
 
     targets=(
         "x86_64-unknown-linux-gnu"
-        "armv7-unknown-linux-gnueabihf"
-        "armv7-unknown-linux-gnueabi"
-        "aarch64-unknown-linux-gnu"
+        #"armv7-unknown-linux-gnueabihf"
+        #"armv7-unknown-linux-gnueabi"
+        #"aarch64-unknown-linux-gnu"
     )
 
     for BUILD_TARGET in "${targets[@]}"; do
@@ -124,8 +126,8 @@ ignite_test: ignite_test_assets
     cp -vr ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabihf/*.so tests/assets/elf/armv7_vfp/ || true
     cp -vr ${DIR}/build/examples/ignite-elf-test/x86_64-unknown-linux-gnu/*.so tests/assets/elf/x86_64/
 
-    just unit '--gtest_filter=ElfLoaderTest.\*'
-    #just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info
+    just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script:info,wasm:info
+    #just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info,wasm:info
 
 # Merge all compile_commands.json under build_dir
 [group('Utilities')]
