@@ -420,6 +420,8 @@ new-ws dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
     set -xeo pipefail
     (
+        which brazil &> dev/null || toolbox install brazilcli
+
         [ -d "{{ dir }}/src" ] && {
             for d in {{ dir }}/src/*
             do
