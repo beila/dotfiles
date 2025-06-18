@@ -1,0 +1,140 @@
+#!/usr/bin/env -S just --justfile
+
+import? '~/.justfile'
+
+[private]
+default:
+    @just --list --unsorted
+
+all: sysroots toolchain sye
+
+clean: clean_examples clean_musl
+    rm -rf sysroots/ install/
+
+clean_all: clean
+    rm -rf build/{sysroots,examples,sye}
+
+clean_everything: clean_all
+    rm -rf build/llvm  # We don't usually need to change this
+
+sdk:
+    ./build_sysroots.sh
+    ./build_toolchain.sh
+    ./build_examples.sh mixed
+
+sysroots:
+    ./build_sysroots.sh
+    just merge_compile_commands
+
+    readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
+
+toolchain:
+    ./build_toolchain.sh
+    just merge_compile_commands
+
+mixed:
+    rm -rf build/examples/mixed/
+    ./build_examples.sh mixed
+    readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
+    just merge_compile_commands
+
+clean_examples:
+    rm -rf build/examples
+
+musl:
+    #!/usr/bin/env zsh
+    set -xe -o pipefail
+
+    SCRIPT_DIR=$(pwd)
+    targets=(
+        "x86_64-unknown-linux-gnu"
+        "armv7-unknown-linux-gnueabihf"
+        "armv7-unknown-linux-gnueabi"
+        "aarch64-unknown-linux-gnu"
+    )
+
+    for target in "${targets[@]}"; do
+        mkdir -p "$SCRIPT_DIR/build/sysroots/musl-${target}"
+        cd "$SCRIPT_DIR/build/sysroots/musl-${target}"
+        export AR="$SCRIPT_DIR/build/llvm/bin/llvm-ar"
+        export RANLIB="$SCRIPT_DIR/build/llvm/bin/llvm-ranlib"
+        export CC="$SCRIPT_DIR/build/llvm/bin/clang --no-default-config --target=${target} --rtlib=compiler-rt -fuse-ld=lld -fno-stack-protector --sysroot=$SCRIPT_DIR/sysroots/${target}/"
+        export LIBCC="$SCRIPT_DIR/build/sysroots/builtins-${target}/lib/${target}/libclang_rt.builtins.a"
+        "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
+        make -j64 install-headers
+    done
+    just merge_compile_commands
+
+clean_musl:
+    rm -rf sysroots/
+    rm -rf build/sysroots/musl* || true # in case * fails to expand
+
+sye:
+    #!/usr/bin/env zsh
+    set -xe -o pipefail
+
+    targets=(
+        "x86_64-unknown-linux-gnu"
+        #"armv7-unknown-linux-gnueabihf"
+        #"armv7-unknown-linux-gnueabi"
+        #"aarch64-unknown-linux-gnu"
+    )
+
+    for BUILD_TARGET in "${targets[@]}"; do
+        export BUILD_TARGET
+        cmake ../syewasmbundle \
+            -Bbuild/sye/$BUILD_TARGET/ \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS="-fdata-sections -ffunction-sections -femulated-tls -v" \
+            -DCMAKE_C_FLAGS="-fdata-sections -ffunction-sections -femulated-tls -v" \
+            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections -Wl,--trace-symbol,localtime_r" \
+            -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
+            -DPLATFORM_NAME=native \
+            -G Ninja
+        cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
+    done
+
+    readelf -s --wide build/sye/*/src/wasm_bundle/libsye_wasm_bundle.so | awk '/ UND /{print $8}' | sort | uniq
+
+    just merge_compile_commands
+
+clean_sye:
+    rm -rf build/sye
+
+symbol_wrapper:
+    #!/usr/bin/env zsh
+    set -xe -o pipefail
+
+    DIR=$(pwd)
+    cd ../i/devc1/src/elf-loader/scripts
+
+    nd() { which nix &> /dev/null && test -f flake.nix && echo "nix develop --command" }
+    $(nd) python3 symbol_wrapper.py $DIR/build/sye/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
+
+ignite_test_assets:
+    ./build_examples.sh ignite-elf-test
+
+clean_ignite_test_assets:
+    rm -rf ../i/devc1/tests/assets/elf/build/*
+
+ignite_test: ignite_test_assets
+    #!/usr/bin/env zsh
+    set -eo pipefail
+    DIR=$(pwd)
+    cd ../i/devc1
+
+    cp -vr ${DIR}/build/examples/ignite-elf-test/aarch64-unknown-linux-gnu/*.so tests/assets/elf/aarch64/ || true
+    cp -vr ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabi/*.so tests/assets/elf/armv7/ || true
+    cp -vr ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabihf/*.so tests/assets/elf/armv7_vfp/ || true
+    cp -vr ${DIR}/build/examples/ignite-elf-test/x86_64-unknown-linux-gnu/*.so tests/assets/elf/x86_64/
+
+    just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script:info,wasm:info
+    #just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info,wasm:info
+
+# Merge all compile_commands.json under build_dir
+[group('Utilities')]
+merge_compile_commands:
+    @rm -f build/compile_commands.json
+    jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json || true
+

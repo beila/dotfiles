@@ -1,7 +1,8 @@
 #!/usr/bin/env -S just --justfile
 # FIXME group commands
 
-log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
+log_decorator1 := ''
+#log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
 
 # https://gitlab.com/kevincox/watchlog/-/tree/v1
 
@@ -197,13 +198,13 @@ _find_package_recipe_and_run recipe dir:
     if (($all_recipes[(Ie)$package_specific_recipe]))   # if all_recipes includes $package_specific_recipe
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
-        just run "
+        just run_with_brazil_env "
             echo Recurse log: $just_recurse_log
             just --justfile={{ justfile() }} --working-directory=$(pwd) --color always $package_specific_recipe
         "
     elif [ -n "{{ default_command }}" ]
     then
-        just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run "
+        just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run_with_brazil_env "
             echo Recurse log: $just_recurse_log
             {{ default_command }}
         "
@@ -311,6 +312,16 @@ clean_everything: clean_all
 
 [no-cd]
 [no-exit-message]
+run_with_brazil_env +commands:
+    #!/usr/bin/env zsh
+    just run "
+        export PATH=$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH
+        export LD_LIBRARY_PATH=$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+        {{ commands }}
+    "
+
+[no-cd]
+[no-exit-message]
 run +commands:
     #!/bin/bash
     # zsh fails with >&
@@ -318,11 +329,22 @@ run +commands:
     if [ -z "${log_path}" ]
     then
         name="${name:-{{ commands }}}"
-        name=${name##*$'\n'}
+        name=${name#${log_prefix_ignore}}
+        name=${name#just }
         name=${name// /-}
+        name=${name//|/-}
+        name=${name//&/-}
         name=${name//\//-}
+        name=${name//\\/-}
+        name=${name//\*/-}
+        name=${name//\$/-}
+        name=${name//\'/}
+        name=${name//\"/}
+        name=${name//$'\n'/-}
+        name="${name:0:200}"    # file name limit https://serverfault.com/a/9548
         log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
         log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
+        echo "Log: $log_path"
     fi
 
     if [ -z "${log_decorator_invoked}" ]
@@ -335,9 +357,7 @@ run +commands:
     # sed expression modified as https://stackoverflow.com/a/18000433
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
-    time ${SHELL} -ic "
-        export PATH="$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH"
-        export LD_LIBRARY_PATH="$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    time zsh -ic "
         set -x
         {{ commands }}
     "
@@ -345,12 +365,19 @@ run +commands:
 
     exec 1<&4 4>&- 2<&5 5>&-
 
-    echo "Log: $log_path"
+    if [ $exit_code -ne 0 ]
+    then
+        failed_log_path=${log_path/%.txt/.FAILED.txt}
+        mv $log_path $failed_log_path
+        log_path=
+    fi
+
+    echo "Log: $log_path$failed_log_path"
     exit $exit_code
 
 [no-cd]
 b *subcommands:
-    @name=bb just run "just pre_build && (set -x; brazil-build {{ subcommands }} )"
+    @name=bb just run_with_brazil_env "just pre_build && (set -x; brazil-build {{ subcommands }} )"
 
 [no-cd]
 ws *subcommands: mwinit
@@ -375,12 +402,12 @@ mwinit *command:
         }
     "
     expiration=$(cat ~/.midway/cookie 2> /dev/null |
-            cut -d $'\t' -f 5 --only-delimited |
+            cut -d $'\t' -f 5 -s |
             sort -n |
             head -1)
     [ "0$expiration" -gt $(date +%s) ] && mwinit_command=
 
-    exec ${SHELL} -ic "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
+    exec zsh -ic "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
 
 [no-cd]
 mwinitf *command:
@@ -393,6 +420,8 @@ new-ws dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
     set -xeo pipefail
     (
+        which brazil &> dev/null || toolbox install brazilcli
+
         [ -d "{{ dir }}/src" ] && {
             for d in {{ dir }}/src/*
             do
