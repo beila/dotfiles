@@ -25,11 +25,12 @@
           fzf
           git
           hishtory
+          jetbrains-mono    #  왜 neovide에서 못 찾지?
           just
           kitty
+          maccy
           neovide
           neovim
-          nerd-fonts.jetbrains-mono
           ripgrep
           rustup
           yt-dlp
