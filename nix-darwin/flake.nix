@@ -19,6 +19,7 @@
           bat
           broot
           difftastic
+          dust
           eza
           fd
           ffmpeg
