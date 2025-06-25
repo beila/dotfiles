@@ -26,6 +26,7 @@
           fzf
           git
           hishtory
+          jdk8  # work
           jetbrains-mono    #  왜 neovide에서 못 찾지?
           just
           kitty
