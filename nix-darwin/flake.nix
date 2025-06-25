@@ -32,6 +32,7 @@
           maccy
           neovide
           neovim
+          nodejs    # Tools installed by Mason in Neovim
           ripgrep
           rustup
           yt-dlp
