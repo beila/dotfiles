@@ -19,18 +19,19 @@
           bat
           broot
           difftastic
+          dust
           eza
           fd
           ffmpeg
           fzf
           git
           hishtory
-          jetbrains-mono    #  왜 neovide에서 못 찾지?
           just
           kitty
           maccy
           neovide
           neovim
+          nodejs    # Tools installed by Mason in Neovim (biome, etc.)
           ripgrep
           rustup
           yt-dlp
@@ -39,6 +40,8 @@
           imagemagick
           rclone
         ];
+
+      fonts.packages = [ pkgs.jetbrains-mono ];
 
       # Necessary for using flakes on this system.
       nix.settings.experimental-features = "nix-command flakes";
