@@ -26,14 +26,13 @@
           fzf
           git
           hishtory
-          jdk8  # work
           jetbrains-mono    #  왜 neovide에서 못 찾지?
           just
           kitty
           maccy
           neovide
           neovim
-          nodejs    # Tools installed by Mason in Neovim
+          nodejs    # Tools installed by Mason in Neovim (biome, etc.)
           ripgrep
           rustup
           yt-dlp
