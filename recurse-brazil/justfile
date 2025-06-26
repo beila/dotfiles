@@ -104,6 +104,11 @@ release_AVLivingRoomClientBundle:
     brazil-build run put-this-on-that -- --flavor Ignition-X-XP --dtid=A3VN4E5F7BBC7S --did=abcd$(whoami)abcd --stringBundles en_US
 
 [no-cd]
+build_ATVDeviceInitializationServiceDeviceConfig:
+    brazil-build generate-brazil-config-root
+    brazil-build test
+
+[no-cd]
 native_app:
     #!/usr/bin/env zsh
     name=native_app just run "
@@ -130,9 +135,9 @@ native_roku:
         cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/use_ignx_local --target=arm-unknown-linux-gnueabi
     "
 
-@c *command: mwinit
-    #ssh -t dev-dsk-$(whoami)-1c-1d10d9ca.eu-west-1.amazon.com "{{ command }}"
-    ssh dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com "{{ command }}"
+# Log in or run command on $(whoami)-1c-1d10d9ca.eu-west-1.amazon.com
+c *command: mwinit
+    ssh {{ if command == "" { "" } else { "-t" } }} dev-dsk-$(whoami)-1c-08d25803.eu-west-1.amazon.com "{{ command }}"
 
 [no-cd]
 cp src dst=".": mwinit
