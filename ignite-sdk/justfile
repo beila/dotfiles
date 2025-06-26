@@ -95,7 +95,14 @@ sye:
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
     done
 
-    readelf -s --wide build/sye/*/src/wasm_bundle/libsye_wasm_bundle.so | awk '/ UND /{print $8}' | sort | uniq
+    (diff --suppress-common-lines <(
+            grep REG -R ../i/devc1/src/elf-loader/src |
+                sed 's/.*(\(.*\)).*/\1/'|sort -u
+        ) <(
+            readelf -s --wide build/sye/*/src/wasm_bundle/libsye_wasm_bundle.so |
+                awk '/ UND /{print $8}' | sort | uniq
+        )
+    ) | grep '^>'
 
     just merge_compile_commands
 
