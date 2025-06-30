@@ -27,6 +27,7 @@
           git
           hishtory
           just
+          kanata
           kitty
           maccy
           neovide
