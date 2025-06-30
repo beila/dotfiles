@@ -7,7 +7,9 @@
   caps a    s    d    f    g    h    j    k    l    ;    '
   lsft z    x    c    v    b    n    m    ,    .    /    rsft
        grv  \    left rght           up   down [    ]
-                    lmet lalt rctl rmet
+                   lmet lalt       rctl rmet
+              bspc del  home       pgup ret  spc
+                        end        pgdn
 )
 
 (defalias
