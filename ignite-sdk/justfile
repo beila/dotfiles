@@ -81,15 +81,16 @@ sye:
     )
 
     for BUILD_TARGET in "${targets[@]}"; do
-        export BUILD_TARGET
         cmake ../syewasmbundle \
             -Bbuild/sye/$BUILD_TARGET/ \
+            -DBUILD_TARGET_TRIPLE=${BUILD_TARGET} \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_CXX_FLAGS="-fdata-sections -ffunction-sections -femulated-tls -v" \
             -DCMAKE_C_FLAGS="-fdata-sections -ffunction-sections -femulated-tls -v" \
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections" \
             -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections -Wl,--trace-symbol,vsscanf" \
             -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
+            -DIGNITION_X_PATH="$(pwd)/../i/devc1/build/install/bin/ignition" \
             -DPLATFORM_NAME=native \
             -G Ninja
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
