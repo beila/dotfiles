@@ -116,8 +116,9 @@ sye_integ_tests: sye
     set -xe -o pipefail
 
     cmake --build build/sye/x86_64-unknown-linux-gnu --target test_integ_sye_wasm_bundle
-    cp build/sye/x86_64-unknown-linux-gnu/tests/integration/libtest_integ_sye_wasm_bundle.so ../i/devc1/build
-    just --justfile ../i/devc1/justfile pv --set-default-native-engine=Ignite --local-native-path=$(realpath $(pwd)/../i/devc1/build/libtest_integ_sye_wasm_bundle.so) --log-level=ALL:INFO
+    mkdir -p ../i/devc1/build_sye
+    cp -f build/sye/x86_64-unknown-linux-gnu/tests/integration/libtest_integ_sye_wasm_bundle.so ../i/devc1/build_sye/
+    just --justfile ../i/devc1/justfile sye pv --set-default-native-engine=Ignite --local-native-path=$(realpath $(pwd)/../i/devc1/build_sye/libtest_integ_sye_wasm_bundle.so) --log-level=ALL:INFO
 
 symbol_wrapper:
     #!/usr/bin/env zsh
