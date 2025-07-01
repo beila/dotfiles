@@ -73,9 +73,6 @@ sye:
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
-    echo "just --justfile $(pwd)/../i/devc1/justfile pv \$@" &> /tmp/igx
-    chmod +x /tmp/igx
-    
     targets=(
         "x86_64-unknown-linux-gnu"
         #"armv7-unknown-linux-gnueabihf"
@@ -93,7 +90,6 @@ sye:
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections" \
             -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections -Wl,--trace-symbol,vsscanf" \
             -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
-            -DIGNITION_X_PATH="/tmp/igx" \
             -DPLATFORM_NAME=native \
             -G Ninja
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
@@ -120,7 +116,8 @@ sye_integ_tests: sye
     set -xe -o pipefail
 
     cmake --build build/sye/x86_64-unknown-linux-gnu --target test_integ_sye_wasm_bundle
-    ctest --test-dir build/sye/x86_64-unknown-linux-gnu -R test_integ_sye_wasm_bundle --output-on-failure
+    cp build/sye/x86_64-unknown-linux-gnu/tests/integration/libtest_integ_sye_wasm_bundle.so ../i/devc1/build
+    just --justfile ../i/devc1/justfile pv --set-default-native-engine=Ignite --local-native-path=$(realpath $(pwd)/../i/devc1/build/libtest_integ_sye_wasm_bundle.so) --log-level=ALL:INFO
 
 symbol_wrapper:
     #!/usr/bin/env zsh
