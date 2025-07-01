@@ -95,6 +95,8 @@ sye:
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
     done
 
+    set +xe +o pipefail
+
     (diff --suppress-common-lines <(
             grep REG -R ../i/devc1/src/elf-loader/src |
                 sed 's/.*(\(.*\)).*/\1/'|sort -u
