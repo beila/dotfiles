@@ -90,7 +90,7 @@ sye:
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections" \
             -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections -Wl,--trace-symbol,vsscanf" \
             -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
-            -DIGNITION_X_PATH="$(pwd)/../i/devc1/build/install/bin/ignition" \
+            -DIGNITION_X_PATH="just --justfile ../i/devc1/justfile pv" \
             -DPLATFORM_NAME=native \
             -G Ninja
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
@@ -112,11 +112,12 @@ sye:
 clean_sye:
     rm -rf build/sye
 
-sye_integ_tests: sye ignite
+sye_integ_tests: sye
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
-    cmake --build build/sye/x86_64-unknown-linux-gnu --target test ARGS="--test-dir tests/integration"
+    #cmake --build build/sye/x86_64-unknown-linux-gnu --target test ARGS="--test-dir tests/integration"
+    ctest --test-dir build/sye/x86_64-unknown-linux-gnu -R test_integ_sye_wasm_bundle --output-on-failure
 
 symbol_wrapper:
     #!/usr/bin/env zsh
@@ -133,13 +134,6 @@ ignite_test_assets:
 
 clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
-
-ignite:
-    #!/usr/bin/env zsh
-    set -eo pipefail
-    cd ../i/devc1
-
-    just build
 
 ignite_test: ignite_test_assets
     #!/usr/bin/env zsh
