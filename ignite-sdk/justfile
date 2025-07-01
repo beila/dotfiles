@@ -111,7 +111,7 @@ sye:
 clean_sye:
     rm -rf build/sye
 
-sye_integ_tests: sye
+syewasmbundle_integ_tests: sye
     #!/usr/bin/env zsh
     set -xe -o pipefail
 
