@@ -109,6 +109,10 @@ build_ATVDeviceInitializationServiceDeviceConfig:
     brazil-build test
 
 [no-cd]
+build_AVTSTestRepository:
+    brazil-build release
+
+[no-cd]
 native_app:
     #!/usr/bin/env zsh
     name=native_app just run "
