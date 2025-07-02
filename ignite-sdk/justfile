@@ -81,9 +81,9 @@ sye:
     )
 
     for BUILD_TARGET in "${targets[@]}"; do
-        export BUILD_TARGET
         cmake ../syewasmbundle \
             -Bbuild/sye/$BUILD_TARGET/ \
+            -DBUILD_TARGET_TRIPLE=${BUILD_TARGET} \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_CXX_FLAGS="-fdata-sections -ffunction-sections -femulated-tls -v" \
             -DCMAKE_C_FLAGS="-fdata-sections -ffunction-sections -femulated-tls -v" \
@@ -94,6 +94,8 @@ sye:
             -G Ninja
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
     done
+
+    set +xe +o pipefail
 
     (diff --suppress-common-lines <(
             grep REG -R ../i/devc1/src/elf-loader/src |
@@ -108,6 +110,15 @@ sye:
 
 clean_sye:
     rm -rf build/sye
+
+syewasmbundle_integ_tests: sye
+    #!/usr/bin/env zsh
+    set -xe -o pipefail
+
+    cmake --build build/sye/x86_64-unknown-linux-gnu --target test_integ_sye_wasm_bundle
+    mkdir -p ../i/devc1/build_sye
+    cp -f build/sye/x86_64-unknown-linux-gnu/tests/integration/libtest_integ_sye_wasm_bundle.so ../i/devc1/build_sye/
+    just --justfile ../i/devc1/justfile sye pv --set-default-native-engine=Ignite --local-native-path=$(realpath $(pwd)/../i/devc1/build_sye/libtest_integ_sye_wasm_bundle.so) --log-level=ALL:INFO
 
 symbol_wrapper:
     #!/usr/bin/env zsh
