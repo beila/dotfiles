@@ -87,12 +87,23 @@ build_AVLivingRoomRustClient:
     #find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so | xargs --no-run-if-empty file
     #find build/lib/* -regex .\*amzn_av_living_room_rust_client.\*so.br | xargs --no-run-if-empty file
 
-    cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local,amzn-ignx-compositron/debug_overlay
+    #cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local,amzn-ignx-compositron/debug_overlay
+
+    brazil-build build
+    ~/devc/i/devc1/install/bin/ignition --log-level=ALL:DEBUG --device-id=godjan --set-default-native-engine=Ignite --local-native-module-path=/home/godjan/devc/rust-ignite/build/AVLivingRoomRustClient/AVLivingRoomRustClient-1.0/AL2_x86_64/DEV.STD.PTHREAD/build/lib/libamzn_av_living_room_rust_client-666.so
 
 [no-cd]
 release_AVLivingRoomRustClient:
     cp -r build/lib/* $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
     ls -l $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
+
+[no-cd]
+build_RustStdMuslsIgnition:
+    brazil-build build
+
+[no-cd]
+build_IgnitionCratesIoPatches:
+    brazil-build build
 
 [no-cd]
 build_AVLivingRoomClientBundle:
