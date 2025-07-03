@@ -273,6 +273,22 @@ build_only dir="." force="--force":
     {{ just_run_package_recipe_build }}  "{{ dir }}" "{{ force }}" init
 
 [no-cd]
+test dir="." force="--force": mwinit
+    #!/usr/bin/env zsh
+    {{ run_preamble }}                          "{{ dir }}"
+    just recurse                                "{{ dir }}"
+    just _run_package_recipe init               "{{ dir }}" "--only-once"
+    just _find_package_recipe_and_run pre_build "{{ dir }}" || true
+    {{ just_run_package_recipe_build }}         "{{ dir }}" ""            init
+    just _run_package_recipe test               "{{ dir }}" "{{ force }}" build
+
+[no-cd]
+test_only dir="." force="--force":
+    #!/usr/bin/env zsh
+    {{ run_preamble }}            "{{ dir }}"
+    just _run_package_recipe test "{{ dir }}" "{{ force }}" build
+
+[no-cd]
 release dir="." force="--force": mwinit
     #!/usr/bin/env zsh
     {{ run_preamble }}                          "{{ dir }}"

@@ -91,9 +91,11 @@ build_AVLivingRoomRustClient:
 
     brazil-build build
 
+[no-cd]
+test_AVLivingRoomRustClient:
     mkdir -p $HOME/devc/i/devc1/build/
-    cp /home/godjan/devc/rust-ignite/build/AVLivingRoomRustClient/AVLivingRoomRustClient-1.0/AL2_x86_64/DEV.STD.PTHREAD/build/lib/libamzn_av_living_room_rust_client-666.so $HOME/devc/i/devc1/build/
-    just --justfile $HOME/devc/i/devc1/justfile pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-module-path= $HOME/devc/i/devc1/build/libamzn_av_living_room_rust_client-666.so
+    cp build/lib/libamzn_av_living_room_rust_client-666.so $HOME/devc/i/devc1/build/
+    just --justfile $HOME/devc/i/devc1/justfile pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-module-path=$(realpath $HOME/devc/i/devc1/build/libamzn_av_living_room_rust_client-666.so)
 
 [no-cd]
 release_AVLivingRoomRustClient:
