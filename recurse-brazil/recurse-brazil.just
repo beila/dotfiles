@@ -305,7 +305,7 @@ clean_all:
 
 [no-cd]
 clean_everything: clean_all
-    rm -rf ../../env/
+    rm -rf ../../build/ ../../env/
     brazil-package-cache stop
     rm -rf $(brazil-package-cache cache_root)
     brazil-package-cache start
