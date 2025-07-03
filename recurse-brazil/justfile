@@ -95,7 +95,7 @@ build_AVLivingRoomRustClient:
 test_AVLivingRoomRustClient:
     mkdir -p $HOME/devc/i/devc1/build/
     cp build/lib/libamzn_av_living_room_rust_client-666.so $HOME/devc/i/devc1/build/
-    just --justfile $HOME/devc/i/devc1/justfile pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-module-path=$(realpath $HOME/devc/i/devc1/build/libamzn_av_living_room_rust_client-666.so)
+    just --justfile $HOME/devc/i/devc1/justfile ffi pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-module-path=$(realpath $HOME/devc/i/devc1/build/libamzn_av_living_room_rust_client-666.so) --log-file=build/log-ignite-$(date +%F-%H-%M-%S).txt
 
 [no-cd]
 release_AVLivingRoomRustClient:
