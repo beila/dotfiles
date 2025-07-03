@@ -35,7 +35,7 @@
 
           
           shellHook = ''
-            #exec nvim
+            exec nvim
           '';
         };
       });
