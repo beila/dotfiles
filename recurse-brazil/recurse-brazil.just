@@ -315,8 +315,8 @@ clean_everything: clean_all
 run_with_brazil_env +commands:
     #!/usr/bin/env zsh
     just run "
-        export PATH=$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH
-        export LD_LIBRARY_PATH=$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+        #export PATH=$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH
+        #export LD_LIBRARY_PATH=$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
         {{ commands }}
     "
 
