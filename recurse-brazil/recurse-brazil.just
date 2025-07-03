@@ -314,7 +314,6 @@ clean_everything: clean_all
 [no-exit-message]
 run_with_brazil_env +commands:
     #!/usr/bin/env zsh
-    set -x # FIXME [1]  + 46702 suspended (tty input)  just build
     just run "
         #export PATH=$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH
         #export LD_LIBRARY_PATH=$(brazil-path all.lib)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
@@ -325,6 +324,7 @@ run_with_brazil_env +commands:
 [no-exit-message]
 run +commands:
     #!/bin/bash
+    set -x # FIXME [1]  + 46702 suspended (tty input)  just build
     # zsh fails with >&
 
     if [ -z "${log_path}" ]
