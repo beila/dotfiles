@@ -324,7 +324,6 @@ run_with_brazil_env +commands:
 [no-exit-message]
 run +commands:
     #!/bin/bash
-    set -x # FIXME [1]  + 46702 suspended (tty input)  just build
     # zsh fails with >&
 
     if [ -z "${log_path}" ]
@@ -358,6 +357,7 @@ run +commands:
     # sed expression modified as https://stackoverflow.com/a/18000433
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
+    # NOTE: Adding -i resulted in 'suspended (tty input)'
     #time zsh -ic "
     time zsh -c "
         set -x
