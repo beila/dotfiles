@@ -350,6 +350,7 @@ run +commands:
     if [ -z "${log_decorator_invoked}" ]
     then
         export log_decorator_invoked=1
+        log_decorator_invoked_here=1
         exec 1>&2>&>({{ log_decorator }})
     fi
 
@@ -363,7 +364,10 @@ run +commands:
     "
     exit_code=$?
 
-    exec 1<&4 4>&- 2<&5 5>&-
+    if [ -n "${log_decorator_invoked_here}" ]
+    then
+        exec 1<&4 4>&- 2<&5 5>&-
+    fi
 
     if [ $exit_code -ne 0 ]
     then
