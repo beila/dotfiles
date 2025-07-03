@@ -102,7 +102,7 @@ release_AVLivingRoomRustClient:
 
 [no-cd]
 pre_build_RustStdMuslsIgnition:
-    rm -f build/private/src/config.toml
+    rm -f build/private/src/{config,bootstrap}.toml
 
 [no-cd]
 build_RustStdMuslsIgnition:
