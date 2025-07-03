@@ -351,7 +351,6 @@ run +commands:
     if [ -z "${log_decorator_invoked}" ]
     then
         export log_decorator_invoked=1
-        log_decorator_invoked_here=1
         exec 1>&2>&>({{ log_decorator }})
     fi
 
@@ -359,16 +358,14 @@ run +commands:
     # sed expression modified as https://stackoverflow.com/a/18000433
     exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
-    time zsh -ic "
+    #time zsh -ic "
+    time zsh -c "
         set -x
         {{ commands }}
     "
     exit_code=$?
 
-    if [ -n "${log_decorator_invoked_here}" ]
-    then
-        exec 1<&4 4>&- 2<&5 5>&-
-    fi
+    exec 1<&4 4>&- 2<&5 5>&-
 
     echo "Log: $log_path"
     exit $exit_code
