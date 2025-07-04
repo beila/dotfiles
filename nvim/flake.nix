@@ -27,6 +27,7 @@
         default = pkgs.mkShell {
           
           packages = with pkgs; [
+            cargo   # rust-analyzer or ast-grep
             git
             neovim
             nodejs  # biome from Mason
