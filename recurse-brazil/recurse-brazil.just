@@ -310,18 +310,21 @@ fresh:
 
 [no-cd]
 clean dir=".":
-    rm -rf {{ dir }}/build/* {{ dir }}/node_modules
+    #!/usr/bin/env zsh
+    setopt -o nullglob extendedglob
+    set -x
+    rm -rf {{ dir }}/build/^(log-)* {{ dir }}/node_modules
 
 [no-cd]
 clean_all:
     #!/usr/bin/env zsh
     setopt -o nullglob extendedglob
     set -x
-    rm -rf ../*/build/^(log-|timestamp-)* ../*/node_modules
+    rm -rf ../*/build/^(log-)* ../*/node_modules
 
 [no-cd]
 clean_everything: clean_all
-    rm -rf ../../build/ ../../env/
+    rm -rf ../../env/
     brazil-package-cache stop
     rm -rf $(brazil-package-cache cache_root)
     brazil-package-cache start
