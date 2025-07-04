@@ -1,5 +1,5 @@
 #!/usr/bin/env -S just --justfile
-# FIXME group commands
+# TODO group commands
 
 log_decorator1 := ''
 #log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
@@ -168,7 +168,6 @@ _run_package_recipe recipe dir force *previous_recipes:
     recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Log: $recipe_log_path"
 
-    set -x  # FIXME recipe succeeded but fail?
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" .
     my_exit_code=$?
 
