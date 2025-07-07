@@ -198,13 +198,11 @@ _find_package_recipe_and_run recipe dir:
     then
         # specify working-directory to avoid adding [no-cd] on all package specific recipes
         just run_with_brazil_env "
-            echo Recurse log: $just_recurse_log
             just --justfile={{ justfile() }} --working-directory=$(pwd) --color always $package_specific_recipe
         "
     elif [ -n "{{ default_command }}" ]
     then
         just --justfile={{ justfile() }} --working-directory=$(pwd) --color always run_with_brazil_env "
-            echo Recurse log: $just_recurse_log
             {{ default_command }}
         "
     else
