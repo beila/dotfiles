@@ -1,8 +1,11 @@
 #!env zsh
-_FA_TARGETS=${FA_TARGETS:-$(echo $(realpath $(git rev-parse --show-toplevel || echo .)/../*/))}
+_GIT_ROOT=$(git rev-parse --show-toplevel 2> /dev/null)
+_ROOT=${_GIT_ROOT:+${_GIT_ROOT}/..}
+_ROOT=${_ROOT:-.}
+_FA_TARGETS=${FA_TARGETS:-$(echo $(realpath ${_ROOT})/*/)}
 local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
-for TARGET in ${=_FS_TARGETS}
+for TARGET in ${=_FA_TARGETS}
 do
 	echo -n "${TARGET##*/}:¬"
 	(cd $TARGET; "$@") 2> /dev/null || echo
