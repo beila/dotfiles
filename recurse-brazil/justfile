@@ -150,7 +150,7 @@ build_RustStdIgnite:
 
 [no-cd]
 build_IgniteSdkRustExamples:
-    build-tools/bin/generate-bundles
+    brazil-build build
 
 [no-cd]
 native_app:
