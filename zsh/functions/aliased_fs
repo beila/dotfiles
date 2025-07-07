@@ -7,6 +7,6 @@ local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
 for TARGET in ${=_FA_TARGETS}
 do
-	echo -n "${TARGET##*/}:¬"
-	(cd $TARGET; "$@") 2> /dev/null || echo
+    echo -n "$(basename ${TARGET}):¬"
+    (cd $TARGET; "$@") 2> /dev/null || echo
 done | column -s '¬' -t
