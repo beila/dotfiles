@@ -137,6 +137,13 @@ build_AVTSTestRepository:
     brazil-build release
 
 [no-cd]
+build_[no-cd]
+    pre_build_RustStdMuslsIgnition:
+        rm -f build/private/src/{config,bootstrap}.toml
+
+
+
+[no-cd]
 native_app:
     #!/usr/bin/env zsh
     name=native_app just run "
