@@ -7,7 +7,7 @@ local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
 for TARGET in ${=_FA_TARGETS}
 do
-	echo ">>>> $TARGET:"
+    echo ">>>> $TARGET:"
     (cd $TARGET; "$@") || return $?
 done
 # refer to smart_sudo in http://zshwiki.org/home/examples/functions
