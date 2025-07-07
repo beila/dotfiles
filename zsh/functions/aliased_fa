@@ -1,5 +1,5 @@
 #!env zsh
-_FA_TARGETS=${FA_TARGETS:-$(find . -mindepth 1 -maxdepth 1 -type d|sort)}
+_FA_TARGETS=${FA_TARGETS:-$(echo $(realpath "$(git rev-parse --show-toplevel)"/..)/*/)}
 local TARGET
 # turning on SH_WORD_SPLIT as http://zsh.sourceforge.net/FAQ/zshfaq03.html
 for TARGET in ${=_FA_TARGETS}
