@@ -103,6 +103,10 @@ release_AVLivingRoomRustClient:
     ls -l $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
 
 [no-cd]
+init_RustStdMuslsIgnition:
+    brazil ws merge -l -p Musl-1.x || true
+
+[no-cd]
 pre_build_RustStdMuslsIgnition:
     rm -f build/private/src/{config,bootstrap}.toml
 
