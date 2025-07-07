@@ -137,11 +137,8 @@ build_AVTSTestRepository:
     brazil-build release
 
 [no-cd]
-build_[no-cd]
-    pre_build_RustStdMuslsIgnition:
-        rm -f build/private/src/{config,bootstrap}.toml
-
-
+build_IgniteSdkRustExamples:
+    brazil-build
 
 [no-cd]
 native_app:
