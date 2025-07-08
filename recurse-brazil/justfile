@@ -149,6 +149,10 @@ build_RustStdIgnite:
     brazil-build
 
 [no-cd]
+init_IgniteSdkRustExamples:
+    brazil-build
+
+[no-cd]
 build_IgniteSdkRustExamples:
     brazil-build build
     readelf -sW build/private/cargo-target/*/release/libamzn_ignite_sdk_rust_examples.so | awk '/UND/ && !/WEAK/{print $8}'|sort -u
