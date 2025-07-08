@@ -383,6 +383,7 @@ run +commands:
 
     exec 1<&4 4>&- 2<&5 5>&-
 
+    set -x  # FIXME see if -z "$just_recurse_log" works
     if [ $exit_code -ne 0 -a -z "$just_recurse_log" ]   # recurse log already recorded log_path
     then
         failed_log_path=${log_path/%.txt/.FAILED.txt}
