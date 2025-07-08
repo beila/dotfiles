@@ -91,6 +91,8 @@ build_AVLivingRoomRustClient:
 
     brazil-build build
 
+    readelf -sW build/private/cargo-target/*/release/libamzn_av_living_room_rust_client.so | awk '/UND/ && !/WEAK/{print $8}'| sort -u
+
 [no-cd]
 test_AVLivingRoomRustClient:
     mkdir -p $HOME/devc/i/devc1/build/
