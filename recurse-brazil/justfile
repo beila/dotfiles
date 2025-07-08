@@ -155,7 +155,7 @@ build_IgniteSdkRustExamples:
 [no-cd]
 test_IgniteSdkRustExamples:
     mkdir -p $HOME/devc/i/devc1/build/
-    cp build/private/cargo-target/aarch64-unknown-linux-musl/release/libamzn_ignite_sdk_rust_examples.so $HOME/devc/i/devc1/build/
+    cp build/private/cargo-target/x86_64-unknown-linux-musl/release/libamzn_ignite_sdk_rust_examples.so $HOME/devc/i/devc1/build/
     just --justfile $HOME/devc/i/devc1/justfile pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-path=$(realpath $HOME/devc/i/devc1/build/libamzn_ignite_sdk_rust_examples.so) --log-file=build/log-ignite-$(date +%F-%H-%M-%S).txt
 
 [no-cd]
