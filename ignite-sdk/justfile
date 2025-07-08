@@ -155,4 +155,3 @@ ignite_test: ignite_test_assets
 merge_compile_commands:
     @rm -f build/compile_commands.json
     jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json || true
-
