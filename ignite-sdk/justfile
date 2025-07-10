@@ -18,13 +18,13 @@ clean_all: clean
     rm -rf build/llvm  # We don't usually need to change this
 
 sdk:
-    ./build_sysroots.sh
-    ./build_toolchain.sh
-    ./build_examples.sh mixed
+    ./build_sysroots.sh || just merge_compile_commands
+    ./build_toolchain.sh || just merge_compile_commands
+    ./build_examples.sh mixed || just merge_compile_commands
+    just merge_compile_commands
 
 sysroots:
-    ./build_sysroots.sh
-    just merge_compile_commands
+    ./build_sysroots.sh || just merge_compile_commands
 
     readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
 
