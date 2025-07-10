@@ -12,7 +12,7 @@ clean:
     #!/usr/bin/env zsh
     setopt -o nullglob extendedglob
     set -x
-    rm -rf build/^(log-|llvm)* #install/ sysroots/
+    rm -rf build/^(log-|llvm)* install/ sysroots/
 
 clean_all: clean
     rm -rf build/llvm  # We don't usually need to change this
