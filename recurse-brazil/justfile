@@ -143,6 +143,10 @@ build_RustStdBuild:
     brazil-build
 
 [no-cd]
+build_IgniteSdkArtifact:
+    brazil-build
+
+[no-cd]
 pre_build_RustStdIgnite:
     rm -f build/private/src/{config,bootstrap}.toml
 
