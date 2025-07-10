@@ -438,40 +438,38 @@ work_branch := ""
 new-ws dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
     set -xeo pipefail
-    (
-        which brazil &> /dev/null || toolbox install brazilcli
+    which brazil &> /dev/null || toolbox install brazilcli
 
-        [ -d "{{ dir }}/src" ] && {
-            for d in {{ dir }}/src/*
-            do
-                [ -n "$(git -C "$d" status --short)" ] && exit 1
-            done
-            set -x
-            rm -rf "{{ dir }}"
-        }
+    [ -d "{{ dir }}/src" ] && {
+        for d in {{ dir }}/src/*
+        do
+            [ -n "$(git -C "$d" status --short)" ] && exit 1
+        done
+        set -x
+        rm -rf "{{ dir }}"
+    }
 
-        more_packages=({{ more_packages }})
+    more_packages=({{ more_packages }})
 
-        just ws create --root "{{ dir }}" --package {{ main_package }} ${other_options}
+    just ws create --root "{{ dir }}" --package {{ main_package }} ${other_options}
 
-        cd "{{ dir }}/src/{{ main_package }}"
+    cd "{{ dir }}/src/{{ main_package }}"
 
-        if (( ${#more_packages[@]} != 0 ))
-        then
-            just ws use ${more_packages[@]/#/--package }
-        fi
+    if (( ${#more_packages[@]} != 0 ))
+    then
+        just ws use ${more_packages[@]/#/--package }
+    fi
 
-        if [ -n "{{ work_branch }}" ]
-        then
-            for p in {{ main_package }} ${more_packages[@]}
-            do
-                git -C "{{ dir }}/src/$p" fetch --all || true
-                git -C "{{ dir }}/src/$p" checkout {{ work_branch }} || true
-            done
-        fi
+    if [ -n "{{ work_branch }}" ]
+    then
+        for p in {{ main_package }} ${more_packages[@]}
+        do
+            git -C "{{ dir }}/src/$p" fetch --all || true
+            git -C "{{ dir }}/src/$p" checkout {{ work_branch }} || true
+        done
+    fi
 
-        echo "{{ dir }}/src/{{ main_package }}"
-    ) | {{ log_decorator }}
+    echo "{{ dir }}/src/{{ main_package }}"
 
 [no-cd]
 upload-diff-for-review *args: mwinit
