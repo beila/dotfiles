@@ -29,12 +29,12 @@ sysroots:
     readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
 
 toolchain:
-    ./build_toolchain.sh
+    ./build_toolchain.sh || just merge_compile_commands
     just merge_compile_commands
 
 mixed:
     rm -rf build/examples/mixed/
-    ./build_examples.sh mixed
+    ./build_examples.sh mixed || just merge_compile_commands
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
     just merge_compile_commands
 
