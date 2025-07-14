@@ -20,25 +20,28 @@ clean_all: clean clean_sye
 alias clean_everything := clean_all
 
 sdk:
-    ./build_sysroots.sh || just merge_compile_commands $?
-    ./build_toolchain.sh || just merge_compile_commands $?
-    ./build_examples.sh mixed || just merge_compile_commands $?
+    ./build_sysroots.sh &&
+        ./build_toolchain.sh &&
+        ./build_examples.sh mixed
     just merge_compile_commands $?
 
 sysroots:
-    ./build_sysroots.sh || just merge_compile_commands $?
+    ./build_sysroots.sh
+    just merge_compile_commands $?
 
     readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
 
 toolchain:
-    ./build_toolchain.sh || just merge_compile_commands $?
+    ./build_toolchain.sh
     just merge_compile_commands $?
 
 mixed:
     rm -rf build/examples/mixed/
-    ./build_examples.sh mixed || just merge_compile_commands $?
-    readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
+
+    ./build_examples.sh mixed
     just merge_compile_commands $?
+
+    readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
 
 clean_examples:
     rm -rf build/examples
