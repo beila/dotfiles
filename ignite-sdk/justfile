@@ -1,6 +1,6 @@
 #!/usr/bin/env -S just --justfile
 
-import? '~/.justfile'
+#import? '~/.justfile'
 
 [private]
 default:
