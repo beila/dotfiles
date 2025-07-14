@@ -144,7 +144,7 @@ build_RustStdBuild:
 
 [no-cd]
 build_IgniteSdkArtifact:
-    brazil-build
+    brazil-runtime-exec build-tools/bin/custom-build
 
 [no-cd]
 pre_build_RustStdIgnite:
