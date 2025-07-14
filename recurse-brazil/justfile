@@ -89,7 +89,7 @@ build_AVLivingRoomRustClient:
 
     #cargo build -p amzn-av-living-room-rust-client --lib --features=amzn-ignx-compositron/allow_no_js_vm,amzn-ignx-compositron/use_ignx_local,amzn-ignx-compositron/debug_overlay
 
-    brazil-build build
+    brazil-build build || true
 
     readelf -sW build/private/cargo-target/*/release/libamzn_av_living_room_rust_client.so | awk '/UND/ && !/WEAK/{print $8}'| sort -u
 
@@ -160,7 +160,7 @@ init_IgniteSdkRustExamples:
 
 [no-cd]
 build_IgniteSdkRustExamples:
-    brazil-build build
+    brazil-build build || true
     readelf -sW build/private/cargo-target/*/release/libamzn_ignite_sdk_rust_examples.so | awk '/UND/ && !/WEAK/{print $8}'|sort -u
 
 [no-cd]
