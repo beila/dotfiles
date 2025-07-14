@@ -20,25 +20,25 @@ clean_all: clean clean_sye
 alias clean_everything := clean_all
 
 sdk:
-    ./build_sysroots.sh || just merge_compile_commands
-    ./build_toolchain.sh || just merge_compile_commands
-    ./build_examples.sh mixed || just merge_compile_commands
-    just merge_compile_commands
+    ./build_sysroots.sh || just merge_compile_commands $?
+    ./build_toolchain.sh || just merge_compile_commands $?
+    ./build_examples.sh mixed || just merge_compile_commands $?
+    just merge_compile_commands $?
 
 sysroots:
-    ./build_sysroots.sh || just merge_compile_commands
+    ./build_sysroots.sh || just merge_compile_commands $?
 
     readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
 
 toolchain:
-    ./build_toolchain.sh || just merge_compile_commands
-    just merge_compile_commands
+    ./build_toolchain.sh || just merge_compile_commands $?
+    just merge_compile_commands $?
 
 mixed:
     rm -rf build/examples/mixed/
-    ./build_examples.sh mixed || just merge_compile_commands
+    ./build_examples.sh mixed || just merge_compile_commands $?
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
-    just merge_compile_commands
+    just merge_compile_commands $?
 
 clean_examples:
     rm -rf build/examples
@@ -65,7 +65,7 @@ musl:
         "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
         make -j64 install-headers
     done
-    just merge_compile_commands
+    just merge_compile_commands $?
 
 clean_musl:
     rm -rf sysroots/
@@ -108,7 +108,7 @@ sye:
         )
     ) | grep '^>'
 
-    just merge_compile_commands
+    just merge_compile_commands $?
 
 clean_sye:
     rm -rf build/sye
@@ -154,6 +154,7 @@ ignite_test: ignite_test_assets
 
 # Merge all compile_commands.json under build_dir
 [group('Utilities')]
-merge_compile_commands:
+merge_compile_commands exit_code="0":
     @rm -f build/compile_commands.json
-    jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json || true
+    jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json
+    exit {{ exit_code }}
