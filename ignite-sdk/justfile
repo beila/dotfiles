@@ -21,25 +21,21 @@ alias clean_everything := clean_all
 
 sdk:
     ./build_sysroots.sh &&
-        ./build_toolchain.sh &&
-        ./build_examples.sh mixed
-    just merge_compile_commands $?
+    ./build_toolchain.sh &&
+    ./build_examples.sh mixed || just merge_compile_commands $?
 
 sysroots:
-    ./build_sysroots.sh
-    just merge_compile_commands $?
+    ./build_sysroots.sh || just merge_compile_commands $?
 
     readelf --all build/sysroots/musl-x86_64-unknown-linux-gnu/lib/libc.a | grep vsnprintf
 
 toolchain:
     ./build_toolchain.sh
-    just merge_compile_commands $?
 
 mixed:
     rm -rf build/examples/mixed/
 
-    ./build_examples.sh mixed
-    just merge_compile_commands $?
+    ./build_examples.sh mixed || just merge_compile_commands $?
 
     readelf --all build/examples/mixed/x86_64-unknown-linux-gnu/libmixed.so | grep toupper
 
@@ -68,7 +64,6 @@ musl:
         "$SCRIPT_DIR/external/musl/configure" --target="${target}" --srcdir="$SCRIPT_DIR/external/musl" --prefix="$SCRIPT_DIR/sysroots/${target}/usr" --disable-gcc-wrapper --disable-shared
         make -j64 install-headers
     done
-    just merge_compile_commands $?
 
 clean_musl:
     rm -rf sysroots/
@@ -96,7 +91,8 @@ sye:
             -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--exclude-libs,ALL -Wl,-gc-sections -Wl,--trace-symbol,vsscanf" \
             -DCMAKE_TOOLCHAIN_FILE=$(pwd)/toolchain.cmake \
             -DPLATFORM_NAME=native \
-            -G Ninja
+            -G Ninja ||
+                just merge_compile_commands $?
         cmake --build build/sye/$BUILD_TARGET/ --target sye_wasm_bundle
     done
 
@@ -110,8 +106,6 @@ sye:
                 awk '/ UND /{print $8}' | sort | uniq
         )
     ) | grep '^>'
-
-    just merge_compile_commands $?
 
 clean_sye:
     rm -rf build/sye
