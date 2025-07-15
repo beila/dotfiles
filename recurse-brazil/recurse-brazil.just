@@ -460,14 +460,15 @@ new-ws dir main_package *more_packages: mwinit
         just ws use ${more_packages[@]/#/--package }
     fi
 
-    if [ -n "{{ work_branch }}" ]
-    then
-        for p in {{ main_package }} ${more_packages[@]}
-        do
-            git -C "{{ dir }}/src/$p" fetch --all || true
-            git -C "{{ dir }}/src/$p" checkout {{ work_branch }} || true
-        done
-    fi
+    my_branch={{ work_branch }}
+    my_branch=${my_branch:-$(basename {{ dir }})}
+    for p in {{ main_package }} ${more_packages[@]}
+    do
+        git -C "{{ dir }}/src/$p" fetch --all || true
+        git -C "{{ dir }}/src/$p" checkout {{ work_branch }} || 
+            git -C "{{ dir }}/src/$p" checkout -b {{ work_branch }} ||
+            true
+    done
 
     echo "{{ dir }}/src/{{ main_package }}"
 
