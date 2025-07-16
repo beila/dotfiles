@@ -151,6 +151,7 @@ ignite_test: ignite_test_assets
 
 # Merge all compile_commands.json under build_dir
 [group('Utilities')]
+[no-exit-message]
 merge_compile_commands exit_code="0":
     @rm -f build/compile_commands.json
     jq -s add $(find build/*/ -name compile_commands.json) > build/compile_commands.json
