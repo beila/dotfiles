@@ -136,7 +136,7 @@ clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
 
 ignite_test: ignite_test_assets
-    #!/usr/bin/env zsh
+    #!/usr/bin/env bash
     set -eo pipefail
     DIR=$(pwd)
     cd ../i/devc1
