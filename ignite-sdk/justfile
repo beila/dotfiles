@@ -70,7 +70,7 @@ clean_musl:
     rm -rf build/sysroots/musl* || true # in case * fails to expand
 
 sye:
-    #!/usr/bin/env bash
+    #!/usr/bin/env zsh
     set -xe -o pipefail
 
     targets=(
@@ -126,7 +126,7 @@ symbol_wrapper:
     DIR=$(pwd)
     cd ../i/devc1/src/elf-loader/scripts
 
-    nd() { which nix &> /dev/null && test -f flake.nix && echo "nix develop --command" }
+    nd() { which nix &> /dev/null && test -f flake.nix && echo "nix develop -i --command" }
     $(nd) python3 symbol_wrapper.py $DIR/build/sye/src/wasm_bundle/libsye_wasm_bundle.so $DIR/sysroots/x86_64-unknown-linux-gnu
 
 ignite_test_assets:
@@ -136,7 +136,7 @@ clean_ignite_test_assets:
     rm -rf ../i/devc1/tests/assets/elf/build/*
 
 ignite_test: ignite_test_assets
-    #!/usr/bin/env bash
+    #!/usr/bin/env zsh
     set -eo pipefail
     DIR=$(pwd)
     cd ../i/devc1
@@ -146,7 +146,7 @@ ignite_test: ignite_test_assets
     cp -vr ${DIR}/build/examples/ignite-elf-test/armv7-unknown-linux-gnueabihf/*.so tests/assets/elf/armv7_vfp/ || true
     cp -vr ${DIR}/build/examples/ignite-elf-test/x86_64-unknown-linux-gnu/*.so tests/assets/elf/x86_64/
 
-    just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script:info,wasm:info
+    nix develop -i --command just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script:info,wasm:info
     #just unit '--gtest_filter=ElfLoaderTest.\*' --log-level=script_engine:trace,script:info,wasm:info
 
 # Merge all compile_commands.json under build_dir
