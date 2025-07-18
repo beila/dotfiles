@@ -110,6 +110,9 @@ sye:
 clean_sye:
     rm -rf build/sye
 
+sye_release:
+    ../syewasmbundle/ci-build.sh --build-type Release --build-dir build/sye_release/rel --toolchain  $(pwd)/toolchain.cmake
+
 syewasmbundle_integ_tests: sye
     #!/usr/bin/env zsh
     set -xe -o pipefail
