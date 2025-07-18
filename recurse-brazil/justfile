@@ -187,7 +187,7 @@ build_SyeWasmBundle:
         --build-type Release \
         --toolchain $ignite_sdk/toolchain.cmake \
         --platform ignite \
-        --build-target armv7-unknown-linux-gnueabi \
+        --build-target armv7-unknown-linux-gnueabihf \
         --parallel 16
 
     rm -f $workspace/assets{,-debug}/ignite/*
@@ -203,7 +203,7 @@ build_SyeWasmBundle:
         --build-type Release \
         --toolchain $ignite_sdk/toolchain.cmake \
         --platform ignite \
-        --build-target armv7-unknown-linux-gnueabihf \
+        --build-target armv7-unknown-linux-gnueabi \
         --parallel 16
 
     cp build-ignite/src/wasm_bundle/stripped/stripped_libsye_wasm_bundle.so \
