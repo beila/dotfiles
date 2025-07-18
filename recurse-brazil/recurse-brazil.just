@@ -465,8 +465,8 @@ new-ws dir main_package *more_packages: mwinit
     for p in {{ main_package }} ${more_packages[@]}
     do
         git -C "{{ dir }}/src/$p" fetch --all || true
-        git -C "{{ dir }}/src/$p" checkout {{ work_branch }} || 
-            git -C "{{ dir }}/src/$p" checkout -b {{ work_branch }} ||
+        git -C "{{ dir }}/src/$p" checkout $my_branch || 
+            git -C "{{ dir }}/src/$p" checkout -b $my_branch ||
             true
     done
 
