@@ -170,6 +170,77 @@ test_IgniteSdkRustExamples:
     just --justfile $HOME/devc/i/devc1/justfile pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-path=$(realpath $HOME/devc/i/devc1/build/libamzn_ignite_sdk_rust_examples.so) --log-file=build/log-ignite-$(date +%F-%H-%M-%S).txt
 
 [no-cd]
+build_IgniteSdkRustExamples:
+#release abi_version ignite_sdk="../ignite-sdk" brazil_workspace="../syebrazil":
+    #!/usr/bin/env zsh
+    set -xe
+
+    syewasmbundle=~/devc/syewasmbundle
+    ignite_sdk=~/devc/ignite-sdk
+    abi_version=3.0.1
+
+    cd $syewasmbundle
+
+    ./ci-build.sh \
+        --build-type Release \
+        --toolchain {{ ignite_sdk }}/toolchain.cmake \
+        --platform ignite \
+        --build-target armv7-unknown-linux-gnueabi \
+        --parallel 16
+
+    rm -f {{ brazil_workspace }}/src/SyeWasmBundle/assets{,-debug}/ignite/*
+    mkdir -p {{ brazil_workspace }}/src/SyeWasmBundle/assets{,-debug}/ignite/
+    cp build-ignite/src/wasm_bundle/stripped/stripped_libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets/ignite/sye-armv7_vfp-{{ abi_version }}.so
+    cp build-ignite/src/wasm_bundle/libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets-debug/ignite/sye-armv7_vfp-{{ abi_version }}-debug.so
+
+    rm -rf build-ignite
+
+    ./ci-build.sh \
+        --build-type Release \
+        --toolchain {{ ignite_sdk }}/toolchain.cmake \
+        --platform ignite \
+        --build-target armv7-unknown-linux-gnueabihf \
+        --parallel 16
+
+    rm -f {{ brazil_workspace }}/src/SyeWasmBundle/assets{,-debug}/ignite/*
+    mkdir -p {{ brazil_workspace }}/src/SyeWasmBundle/assets{,-debug}/ignite/
+    cp build-ignite/src/wasm_bundle/stripped/stripped_libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets/ignite/sye-armv7-{{ abi_version }}.so
+    cp build-ignite/src/wasm_bundle/libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets-debug/ignite/sye-armv7-{{ abi_version }}-debug.so
+
+    rm -rf build-ignite
+
+    ./ci-build.sh \
+        --build-type Release \
+        --toolchain {{ ignite_sdk }}/toolchain.cmake \
+        --platform ignite \
+        --build-target aarch64-unknown-linux-gnu \
+        --parallel 16
+
+    cp build-ignite/src/wasm_bundle/stripped/stripped_libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets/ignite/sye-aarch64-{{ abi_version }}.so
+    cp build-ignite/src/wasm_bundle/libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets-debug/ignite/sye-aarch64-{{ abi_version }}-debug.so
+
+    rm -rf build-ignite
+
+    ./ci-build.sh \
+        --build-type Release \
+        --toolchain {{ ignite_sdk }}/toolchain.cmake \
+        --platform ignite \
+        --build-target x86_64-unknown-linux-gnu \
+        --parallel 16
+
+    cp build-ignite/src/wasm_bundle/stripped/stripped_libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets/ignite/sye-x86_64-{{ abi_version }}.so
+    cp build-ignite/src/wasm_bundle/libsye_wasm_bundle.so \
+        {{ brazil_workspace }}/src/SyeWasmBundle/assets-debug/ignite/sye-x86_64-{{ abi_version }}-debug.so
+
+    find assets{,-debug}/ignite -name *.so | xargs file
+[no-cd]
 native_app:
     #!/usr/bin/env zsh
     name=native_app just run "
