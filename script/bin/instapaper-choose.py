@@ -223,10 +223,10 @@ folder_weights = {
     "brown": 1,
     "choi": 1,
     "jones": 1 / 40,
-    "morpheus": 2,
+    # "morpheus": 2,
     "oracle": 2,
     "rhineheart": 2,
-    "smith": 1 / 40,
+    # "smith": 1 / 40,
     "switch": 1,
     "trinity": 2,
 }
