@@ -223,8 +223,8 @@ folder_weights = {
     "brown": 1,
     "choi": 1,
     "jones": 1 / 40,
-    # "morpheus": 2,  # merged to oracle 2025-07-19
-    "oracle": 4,
+    "morpheus": 2,  # merged to oracle 2025-07-19
+    "oracle": 2,
     "rhineheart": 2,
     "smith": 1 / 40,
     "switch": 1,
