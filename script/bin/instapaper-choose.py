@@ -182,7 +182,7 @@ folder_uis = {
     "apoc": "https://www.instapaper.com/u/folder/1536334/apoc",
     "choi": "https://www.instapaper.com/u/folder/1538044/choi",
     "jones": "https://www.instapaper.com/u/folder/1538042/jones",
-    "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
+    # "morpheus": "https://www.instapaper.com/u/folder/1185287/morpheus",
     "oracle": "https://www.instapaper.com/u/folder/1536331/oracle",
     "rhineheart": "https://www.instapaper.com/u/folder/1538043/rhineheart",
     "smith": "https://www.instapaper.com/u/folder/1514058/smith",
@@ -207,7 +207,7 @@ folder_weights = {
     "2021": 1,
     "2022": 1,
     "2023": 1,
-    "2024": 2,
+    "2024": 1,
     "2025": 2,
     "2월": 1 / 12,
     "3월": 1 / 12,
@@ -223,8 +223,8 @@ folder_weights = {
     "brown": 1,
     "choi": 1,
     "jones": 1 / 40,
-    "morpheus": 2,  # merged to oracle 2025-07-19
-    "oracle": 2,
+    # "morpheus": 2,  # merged to oracle 2025-07-19
+    "oracle": 4,
     "rhineheart": 2,
     "smith": 1 / 40,
     "switch": 1,
