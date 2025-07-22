@@ -465,10 +465,14 @@ new-ws dir main_package *more_packages: mwinit
     my_branch=${my_branch:-$(basename {{ dir }})}
     for p in {{ main_package }} ${more_packages[@]}
     do
-        git -C "{{ dir }}/src/$p" fetch --all || true
-        git -C "{{ dir }}/src/$p" checkout $my_branch || 
-            git -C "{{ dir }}/src/$p" checkout -b $my_branch ||
-            true
+        (
+            cd "{{ dir }}/src/$p"
+            git fetch --all || true
+            git checkout $my_branch || 
+                git checkout -b $my_branch ||
+                true
+            git branch --set-upstream-to=origin/mainline $my_branch || true
+        )
     done
 
     echo "{{ dir }}/src/{{ main_package }}"
