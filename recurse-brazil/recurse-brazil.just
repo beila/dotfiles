@@ -266,8 +266,9 @@ build dir="." force="--force": mwinit
 [no-cd]
 build_only dir="." force="--force":
     #!/usr/bin/env zsh
-    {{ run_preamble }}                   "{{ dir }}"
-    {{ just_run_package_recipe_build }}  "{{ dir }}" "{{ force }}" init
+    {{ run_preamble }}                          "{{ dir }}"
+    just _find_package_recipe_and_run pre_build "{{ dir }}" || true
+    {{ just_run_package_recipe_build }}         "{{ dir }}" "{{ force }}" init
 
 [no-cd]
 test dir="." force="--force": mwinit
