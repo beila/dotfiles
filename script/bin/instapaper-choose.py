@@ -271,33 +271,20 @@ indexed_entries = [
 ]
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
-entries_chosen_from_pages = list(
-    random.choice(list(all_entries_in_a_page))
-    for _, all_entries_in_a_page in pages
-    # for _, all_data_in_consecutive_domain in groupby(
-    #     all_entries_in_a_page, itemgetter("domain")
-    # )
-)
-# lasts = list(chain.from_iterable(g[1] for g in pages))
 
 
 def _chooser():
-    if not entries_chosen_from_pages:
-        return
-
-    for line in random.choices(
-        entries_chosen_from_pages,
-        weights=(d["weight"] for d in entries_chosen_from_pages),
-        k=len(entries_chosen_from_pages),
-    ):
-        yield line
-
+    list_of_all_entries_in_a_page = [
+        all_entries_in_a_page
+        for _, entries_grouped_by_page in pages
+        for all_entries_in_a_page in [list(entries_grouped_by_page)]
+    ]
+    weights = [
+        all_entries_in_a_page[0]["weight"]
+        for all_entries_in_a_page in list_of_all_entries_in_a_page
+    ]
     return (
         entries_chosen_by_domain[0]
-        for _, all_entries_in_a_page in pages
-        for weights, all_entries_in_a_page in [
-            (all_entries_in_a_page[0]["weight"], all_entries_in_a_page)
-        ]
         for entries_in_a_page in [
             random.choices(all_entries_in_a_page, weights=weights)
         ]
