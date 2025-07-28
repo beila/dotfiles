@@ -245,18 +245,32 @@ time_sorted_entries = sorted(entries, key=itemgetter("Timestamp"), reverse=True)
 folders = groupby(
     sorted(time_sorted_entries, key=itemgetter("Folder")), itemgetter("Folder")
 )
+weighted_pages = [
+    {
+        "folder": folder_name,
+        "page": folder_uis[folder_name] + "/" + str(page_index),
+        "page_index": page_index,
+        "loc": folder_uis[folder_name] + "/" + str(page_index),
+        # + "#:~:text="
+        # + quote(d["Title"]),
+        "weight": folder_weights[folder_name] / float(valid_folder_size),
+    }
+    for folder_name, all_entries_in_a_folder_iter in folders
+    if folder_name in folder_uis
+    for all_entries_in_a_folder in [list(all_entries_in_a_folder_iter)]
+    for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
+    for page_index in [int(index_in_the_folder / 40) + 1]
+    if page_index <= biggest_page.get(folder_name, 9999)
+    for valid_folder_size in [
+        min(len(all_entries_in_a_folder), biggest_page.get(folder_name, 9999) * 40)
+    ]
+]
 indexed_entries = [
     {
         **d,
-        # "findex": index_in_the_folder,
         "folder": folder_name,
         "page": folder_uis[d["Folder"]] + "/" + str(page_index),
-        "loc": folder_uis[d["Folder"]]
-        + "/"
-        + str(page_index)
-        + "#:~:text="
-        + quote(d["Title"]),
-        "weight": folder_weights[d["Folder"]] / float(valid_folder_size),
+        "loc_suffix": "#:~:text=" + quote(d["Title"]),
         "domain": urlparse(d["URL"]).netloc,
     }
     for folder_name, all_entries_in_a_folder_iter in folders
@@ -265,9 +279,6 @@ indexed_entries = [
     for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
     for page_index in [int(index_in_the_folder / 40) + 1]
     if page_index <= biggest_page.get(d["Folder"], 9999)
-    for valid_folder_size in [
-        min(len(all_entries_in_a_folder), biggest_page.get(d["Folder"], 9999) * 40)
-    ]
 ]
 # grouped = groupby(indexed_entries, lambda d: d["domain"])
 pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
@@ -286,7 +297,9 @@ def _chooser():
     return (
         entries_chosen_by_domain[0]
         for entries_in_a_page in [
-            random.choices(all_entries_in_a_page, weights=weights)
+            random.choices(
+                list_of_all_entries_in_a_page, weights=weights, k=len(weights)
+            )
         ]
         for _, entries_in_a_domain in [
             groupby(
@@ -321,9 +334,9 @@ for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 10):
     continue
 
 for line in islice(unique_everseen(_chooser(), itemgetter("URL")), 50):
-    # print(line["folder"])
+    # print(line["Folder"])
     continue
 
-for line in (line for line in indexed_entries if line["folder"] == "morpheus"):
+for line in (line for line in indexed_entries if line["Folder"] == "morpheus"):
     # print(line["Title"])
     continue
