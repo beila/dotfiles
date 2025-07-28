@@ -292,6 +292,8 @@ def _chooser():
     ):
         yield line
 
+    return 
+
 
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
 def unique_everseen(iterable, key=None):
