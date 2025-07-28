@@ -292,7 +292,10 @@ def _chooser():
     ):
         yield line
 
-    return 
+    entries = (entry for pages_and_entries in pages
+               for _, entries in [random.choices(pages_and_entries, weights=(d["weight"] for d in entries_chosen_from_pages))]
+
+               )
 
 
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
