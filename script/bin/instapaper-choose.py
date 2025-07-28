@@ -48,7 +48,7 @@ from operator import itemgetter
 from pprint import pformat
 from unicodedata import east_asian_width
 
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 
 def _write(*args, writer=None):
@@ -257,7 +257,7 @@ indexed_entries = [
         + "#:~:text="
         + quote(d["Title"]),
         "weight": folder_weights[d["Folder"]] / float(valid_folder_size),
-        # "domain": urlparse(d["URL"]).netloc,
+        "domain": urlparse(d["URL"]).netloc,
     }
     for folder_name, all_entries_in_a_folder_iter in folders
     if folder_name in folder_uis
@@ -292,10 +292,23 @@ def _chooser():
     ):
         yield line
 
-    entries = (entry for pages_and_entries in pages
-               for _, entries in [random.choices(pages_and_entries, weights=(d["weight"] for d in entries_chosen_from_pages))]
-
-               )
+    return (
+        entries_chosen_by_domain[0]
+        for _, all_entries_in_a_page in pages
+        for weights, all_entries_in_a_page in [
+            (all_entries_in_a_page[0]["weight"], all_entries_in_a_page)
+        ]
+        for entries_in_a_page in [
+            random.choices(all_entries_in_a_page, weights=weights)
+        ]
+        for _, entries_in_a_domain in [
+            groupby(
+                sorted(entries_in_a_page, key=itemgetter("domain")),
+                itemgetter("domain"),
+            )
+        ]
+        for entries_chosen_by_domain in [random.choice(entries_in_a_domain)]
+    )
 
 
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
