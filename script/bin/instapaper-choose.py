@@ -245,7 +245,7 @@ time_sorted_entries = sorted(entries, key=itemgetter("Timestamp"), reverse=True)
 folders = groupby(
     sorted(time_sorted_entries, key=itemgetter("Folder")), itemgetter("Folder")
 )
-weighted_pages = [
+pages = [
     {
         "folder": folder_name,
         "page": folder_uis[folder_name] + "/" + str(page_index),
@@ -257,13 +257,11 @@ weighted_pages = [
     }
     for folder_name, all_entries_in_a_folder_iter in folders
     if folder_name in folder_uis
-    for all_entries_in_a_folder in [list(all_entries_in_a_folder_iter)]
-    for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
-    for page_index in [int(index_in_the_folder / 40) + 1]
-    if page_index <= biggest_page.get(folder_name, 9999)
+    for folder_size in [len(all_entries_in_a_folder_iter)]
     for valid_folder_size in [
-        min(len(all_entries_in_a_folder), biggest_page.get(folder_name, 9999) * 40)
+        min(folder_size, biggest_page.get(folder_name, 9999) * 40)
     ]
+    for page_index in range(valid_folder_size)
 ]
 indexed_entries = [
     {
@@ -278,10 +276,8 @@ indexed_entries = [
     for all_entries_in_a_folder in [list(all_entries_in_a_folder_iter)]
     for index_in_the_folder, d in enumerate(all_entries_in_a_folder)
     for page_index in [int(index_in_the_folder / 40) + 1]
-    if page_index <= biggest_page.get(d["Folder"], 9999)
 ]
-# grouped = groupby(indexed_entries, lambda d: d["domain"])
-pages = groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page"))
+entries_in_pages = dict(groupby(sorted(indexed_entries, key=itemgetter("page")), itemgetter("page")))
 
 
 def _chooser():
