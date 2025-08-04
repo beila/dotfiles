@@ -63,7 +63,7 @@ _gt() {
   is_in_git_repo || return
   git tag --sort -version:refname |
   fzf_down --multi --preview-window right:70% \
-    --preview 'git show --remerge-diff --patch-with-stat --color=always {}'
+    --preview 'git show --decorate --remerge-diff --patch-with-stat --color=always {}'
 }
 
 _gh() {
@@ -71,7 +71,7 @@ _gh() {
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --decorate --remerge-diff --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}" |
   head -1
 }
@@ -81,7 +81,7 @@ _gyy() {
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --decorate --remerge-diff --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}" |
   head -1
 }
@@ -95,7 +95,7 @@ _ghh() {
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --decorate --remerge-diff --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}" |
   head -1
 }
@@ -105,7 +105,7 @@ _gy() {
   git reflog --date=relative --color=always |
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --remerge-diff --patch-with-stat --color=always' |
+    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --decorate --remerge-diff --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}" |
   head -1
 }
@@ -122,6 +122,6 @@ _gs() {
   is_in_git_repo || return
   git stash list | fzf_down --reverse -d: \
     --preview-window=right,70% \
-    --preview 'DFT_COLOR=always DFT_DISPLAY=inline git show --remerge-diff --patch-with-stat --color=always {1} --ext-diff' |
+    --preview 'DFT_COLOR=always DFT_DISPLAY=inline git show --decorate --remerge-diff --patch-with-stat --color=always {1} --ext-diff' |
   cut -d: -f1
 }
