@@ -7,8 +7,7 @@ cd "$1" || {
 }
 
 $GIT add --verbose --all .
-$GIT commit --verbose -m "Change from $(hostname -s)"
-$GIT pull --ff --verbose --no-edit --recurse-submodules=no
+$GIT commit --verbose --no-allow-empty -m "Change from $(hostname -s)"
 
 $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all
 
@@ -17,7 +16,7 @@ $GIT submodule foreach bash -c "$GIT add --verbose --all .
     $GIT pull --ff --verbose --no-edit --recurse-submodules=no
     test \$WILL_PUSH && $GIT push || true"
 $GIT add --verbose --all .
-$GIT commit --verbose -m "Submodule update from $(hostname -s)"
-$GIT pull --ff --verbose --no-edit --recurse-submodules=no
+$GIT commit --verbose --no-allow-empty -m "Submodule update from $(hostname -s)"
 
+$GIT pull --ff --verbose --no-edit --recurse-submodules=no
 $GIT push --verbose
