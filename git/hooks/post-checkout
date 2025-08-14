@@ -1,4 +1,6 @@
 #!/bin/bash
-DIR=$(dirname $(readlink -f $0))
-${DIR}/update-submodules "$@"
+DIR=$(dirname "$(readlink -f "$0")")
+"${DIR}"/update-submodules "$@"
 #${DIR}/update-ctags "$@" &
+
+which git-lfs &> /dev/null && git lfs "$(basename "$0")" "$@"
