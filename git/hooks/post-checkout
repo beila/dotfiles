@@ -3,7 +3,7 @@ DIR=$(dirname "$(readlink -f "$0")")
 "${DIR}"/update-submodules "$@"
 #${DIR}/update-ctags "$@" &
 
-if [ "$(basename "$0")" = post-rewrite ]
+if [ "$(basename "$0")" != post-rewrite ]
 then
     which git-lfs &> /dev/null && git lfs "$(basename "$0")" "$@"
 fi
