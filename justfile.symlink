@@ -42,3 +42,6 @@ setup_git:
         git config --add remote.$r.fetch ^refs/heads/$(whoami)/dev
         git config --replace-all remote.$r.push refs/heads/\*:refs/heads/$(whoami)/\*
     done
+
+brightness:
+    sudo cp /sys/class/backlight/intel_backlight/max_brightness /sys/class/backlight/intel_backlight/brightness
