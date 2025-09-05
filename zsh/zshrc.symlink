@@ -100,3 +100,7 @@ export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
 export PATH=$PATH:$HOME/.toolbox/bin
 
 export PATH=$HOME/.toolbox/bin:$PATH
+
+# Hishtory Config:
+export PATH="$PATH:/home/ANT.AMAZON.COM/hojin/.hishtory"
+source /home/ANT.AMAZON.COM/hojin/.hishtory/config.zsh
