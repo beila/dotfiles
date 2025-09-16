@@ -152,6 +152,7 @@ pre_build_RustStdIgnite:
 
 [no-cd]
 build_RustStdIgnite:
+    brazil ws show
     brazil-build
 
 [no-cd]
