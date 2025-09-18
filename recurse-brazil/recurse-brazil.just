@@ -397,18 +397,22 @@ run +commands:
     exit $exit_code
 
 [no-cd]
+[no-exit-message]
 b *subcommands:
     @name=bb just run_with_brazil_env "just pre_build && (set -x; brazil-build {{ subcommands }} )"
 
 [no-cd]
+[no-exit-message]
 ws *subcommands: mwinit
     brazil ws {{ subcommands }}
 
 [no-cd]
+[no-exit-message]
 sync: mwinit
     brazil ws sync
 
 [no-cd]
+[no-exit-message]
 syncmd: mwinit
     brazil ws sync --md
 
