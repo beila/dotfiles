@@ -139,6 +139,10 @@ build_AVTSTestRepository:
     brazil-build release
 
 [no-cd]
+build_IgniteSdk:
+    brazil-build
+
+[no-cd]
 build_RustStdBuild:
     brazil-build
 
