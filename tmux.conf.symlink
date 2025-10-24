@@ -1,0 +1,16 @@
+# Use vim keybindings in copy mode (h/j/k/l navigation)
+setw -g mode-keys vi
+
+# Start selection with 'v' in copy mode
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+
+# Copy with 'y' and auto-exit copy mode
+bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
+
+# Make Enter start selection, then end selection and copy on second press
+bind-key -T copy-mode-vi Enter if-shell -F "#{selection_present}" \
+    "send-keys -X copy-pipe-and-cancel 'xclip -selection clipboard'" \
+    "send-keys -X begin-selection"
+
+# Exit copy mode with Escape
+bind-key -T copy-mode-vi Escape send-keys -X cancel
