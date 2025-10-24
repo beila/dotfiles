@@ -5,10 +5,12 @@ truecolor on
 #shell -/usr/local/bin/zsh
 
 # When you finish selecting text (space in copy mode), it writes to screen buffer AND X clipboard
+#bindkey -m ^M eval "stuff ^M" "writebuf" "exec sh -c 'xclip -selection clipboard < /tmp/screen-exchange'"
 #bindkey -m ' ' eval "stuff ' '" "writebuf" "exec sh -c 'xclip -selection clipboard < /tmp/screen-exchange'"
-#bind-key -T copy-mode C-w send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
-#bind-key -T copy-mode Enter send-keys -X copy-pipe-and-cancel "xclip -selection clipboard"
-bindkey -m ^M eval "stuff ^M" "writebuf" "exec sh -c 'xclip -selection clipboard < /tmp/screen-exchange'"
+#bindkey -m 'Y' eval "stuff 'Y'" "writebuf" "exec sh -c 'cat /tmp/screen-exchange | xclip -selection clipboard'"
+#bind ^Y eval "writebuf" "exec sh -c 'xclip -i -selection clipboard /tmp/screen-exchange'"
+#bindkey -m ^J eval "writebuf" "exec sh -c 'xclip -i -selection clipboard /tmp/screen-exchange'"
+bind y eval "writebuf" "exec /home/ANT.AMAZON.COM/hojin/screen-copy.sh"
 
 # Ctrl-a ] pastes from X clipboard instead of screen buffer
 bind ] eval "exec sh -c 'xclip -selection clipboard -o > /tmp/screen-exchange'" "readbuf" "paste ."
