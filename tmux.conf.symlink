@@ -49,7 +49,16 @@ set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
 set -g status-left ''
 
 # Show timer for current pane's shell only
-set -g status-right '#(shell_pid=$(cat /tmp/tmux-shell-pid-#{pane_id} 2>/dev/null); f="/tmp/tmux-cmd-start-$shell_pid"; if [ -f "$f" ]; then echo "$(( $(date +%s) - $(cat "$f") ))s | "; fi)%H:%M'
+set -g status-right '#(
+    shell_pid=$(
+        cat /tmp/tmux-shell-pid-#{pane_id} 2>/dev/null
+    )
+    f="/tmp/tmux-cmd-start-$shell_pid"
+    if [ -f "$f" ]
+    then
+        echo "$(( $(date +%s) - $(cat "$f") ))s | "
+    fi
+)%H:%M'
 
 # Update status bar every 1 second
 set -g status-interval 1
