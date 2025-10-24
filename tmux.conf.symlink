@@ -48,11 +48,9 @@ set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
 # Remove session name from status bar
 set -g status-left ''
 
-# Simple status without cleanup in the command
-#set -g status-right '#(for f in /tmp/tmux-cmd-start-*; do [ -f "$f" ] && echo "$(( $(date +%s) - $(cat "$f") ))s | " && break; done)%H:%M'
+# Show command runtime in status bar
+set -g status-right '#(for f in /tmp/tmux-cmd-start-*; do [ -f "$f" ] && echo "$(( $(date +%s) - $(cat "$f") ))s | " && break; done)%H:%M'
 set -g status-interval 1
-# Test with basic status first
-set -g status-right 'test %H:%M'
 
 # Start selection with 'v' in copy mode
 bind-key -T copy-mode-vi v send-keys -X begin-selection
