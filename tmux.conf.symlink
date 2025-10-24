@@ -20,10 +20,24 @@ set -g automatic-rename-format '#(
     fi
 )'
 
-# Change window status symbols
-set -g window-status-current-format '#I:#W*'
-set -g window-status-format '#I:#W'
-set -g window-status-last-style 'fg=yellow'
+# Modern dark theme with nice colors
+set -g status-bg '#2e3440'
+set -g status-fg '#d8dee9'
+
+# Current window - bright accent
+set -g window-status-current-style 'fg=#2e3440,bg=#88c0d0,bold'
+set -g window-status-current-format ' #I:#W '
+
+# Last window - subtle highlight
+set -g window-status-last-style 'fg=#88c0d0,bg=#2e3440'
+
+# Regular windows - same as status bar text
+set -g window-status-style 'fg=#d8dee9,bg=#2e3440'
+set -g window-status-format ' #I:#W '
+
+# Status bar borders
+set -g status-left-style 'fg=#88c0d0,bg=#2e3440'
+set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
 
 # Start selection with 'v' in copy mode
 bind-key -T copy-mode-vi v send-keys -X begin-selection
