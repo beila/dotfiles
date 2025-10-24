@@ -1,6 +1,23 @@
 # Use vim keybindings in copy mode (h/j/k/l navigation)
 setw -g mode-keys vi
 
+# Show branch + subdir if in git repo, otherwise directory name
+set -g automatic-rename on
+set -g automatic-rename-format '#(
+    cd "#{pane_current_path}" && 
+    if git rev-parse --git-dir >/dev/null 2>&1; then 
+        branch=$(git branch --show-current 2>/dev/null); 
+        subdir=$(git rev-parse --show-prefix 2>/dev/null | sed "s|/$||"); 
+        if [ -n "$subdir" ]; then 
+            echo "$branch:$subdir"; 
+        else 
+            echo "$branch"; 
+        fi; 
+    else 
+        basename "#{pane_current_path}"; 
+    fi
+)'
+
 # Start selection with 'v' in copy mode
 bind-key -T copy-mode-vi v send-keys -X begin-selection
 
