@@ -116,13 +116,14 @@ bind -n C-Up resize-pane -U 1
 bind -n C-Down resize-pane -D 1
 
 # Move pane keybindings
-bind m command-prompt -p "move pane to window:" "if-shell 'tmux list-windows | grep -q \"^%%:\"' 'move-pane -t %%' 'new-window -t %% \\; move-pane -t %%'"
-bind M command-prompt -p "join pane from window:" "join-pane -s %%"
+bind m command-prompt -p "move pane to window:" "move-pane -t '%%'"
+bind M command-prompt -p "join pane from window:" "join-pane -s '%%'"
 
 # Use Ctrl-b Ctrl-b for last window (like screen's Ctrl-a Ctrl-a)
 bind C-b last-window
 
 # Allow all common keybindings to work with Ctrl held
+#bind 'C- ' next-layout # don't work. 한영전환
 #bind 'C-"' split-window -v	# don't work
 #bind 'C-&' confirm-before -p "kill-window #W? (y/n)" kill-window	# don't work
 bind 'C-,' command-prompt -I "#W" "rename-window '%%'"
