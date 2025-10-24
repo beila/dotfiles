@@ -48,8 +48,10 @@ set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
 # Remove session name from status bar
 set -g status-left ''
 
-# Show command runtime in status bar
-set -g status-right '#(for f in /tmp/tmux-cmd-start-*; do [ -f "$f" ] && echo "$(( $(date +%s) - $(cat "$f") ))s | " && break; done)%H:%M'
+# Show command runtime only for current pane
+set -g status-right '#(f="/tmp/tmux-cmd-start-#{pane_id}"; if [ -f "$f" ]; then echo "$(( $(date +%s) - $(cat "$f") ))s | "; fi)%H:%M'
+
+# Update status bar every 1 second
 set -g status-interval 1
 
 # Start selection with 'v' in copy mode
