@@ -26,9 +26,6 @@ set -g automatic-rename-format '#(
     fi
 )'
 
-# Update status bar every 1 second (default is 15)
-set -g status-interval 1
-
 # Modern dark theme with nice colors
 set -g status-bg '#2e3440'
 set -g status-fg '#d8dee9'
@@ -47,6 +44,13 @@ set -g window-status-format ' #I:#W '
 # Status bar borders
 set -g status-left-style 'fg=#88c0d0,bg=#2e3440'
 set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
+
+# Remove session name from status bar
+set -g status-left ''
+
+# Show command runtime in status bar
+set -g status-right '#(if [ -n "$CMD_START_TIME" ]; then echo "$(( $(date +%s) - $CMD_START_TIME ))s | "; fi)%H:%M'
+set -g status-interval 1
 
 # Start selection with 'v' in copy mode
 bind-key -T copy-mode-vi v send-keys -X begin-selection
