@@ -109,6 +109,12 @@ bind C-k select-pane -U
 bind   l select-pane -R
 bind C-l select-pane -R
 
+# Ctrl+Arrow keys for pane resizing
+bind -n C-Left resize-pane -L 1
+bind -n C-Right resize-pane -R 1
+bind -n C-Up resize-pane -U 1
+bind -n C-Down resize-pane -D 1
+
 # Use Ctrl-b Ctrl-b for last window (like screen's Ctrl-a Ctrl-a)
 bind C-b last-window
 
@@ -129,10 +135,10 @@ bind C-6 select-window -t 6
 bind C-7 select-window -t 7
 bind C-8 select-window -t 8
 bind C-9 select-window -t 9
-bind C-Down select-pane -D
-bind C-Left select-pane -L
-bind C-Right select-pane -R
-bind C-Up select-pane -U
+#bind C-Down select-pane -D
+#bind C-Left select-pane -L
+#bind C-Right select-pane -R
+#bind C-Up select-pane -U
 bind C-[ copy-mode
 #bind C-] run "xclip -selection clipboard -o | tmux load-buffer - ; tmux paste-buffer"
 bind C-c new-window
