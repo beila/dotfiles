@@ -13,7 +13,7 @@ truecolor on
 #bind y eval "writebuf" "exec /home/ANT.AMAZON.COM/hojin/screen-copy.sh"
 #bind y eval "writebuf" "stuff 'cat /tmp/screen-exchange | xclip -selection clipboard'"
 #bindkey -m ^M eval "stuff ^M" "writebuf" "stuff 'cat /tmp/screen-exchange | xclip -selection clipboard'"
-bindkey -m ^M eval "writebuf" "exec sh -c 'xclip -i -selection clipboard /tmp/screen-exchange'"
+#bindkey -m ^M eval "writebuf" "exec sh -c 'xclip -i -selection clipboard /tmp/screen-exchange'"
 
 
 # Ctrl-a ] pastes from X clipboard instead of screen buffer
