@@ -48,8 +48,8 @@ set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
 # Remove session name from status bar
 set -g status-left ''
 
-# Show command runtime for current pane
-set -g status-right '#(f="/tmp/tmux-cmd-start-$(pgrep -P $(tmux display-message -p "#{pane_pid}") zsh | head -1)"; if [ -f "$f" ]; then echo "$(( $(date +%s) - $(cat "$f") ))s | "; fi)%H:%M'
+# Show timer for current pane's shell only
+set -g status-right '#(shell_pid=$(cat /tmp/tmux-shell-pid-#{pane_id} 2>/dev/null); f="/tmp/tmux-cmd-start-$shell_pid"; if [ -f "$f" ]; then echo "$(( $(date +%s) - $(cat "$f") ))s | "; fi)%H:%M'
 
 # Update status bar every 1 second
 set -g status-interval 1
@@ -65,8 +65,9 @@ bind-key -T copy-mode-vi Enter if-shell -F "#{selection_present}" \
     "send-keys -X copy-pipe-and-cancel 'xclip -selection clipboard'" \
     "send-keys -X begin-selection"
 
-# Use Ctrl-b for page up in copy mode
-bind-key -T copy-mode-vi C-b send-keys -X page-up
+# Vim-like page navigation in copy mode
+bind-key -T copy-mode-vi C-u send-keys -X halfpage-up
+bind-key -T copy-mode-vi C-d send-keys -X halfpage-down
 
 # Exit copy mode with Escape
 bind-key -T copy-mode-vi Escape send-keys -X cancel
