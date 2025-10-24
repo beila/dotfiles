@@ -115,6 +115,10 @@ bind -n C-Right resize-pane -R 1
 bind -n C-Up resize-pane -U 1
 bind -n C-Down resize-pane -D 1
 
+# Move pane keybindings
+bind m command-prompt -p "move pane to window:" "if-shell 'tmux list-windows | grep -q \"^%%:\"' 'move-pane -t %%' 'new-window -t %% \\; move-pane -t %%'"
+bind M command-prompt -p "join pane from window:" "join-pane -s %%"
+
 # Use Ctrl-b Ctrl-b for last window (like screen's Ctrl-a Ctrl-a)
 bind C-b last-window
 
