@@ -1,3 +1,9 @@
+# If nested, change prefix to Ctrl-a
+%if "#{!=:#{TMUX},}"
+    set -g prefix C-a
+    bind C-a send-prefix
+%endif
+
 # Use vim keybindings in copy mode (h/j/k/l navigation)
 setw -g mode-keys vi
 
@@ -19,6 +25,9 @@ set -g automatic-rename-format '#(
         basename "#{pane_current_path}"; 
     fi
 )'
+
+# Update status bar every 1 second (default is 15)
+set -g status-interval 1
 
 # Modern dark theme with nice colors
 set -g status-bg '#2e3440'
