@@ -1,7 +1,11 @@
-# If nested, change prefix to Ctrl-a
+# Use Ctrl-a normally, Ctrl-b for nested
+set -g prefix C-a
+bind C-a send-prefix
+
+# If nested, change prefix to Ctrl-b
 %if "#{!=:#{TMUX},}"
-    set -g prefix C-a
-    bind C-a send-prefix
+    set -g prefix C-b
+    bind C-b send-prefix
 %endif
 
 # Use vim keybindings in copy mode (h/j/k/l navigation)
@@ -119,8 +123,7 @@ bind -n C-Down resize-pane -D 1
 bind m command-prompt -p "move pane to window:" "move-pane -t '%%'"
 bind M command-prompt -p "join pane from window:" "join-pane -s '%%'"
 
-# Use Ctrl-b Ctrl-b for last window (like screen's Ctrl-a Ctrl-a)
-bind C-b last-window
+bind C-a last-window
 
 # Allow all common keybindings to work with Ctrl held
 #bind 'C- ' next-layout # don't work. 한영전환
