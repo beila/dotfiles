@@ -11,6 +11,9 @@ bind C-a send-prefix
 # Use vim keybindings in copy mode (h/j/k/l navigation)
 setw -g mode-keys vi
 
+# Near-infinite scroll buffer
+set -g history-limit 1000000
+
 # Show "home" for home directory, branch + subdir if in git repo, otherwise directory name
 set -g automatic-rename on
 set -g automatic-rename-format '#(
