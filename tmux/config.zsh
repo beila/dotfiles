@@ -11,6 +11,15 @@ preexec() {
 
 # Clean up timing file when command finishes
 precmd() {
+    if [[ -f /tmp/tmux-cmd-start-$$ ]]; then
+        start_time=$(cat /tmp/tmux-cmd-start-$$)
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
+        
+        if [[ $duration -gt 10 ]]; then
+            say_done
+        fi
+    fi
     rm -f /tmp/tmux-cmd-start-$$ 2>/dev/null
 }
 
