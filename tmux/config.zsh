@@ -16,6 +16,7 @@ precmd() {
         end_time=$(date +%s)
         duration=$((end_time - start_time))
         
+        # Call say_done for commands that run longer than 10 seconds
         if [[ $duration -gt 10 ]]; then
             say_done
         fi
