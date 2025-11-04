@@ -22,9 +22,7 @@ myManageHook = composeAll
     , className =? "Evolution-alarm-notify"                          --> doFloat
     , className =? "Gnome-panel"                                     --> doFloat
     , appName   =? "gnome-panel"                                     --> doFloat
-    , title     =? "
-TSBufDisable highlight
-"                                     --> doFloat
+    , title     =? "Zoom Workplace"                                  --> doFloat
     , appName   =? "Mail"                                            --> doShift "2:mail"
     , className =? "thunderbird"                                     --> doShift "2:mail"
     , className =? "evolution.real"                                  --> doShift "2:mail"
