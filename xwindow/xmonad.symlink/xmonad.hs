@@ -24,6 +24,7 @@ myManageHook = composeAll
     , appName   =? "gnome-panel"                                     --> doFloat
     , title     =? "Zoom Workplace"                                  --> doFloat
     , title     =? "zoom_linux_float_video_window"                   --> doFloat
+    , title     =? "Meeting chat"                                    --> doFloat
     , appName   =? "Mail"                                            --> doShift "2:mail"
     , className =? "thunderbird"                                     --> doShift "2:mail"
     , className =? "evolution.real"                                  --> doShift "2:mail"
