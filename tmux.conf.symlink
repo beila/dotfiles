@@ -126,13 +126,6 @@ bind -n C-Down resize-pane -D 1
 bind m command-prompt -p "move pane to window:" "move-pane -t '%%'"
 bind M command-prompt -p "join pane from window:" "join-pane -s '%%'"
 
-# Layout keybindings without Alt
-bind 1 select-layout even-horizontal
-bind 2 select-layout even-vertical
-bind 3 select-layout main-horizontal
-bind 4 select-layout main-vertical
-bind 5 select-layout tiled
-
 bind C-a last-window
 
 # Allow all common keybindings to work with Ctrl held
