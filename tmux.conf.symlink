@@ -63,7 +63,25 @@ set -g status-right '#(
     f="/tmp/tmux-cmd-start-$shell_pid"
     if [ -f "$f" ]
     then
-        echo "$(( $(date +%s) - $(cat "$f") ))s | "
+        elapsed=$(( $(date +%s) - $(cat "$f") ))
+        if [ $elapsed -ge 86400 ]; then
+            d=$(( elapsed / 86400 ))
+            h=$(( (elapsed % 86400) / 3600 ))
+            m=$(( (elapsed % 3600) / 60 ))
+            s=$(( elapsed % 60 ))
+            echo "${d}d ${h}h ${m}m ${s}s | "
+        elif [ $elapsed -ge 3600 ]; then
+            h=$(( elapsed / 3600 ))
+            m=$(( (elapsed % 3600) / 60 ))
+            s=$(( elapsed % 60 ))
+            echo "${h}h ${m}m ${s}s | "
+        elif [ $elapsed -ge 60 ]; then
+            m=$(( elapsed / 60 ))
+            s=$(( elapsed % 60 ))
+            echo "${m}m ${s}s | "
+        else
+            echo "${elapsed}s | "
+        fi
     fi
 )%H:%M'
 
