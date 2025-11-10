@@ -5,7 +5,6 @@ nix_develop_command() {
         return
 
     git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop --ignore-env --command" ||
         echo "nix develop --ignore-env
     --set-env-var AWS_ACCESS_KEY_ID "$(aws configure get aws_access_key_id 2>/dev/null||true)"
     --set-env-var AWS_SECRET_ACCESS_KEY "$(aws configure get aws_secret_access_key 2>/dev/null||true)"
