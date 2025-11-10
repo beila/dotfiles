@@ -5,8 +5,13 @@ nix_develop_command() {
         return
 
     git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop -i --command" ||
-        echo "nix develop path:. -i --command"
+        echo "nix develop --ignore-env --command" ||
+        echo "nix develop --ignore-env
+    --set-env-var AWS_ACCESS_KEY_ID "$(aws configure get aws_access_key_id 2>/dev/null||true)"
+    --set-env-var AWS_SECRET_ACCESS_KEY "$(aws configure get aws_secret_access_key 2>/dev/null||true)"
+    --set-env-var AWS_SESSION_TOKEN "$(aws configure get aws_session_token 2>/dev/null||true)"
+    --command" ||
+        echo "nix develop path:. --ignore-env --command"
 }
 set -x  # FIXME log name includes nix-shell-env
 log_prefix_ignore="$(nix_develop_command) just "\

@@ -5,7 +5,7 @@ nix_develop_command() {
         return
 
     git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop -i --command" ||
-        echo "nix develop path:. -i --command"
+        echo "nix develop --ignore-env --command" ||
+        echo "nix develop path:. --ignore-env --command"
 }
 $(nix_develop_command) "$@"
