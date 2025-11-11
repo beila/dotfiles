@@ -10,6 +10,8 @@ log_decorator2 := `which wl 2>&1 > /dev/null && echo wl || echo cat`
 log_decorator := log_decorator1 + log_decorator2
 export just_recurse_log := env('just_recurse_log', '')
 
+export build_dir := env('build_dir', 'build')
+
 set shell := ['zsh', '-c']
 
 logger := """
@@ -65,14 +67,14 @@ _run_package_recipe recipe dir force *previous_recipes:
     my_name=$(basename $(pwd))
     caller_name=$(basename "{{ caller_dir }}")
 
-    timestamp="build/timestamp-{{ recipe }}-$my_name"
+    timestamp="{{ build_dir }}/timestamp-{{ recipe }}-$my_name"
     previous_recipes=({{ previous_recipes }})
-    previous_recipe_timestamps=("${previous_recipes[@]/#/build/timestamp-}")
+    previous_recipe_timestamps=("${previous_recipes[@]/#/{{ build_dir }}/timestamp-}")
     previous_recipe_timestamps=("${previous_recipe_timestamps[@]/%/-$my_name}")
 
-    reporting_to_caller_timestamp="{{ caller_dir }}/build/timestamp-recurse-run-$caller_name"
-    reported_by_callee_timestamp="build/timestamp-recurse-run-$my_name"
-    caller_first_timestamp="{{ caller_dir }}/build/timestamp-init-$caller_name"
+    reporting_to_caller_timestamp="{{ caller_dir }}/{{ build_dir }}/timestamp-recurse-run-$caller_name"
+    reported_by_callee_timestamp="{{ build_dir }}/timestamp-recurse-run-$my_name"
+    caller_first_timestamp="{{ caller_dir }}/{{ build_dir }}/timestamp-init-$caller_name"
 
     [ "{{ force }}" = "--only-once" ] && only_once="true" || only_once=
     need_to_run=
@@ -165,7 +167,7 @@ _run_package_recipe recipe dir force *previous_recipes:
     fi
 
     echo "Recurse log: $just_recurse_log"
-    recipe_log_path="$(readlink -f build)/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
+    recipe_log_path="$(readlink -f {{ build_dir }})/log-{{ recipe }}-$(date +%F-%H-%M-%S)-$my_name.txt"
     log "Log: $recipe_log_path"
 
     log_path="$recipe_log_path" just _find_package_recipe_and_run "{{ recipe }}" .
@@ -213,9 +215,9 @@ _find_package_recipe_and_run recipe dir:
 run_preamble := """
     run_preamble() {
         set -eo pipefail
-        [ ! -d "${1:?}/build" ] &&
+        [ ! -d "${1:?}/{{ build_dir }}" ] &&
             ln -sf $(cd "$1" && brazil-path package-build-root) "$1"
-        export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/build/log-recurse-$(date +%F-%H-%M).txt}"
+        export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/{{ build_dir }}/log-recurse-$(date +%F-%H-%M).txt}"
     }
     run_preamble\
 """
@@ -304,21 +306,21 @@ release_only dir="." force="--force":
 
 [no-cd]
 fresh:
-    rm -f ../*/build/timestamp-*
+    rm -f ../*/{{ build_dir }}/timestamp-*
 
 [no-cd]
 clean dir=".":
     #!/usr/bin/env zsh
     setopt -o nullglob extendedglob
     set -x
-    rm -rf {{ dir }}/build/^(log-)* {{ dir }}/node_modules
+    rm -rf {{ dir }}/{{ build_dir }}/^(log-)* {{ dir }}/node_modules
 
 [no-cd]
 clean_all:
     #!/usr/bin/env zsh
     setopt -o nullglob extendedglob
     set -x
-    rm -rf ../*/build/^(log-)* ../*/node_modules
+    rm -rf ../*/{{ build_dir }}/^(log-)* ../*/node_modules
 
 [no-cd]
 clean_everything: clean_all
@@ -361,7 +363,7 @@ run +commands:
         name=${name//$'\n'/-}
         name="${name:0:200}"    # file name limit https://serverfault.com/a/9548
         log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
-        log_path=$([ -d build ] && echo "build" || echo "/tmp")/$log_file
+        log_path=$([ -d {{ build_dir }} ] && echo "{{ build_dir }}" || echo "/tmp")/$log_file
         echo "Log: $log_path"
     fi
 
