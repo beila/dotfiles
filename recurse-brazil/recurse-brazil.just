@@ -395,7 +395,6 @@ run +commands:
         log_path=
     fi
 
-    env # FIXME
     echo "Log: $log_path$failed_log_path"
     exit $exit_code
 
