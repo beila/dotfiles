@@ -26,6 +26,10 @@ shift
 
 test -f /tmp/fake_passwd || echo "$(id -un):x:$(id -u):$(id -g):Git User:/tmp:/bin/bash" > /tmp/fake_passwd
 
+BOLDLIGHTBLUE="\e[1;94m"
+ENDCOLOR="\e[0m"
+BASH_PS4="${BOLDLIGHTBLUE}+${ENDCOLOR} "
+
 # --tty shows colour in the terminal
 docker run \
     "${single_options[@]}" "${double_options[@]}" \
@@ -52,4 +56,3 @@ docker run \
         export DOCKER_HERE_HOME=${DOCKER_HERE_HOME}
         $*"
     #--volume "${this_dir}:${this_dir}" \
-    #--volume "${git_dir}:${git_dir}" \
