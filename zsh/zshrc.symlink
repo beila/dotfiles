@@ -1,7 +1,7 @@
 # Always auto-attach to tmux
 if [[ -z "$TMUX" ]]; then
-    tmux attach-session -t default || tmux new-session -s default
-    exit $?
+    #tmux attach-session -t default || tmux new-session -s default
+    #exit $?
 fi
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
