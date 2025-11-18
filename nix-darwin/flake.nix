@@ -35,6 +35,7 @@
           nodejs    # Tools installed by Mason in Neovim (biome, etc.)
           ripgrep
           rustup
+          tmux
           yt-dlp
           zoxide
           # insuk-www
