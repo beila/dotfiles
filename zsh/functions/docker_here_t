@@ -48,7 +48,7 @@ docker run \
     --tty \
     --user $(id -u):$(id -g) \
     --volume "${parent_dir}:${parent_dir}" \
-    --volume /etc/localtime:/etc/localtime:ro \
+    --volume /tmp/.X11-unix:/tmp/.X11-unix \
     --volume /tmp/fake_passwd:/etc/passwd  \
     --workdir "${this_dir}" \
     "${image}" \
@@ -57,4 +57,5 @@ docker run \
         export PATH=${new_path}:\${PATH}
         export DOCKER_HERE_HOME=${DOCKER_HERE_HOME}
         $*"
+    #--volume /etc/localtime:/etc/localtime:ro \
     #--volume "${this_dir}:${this_dir}" \
