@@ -49,14 +49,17 @@ docker run \
     --env AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
     --env AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
     --env AWS_SESSION_TOKEN="${AWS_SESSION_TOKEN}" \
+    --env DISPLAY=$DISPLAY \
     --env GIT_SSH_COMMAND="${new_home:+ssh -i ${new_home}/.ssh/id_ecdsa -i ${new_home}/.ssh/id_ed25519 -o 'StrictHostKeyChecking=no'}" \
     --env PS4=${BASH_PS4} \
     --init \
     --interactive \
+    --network host \
     --tty \
     --user ${my_user}:${my_group} \
     --volume "${parent_dir}:${parent_dir}" \
     --volume /etc/localtime:/etc/localtime:ro \
+    --volume /tmp/.X11-unix:/tmp/.X11-unix \
     --volume /tmp/fake_passwd:/etc/passwd  \
     --workdir "${this_dir}" \
     "${image}" \
