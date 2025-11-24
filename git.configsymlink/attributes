@@ -3,3 +3,6 @@ artworks.toml diff=artworkstoml
 * text=auto eol=lf
 *.{cmd,[cC][mM][dD]} text eol=crlf
 *.{bat,[bB][aA][tT]} text eol=crlf
+
+# https://mergiraf.org/usage.html#registration-as-a-git-merge-driver:~:text=(~/.config/git/attributes%20by%20default):-,*%20merge=mergiraf,-If%20you%20would
+* merge=mergiraf
