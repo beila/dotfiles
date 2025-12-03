@@ -1,6 +1,9 @@
 #!/usr/bin/env -S just --justfile
 # TODO group commands
 
+VERBOSE := env('VERBOSE', '')
+zsh_verbose := if VERBOSE == '' { '' } else { 'pwd; set -x' }
+
 log_decorator1 := ''
 #log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
 
@@ -333,6 +336,7 @@ clean_everything: clean_all
 [no-exit-message]
 run_with_brazil_env +commands:
     #!/usr/bin/env zsh
+    {{ zsh_verbose }}
     brazil-runtime-exec bash -c "{{ commands }}"
     #just run "
         #export PATH=$(dirname $(which brazil-path)):$(brazil-path all.bin):$PATH
@@ -401,6 +405,7 @@ run +commands:
 [no-cd]
 [no-exit-message]
 b *subcommands:
+    {{ run_preamble }} .
     @name=bb just run_with_brazil_env "just pre_build && (set -x; brazil-build {{ subcommands }} )"
 
 [no-cd]
