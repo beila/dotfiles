@@ -1,4 +1,6 @@
 #!/usr/bin/zsh
+if [ -n "$VERBOSE" ]; then pwd; set -x; fi
+
 this_dir="$(realpath $(pwd))"
 parent_dir="$(realpath $(pwd)/..)"
 git_dir="$(realpath $(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))"
