@@ -100,6 +100,10 @@ test_AVLivingRoomRustClient:
     just --justfile $HOME/devc/i/devc1/justfile pv --log-level=ALL:DEBUG --set-default-native-engine=Ignite --local-native-module-path=$(realpath $HOME/devc/i/devc1/build/libamzn_av_living_room_rust_client.so) --log-file=build/log-ignite-$(date +%F-%H-%M-%S).txt
 
 [no-cd]
+build_AVLivingRoomRustClient-Build-Shard-18:
+    brazil-build
+
+[no-cd]
 release_AVLivingRoomRustClient:
     #cp -r build/lib/* $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
     #ls -l $(cd ~/dev/avlrc-rel/src/AVLivingRoomClientBundle; brazil-path '[AVLivingRoomRustClient@1.0]pkg.lib')
