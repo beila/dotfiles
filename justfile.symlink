@@ -74,8 +74,7 @@ watch *$command:
         D=$(date +%s) 
         (
             set +eo pipefail
-            set -x
-            time zsh -ic "{{ command }}"
+            time zsh -ic "set -x; {{ command }}"
             echo "Exit code: $?"
         )
         date
