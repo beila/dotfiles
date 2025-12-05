@@ -44,6 +44,37 @@ setup_git:
     done
 
 brightness val="":
+    #!/usr/bin/env zsh
+    set -euo pipefail
     val={{ val }}
     val=${val:-$(cat /sys/class/backlight/intel_backlight/max_brightness )}
+    echo "${PS4}cat /sys/class/backlight/intel_backlight/max_brightness"
+    cat /sys/class/backlight/intel_backlight/max_brightness
+    echo "${PS4}echo ${val} > /sys/class/backlight/intel_backlight/brightness"
     sudo sh -c "echo ${val} > /sys/class/backlight/intel_backlight/brightness"
+
+# Run the given $command and run them again whenever a file changes
+[no-cd]
+[linux]
+watch *$command:
+    #!/usr/bin/env zsh
+    set -euo pipefail
+    FILES_TO_WATCH=${FILES_TO_WATCH:-.}
+    D=1 
+    while [ -n "$(fd --changed-after @$D "${FILES_TO_WATCH}" | head -1)" ] || (
+        inotifywait -e modify -r ${FILES_TO_WATCH}
+        while inotifywait -e modify -r ${FILES_TO_WATCH} -t 5
+        do
+            :
+        done
+    )
+    do
+        D=$(date +%s) 
+        (
+            set +eo pipefail
+            set -x
+            time zsh -ic "{{ command }}"
+            echo "Exit code: $?"
+        )
+        date
+    done
