@@ -218,9 +218,10 @@ _find_package_recipe_and_run recipe dir:
 run_preamble := """
     run_preamble() {
         set -eo pipefail
-        [ ! -d "${1:?}/{{ build_dir }}" ] &&
+        build_dir="${2:-build}"
+        [ ! -d "${1:?}/${build_dir}" ] &&
             ln -sf $(cd "$1" && brazil-path package-build-root) "$1"
-        export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/{{ build_dir }}/log-recurse-$(date +%F-%H-%M).txt}"
+        export just_recurse_log="${just_recurse_log:-$(readlink -f "$1")/${build_dir}/log-recurse-$(date +%F-%H-%M).txt}"
     }
     run_preamble\
 """
@@ -405,7 +406,7 @@ run +commands:
 [no-cd]
 [no-exit-message]
 b *subcommands:
-    {{ run_preamble }} .
+    {{ run_preamble }} . {{ build_dir }}
     @name=bb just run_with_brazil_env "just pre_build && (set -x; brazil-build {{ subcommands }} )"
 
 [no-cd]
