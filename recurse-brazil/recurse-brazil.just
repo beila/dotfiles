@@ -19,6 +19,7 @@ set shell := ['zsh', '-c']
 
 logger := """
     log_with_name() {
+        set -x; # FIXME
         log_name=$1
         shift
 
