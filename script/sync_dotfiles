@@ -6,6 +6,11 @@ cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
 
+$GIT submodule foreach bash -c "$GIT add --verbose --all .
+    $GIT commit --verbose -m \"Change from $(hostname -s)\" && WILL_PUSH=yes
+    $GIT pull --ff --verbose --no-edit --recurse-submodules=no
+    test \$WILL_PUSH && $GIT push || true"
+
 $GIT add --verbose --all .
 $GIT commit --verbose --no-allow-empty -m "Change from $(hostname -s)"
 $GIT pull --ff --verbose --no-edit
@@ -13,10 +18,10 @@ $GIT pull --ff --verbose --no-edit
 $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all
 $GIT push --verbose
 
-$GIT submodule foreach bash -c "$GIT add --verbose --all .
-    $GIT commit --verbose -m \"Change from $(hostname -s)\" && WILL_PUSH=yes
-    $GIT pull --ff --verbose --no-edit --recurse-submodules=no
-    test \$WILL_PUSH && $GIT push || true"
+#$GIT submodule foreach bash -c "$GIT add --verbose --all .
+    #$GIT commit --verbose -m \"Change from $(hostname -s)\" && WILL_PUSH=yes
+    #$GIT pull --ff --verbose --no-edit --recurse-submodules=no
+    #test \$WILL_PUSH && $GIT push || true"
 #$GIT add --verbose --all .
 #$GIT commit --verbose --no-allow-empty -m "Submodule update from $(hostname -s)"
 #$GIT pull --ff --verbose --no-edit --recurse-submodules=no
