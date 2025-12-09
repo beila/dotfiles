@@ -27,6 +27,7 @@ in
     # # "Hello, world!" when run.
     # pkgs.hello
 
+        pkgs.cargo
         pkgs.mergiraf
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
