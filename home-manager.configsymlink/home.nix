@@ -1,10 +1,15 @@
 { config, pkgs, ... }:
 
+let
+  user = import ./user.nix;
+in
 {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
-  home.username = "hojin";
-  home.homeDirectory = "/home/ANT.AMAZON.COM/hojin";
+
+  # I like https://github.com/cwndrws/dotfiles/blob/master/home.nix#L10 for simplicity
+  home.username = user.username;
+  home.homeDirectory = user.homeDirectory;
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
