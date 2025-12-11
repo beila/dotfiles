@@ -27,6 +27,7 @@ in
     # # "Hello, world!" when run.
     # pkgs.hello
 
+        pkgs.awscli2
         pkgs.cargo
         pkgs.mergiraf
 
