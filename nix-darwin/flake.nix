@@ -41,6 +41,34 @@
           # insuk-www
           imagemagick
           rclone
+                        # ignite
+              ccache
+              cmake
+              gcc
+              git
+              gst_all_1.gstreamer
+              jdk17   # android
+              jq
+              just
+              ninja
+              nodejs_22
+              pkg-config
+              python312Full
+              #rustToolchain
+              zsh
+              SDL2
+              SDL2_image
+              SDL2_mixer
+              SDL2_ttf
+              a52dec
+              gettext
+              glib
+              gst_all_1.gst-plugins-base
+              gst_all_1.gst-plugins-good
+              libjpeg8
+              libpng
+              openssl
+
         ];
 
       fonts.packages = [ pkgs.jetbrains-mono ];
