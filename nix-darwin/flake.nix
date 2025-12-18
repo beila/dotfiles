@@ -44,7 +44,6 @@
                         # ignite
               ccache
               cmake
-              gcc
               git
               gst_all_1.gstreamer
               jdk17   # android
