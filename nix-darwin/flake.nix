@@ -30,6 +30,7 @@
           kanata
           kitty
           maccy
+          mergiraf
           neovide
           neovim
           nodejs    # Tools installed by Mason in Neovim (biome, etc.)
