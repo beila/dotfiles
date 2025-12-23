@@ -46,8 +46,7 @@
               ccache
               cmake
               git
-              gst_all_1.gstreamer
-              jdk17   # android
+              gst_all_1.gstreamer.dev
               jq
               just
               ninja
@@ -65,7 +64,7 @@
               glib
               gst_all_1.gst-plugins-base
               gst_all_1.gst-plugins-base.dev
-              gst_all_1.gst-plugins-good
+              gst_all_1.gst-plugins-good.dev
               libjpeg8
               libpng
               openssl
