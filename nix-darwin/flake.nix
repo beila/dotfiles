@@ -70,6 +70,9 @@
               libpng
               openssl
 
+   #- gstreamer-1.0
+   #- gstreamer-plugins-base-1.0
+   #- glib-2.0
         ];
 
       fonts.packages = [ pkgs.jetbrains-mono ];
