@@ -74,10 +74,6 @@
    #- glib-2.0
         ];
 
-      environment.variables = {
-                  PKG_CONFIG_PATH = "/run/current-system/sw/lib/pkgconfig:/run/current-system/sw/share/pkgconfig";
-                };
-
       fonts.packages = [ pkgs.jetbrains-mono ];
 
       # Necessary for using flakes on this system.
