@@ -61,7 +61,7 @@
               SDL2_ttf
               a52dec
               gettext
-              glib
+              glib.dev
               gst_all_1.gst-plugins-base
               gst_all_1.gst-plugins-base.dev
               gst_all_1.gst-plugins-good.dev
@@ -73,6 +73,10 @@
    #- gstreamer-plugins-base-1.0
    #- glib-2.0
         ];
+
+      environment.variables = {
+                  PKG_CONFIG_PATH = "/run/current-system/sw/lib/pkgconfig:/run/current-system/sw/share/pkgconfig";
+                };
 
       fonts.packages = [ pkgs.jetbrains-mono ];
 
