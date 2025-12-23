@@ -46,6 +46,7 @@
               ccache
               cmake
               git
+              gst_all_1.gstreamer
               gst_all_1.gstreamer.dev
               jq
               just
