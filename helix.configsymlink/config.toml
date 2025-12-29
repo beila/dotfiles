@@ -7,6 +7,9 @@ select = "underline"
 [editor.soft-wrap]
 enable = true
 
+[editor]
+auto-save = true
+
 # https://github.com/helix-editor/helix/wiki/FAQ#map-jk-or-jj-to-exit-insert-mode
 [keys.insert]
 j = { j = "normal_mode" }
