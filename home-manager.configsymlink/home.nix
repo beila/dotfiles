@@ -29,6 +29,8 @@ in
 
         pkgs.awscli2
         pkgs.cargo
+        pkgs.clang-tools  # includes clangd
+        pkgs.helix
         pkgs.mergiraf
         pkgs.neovide
 
