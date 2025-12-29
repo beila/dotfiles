@@ -1,7 +1,11 @@
 [[language]]
 name = "cpp"
-language-server = { command = "clangd.exe" }
+language-servers = ["clangd"]
 
 [[language]]
-name = "cmake"
-language-server = { command = "cmake-language-server.exe" }
+name = "c"
+language-servers = ["clangd"]
+
+[language-server.clangd]
+command = "clangd"
+args = ["--background-index", "--clang-tidy", "--completion-style=detailed"]
