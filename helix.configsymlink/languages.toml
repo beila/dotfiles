@@ -6,6 +6,14 @@ language-servers = ["clangd"]
 name = "c"
 language-servers = ["clangd"]
 
+[[language]]
+name = "toml"
+language-servers = ["taplo"]
+
 [language-server.clangd]
 command = "clangd"
 args = ["--background-index", "--clang-tidy", "--completion-style=detailed"]
+
+[language-server.taplo]
+command = "taplo"
+args = ["lsp", "stdio"]
