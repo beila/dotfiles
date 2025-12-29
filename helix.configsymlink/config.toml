@@ -21,4 +21,4 @@ l = { l = { l = "normal_mode" }}
 "C-l" = "jump_view_right"
 
 [keys.normal.space]
-g = { y = ":sh DISPLAY=:0 echo '%{dirname}/%{basename}' | xclip -selection clipboard" }
+g = { y = ":sh DISPLAY=:0 echo '%sh{pwd}/%{buffer_name}' | xclip -selection clipboard" }
