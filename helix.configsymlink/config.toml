@@ -23,6 +23,7 @@ l = { l = { l = "normal_mode" }}
 "C-k" = "jump_view_up"
 "C-l" = "jump_view_right"
 "C-q" = ":quit"
+"*" = "select_textobject_inner"
 
 [keys.normal.space]
 g = { y = ":sh DISPLAY=:0 echo '%sh{pwd}/%{buffer_name}' | xclip -selection clipboard" }
