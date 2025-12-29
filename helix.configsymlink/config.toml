@@ -22,10 +22,9 @@ l = { l = { l = "normal_mode" }}
 "C-j" = "jump_view_down"
 "C-k" = "jump_view_up"
 "C-l" = "jump_view_right"
-"C-q" = ":quit"
-"*" = "select_textobject_inner"
+"*" = [ "move_prev_word_start", "move_next_word_end", "search_selection", "search", ]
 
 [keys.normal.space]
-"," = { y = ":sh DISPLAY=:0 echo '%sh{pwd}/%{buffer_name}' | xclip -selection clipboard" ,
- v = ":vsplit ~/.config/helix/config.toml" }
+"," = { y = ":sh DISPLAY=:0 echo '%sh{pwd}/%{buffer_name}' | xclip -selection clipboard" , v = ":vsplit ~/.config/helix/config.toml" }
 g = [ "move_prev_word_start", "move_next_word_end", "search_selection", "global_search", ]
+q = ":quit"
