@@ -19,6 +19,3 @@ l = { l = { l = "normal_mode" }}
 "C-j" = "jump_view_down"
 "C-k" = "jump_view_up"
 "C-l" = "jump_view_right"
-
-[keys.normal.space]
-g = { y = ":echo" }
