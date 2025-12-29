@@ -29,7 +29,11 @@ in
 
         pkgs.awscli2
         pkgs.cargo
+        pkgs.clang-tools  # includes clangd
+        pkgs.helix
         pkgs.mergiraf
+        pkgs.neovide
+        pkgs.taplo  # TOML language server
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the

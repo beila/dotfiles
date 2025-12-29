@@ -4,9 +4,27 @@ insert = "bar"
 normal = "block"
 select = "underline"
 
+[editor.soft-wrap]
+enable = true
+
+[editor]
+auto-save = true
+
 # https://github.com/helix-editor/helix/wiki/FAQ#map-jk-or-jj-to-exit-insert-mode
 [keys.insert]
 j = { j = "normal_mode" }
 k = { k = "normal_mode" }
 h = { h = "normal_mode" }
 l = { l = { l = "normal_mode" }}
+
+[keys.normal]
+"C-h" = "jump_view_left"
+"C-j" = "jump_view_down"
+"C-k" = "jump_view_up"
+"C-l" = "jump_view_right"
+#"*" = [ "move_prev_word_start", "move_next_word_end", "search_selection", "search", ]
+
+[keys.normal.space]
+"," = { y = ":sh DISPLAY=:0 echo '%sh{pwd}/%{buffer_name}' | xclip -selection clipboard" , v = ":vsplit ~/.config/helix/config.toml" }
+g = [ "move_prev_word_start", "move_next_word_end", "search_selection", "global_search", ]
+q = ":quit"
