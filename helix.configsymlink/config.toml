@@ -21,4 +21,4 @@ l = { l = { l = "normal_mode" }}
 "C-l" = "jump_view_right"
 
 [keys.normal.space]
-g = { y = ":sh echo $PWD/%{filename} | xclip -selection clipboard" }
+g = { y = ":echo" }
