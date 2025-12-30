@@ -33,7 +33,6 @@ in
         pkgs.helix
         pkgs.just  # includes just-lsp
         pkgs.mergiraf
-        pkgs.neovide
         pkgs.taplo  # TOML language server
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
