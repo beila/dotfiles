@@ -31,6 +31,7 @@ in
         pkgs.cargo
         pkgs.clang-tools  # includes clangd
         pkgs.helix
+        pkgs.just  # includes just-lsp
         pkgs.mergiraf
         pkgs.neovide
         pkgs.taplo  # TOML language server
