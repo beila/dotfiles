@@ -29,10 +29,12 @@ in
 
         pkgs.awscli2
         pkgs.cargo
-        pkgs.clang-tools  # includes clangd
-        pkgs.helix
-        pkgs.just  # includes just-lsp
+        pkgs.cmake
         pkgs.mergiraf
+
+        pkgs.helix
+        pkgs.clang-tools  # includes clangd
+        pkgs.just  # includes just-lsp
         pkgs.taplo  # TOML language server
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
