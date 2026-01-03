@@ -17,8 +17,15 @@ def get_feed_frequency(feed_url):
         # Parse the RSS/Atom feed
         feed = feedparser.parse(feed_url)
         
+        # Check if feed parsing failed or returned error
+        if hasattr(feed, 'status') and feed.status >= 400:
+            return 0, "ERROR"
+        
         if not feed.entries:
-            return 0
+            # Check if it's a parsing error vs empty feed
+            if hasattr(feed, 'bozo') and feed.bozo:
+                return 0, "ERROR"
+            return 0, "EMPTY"
         
         # Get dates of recent entries - try multiple date fields
         dates = []
@@ -46,7 +53,7 @@ def get_feed_frequency(feed_url):
         
         if len(dates) < 2:
             # If we have entries but no dates, assume daily posting
-            return 30 if feed.entries else 0
+            return 30 if feed.entries else 0, "NO_DATES"
         
         # Calculate average time between posts
         dates.sort(reverse=True)  # Most recent first
@@ -56,17 +63,17 @@ def get_feed_frequency(feed_url):
             intervals.append(interval.total_seconds() / 86400)  # Convert to days
         
         if not intervals:
-            return 30  # Default assumption
+            return 30, "DEFAULT"  # Default assumption
             
         avg_days = sum(intervals) / len(intervals)
         
         # Return posts per month as standard unit
         posts_per_month = 30 / avg_days if avg_days > 0 else 30
-        return round(min(posts_per_month, 300), 2)  # Cap at 300 posts/month
+        return round(min(posts_per_month, 300), 2), "OK"  # Cap at 300 posts/month
             
     except Exception as e:
         # Return a reasonable default instead of 0
-        return 10
+        return 10, "ERROR"
 
 def parse_opml(file_path):
     """Parse OPML file and extract feed information"""
@@ -153,7 +160,7 @@ if __name__ == "__main__":
     
     with open(output_file, 'w') as f, open(log_file, 'w') as log:
         # Write CSV header
-        f.write("title,url,feed_url,category,posts_per_month\n")
+        f.write("title,url,feed_url,category,posts_per_month,status\n")
         
         # Write log header
         log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -179,27 +186,20 @@ if __name__ == "__main__":
             log.write(f"Processing feed {i}/{len(feeds)}: {feed['title']}\n")
             log.write(f"  Feed URL: {feed['feed_url']}\n")
             
-            frequency = get_feed_frequency(feed['feed_url'])
+            frequency, status = get_feed_frequency(feed['feed_url'])
             
             # Write to CSV immediately
-            f.write(f'"{feed["title"]}","{feed["url"]}","{feed["feed_url"]}","{feed["category"]}",{frequency}\n')
+            f.write(f'"{feed["title"]}","{feed["url"]}","{feed["feed_url"]}","{feed["category"]}",{frequency},{status}\n')
             f.flush()
             
             # Log the result
-            log.write(f"  Result: {frequency} posts/month\n")
-            if frequency == 0:
-                log.write(f"  Note: No frequency data available\n")
-            elif frequency == 10:
-                log.write(f"  Note: Used default frequency due to parsing error\n")
-            elif frequency == 30:
-                log.write(f"  Note: Used default frequency (entries found but no dates)\n")
-            log.write("\n")
+            log.write(f"  Result: {frequency} posts/month (Status: {status})\n")
             log.flush()
             
             total_frequency += frequency
             processed_count += 1
             
-            print(f"Frequency: {frequency} posts/month")
+            print(f"Frequency: {frequency} posts/month ({status})")
             print("-" * 80)
         
         # Write summary to log
