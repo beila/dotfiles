@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+import time
+
+def get_feedly_feeds():
+    options = Options()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+    
+    try:
+        # Login to Feedly (you'll need to handle authentication)
+        driver.get("https://feedly.com/i/my")
+        
+        # Wait for manual login or implement automated login
+        input("Please login to Feedly in the browser, then press Enter...")
+        
+        # Navigate to subscriptions/organize page
+        driver.get("https://feedly.com/i/organize")
+        time.sleep(3)
+        
+        feeds = []
+        
+        # Find feed elements (selectors may need adjustment)
+        feed_elements = driver.find_elements(By.CSS_SELECTOR, "[data-feed-id]")
+        
+        for element in feed_elements:
+            try:
+                title = element.find_element(By.CSS_SELECTOR, ".title").text
+                url = element.get_attribute("data-feed-id")
+                
+                # Try to get category info
+                category_elem = element.find_element(By.CSS_SELECTOR, ".category")
+                category = category_elem.text if category_elem else "Uncategorized"
+                
+                feeds.append({
+                    "title": title,
+                    "url": url,
+                    "category": category
+                })
+            except:
+                continue
+        
+        return feeds
+        
+    finally:
+        driver.quit()
+
+if __name__ == "__main__":
+    feeds = get_feedly_feeds()
+    for feed in feeds:
+        print(f"Title: {feed['title']}")
+        print(f"URL: {feed['url']}")
+        print(f"Category: {feed['category']}")
+        print("-" * 50)
