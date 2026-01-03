@@ -19,7 +19,7 @@
         packages.default = pkgs.writeShellScriptBin "feedly-feeds" ''
           export PATH=${pkgs.chromedriver}/bin:$PATH
           cd ${./.}
-          ${pkgs.uv}/bin/uv run feedly-feeds
+          ${pkgs.uv}/bin/uv run ./feedly-feeds
         '';
       });
 }
