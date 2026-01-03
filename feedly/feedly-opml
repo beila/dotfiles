@@ -110,6 +110,7 @@ def parse_opml(file_path):
         root = tree.getroot()
         
         feeds = []
+        feed_dict = {}  # Use dict to merge duplicate feeds by URL
         
         # Build a map of parent-child relationships
         parent_map = {c: p for p in tree.iter() for c in p}
@@ -119,12 +120,13 @@ def parse_opml(file_path):
             # Check if it's a feed (has xmlUrl) or category
             xml_url = outline.get('xmlUrl')
             if xml_url:  # It's a feed
-                feed = {
-                    'title': outline.get('title', outline.get('text', 'Unknown')),
-                    'url': outline.get('htmlUrl', xml_url),
-                    'feed_url': xml_url,
-                    'categories': []
-                }
+                if xml_url not in feed_dict:
+                    feed_dict[xml_url] = {
+                        'title': outline.get('title', outline.get('text', 'Unknown')),
+                        'url': outline.get('htmlUrl', xml_url),
+                        'feed_url': xml_url,
+                        'categories': []
+                    }
                 
                 # Find all parent categories by walking up the tree
                 current = outline
@@ -132,15 +134,16 @@ def parse_opml(file_path):
                     parent = parent_map.get(current)
                     if parent is not None and parent.tag == 'outline' and not parent.get('xmlUrl'):
                         category_title = parent.get('title', parent.get('text'))
-                        if category_title and category_title not in feed['categories']:
-                            feed['categories'].insert(0, category_title)  # Insert at beginning for proper order
+                        if category_title and category_title not in feed_dict[xml_url]['categories']:
+                            feed_dict[xml_url]['categories'].insert(0, category_title)  # Insert at beginning for proper order
                     current = parent
                 
                 # If no categories found, use default (should not happen with proper OPML)
-                if not feed['categories']:
-                    feed['categories'] = ['Uncategorized']
-                
-                feeds.append(feed)
+                if not feed_dict[xml_url]['categories']:
+                    feed_dict[xml_url]['categories'] = ['Uncategorized']
+        
+        # Convert dict to list
+        feeds = list(feed_dict.values())
         
         return feeds
         
@@ -205,9 +208,52 @@ if __name__ == "__main__":
     opml_file = sys.argv[1]
     retry_failed = "--retry-failed" in sys.argv
     retry_all = "--retry-all" in sys.argv
+    populate_only = "--populate-only" in sys.argv
+    fetch_only = "--fetch-only" in sys.argv
+    
+    if populate_only:
+        # Phase 1: Only populate JSONL from OPML
+        feeds = parse_opml(opml_file)
+        output_file = opml_file.replace('.opml', '_feeds.jsonl')
+        
+        # Load existing data
+        existing_data = {}
+        if os.path.exists(output_file):
+            try:
+                with open(output_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        if line.strip():
+                            feed = json.loads(line)
+                            existing_data[feed['feed_url']] = feed
+            except:
+                pass
+        
+        # Populate with OPML data, preserving existing fetch results
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for feed in feeds:
+                if feed['feed_url'] in existing_data:
+                    # Keep existing fetch results, update categories
+                    existing_feed = existing_data[feed['feed_url']]
+                    existing_feed['categories'] = feed['categories']  # Update categories from OPML
+                    f.write(json.dumps(existing_feed, ensure_ascii=False) + '\n')
+                else:
+                    # New feed, add with placeholder fetch results
+                    feed_entry = {
+                        'title': feed['title'],
+                        'url': feed['url'],
+                        'feed_url': feed['feed_url'],
+                        'categories': feed['categories'],
+                        'posts_per_year': 0,
+                        'status': 'PENDING',
+                        'last_updated': None,
+                        'processed_date': None
+                    }
+                    f.write(json.dumps(feed_entry, ensure_ascii=False) + '\n')
+        
+        print(f"Populated {len(feeds)} feeds from OPML to {output_file}")
+        sys.exit(0)
     
     if retry_failed:
-        # Load existing data and filter for failed feeds
         output_file = opml_file.replace('.opml', '_feeds.jsonl')
         if not os.path.exists(output_file):
             print("No existing data file found. Run without --retry-failed first.")
