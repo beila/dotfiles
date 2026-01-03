@@ -3625,3 +3625,175 @@ Processing feed 1206/1263: Sebastian Witowski
 Processing feed 1207/1263: Unknown
   Feed URL: https://yosemitesam.ch/feed.xml
   Result: 4 posts/year (Status: OK, Last: 2026-01-01)
+Processing feed 1208/1263: the jsomers.net blog
+  Feed URL: http://jsomers.net/blog/feed
+  Result: 1 posts/year (Status: OK, Last: 2025-08-17)
+Processing feed 1209/1263: Bit Bashing
+  Feed URL: http://bitbashing.io/feed.xml
+  Result: 2 posts/year (Status: OK, Last: 2025-08-18)
+Processing feed 1210/1263: Gabe Mays
+  Feed URL: https://gmays.com/feed/
+  Result: 7 posts/year (Status: OK, Last: 2025-10-05)
+Processing feed 1211/1263: Quentin Santos
+  Feed URL: https://qsantos.fr/feed/
+  Result: 10 posts/year (Status: OK, Last: 2026-01-01)
+Processing feed 1212/1263: selwyn essay
+  Feed URL: https://rss.blog.naver.com/correspondent.xml
+  Result: 28 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1213/1263: Arthur O’Dwyer
+  Feed URL: https://quuxplusone.github.io/blog/feed.xml
+  Result: 10 posts/year (Status: OK, Last: 2025-12-31)
+Processing feed 1214/1263: Alden's Dev Log
+  Feed URL: https://alden-kang.tistory.com/rss
+  Result: 0 posts/year (Status: OLD, Last: 2023-02-19)
+Processing feed 1215/1263: Andrzej's C++ blog
+  Feed URL: https://akrzemi1.wordpress.com/feed/
+  Result: 4 posts/year (Status: OK, Last: 2025-12-03)
+Processing feed 1216/1263: Tech World With Milan Newsletter
+  Feed URL: https://newsletter.techworld-with-milan.com/feed
+  Result: 20 posts/year (Status: OK, Last: 2025-12-18)
+Processing feed 1217/1263: Unknown
+  Feed URL: https://injuly.in/rss.xml
+  Result: 0 posts/year (Status: OLD, Last: None)
+Processing feed 1218/1263: Understand Legacy Code
+  Feed URL: https://understandlegacycode.com/rss.xml
+  Result: 1 posts/year (Status: OK, Last: 2025-10-07)
+Processing feed 1219/1263: Alexis King’s Blog
+  Feed URL: https://lexi-lambda.github.io/feeds/all.rss.xml
+  Result: 1 posts/year (Status: OK, Last: 2025-05-29)
+Processing feed 1220/1263: Martin Kleppmann's blog
+  Feed URL: http://feeds.feedburner.com/martinkl
+  Result: 1 posts/year (Status: OK, Last: 2025-12-08)
+Processing feed 1221/1263: Andreas Writing
+  Feed URL: http://beza1e1.tuxen.de/articles.atom
+  Result: 3 posts/year (Status: OK, Last: 2025-11-22)
+Processing feed 1222/1263: iRi
+  Feed URL: https://jerf.org/iri/rss.xml
+  Result: 10 posts/year (Status: OK, Last: 2025-11-11)
+Processing feed 1223/1263: James Sinclair
+  Feed URL: http://jrsinclair.com/index.rss
+  Result: 3 posts/year (Status: OK, Last: 2025-08-25)
+Processing feed 1224/1263: axio.ms
+  Feed URL: http://axio.ms//feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-06-15)
+Processing feed 1225/1263: Quastor
+  Feed URL: https://rss.beehiiv.com/feeds/nczRb4PQ6t.xml
+  Result: 10 posts/year (Status: OK, Last: 2025-02-24)
+Processing feed 1226/1263: sunshowers
+  Feed URL: https://sunshowers.io/index.xml
+  Result: 7 posts/year (Status: OK, Last: 2025-12-02)
+Processing feed 1227/1263: Louwrentius
+  Feed URL: https://louwrentius.com/feed/all.atom.xml
+  Result: 2 posts/year (Status: OK, Last: 2025-12-20)
+Processing feed 1228/1263: The Anttidote
+  Feed URL: https://suanto.com/feed.xml
+  Result: 5 posts/year (Status: OK, Last: 2025-05-25)
+Processing feed 1229/1263: Blog | jackkelly.name
+  Feed URL: http://jackkelly.name/blog/rss.xml
+  Result: 2 posts/year (Status: OK, Last: 2025-02-06)
+Processing feed 1230/1263: Terence Eden’s Blog
+  Feed URL: https://shkspr.mobi/blog/feed/atom/
+  Result: 20 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1231/1263: The Independent
+  Feed URL: http://www.independent.co.uk/rss
+  Result: 100 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1232/1263: Best of The Atlantic
+  Feed URL: http://feeds.feedburner.com/Best-Of-The-Atlantic
+  Result: 23 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1233/1263: National Review
+  Feed URL: http://www.nationalreview.com/rss.xml
+  Result: 20 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1234/1263: Vox
+  Feed URL: http://www.vox.com/rss/index.xml
+  Result: 10 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1235/1263: Semafor
+  Feed URL: https://www.semafor.com/rss.xml
+  Result: 109 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1236/1263: techNeedle
+  Feed URL: http://techneedle.com/?feed=rss2
+  Result: 1 posts/year (Status: OK, Last: 2025-12-21)
+Processing feed 1237/1263: ProPublica
+  Feed URL: http://feeds.propublica.org/propublica/main
+  Result: 20 posts/year (Status: OK, Last: 2025-12-31)
+Processing feed 1238/1263: The Independent UK
+  Feed URL: http://www.independent.co.uk/news/uk/rss
+  Result: 17 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1239/1263: Everything
+  Feed URL: http://www.newyorker.com/services/mrss/feeds/everything.xml
+  Result: 50 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1240/1263: The Atlantic Photo
+  Feed URL: http://feeds.feedburner.com/theatlantic/infocus
+  Result: 25 posts/year (Status: OK, Last: 2025-04-30)
+Processing feed 1241/1263: Articles
+  Feed URL: https://rss.diffbot.com/rss?url=https://jbee.io/articles
+  Result: 27 posts/year (Status: OK, Last: 2025-12-24)
+Processing feed 1242/1263: Stories by 조은, Eun Cho on Medium
+  Feed URL: https://medium.com/feed/@euncho/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 1243/1263: 컬리 기술 블로그
+  Feed URL: http://thefarmersfront.github.io/feed.xml
+  Result: 24 posts/year (Status: OK, Last: 2025-12-23)
+Processing feed 1244/1263: 당근마켓 팀블로그
+  Feed URL: https://medium.com/feed/daangn/
+  Result: 10 posts/year (Status: OK, Last: 2026-01-02)
+Processing feed 1245/1263: TOAST Meetup
+  Feed URL: https://meetup.toast.com/rss
+  Result: 7 posts/year (Status: OK, Last: 2025-11-11)
+Processing feed 1246/1263: Features | The Guardian
+  Feed URL: http://www.guardian.co.uk/tone/features/rss
+  Result: 20 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1247/1263: Business | The Guardian
+  Feed URL: http://www.guardian.co.uk/business/rss
+  Result: 39 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1248/1263: Consumer champions | The Guardian
+  Feed URL: http://www.guardian.co.uk/money/series/bachelor-and-brignall-consumer-champions/rss
+  Result: 20 posts/year (Status: OK, Last: 2025-12-27)
+Processing feed 1249/1263: Environment news, comment and analysis | guardian.co.uk
+  Feed URL: http://feeds.guardian.co.uk/theguardian/environment/rss
+  Result: 25 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1250/1263: Technology | The Guardian
+  Feed URL: http://www.theguardian.com/technology/rss
+  Result: 24 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1251/1263: Music | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/music/rss
+  Result: 29 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1252/1263: Main section | The Guardian
+  Feed URL: http://www.guardian.co.uk/theguardian/mainsection/rss
+  Result: 20 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1253/1263: Money | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/money/rss
+  Result: 25 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1254/1263: Culture | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/culture/rss
+  Result: 70 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1255/1263: Opinion | The Guardian
+  Feed URL: http://feeds.theguardian.com/theguardian/us/commentisfree/rss
+  Result: 22 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1256/1263: UK news | The Guardian
+  Feed URL: http://feeds.theguardian.com/theguardian/uk-news/rss
+  Result: 45 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1257/1263: Travel | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/travel/rss
+  Result: 26 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1258/1263: Lifestyle | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/lifeandstyle/rss
+  Result: 48 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1259/1263: The Guardian
+  Feed URL: https://www.theguardian.com/uk/rss
+  Result: 145 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1260/1263: Society | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/society/rss
+  Result: 32 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1261/1263: World news | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/world/rss
+  Result: 45 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1262/1263: Science | The Guardian
+  Feed URL: http://feeds.guardian.co.uk/theguardian/science/rss
+  Result: 28 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 1263/1263: Computing | The Guardian
+  Feed URL: http://www.guardian.co.uk/technology/computing/rss
+  Result: 20 posts/year (Status: OK, Last: 2026-01-03)
+SUMMARY:
+Total feeds processed: 1263
+Average frequency: 14.24 posts/year
+Total posts per year across all feeds: 17987.00
