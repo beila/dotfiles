@@ -367,3 +367,200 @@ Processing feed 120/445: IT 기획 연구소
 Processing feed 121/445: Articles — brandur.org
   Feed URL: http://brandur.org/articles.atom
   Result: 0 posts/year (Status: OLD, Last: 2024-05-28)
+Processing feed 122/445: 장작가 연구실
+  Feed URL: http://5bpa.blog.me/rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 123/445: National Geographic Photo of the Day
+  Feed URL: http://www.nationalgeographic.com/rss/photography/photo-of-the-day
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 124/445: DBMS Musings
+  Feed URL: http://dbmsmusings.blogspot.com/feeds/posts/default
+  Result: 0 posts/year (Status: OLD, Last: 2021-03-25)
+Processing feed 125/445: foobartel.com :: All Posts
+  Feed URL: https://foobartel.com/feed
+  Result: 0 posts/year (Status: OLD, Last: 2023-11-30)
+Processing feed 126/445: Oxford English Dictionary
+  Feed URL: http://www.oed.com/rss.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 127/445: The Verge - Buying Guide Posts
+  Feed URL: http://www.theverge.com/this-is-my-next/rss/index.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 128/445: 이글루스 '만화' 테마 인기글
+  Feed URL: http://valley.egloos.com/theme/rss/top/comic
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 129/445: a spark in your veins
+  Feed URL: https://e-shootershill.co.uk/feed/
+  Result: 0 posts/year (Status: OLD, Last: 2020-10-20)
+Processing feed 130/445: 안단테의 들꽃산책
+  Feed URL: http://blog.rss.naver.com/dhlee05
+  Result: 0 posts/year (Status: OLD, Last: 2023-04-11)
+Processing feed 131/445: 부크의 아이템창고
+  Feed URL: http://blog.rss.naver.com/spd33.xml
+  Result: 0 posts/year (Status: OLD, Last: 2017-08-15)
+Processing feed 132/445: Foresight Institute
+  Feed URL: http://www.foresight.org/nanodot/wp-rss.php
+  Result: 0 posts/year (Status: EMPTY, Last: None)
+Processing feed 133/445: xmonad - the tiling window manager that rocks
+  Feed URL: https://xmonad.org/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-08-20)
+Processing feed 134/445: 여행,느낌 그리고 사진
+  Feed URL: http://blog.rss.naver.com/dghahn.xml
+  Result: 0 posts/year (Status: OLD, Last: 2022-10-03)
+Processing feed 135/445: fpunfold
+  Feed URL: http://fpunfold.com/feed.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 136/445: TEDxSeoul - 번역 개선하기
+  Feed URL: http://www.tedxseoul.com/xe/talks/atom
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 137/445: Applied Cartography
+  Feed URL: https://www.applied-cartography.com/rss.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 138/445: [김삼웅의 인물열전] 반민특위 위원장 김상덕 평전
+  Feed URL: http://blog.ohmynews.com/kimsamwoong/rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 139/445: ★여행은 떠나는 자의 몫★
+  Feed URL: http://blog.rss.naver.com/mis71.xml
+  Result: 0 posts/year (Status: OLD, Last: 2021-07-19)
+Processing feed 140/445: endtimes.dev
+  Feed URL: https://endtimes.dev/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2023-11-25)
+Processing feed 141/445: Byte Cellar
+  Feed URL: http://www.bytecellar.com/feed/
+  Result: 0 posts/year (Status: OLD, Last: 2024-12-22)
+Processing feed 142/445: 클리앙 : 전기자전거당
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_ebicycle
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 143/445: Insights | Expert Software Development Articles & Resources
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.stackbuilders.com/blog/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 144/445: 채널예스 : 특집 기획
+  Feed URL: http://ch.yes24.com/feed/column/2184
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 145/445: 클리앙 : 유용한사이트
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/useful
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 146/445: Humans of New York
+  Feed URL: http://www.humansofnewyork.com/rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 147/445: 채널예스 : 대중문화
+  Feed URL: http://ch.yes24.com/feed/column/2165
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 148/445: 채널예스 : 책
+  Feed URL: http://ch.yes24.com/feed/column/2162
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 149/445: Articles
+  Feed URL: https://rss.diffbot.com/rss?url=https://jbee.io/articles
+  Result: 27 posts/year (Status: OK, Last: 2025-12-24)
+Processing feed 150/445: Opinion – Communications of the ACM
+  Feed URL: http://cacm.acm.org/opinion.rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 151/445: Google Research Blog
+  Feed URL: http://googleresearch.blogspot.com/atom.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-03-29)
+Processing feed 152/445: Dr Scott Hollier – Digital Access Specialist
+  Feed URL: http://hollier.info/feed/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 153/445: 클리앙 : 자료실
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/pds
+  Result: 23 posts/year (Status: OK, Last: 2026-01-01)
+Processing feed 154/445: 위스키당
+  Feed URL: https://rss.diffbot.com/rss?url=https://damoang.net/whiskey
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 155/445: nature, conservation and wildlife watching
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.discoverwildlife.com/
+  Result: 0 posts/year (Status: OLD, Last: None)
+Processing feed 156/445: Astronomy, Astrophotography & Space News
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.skyatnightmagazine.com/
+  Result: 0 posts/year (Status: OLD, Last: None)
+Processing feed 157/445: Riot Games Tech Blog News Feed
+  Feed URL: http://engineering.riotgames.com/rss.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-02-27)
+Processing feed 158/445: HN Readings
+  Feed URL: https://kill-the-newsletter.com/feeds/s3j3tkrd68lwidt4410k.xml
+  Result: 0 posts/year (Status: EMPTY, Last: None)
+Processing feed 159/445: Knowable Magazine
+  Feed URL: https://www.knowablemagazine.org/rss
+  Result: 0 posts/year (Status: OLD, Last: None)
+Processing feed 160/445: Tweag - Nix blog
+  Feed URL: https://www.tweag.io/rss-nix.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-09-05)
+Processing feed 161/445: Infrequently Noted
+  Feed URL: http://alex.dojotoolkit.org/?feed=atom
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 162/445: CONNECTING HEARTS! 커뮤니티 포털 디시인사이드입니다.
+  Feed URL: https://rss.diffbot.com/rss?url=https://m.dcinside.com/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 163/445: software articles by efron licht
+  Feed URL: https://rss.diffbot.com/rss?url=https://eblog.fly.dev/index.html
+  Result: 3 posts/year (Status: OK, Last: 2025-12-03)
+Processing feed 164/445: DoorDash
+  Feed URL: https://careersatdoordash.com/feed/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 165/445: Good Movies to Watch – Highly-Rated Movies on Amazon Prime
+  Feed URL: https://rss.diffbot.com/rss?url=https://agoodmovietowatch.com/all/?service%3Dusa-amazon-prime%26sort%3Dtop
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 166/445: Engineering | Uber Blog
+  Feed URL: https://www.uber.com/blog/engineering/rss/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 167/445: cbloom rants
+  Feed URL: http://cbloomrants.blogspot.com/feeds/posts/default
+  Result: 0 posts/year (Status: OLD, Last: 2023-10-13)
+Processing feed 168/445: bicortex
+  Feed URL: https://bicortex.com/bicortex/feed/
+  Result: 0 posts/year (Status: OLD, Last: 2024-12-28)
+Processing feed 169/445: Sylvain Kerkour
+  Feed URL: https://opensourceweekly.org/index.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 170/445: The Cloudflare Blog
+  Feed URL: http://blog.cloudflare.com/rss.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 171/445: BLOG@CACM – Communications of the ACM
+  Feed URL: http://cacm.acm.org/blogs/blog-cacm.rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 172/445: ACM Queue Feature Articles
+  Feed URL: http://acmqueue.com/queue.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 173/445: Opinion – Communications of the ACM
+  Feed URL: http://cacm.acm.org/opinion.rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 174/445: 굴러간당-시즌2 : 네이버 카페
+  Feed URL: https://rss.diffbot.com/rss?url=https://m.cafe.naver.com/bestdrivercrew.cafe?tc%3Dshared_link
+  Result: 0 posts/year (Status: EMPTY, Last: None)
+Processing feed 175/445: themindcircle
+  Feed URL: http://onemorepost.com/feed/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 176/445: 클리앙 : 키보드당
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_keyboard
+  Result: 30 posts/year (Status: OK, Last: 2025-11-14)
+Processing feed 177/445: The Code Project Latest Articles
+  Feed URL: http://www.codeproject.com/webservices/articlerss.aspx?cat=1
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 178/445: Wirecutter: Reviews for the Real World
+  Feed URL: http://feeds.feedburner.com/TheWirecutter
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 179/445: 전체기사 : 미래&과학 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레
+  Feed URL: http://www.hani.co.kr/rss/science/
+  Result: 0 posts/year (Status: OLD, Last: None)
+Processing feed 180/445: GYUHANG.NET
+  Feed URL: http://gyuhang.net/rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 181/445: GottaBeMobile.com » Editorials
+  Feed URL: http://www.gottabemobile.com/category/editorials/feed
+  Result: 0 posts/year (Status: OLD, Last: 2024-10-01)
+Processing feed 182/445: Life is Good
+  Feed URL: http://feeds.feedburner.com/tistory-lifeisgood
+  Result: 0 posts/year (Status: OLD, Last: 2023-10-17)
+Processing feed 183/445: Oxford English Dictionary
+  Feed URL: http://www.oed.com/rss.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 184/445: SkyandTelescope.com's Most Recent Articles
+  Feed URL: http://www.skyandtelescope.com/MostRecent.rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 185/445: The Code Project Latest Articles
+  Feed URL: http://www.codeproject.com/webservices/articlerss.aspx?cat=1
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 186/445: Google Research Blog
+  Feed URL: http://googleresearch.blogspot.com/atom.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-03-29)
+Processing feed 187/445: Lambda the Ultimate - Programming Languages Weblog
+  Feed URL: http://lambda-the-ultimate.org/rss.xml

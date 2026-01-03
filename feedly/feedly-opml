@@ -11,6 +11,8 @@ import json
 import os
 from datetime import datetime, timedelta
 from dateutil import parser as date_parser
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 def get_feed_frequency(feed_url):
     """Estimate posting frequency by checking entries from the last year"""
@@ -205,8 +207,8 @@ if __name__ == "__main__":
         except:
             pass
     
-    with open(log_file, 'w', encoding='utf-8') as log:
-        
+    # Process feeds in parallel
+    with ThreadPoolExecutor(max_workers=10) as executor, open(log_file, 'w', encoding='utf-8') as log:
         # Write log header
         log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         log.write(f"User request: Parse OPML file and analyze feed frequencies\n")
@@ -216,6 +218,83 @@ if __name__ == "__main__":
         
         print(f"Found {len(feeds)} feeds:")
         print("=" * 80)
+        
+        total_frequency = 0
+        processed_count = 0
+        file_lock = threading.Lock()
+        
+def process_single_feed(feed, existing_data, retry_failed):
+    """Process a single feed and return the result"""
+    feed_url = feed['feed_url']
+    
+    # Skip if feed was processed recently (unless retrying failed feeds)
+    if not retry_failed and feed_url in existing_data:
+        try:
+            processed_date = datetime.strptime(existing_data[feed_url]['processed_date'], '%Y-%m-%d %H:%M:%S')
+            if datetime.now() - processed_date < timedelta(days=7):
+                return None, f"Skipping {feed['title']} (processed {processed_date.strftime('%Y-%m-%d')})"
+        except:
+            pass
+    
+    print(f"Processing: {feed['title']}")  # This will still be jumbled but shows activity
+    
+    # Get posting frequency
+    frequency, status, last_updated = get_feed_frequency(feed['feed_url'])
+    
+    # Create feed entry
+    feed_entry = {
+        'title': feed['title'],
+        'url': feed['url'],
+        'feed_url': feed['feed_url'],
+        'categories': feed['categories'],
+        'posts_per_year': frequency,
+        'status': status,
+        'last_updated': last_updated,
+        'processed_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    return feed_entry, f"Frequency: {frequency} posts/year ({status}) Last: {last_updated or 'Unknown'}"
+
+        # Submit all tasks
+        future_to_feed = {
+            executor.submit(process_single_feed, feed, existing_data, retry_failed): feed 
+            for feed in feeds
+        }
+        
+        # Process completed tasks
+        for future in as_completed(future_to_feed):
+            feed = future_to_feed[future]
+            try:
+                feed_entry, message = future.result()
+                
+                if feed_entry is None:
+                    print(message)
+                    continue
+                
+                # Thread-safe file update
+                with file_lock:
+                    existing_data[feed_entry['feed_url']] = feed_entry
+                    
+                    # Rewrite entire file with updated data
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        for feed_data in existing_data.values():
+                            f.write(json.dumps(feed_data, ensure_ascii=False) + '\n')
+                    
+                    # Log the result
+                    log.write(f"Processing feed: {feed_entry['title']}\n")
+                    log.write(f"  Feed URL: {feed_entry['feed_url']}\n")
+                    log.write(f"  Result: {feed_entry['posts_per_year']} posts/year (Status: {feed_entry['status']}, Last: {feed_entry['last_updated']})\n\n")
+                    log.flush()
+                    
+                    total_frequency += feed_entry['posts_per_year']
+                    processed_count += 1
+                    
+                    # Print progress with lock to avoid jumbled output
+                    print(f"[{processed_count}/{len(feeds)}] {message}")
+                    print("-" * 80)
+                
+            except Exception as e:
+                print(f"Error processing {feed['title']}: {e}")
         
         total_frequency = 0
         processed_count = 0

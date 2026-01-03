@@ -109,6 +109,12 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Loads all existing data, updates entries, rewrites entire file
    - Prevents duplicate entries when using --retry-failed
 
+19. **Added parallel processing**
+   - Request: Parallelize network access for faster processing
+   - Added ThreadPoolExecutor with 10 concurrent workers
+   - Thread-safe file updates with locking
+   - Significantly faster processing of large feed lists
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies
