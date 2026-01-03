@@ -60,6 +60,11 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Added reasonable defaults instead of returning 0
    - Capped maximum at 300 posts/month to avoid unrealistic values
 
+11. **Added feed status tracking**
+   - Request: Identify broken feeds that show page errors
+   - Added status field: OK/ERROR/EMPTY/NO_DATES
+   - Detects HTTP errors, parsing failures, and empty feeds
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies

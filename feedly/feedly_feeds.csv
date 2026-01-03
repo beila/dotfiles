@@ -1,5 +1,132 @@
-title,url,feed_url,category,posts_per_month
-"NewsPeppermint » Feed","https://newspeppermint.com","http://newspeppermint.com/feed/","아쉬워",7.94
-"HowToCreate - Opera","http://www.howtocreate.co.uk/operaStuff/","http://www.howtocreate.co.uk/operaStuff/operaStuff.xml","아쉬워",0.41
-"오늘의뉴스","https://www.etnews.com","http://rss.etnews.co.kr/Section901.xml","한국 소식",300
-"많이본기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레","https://www.hani.co.kr","http://www.hani.co.kr/rss/newsrank/","한국 소식",30
+title,url,feed_url,category,posts_per_month,status
+"NewsPeppermint » Feed","https://newspeppermint.com","http://newspeppermint.com/feed/","아쉬워",7.94,OK
+"HowToCreate - Opera","http://www.howtocreate.co.uk/operaStuff/","http://www.howtocreate.co.uk/operaStuff/operaStuff.xml","아쉬워",0.41,OK
+"오늘의뉴스","https://www.etnews.com","http://rss.etnews.co.kr/Section901.xml","한국 소식",300,OK
+"많이본기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레","https://www.hani.co.kr","http://www.hani.co.kr/rss/newsrank/","한국 소식",30,OK
+"뉴스톱 - 전체기사","https://www.newstopkorea.com","http://www.newstof.com/rss/allArticle.xml","한국 소식",300,OK
+"주요기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레","http://www.hani.co.kr/","http://www.hani.co.kr/rss/lead/","한국 소식",0,ERROR
+"오마이뉴스 - 사회","https://www.ohmynews.com/","http://rss.ohmynews.com/rss/society.xml","한국 소식",285.11,OK
+"미디어오늘 - 전체기사","https://www.mediatoday.co.kr","http://www.mediatoday.co.kr/rss/allArticle.xml","한국 소식",275.79,OK
+"채널예스 : 영화","https://ch.yes24.com/feed/column/2172","http://ch.yes24.com/feed/column/2172","채널 예스",0,ERROR
+"채널예스 : 책","https://ch.yes24.com/feed/column/2162","http://ch.yes24.com/feed/column/2162","채널 예스",0,ERROR
+"채널예스 : 만나고 싶었어요!","https://ch.yes24.com/feed/column/1958","http://ch.yes24.com/feed/columns/1958","채널 예스",0,ERROR
+"채널예스 : 작가와의 만남","https://ch.yes24.com/feed/column/1959","http://ch.yes24.com/feed/columns/1959","채널 예스",0,ERROR
+"채널예스 : 특집 기획","https://ch.yes24.com/feed/column/2184","http://ch.yes24.com/feed/column/2184","채널 예스",0,ERROR
+"채널예스 : 여행/취미","https://ch.yes24.com/feed/column/2168","http://ch.yes24.com/feed/column/2168","채널 예스",0,ERROR
+"London Review of Books","https://www.lrb.co.uk/","http://www.lrb.co.uk/homerss.xml","채널 예스",0,ERROR
+"채널예스 : 음악","https://ch.yes24.com/feed/column/2163","http://ch.yes24.com/feed/column/2163","채널 예스",0,ERROR
+"채널예스 : 주목, 이주의 신간","https://ch.yes24.com/feed/column/2177","http://ch.yes24.com/feed/column/2177","채널 예스",0,ERROR
+"채널예스 : 대중문화","https://ch.yes24.com/feed/column/2165","http://ch.yes24.com/feed/column/2165","채널 예스",0,ERROR
+"디에디트","https://the-edit.co.kr","http://the-edit.co.kr/feed","0024f",17.95,OK
+"Philosophy Now","https://philosophynow.org","http://www.philosophynow.org/rss","0024f",30,OK
+"클리앙 : 덕질한당","https://www.clien.net/service/board/cm_ku","https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_ku","0024f",0,ERROR
+"클리앙 : 날아간당","https://www.clien.net/service/board/cm_airplane","https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_airplane","0024f",0,ERROR
+"Potentials, IEEE - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC45.XML","0024f",1.75,OK
+"클리앙 : 달린당","https://www.clien.net/service/board/cm_running","https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_running","0024f",3.05,OK
+"What's On","https://www.gresham.ac.uk/whats-on","https://rss.diffbot.com/rss?url=https://www.gresham.ac.uk/whats-on","0024f",0,ERROR
+"News Shopper | Bexley","https://www.newsshopper.co.uk/news/bexley/","http://www.newsshopper.co.uk/news/bexley/rss/","0024f",33.33,OK
+"MakeUseOf - iPhone","https://www.makeuseof.com","http://www.makeuseof.com/service/ios/feed/","0024f",20.67,OK
+"Aeon | a world of ideas","https://aeon.co","https://aeon.co/feed.rss","0024f",27.27,OK
+"Merriam-Webster's Word of the Day","https://www.merriam-webster.com/word-of-the-day","http://www.merriam-webster.com/word/index.xml","0024f",30.0,OK
+"FlowingData","https://flowingdata.com","http://feeds.feedburner.com/FlowingData","0024f",29.99,OK
+"거리의 풍경","https://blog.naver.com/unviajero?fromRss=true&trackingCode=rss","http://blog.rss.naver.com/unviajero.xml","0024f",24.99,OK
+"IEEE Annals of the History of Computing - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC85.XML","0024f",30,OK
+"Toxel.com","https://www.toxel.com","http://feeds.feedburner.com/toxel","0024f",30.0,OK
+"Terence Eden’s Blog","https://shkspr.mobi/blog","https://shkspr.mobi/blog/feed/atom/","0024f",15.0,OK
+"Computing | The Guardian","https://www.theguardian.com/technology/computing","http://www.guardian.co.uk/technology/computing/rss","0024f",53.43,OK
+"Best of The Atlantic","https://www.theatlantic.com/","http://feeds.feedburner.com/Best-Of-The-Atlantic","0252",223.89,OK
+"Semafor","https://www.semafor.com","https://www.semafor.com/rss.xml","0252",299.4,OK
+"(구)아이포니앙","https://damoang.net/iphone","https://rss.diffbot.com/rss?url=https://damoang.net/iphone","0252",30,NO_DATES
+"그림만화 BEST","https://m.ruliweb.com/best/cartoon","https://rss.diffbot.com/rss?url=https://m.ruliweb.com/best/cartoon","0252",83.3,OK
+"Hack a Day","https://hackaday.com","http://hackaday.com/feed/","0252",239.87,OK
+"Atlas Obscura","https://www.atlasobscura.com","http://atlasobscura.com/rss.xml","0252",93.22,OK
+"BBC News","https://www.bbc.co.uk/news/business","http://newsrss.bbc.co.uk/rss/newsonline_world_edition/business/rss.xml","0252",121.74,OK
+"Wired Top Stories","https://www.wired.com","http://www.wired.com/news/feeds/rss2/0,2610,,00.xml","0252",0,ERROR
+"Phoronix","https://www.phoronix.com/","http://www.phoronix.com/rss.php","0252",232.07,OK
+"Everything","https://www.newyorker.com","http://www.newyorker.com/services/mrss/feeds/everything.xml","0252",150.0,OK
+"달린당","https://damoang.net/running","https://rss.diffbot.com/rss?url=https://damoang.net/running","0252",0,ERROR
+"바다건너당","https://damoang.net/overseas","https://rss.diffbot.com/rss?url=https://damoang.net/overseas","0252",0,ERROR
+"Philosophy Now","https://philosophynow.org","http://www.philosophynow.org/rss","긴 간격",30,OK
+"Potentials, IEEE - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC45.XML","긴 간격",1.75,OK
+"Spectrum, IEEE - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC6.XML","긴 간격",30,OK
+"IEEE Annals of the History of Computing - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC85.XML","긴 간격",30,OK
+"Transactions on Computers - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC12.XML","긴 간격",14.29,OK
+"Computer - new TOC","http://ieeexplore.ieee.org","http://ieeexplore.ieee.org/rss/TOC2.XML","긴 간격",300,OK
+"Engadget","http://www.engadget.com","http://www.engadget.com/rss.xml","Tech",300,OK
+"지도와 Web2.0 그리고 한국의 미래","https://www.internetmap.kr/","http://feeds2.feedburner.com/blogspot/InternetMap","xguru - Blog - IT",1.4,OK
+"Christian Heilmann","https://christianheilmann.com","http://www.wait-till-i.com/wp-atom.php","xguru - frontend",0,ERROR
+"Jonathan Snook","https://snook.ca/","http://feeds.feedburner.com/snookca","xguru - frontend",1.7,OK
+"Nettuts+","https://code.tutsplus.com","http://net.tutsplus.com/feed/","xguru - frontend",0.94,OK
+"Remy Sharp","https://remysharp.com","http://feeds.feedburner.com/remysharp","xguru - frontend",4.55,OK
+"Thoughts From Eric","https://meyerweb.com/eric/thoughts","http://meyerweb.com/eric/thoughts/rss2/summary","xguru - frontend",0.69,OK
+"Bruce Lawson's personal site","https://brucelawson.co.uk","http://www.brucelawson.co.uk/feed/","xguru - frontend",3.06,OK
+"HTML + CSS + JavaScript","https://htmlcssjavascript.com","http://feeds2.feedburner.com/HtmlCssJavascript","xguru - frontend",0.22,OK
+"Software As She's Developed","http://softwareas.com/","http://softwareas.com/feed","xguru - frontend",0.12,OK
+"Lea Verou","https://lea.verou.me/","http://leaverou.me/feed/","xguru - frontend",9.45,OK
+"Smashing Coding","https://www.smashingmagazine.com/","http://rss1.smashingmagazine.com/feed/?f=coding-std","xguru - frontend",9.09,OK
+"Universe Today","https://www.universetoday.com","http://www.universetoday.com/universetoday.xml","Space",149.52,OK
+"Centauri Dreams — Imagining and Planning Interstellar Exploration","https://follow.it/centauri-dreams-imagining-and-planning-interstellar-exploration","https://follow.it/centauri-dreams-imagining-and-planning-interstellar-exploration/rss","Space",4.29,OK
+"The Space Review","http://www.thespacereview.com/","http://www.thespacereview.com/articles.xml","Space",21.43,OK
+"SPACE.com","https://www.space.com","http://www.space.com/syn/space.xml","Space",300,OK
+"astrobites","https://astrobites.org","http://astrobites.com/feed/","Space",19.48,OK
+"SkyandTelescope.com's Most Recent Articles","https://skyandtelescope.org/","http://www.skyandtelescope.com/MostRecent.rss","Space",0,ERROR
+"Cycling UK Forum","https://forum.cyclinguk.org/index.php","https://forum.cyclinguk.org/app.php/feed/forum/55?sid=c640585fb4d2be3887a7e8505b9de849","0095",300,OK
+"Ye Olde Blogroll — Firehose","https://blogroll.org","https://blogroll.org/feed/","0095",0.37,OK
+"채널예스 : ARTICLE","https://ch.yes24.com/feed/column/1","http://ch.yes24.com/feed/columns/","0095",0,ERROR
+"The Free Press","https://www.thefp.com","https://bariweiss.substack.com/feed/","0095",179.9,OK
+"Discover Blogs","https://www.discovermagazine.com/rss/all","http://feeds.feedburner.com/DiscoverBlogs","0095",139.81,OK
+"Opinion | The Guardian","https://www.theguardian.com/us/commentisfree","http://feeds.theguardian.com/theguardian/us/commentisfree/rss","0095",266.58,OK
+"강갑생의 바퀴와 날개","https://www.joongang.co.kr/series/11059","https://rss.diffbot.com/rss?url=https://www.joongang.co.kr/series/11059","0095",1.53,OK
+"InfoQ","https://www.infoq.com","http://www.infoq.com/rss/rss.action","0095",104.91,OK
+"TechBlogPosts","https://techblogposts.com/","https://techblogposts.com/rss.xml","0095",104.44,OK
+"BBC News","https://www.bbc.co.uk/news/technology","http://newsrss.bbc.co.uk/rss/newsonline_world_edition/technology/rss.xml","0095",60.9,OK
+"클리앙 : 사용기","https://www.clien.net/service/board/use","https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/use","0095",94.95,OK
+"ErgoMechBoards","https://www.reddit.com/r/ErgoMechKeyboards/","https://rss.diffbot.com/rss?url=https://www.reddit.com/r/ErgoMechKeyboards/","0095",0,ERROR
+"책과 생각 뉴스","https://www.hani.co.kr/arti/culture/book","https://rss.diffbot.com/rss?url=https://www.hani.co.kr/arti/culture/book","0095",300,OK
+"개발한당","https://damoang.net/development","https://rss.diffbot.com/rss?url=https://damoang.net/development","0095",0,ERROR
+"Time Out London","https://www.timeout.com/london","http://www.timeout.com/london/blog/feed.rss","0095",70.06,OK
+"Bear Blog Trending Posts","https://bearblog.dev/discover/","https://bearblog.dev/discover/feed/","0095",136.32,OK
+"Tip Tech : KBDMania","http://www.kbdmania.net/xe/tipandtech","http://www.kbdmania.net/xe/?mid=tipandtech&act=rss","0000",0.48,OK
+"OECD.org - Korea","http://www.oecd.org","http://www.oecd.org/RSS_channel/0,3045,en_33873108_33873555_1_1_1_1_1,00.xml","0000",0,ERROR
+"Life is Good","https://lifeisgood.tistory.com/","http://feeds.feedburner.com/tistory-lifeisgood","0000",25.39,OK
+"대영제국에서 온 편지","https://kill-the-newsletter.com/","https://kill-the-newsletter.com/feeds/jhj2a69t5g5lu93s.xml","0000",4.29,OK
+"Paul Graham: Essays","http://www.paulgraham.com/","http://www.aaronsw.com/2002/feeds/pgessays.rss","0000",30,NO_DATES
+"PATENT DROP","https://patentdrop.substack.com","https://patentdrop.substack.com/feed/","0000",0,EMPTY
+"이글루스 '얼리어답터' 테마 인기글","http://valley.egloos.com/theme/earlyadopter","http://valley.egloos.com/theme/rss/top/earlyadopter","0000",0,ERROR
+"The Rebooting","https://therebooting.substack.com","https://therebooting.substack.com/feed/","0000",11.11,OK
+"박태웅","https://brunch.co.kr/@@Qk4","https://brunch.co.kr/rss/@@Qk4","0000",0.33,OK
+"nixCraft Linux Sys Admin Blog","https://www.cyberciti.biz/atom/","http://feeds.cyberciti.biz/Nixcraft-LinuxFreebsdSolarisTipsTricks","0000",3.05,OK
+"Software As She's Developed","http://softwareas.com/","http://softwareas.com/feed","0000",0.12,OK
+"tech.ssut","https://tech.ssut.me/","https://tech.ssut.me/rss/","0000",0.16,OK
+"Starkey Comics","https://starkeycomics.com/","https://starkeycomics.com/feed/","0000",0.94,OK
+"컬리 기술 블로그","http://thefarmersfront.github.io/","http://thefarmersfront.github.io/feed.xml","0000",4.03,OK
+"과학 – NewsPeppermint","https://newspeppermint.com","http://newspeppermint.com/category/science-environment/feed/","0000",0.47,OK
+"라디오키즈@LifeLog","https://neoearly.net/","http://feeds.neoearly.net/radiokidz","0000",0,EMPTY
+"Joel on Software","https://www.joelonsoftware.com","http://www.joelonsoftware.com/rss.xml","0000",0.16,OK
+"Alden's Dev Log","https://alden-kang.tistory.com/","https://alden-kang.tistory.com/rss","0000",2.57,OK
+"Fathy Boundjadj","https://fathy.fr","https://fathy.fr/rss.xml","0000",0.39,OK
+"노란 잠수함","https://blog.naver.com/rockks77?fromRss=true&trackingCode=rss","http://blog.rss.naver.com/rockks77.xml","0000",1.28,OK
+"Blog Needs a Name","https://ahgamut.github.io/","https://rss.diffbot.com/rss?url=https://ahgamut.github.io/","0000",0.22,OK
+"이글루스 '도서' 테마 인기글","http://valley.egloos.com/theme/book","http://valley.egloos.com/theme/rss/top/book","0000",0,ERROR
+"Design in government","https://designnotes.blog.gov.uk","https://designnotes.blog.gov.uk/feed/","0000",0.47,OK
+"주요기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레","http://www.hani.co.kr/","http://www.hani.co.kr/rss/lead/","0000",0,ERROR
+"이글루스 '애니메이션' 테마 인기글","http://valley.egloos.com/theme/animation","http://valley.egloos.com/theme/rss/top/animation","0000",0,ERROR
+"딥다이브","https://kill-the-newsletter.com/","https://kill-the-newsletter.com/feeds/n6qd9vhay5vjko7z.xml","0000",30,NO_DATES
+"Instructables: featured","https://www.instructables.com","http://feeds.feedburner.com/instructables/featured","0000",300,OK
+"이기적이고 주관적이고 객관성없는곳","https://blog.naver.com/raimorenji?fromRss=true&trackingCode=rss","http://blog.rss.naver.com/raimorenji.xml","0000",0.02,OK
+"CaN (Computer & Network) Tips","http://cantips.com/","http://pakcw.cafe24.com/rss","0000",0,ERROR
+"Roy Tanck","https://roytanck.com","http://feeds.feedburner.com/RoyTancksWeblog","0000",0.3,OK
+"Posts on Tech Notes by Natan Yellin","https://natanyellin.com/posts/","https://natanyellin.com/posts/index.xml","0000",0.23,OK
+"책습관","https://brunch.co.kr/@@hTC","https://brunch.co.kr/rss/@@hTC","0000",2.42,OK
+"채널예스 : 작가와의 만남","https://ch.yes24.com/feed/column/1959","http://ch.yes24.com/feed/columns/1959","0000",0,ERROR
+"Lambda the Ultimate - Programming Languages Weblog","http://lambda-the-ultimate.org","http://lambda-the-ultimate.org/rss.xml","0000",0.39,OK
+"Kellan Elliott-McCrea: Blog","https://laughingmeme.org//","http://laughingmeme.org/feed","0000",0.31,OK
+"썸원의 SUMMARY&EDIT","https://kill-the-newsletter.com/","https://kill-the-newsletter.com/feeds/9kaluz14ci2ppe19.xml","0000",300,OK
+"Pikuma","https://pikuma.com/feed","https://pikuma.com/feed","0000",0.31,OK
+"High Scalability","http://highscalability.com/blog/","http://feeds.feedburner.com/HighScalability","0000",0.62,OK
+"Instructables: popular","https://www.instructables.com","http://feeds.feedburner.com/instructables/popular","0000",0.22,OK
+"Kalzumeus Software","https://www.kalzumeus.com","http://www.kalzumeus.com/feed/","0000",0.14,OK
+"Lea Verou","https://lea.verou.me/","http://leaverou.me/feed/","0000",9.45,OK
+"이글루스 '영화' 테마 인기글","http://valley.egloos.com/theme/movie","http://valley.egloos.com/theme/rss/top/movie","0000",0,ERROR
+"Insuk's memolog at Yellow Submarine","http://feed43.com/0880813416673318.xml","http://feed43.com/0880813416673318.xml","0000",0,ERROR
+"eincs","http://eincs.com/","http://eincs.com/atom.xml","0000",0.21,OK
