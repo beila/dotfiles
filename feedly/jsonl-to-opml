@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+
+import json
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+import sys
+from datetime import datetime
+
+def load_feeds(jsonl_file):
+    feeds = []
+    with open(jsonl_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                feed = json.loads(line)
+                if feed['status'] == 'OK' and feed['posts_per_year'] > 0:
+                    feeds.append(feed)
+    return feeds
+
+def calculate_daily_posts(posts_per_year):
+    daily = posts_per_year / 365
+    return min(daily, 2.0)  # Cap at 2 posts per day
+
+def categorize_feeds(feeds):
+    # Sort feeds by frequency
+    feeds.sort(key=lambda f: f['posts_per_year'])
+    
+    categories = []
+    current_category = []
+    current_daily_total = 0
+    category_num = 1
+    
+    for feed in feeds:
+        daily_posts = calculate_daily_posts(feed['posts_per_year'])
+        
+        if current_daily_total + daily_posts <= 6 and current_category:
+            current_category.append(feed)
+            current_daily_total += daily_posts
+        else:
+            if current_category:
+                min_freq = min(f['posts_per_year'] for f in current_category)
+                categories.append({
+                    'name': f'{category_num:02d}-feeds-{min_freq}py',
+                    'feeds': current_category
+                })
+                category_num += 1
+            
+            current_category = [feed]
+            current_daily_total = daily_posts
+    
+    if current_category:
+        min_freq = min(f['posts_per_year'] for f in current_category)
+        categories.append({
+            'name': f'{category_num:02d}-feeds-{min_freq}py',
+            'feeds': current_category
+        })
+    
+    return categories
+
+def create_opml(categories):
+    opml = ET.Element('opml', version='1.0')
+    head = ET.SubElement(opml, 'head')
+    ET.SubElement(head, 'title').text = 'Feedly Feeds - Categorized'
+    ET.SubElement(head, 'dateCreated').text = datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z')
+    
+    body = ET.SubElement(opml, 'body')
+    
+    for category in categories:
+        outline = ET.SubElement(body, 'outline', text=category['name'], title=category['name'])
+        
+        for feed in category['feeds']:
+            ET.SubElement(outline, 'outline', 
+                         type='rss',
+                         text=feed['title'],
+                         title=feed['title'],
+                         xmlUrl=feed['feed_url'],
+                         htmlUrl=feed['url'])
+    
+    return opml
+
+def main():
+    jsonl_file = sys.argv[1] if len(sys.argv) > 1 else 'feedly_feeds.jsonl'
+    output_file = sys.argv[2] if len(sys.argv) > 2 else 'feedly_categorized.opml'
+    
+    feeds = load_feeds(jsonl_file)
+    print(f"Loaded {len(feeds)} working feeds")
+    
+    categories = categorize_feeds(feeds)
+    print(f"Created {len(categories)} categories")
+    
+    for cat in categories:
+        daily_total = sum(calculate_daily_posts(f['posts_per_year']) for f in cat['feeds'])
+        print(f"  {cat['name']}: {len(cat['feeds'])} feeds, {daily_total:.1f} posts/day")
+    
+    opml = create_opml(categories)
+    
+    rough_string = ET.tostring(opml, 'unicode')
+    reparsed = minidom.parseString(rough_string)
+    pretty = reparsed.toprettyxml(indent='  ')
+    
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(pretty)
+    
+    print(f"OPML saved to: {output_file}")
+
+if __name__ == '__main__':
+    main()
