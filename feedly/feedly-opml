@@ -216,6 +216,11 @@ if __name__ == "__main__":
         feeds = parse_opml(opml_file)
         output_file = opml_file.replace('.opml', '_feeds.jsonl')
         
+        # Create lookup for current OPML feeds
+        opml_feeds = {}
+        for feed in feeds:
+            opml_feeds[feed['feed_url']] = feed
+        
         # Load existing data
         existing_data = {}
         if os.path.exists(output_file):
@@ -228,29 +233,53 @@ if __name__ == "__main__":
             except:
                 pass
         
-        # Populate with OPML data, preserving existing fetch results
+        # Clean up: remove feeds not in OPML, update categories for remaining feeds
+        cleaned_data = {}
+        removed_count = 0
+        updated_count = 0
+        
+        for feed_url, existing_feed in existing_data.items():
+            if feed_url in opml_feeds:
+                # Feed still exists in OPML, update categories
+                opml_feed = opml_feeds[feed_url]
+                if existing_feed['categories'] != opml_feed['categories']:
+                    existing_feed['categories'] = opml_feed['categories']
+                    updated_count += 1
+                cleaned_data[feed_url] = existing_feed
+            else:
+                # Feed removed from OPML
+                removed_count += 1
+        
+        # Add new feeds from OPML
+        new_count = 0
+        for feed in feeds:
+            if feed['feed_url'] not in cleaned_data:
+                # New feed, add with placeholder fetch results
+                feed_entry = {
+                    'title': feed['title'],
+                    'url': feed['url'],
+                    'feed_url': feed['feed_url'],
+                    'categories': feed['categories'],
+                    'posts_per_year': 0,
+                    'status': 'PENDING',
+                    'last_updated': None,
+                    'processed_date': None
+                }
+                cleaned_data[feed['feed_url']] = feed_entry
+                new_count += 1
+        
+        # Write cleaned data
         with open(output_file, 'w', encoding='utf-8') as f:
-            for feed in feeds:
-                if feed['feed_url'] in existing_data:
-                    # Keep existing fetch results, update categories
-                    existing_feed = existing_data[feed['feed_url']]
-                    existing_feed['categories'] = feed['categories']  # Update categories from OPML
-                    f.write(json.dumps(existing_feed, ensure_ascii=False) + '\n')
-                else:
-                    # New feed, add with placeholder fetch results
-                    feed_entry = {
-                        'title': feed['title'],
-                        'url': feed['url'],
-                        'feed_url': feed['feed_url'],
-                        'categories': feed['categories'],
-                        'posts_per_year': 0,
-                        'status': 'PENDING',
-                        'last_updated': None,
-                        'processed_date': None
-                    }
-                    f.write(json.dumps(feed_entry, ensure_ascii=False) + '\n')
+            for feed_entry in cleaned_data.values():
+                f.write(json.dumps(feed_entry, ensure_ascii=False) + '\n')
         
         print(f"Populated {len(feeds)} feeds from OPML to {output_file}")
+        if removed_count > 0:
+            print(f"Removed {removed_count} feeds no longer in OPML")
+        if updated_count > 0:
+            print(f"Updated categories for {updated_count} feeds")
+        if new_count > 0:
+            print(f"Added {new_count} new feeds from OPML")
         sys.exit(0)
     
     if fetch_only:
