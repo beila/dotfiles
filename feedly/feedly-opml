@@ -65,8 +65,24 @@ def get_feed_frequency(feed_url):
         if not recent_dates:
             return 0, "OLD", latest_date.strftime('%Y-%m-%d') if latest_date else None
         
-        # Calculate posts per year based on recent entries
-        posts_per_year = len(recent_dates)
+        # Estimate posts per year based on recent posting pattern
+        if len(recent_dates) < 2:
+            posts_per_year = len(recent_dates)
+        else:
+            # Sort dates and calculate average interval between posts
+            recent_dates.sort()
+            intervals = []
+            for i in range(1, len(recent_dates)):
+                interval = (recent_dates[i] - recent_dates[i-1]).total_seconds() / 3600  # hours
+                if interval > 0:
+                    intervals.append(interval)
+            
+            if intervals:
+                avg_interval_hours = sum(intervals) / len(intervals)
+                posts_per_day = 24 / avg_interval_hours if avg_interval_hours > 0 else len(recent_dates)
+                posts_per_year = int(posts_per_day * 365)
+            else:
+                posts_per_year = len(recent_dates)
         
         return posts_per_year, "OK", latest_date.strftime('%Y-%m-%d') if latest_date else None
             
@@ -150,6 +166,17 @@ def parse_opml(file_path):
         return []
 
 if __name__ == "__main__":
+    if "--test-feed" in sys.argv:
+        idx = sys.argv.index("--test-feed")
+        if idx + 1 < len(sys.argv):
+            feed_url = sys.argv[idx + 1]
+            print(f"Testing feed: {feed_url}")
+            frequency, status, last_updated = get_feed_frequency(feed_url)
+            print(f"Result: {frequency} posts/year (Status: {status}, Last: {last_updated})")
+        else:
+            print("Error: --test-feed requires a URL argument")
+        sys.exit(0)
+    
     if len(sys.argv) < 2:
         print("Usage: ./feedly-opml <path-to-opml-file> [--retry-failed] [--retry-all]")
         print("\nTo get your OPML file:")
