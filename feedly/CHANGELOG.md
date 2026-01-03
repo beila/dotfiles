@@ -65,6 +65,27 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Added status field: OK/ERROR/EMPTY/NO_DATES
    - Detects HTTP errors, parsing failures, and empty feeds
 
+12. **Changed to posts per year with recent data only**
+   - Request: Fix feeds with high frequency based on old posts
+   - Changed frequency to posts per year (more meaningful)
+   - Only count posts from last 365 days
+   - Added last_updated date field
+   - Skip feeds processed within last week
+   - Added "OLD" status for feeds with no recent posts
+
+13. **Switched from CSV to JSON for better updates**
+   - Request: CSV not ideal for in-place updates
+   - Changed output format to JSON
+   - Added processed_date field to track when each feed was last checked
+   - Enables selective updates of individual feeds
+
+14. **Switched to JSONL for 1000+ feeds**
+   - Request: JSON not good for incremental updates with 1000+ feeds
+   - Changed to JSONL (JSON Lines) format - one JSON object per line
+   - Enables true incremental updates by appending new entries
+   - Properly implemented week-based skipping logic
+   - Much more memory efficient for large datasets
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies

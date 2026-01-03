@@ -8,28 +8,32 @@ import xml.etree.ElementTree as ET
 import feedparser
 import sys
 import json
+import os
 from datetime import datetime, timedelta
 from dateutil import parser as date_parser
 
 def get_feed_frequency(feed_url):
-    """Estimate posting frequency by checking recent entries"""
+    """Estimate posting frequency by checking entries from the last year"""
     try:
         # Parse the RSS/Atom feed
         feed = feedparser.parse(feed_url)
         
         # Check if feed parsing failed or returned error
         if hasattr(feed, 'status') and feed.status >= 400:
-            return 0, "ERROR"
+            return 0, "ERROR", None
         
         if not feed.entries:
             # Check if it's a parsing error vs empty feed
             if hasattr(feed, 'bozo') and feed.bozo:
-                return 0, "ERROR"
-            return 0, "EMPTY"
+                return 0, "ERROR", None
+            return 0, "EMPTY", None
         
-        # Get dates of recent entries - try multiple date fields
-        dates = []
-        for entry in feed.entries[:20]:  # Check more entries
+        # Get dates of entries from the last year only
+        one_year_ago = datetime.now() - timedelta(days=365)
+        recent_dates = []
+        latest_date = None
+        
+        for entry in feed.entries:
             entry_date = None
             
             # Try different date fields in order of preference
@@ -49,31 +53,23 @@ def get_feed_frequency(feed_url):
                     pass
             
             if entry_date:
-                dates.append(entry_date)
+                if not latest_date or entry_date > latest_date:
+                    latest_date = entry_date
+                
+                # Only include entries from the last year
+                if entry_date >= one_year_ago:
+                    recent_dates.append(entry_date)
         
-        if len(dates) < 2:
-            # If we have entries but no dates, assume daily posting
-            return 30 if feed.entries else 0, "NO_DATES"
+        if not recent_dates:
+            return 0, "OLD", latest_date.strftime('%Y-%m-%d') if latest_date else None
         
-        # Calculate average time between posts
-        dates.sort(reverse=True)  # Most recent first
-        intervals = []
-        for i in range(min(10, len(dates) - 1)):  # Use up to 10 intervals
-            interval = dates[i] - dates[i + 1]
-            intervals.append(interval.total_seconds() / 86400)  # Convert to days
+        # Calculate posts per year based on recent entries
+        posts_per_year = len(recent_dates)
         
-        if not intervals:
-            return 30, "DEFAULT"  # Default assumption
-            
-        avg_days = sum(intervals) / len(intervals)
-        
-        # Return posts per month as standard unit
-        posts_per_month = 30 / avg_days if avg_days > 0 else 30
-        return round(min(posts_per_month, 300), 2), "OK"  # Cap at 300 posts/month
+        return posts_per_year, "OK", latest_date.strftime('%Y-%m-%d') if latest_date else None
             
     except Exception as e:
-        # Return a reasonable default instead of 0
-        return 10, "ERROR"
+        return 0, "ERROR", None
 
 def parse_opml(file_path):
     """Parse OPML file and extract feed information"""
@@ -155,12 +151,22 @@ if __name__ == "__main__":
     feeds = parse_opml(opml_file)
     
     # Open output files
-    output_file = opml_file.replace('.opml', '_feeds.csv')
+    output_file = opml_file.replace('.opml', '_feeds.jsonl')
     log_file = opml_file.replace('.opml', '_log.txt')
     
-    with open(output_file, 'w') as f, open(log_file, 'w') as log:
-        # Write CSV header
-        f.write("title,url,feed_url,category,posts_per_month,status\n")
+    # Load existing data if available
+    existing_data = {}
+    if os.path.exists(output_file):
+        try:
+            with open(output_file, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        feed = json.loads(line)
+                        existing_data[feed['feed_url']] = feed
+        except:
+            pass
+    
+    with open(output_file, 'a') as f, open(log_file, 'w') as log:
         
         # Write log header
         log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -176,6 +182,18 @@ if __name__ == "__main__":
         processed_count = 0
         
         for i, feed in enumerate(feeds, 1):
+            feed_url = feed['feed_url']
+            
+            # Check if we should skip (processed within last week)
+            if feed_url in existing_data:
+                try:
+                    processed_date = datetime.strptime(existing_data[feed_url]['processed_date'], '%Y-%m-%d %H:%M:%S')
+                    if datetime.now() - processed_date < timedelta(days=7):
+                        print(f"{i}. Skipping {feed['title']} (processed {processed_date.strftime('%Y-%m-%d')})")
+                        continue
+                except:
+                    pass
+            
             print(f"{i}. Title: {feed['title']}")
             print(f"   URL: {feed['url']}")
             print(f"   Feed URL: {feed['feed_url']}")
@@ -186,20 +204,32 @@ if __name__ == "__main__":
             log.write(f"Processing feed {i}/{len(feeds)}: {feed['title']}\n")
             log.write(f"  Feed URL: {feed['feed_url']}\n")
             
-            frequency, status = get_feed_frequency(feed['feed_url'])
+            frequency, status, last_updated = get_feed_frequency(feed['feed_url'])
             
-            # Write to CSV immediately
-            f.write(f'"{feed["title"]}","{feed["url"]}","{feed["feed_url"]}","{feed["category"]}",{frequency},{status}\n')
+            # Create feed entry
+            feed_entry = {
+                'title': feed['title'],
+                'url': feed['url'],
+                'feed_url': feed['feed_url'],
+                'category': feed['category'],
+                'posts_per_year': frequency,
+                'status': status,
+                'last_updated': last_updated,
+                'processed_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            
+            # Write to JSONL immediately (one line per feed)
+            f.write(json.dumps(feed_entry) + '\n')
             f.flush()
             
             # Log the result
-            log.write(f"  Result: {frequency} posts/month (Status: {status})\n")
+            log.write(f"  Result: {frequency} posts/year (Status: {status}, Last: {last_updated})\n")
             log.flush()
             
             total_frequency += frequency
             processed_count += 1
             
-            print(f"Frequency: {frequency} posts/month ({status})")
+            print(f"Frequency: {frequency} posts/year ({status}) Last: {last_updated or 'Unknown'}")
             print("-" * 80)
         
         # Write summary to log
@@ -207,11 +237,11 @@ if __name__ == "__main__":
         log.write(f"Total feeds processed: {processed_count}\n")
         if processed_count > 0:
             avg_freq = total_frequency / processed_count
-            log.write(f"Average frequency: {avg_freq:.2f} posts/month\n")
-            log.write(f"Total posts per month across all feeds: {total_frequency:.2f}\n")
+            log.write(f"Average frequency: {avg_freq:.2f} posts/year\n")
+            log.write(f"Total posts per year across all feeds: {total_frequency:.2f}\n")
     
     print(f"\nResults saved to: {output_file}")
     print(f"Log saved to: {log_file}")
     print(f"Total feeds: {processed_count}")
     if processed_count > 0:
-        print(f"Average frequency: {total_frequency / processed_count:.2f} posts/month")
+        print(f"Average frequency: {total_frequency / processed_count:.2f} posts/year")
