@@ -103,6 +103,12 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Skips week-based filtering when retrying failed feeds
    - Loads failed feeds from existing JSONL output
 
+18. **Fixed duplicate entries on retry**
+   - Request: Replace feeds instead of duplicating when retrying
+   - Changed from append mode to update-in-place
+   - Loads all existing data, updates entries, rewrites entire file
+   - Prevents duplicate entries when using --retry-failed
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies
