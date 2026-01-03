@@ -1,4 +1,4 @@
-Feeds will be put into categorised so that each category has about 6 new posts in a day.
-When a feed usually has more than 2 new posts a day, assume there will be 2 posts a day.
-A category should have feeds with similar frequency.
-Categories should be named so that sorting them by name results in the increasing order of the frequency of the least-frequent feed in each category
+- Feeds will be put into categorises so that each category has about 6 new posts in a day.
+- When a feed usually has more than 2 new posts a day, assume there will be 2 posts a day.
+- A category should have feeds with similar frequency.
+- Categories should be named so that sorting them by name results in the increasing order of the frequency of the least-frequent feed in each category
