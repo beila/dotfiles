@@ -91,13 +91,22 @@ def parse_opml(file_path):
                     'title': outline.get('title', outline.get('text', 'Unknown')),
                     'url': outline.get('htmlUrl', xml_url),
                     'feed_url': xml_url,
-                    'category': 'Uncategorized'
+                    'categories': []
                 }
                 
-                # Find parent category
-                parent = parent_map.get(outline)
-                if parent is not None and parent.get('title'):
-                    feed['category'] = parent.get('title')
+                # Find all parent categories by walking up the tree
+                current = outline
+                while current is not None:
+                    parent = parent_map.get(current)
+                    if parent is not None and parent.get('title') and parent.tag == 'outline':
+                        category_title = parent.get('title')
+                        if category_title not in feed['categories']:
+                            feed['categories'].insert(0, category_title)  # Insert at beginning for proper order
+                    current = parent
+                
+                # If no categories found, use default
+                if not feed['categories']:
+                    feed['categories'] = ['Uncategorized']
                 
                 feeds.append(feed)
         
@@ -158,7 +167,7 @@ if __name__ == "__main__":
     existing_data = {}
     if os.path.exists(output_file):
         try:
-            with open(output_file, 'r') as f:
+            with open(output_file, 'r', encoding='utf-8') as f:
                 for line in f:
                     if line.strip():
                         feed = json.loads(line)
@@ -166,7 +175,7 @@ if __name__ == "__main__":
         except:
             pass
     
-    with open(output_file, 'a') as f, open(log_file, 'w') as log:
+    with open(output_file, 'a', encoding='utf-8') as f, open(log_file, 'w', encoding='utf-8') as log:
         
         # Write log header
         log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -197,7 +206,7 @@ if __name__ == "__main__":
             print(f"{i}. Title: {feed['title']}")
             print(f"   URL: {feed['url']}")
             print(f"   Feed URL: {feed['feed_url']}")
-            print(f"   Category: {feed['category']}")
+            print(f"   Categories: {', '.join(feed['categories'])}")
             
             # Get posting frequency
             print("   Checking frequency...", end=" ", flush=True)
@@ -211,7 +220,7 @@ if __name__ == "__main__":
                 'title': feed['title'],
                 'url': feed['url'],
                 'feed_url': feed['feed_url'],
-                'category': feed['category'],
+                'categories': feed['categories'],
                 'posts_per_year': frequency,
                 'status': status,
                 'last_updated': last_updated,
@@ -219,7 +228,7 @@ if __name__ == "__main__":
             }
             
             # Write to JSONL immediately (one line per feed)
-            f.write(json.dumps(feed_entry) + '\n')
+            f.write(json.dumps(feed_entry, ensure_ascii=False) + '\n')
             f.flush()
             
             # Log the result
