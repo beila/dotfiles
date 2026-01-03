@@ -2758,3 +2758,264 @@ Processing feed 917/1263: rohanrd.xyz
 Processing feed 918/1263: Londonist
   Feed URL: http://www.londonist.com/index.rdf
   Result: 40 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 919/1263: THE PUNT
+  Feed URL: https://rss.diffbot.com/rss?url=https://maily.so/thepunt
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 920/1263: Martin Fowler
+  Feed URL: http://martinfowler.com/feed.atom
+  Result: 30 posts/year (Status: OK, Last: 2025-12-16)
+Processing feed 921/1263: Butler's Log
+  Feed URL: https://blog.gitbutler.com/rss/
+  Result: 26 posts/year (Status: OK, Last: 2025-12-30)
+Processing feed 922/1263: Joel on Software
+  Feed URL: http://www.joelonsoftware.com/rss.xml
+  Result: 0 posts/year (Status: OLD, Last: 2022-12-19)
+Processing feed 923/1263: Beyond Tabs Job Board
+  Feed URL: https://beyond-tabs.com/jobs/atom?filters=%7B%22languages%22:%5B%5D,%22countries%22:%5B%22GBR%22%5D,%22remote%22:false%7D
+  Result: 19 posts/year (Status: OK, Last: 2025-11-23)
+Processing feed 924/1263: Prime Video Tech homepage
+  Feed URL: https://www.primevideotech.com/index.rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 925/1263: Stratechery by Ben Thompson
+  Feed URL: https://stratechery.com/feed/
+  Result: 10 posts/year (Status: OK, Last: 2025-12-22)
+Processing feed 926/1263: Fathy Boundjadj
+  Feed URL: https://fathy.fr/rss.xml
+  Result: 0 posts/year (Status: OLD, Last: 2023-01-27)
+Processing feed 927/1263: Andrzej's C++ blog
+  Feed URL: https://akrzemi1.wordpress.com/feed/
+  Result: 4 posts/year (Status: OK, Last: 2025-12-03)
+Processing feed 928/1263: Numb at the Lodge
+  Feed URL: https://samkriss.substack.com/feed
+  Result: 20 posts/year (Status: OK, Last: 2025-12-24)
+Processing feed 929/1263: Instapaper Blog
+  Feed URL: http://blog.instapaper.com/rss
+  Result: 7 posts/year (Status: OK, Last: 2025-12-04)
+Processing feed 930/1263: 노란 잠수함
+  Feed URL: http://blog.rss.naver.com/rockks77.xml
+  Result: 0 posts/year (Status: OLD, Last: 2015-06-16)
+Processing feed 931/1263: Blog Needs a Name
+  Feed URL: https://rss.diffbot.com/rss?url=https://ahgamut.github.io/
+  Result: 0 posts/year (Status: OLD, Last: 2023-07-12)
+Processing feed 932/1263: ianVisits
+  Feed URL: https://www.ianvisits.co.uk/articles/feed/
+  Result: 10 posts/year (Status: OK, Last: 2026-01-03)
+Processing feed 933/1263: Wait But Why
+  Feed URL: https://waitbutwhy.com/feed
+  Result: 2 posts/year (Status: OK, Last: 2025-11-25)
+Processing feed 934/1263: Money Tips
+  Feed URL: https://kill-the-newsletter.com/feeds/nvgtzce5f58tdgnd.xml
+  Result: 3 posts/year (Status: OK, Last: 2025-12-30)
+Processing feed 935/1263: jacobmossberg.se
+  Feed URL: https://jmossberg.github.io/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2019-01-23)
+Processing feed 936/1263: 세상을 바꾸는 시민언론 민들레
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.mindlenews.com/news/articleList.html?sc_sub_section_code%3DS2N1
+  Result: 9 posts/year (Status: OK, Last: 2025-05-18)
+Processing feed 937/1263: 임명묵닷컴
+  Feed URL: https://m2lim.com/rss/
+  Result: 15 posts/year (Status: OK, Last: 2025-12-14)
+Processing feed 938/1263: Talk About English (Learn English)
+  Feed URL: http://downloads.bbc.co.uk/podcasts/worldservice/tae/rss.xml
+  Result: 57 posts/year (Status: OK, Last: 2025-12-30)
+Processing feed 939/1263: Repebble
+  Feed URL: https://kill-the-newsletter.com/feeds/xtcduxsdeqk4v7qj8ejv.xml
+  Result: 3 posts/year (Status: OK, Last: 2026-01-02)
+Processing feed 940/1263: Economic View » Feed
+  Feed URL: http://feeds.feedburner.com/Economic_View
+  Result: 10 posts/year (Status: OK, Last: 2025-11-29)
+Processing feed 941/1263: ì£¼ ìêµ­ ëíë¯¼êµ­ ëì¬ê´[êµ­ë¬¸] > ë´ì¤ > ê³µì§ì¬í­
+  Feed URL: http://overseas.mofa.go.kr/gb-ko/brd/rss.do?brdId=9671
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 942/1263: 오동진의, 나의 알코올 일지
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.newstomato.com/SearchList.aspx?keyword%3D%25ec%2598%25a4%25eb%258f%2599%25ec%25a7%2584%25ec%259d%2598%252c%2B%25eb%2582%2598%25ec%259d%2598%2B%25ec%2595%258c%25ec%25bd%2594%25ec%2598%25ac%2B%25ec%259d%25bc%25ec%25a7%2580
+  Result: 3 posts/year (Status: OK, Last: 2025-12-31)
+Processing feed 943/1263: Martin Kleppmann's blog
+  Feed URL: http://feeds.feedburner.com/martinkl
+  Result: 1 posts/year (Status: OK, Last: 2025-12-08)
+Processing feed 944/1263: Andreas Writing
+  Feed URL: http://beza1e1.tuxen.de/articles.atom
+  Result: 3 posts/year (Status: OK, Last: 2025-11-22)
+Processing feed 945/1263: James Sinclair
+  Feed URL: http://jrsinclair.com/index.rss
+  Result: 3 posts/year (Status: OK, Last: 2025-08-25)
+Processing feed 946/1263: 洪 民憙 (Hong Minhee)
+  Feed URL: https://rss.diffbot.com/rss?url=https://hackers.pub/@hongminhee/articles
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 947/1263: Posts on Tech Notes by Natan Yellin
+  Feed URL: https://natanyellin.com/posts/index.xml
+  Result: 0 posts/year (Status: OLD, Last: 2023-04-17)
+Processing feed 948/1263: Quastor
+  Feed URL: https://rss.beehiiv.com/feeds/nczRb4PQ6t.xml
+  Result: 10 posts/year (Status: OK, Last: 2025-02-24)
+Processing feed 949/1263: JavaScript is not available.
+  Feed URL: https://rss.diffbot.com/rss?url=https://x.com/smdiehl
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 950/1263: Draco
+  Feed URL: http://feeds.feedburner.com/dracokr
+  Result: 5 posts/year (Status: OK, Last: 2025-11-01)
+Processing feed 951/1263: 조진서의 숫자와 세상
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.chosun.com/tag/chojs-numbers/
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 952/1263: The Pudding
+  Feed URL: https://pudding.cool/feed/index.xml
+  Result: 15 posts/year (Status: OK, Last: 2025-12-09)
+Processing feed 953/1263: Laurent Renard’s (lorenzofox) blog
+  Feed URL: https://lorenzofox.dev/feed.xml
+  Result: 1 posts/year (Status: OK, Last: 2025-03-11)
+Processing feed 954/1263: 디시인사이드
+  Feed URL: https://rss.diffbot.com/rss?url=https://m.dcinside.com/gallog/k3009795?menu%3DG_all
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 955/1263: ㅍㅍㅅㅅ
+  Feed URL: http://feeds.feedburner.com/ppss
+  Result: 10 posts/year (Status: OK, Last: 2025-09-19)
+Processing feed 956/1263: Bambu Lab
+  Feed URL: https://kill-the-newsletter.com/feeds/5lqe0840qndaht7awimp.xml
+  Result: 20 posts/year (Status: OK, Last: 2025-12-29)
+Processing feed 957/1263: 클리앙 : 3D메이킹
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_3dmaking
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 958/1263: csvbase blog
+  Feed URL: https://csvbase.com/blog/posts.rss
+  Result: 0 posts/year (Status: OLD, Last: 2024-09-19)
+Processing feed 959/1263: 과학과사람들
+  Feed URL: https://kill-the-newsletter.com/feeds/4r1cc66vn396tig5l1ol.xml
+  Result: 0 posts/year (Status: EMPTY, Last: None)
+Processing feed 960/1263: Entropic Thoughts
+  Feed URL: https://entropicthoughts.com/feed
+  Result: 25 posts/year (Status: OK, Last: 2025-12-29)
+Processing feed 961/1263: Andy Balaam's Blog
+  Feed URL: http://www.artificialworlds.net/blog/feed/
+  Result: 53 posts/year (Status: OK, Last: 2025-12-12)
+Processing feed 962/1263: Insuk's memolog at Yellow Submarine
+  Feed URL: http://feed43.com/0880813416673318.xml
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 963/1263: indiz
+  Feed URL: http://blog.rss.naver.com/indizio.xml
+  Result: 50 posts/year (Status: OK, Last: 2026-01-02)
+Processing feed 964/1263: Nightaholic
+  Feed URL: http://cyhome.cyworld.com/a1425316/rss2
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 965/1263: Steve Klabnik
+  Feed URL: https://steveklabnik.com/feed.xml
+  Result: 11 posts/year (Status: OK, Last: 2025-12-21)
+Processing feed 966/1263: 위스키디아
+  Feed URL: https://kill-the-newsletter.com/feeds/8u1x0jzzmx7qb5sjcdhq.xml
+  Result: 17 posts/year (Status: OK, Last: 2025-08-30)
+Processing feed 967/1263: Michael Feathers
+  Feed URL: https://michaelfeathers.silvrback.com/feed
+  Result: 0 posts/year (Status: OLD, Last: 2023-07-11)
+Processing feed 968/1263: Acko.net
+  Feed URL: http://acko.net/atom.xml
+  Result: 2 posts/year (Status: OK, Last: 2025-08-05)
+Processing feed 969/1263: raganwald.com
+  Feed URL: https://raganwald.com/atom.xml
+  Result: 0 posts/year (Status: OLD, Last: 2023-04-27)
+Processing feed 970/1263: Arthur O’Dwyer
+  Feed URL: https://quuxplusone.github.io/blog/feed.xml
+  Result: 10 posts/year (Status: OK, Last: 2025-12-31)
+Processing feed 971/1263: 곰개구리
+  Feed URL: http://kisskys.tistory.com/rss
+  Result: 0 posts/year (Status: OLD, Last: 2012-11-06)
+Processing feed 972/1263: parsonsmatt.org
+  Feed URL: https://www.parsonsmatt.org/feed.xml
+  Result: 2 posts/year (Status: OK, Last: 2025-12-17)
+Processing feed 973/1263: C with Crosses
+  Feed URL: https://victor-istomin.github.io/c-with-crosses/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2023-07-13)
+Processing feed 974/1263: ZNINLDN
+  Feed URL: http://zninldn.wordpress.com/feed/
+  Result: 0 posts/year (Status: OLD, Last: 2018-03-07)
+Processing feed 975/1263: Fortress of Doors
+  Feed URL: https://www.fortressofdoors.com/rss/
+  Result: 14 posts/year (Status: OK, Last: 2025-08-08)
+Processing feed 976/1263: To be happy...
+  Feed URL: http://blog.moneta.co.kr/rss/blog/ky2kyung/-1
+  Result: 0 posts/year (Status: OLD, Last: 2020-02-22)
+Processing feed 977/1263: 기획·연재 | 이상헌의 공평한 어리석음
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.khan.co.kr/series/articles/ao479
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 978/1263: Truly님의 집.
+  Feed URL: http://blog.moneta.co.kr/rss/blog/chung110110/-1
+  Result: 5 posts/year (Status: OK, Last: 2025-12-31)
+Processing feed 979/1263: Tech World With Milan Newsletter
+  Feed URL: https://newsletter.techworld-with-milan.com/feed
+  Result: 20 posts/year (Status: OK, Last: 2025-12-18)
+Processing feed 980/1263: benjojo blog
+  Feed URL: https://blog.benjojo.co.uk/rss.xml
+  Result: 4 posts/year (Status: OK, Last: 2025-09-25)
+Processing feed 981/1263: au VimEnter
+  Feed URL: https://au-vimenter.github.io/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-11-08)
+Processing feed 982/1263: mango.pdf.zone
+  Feed URL: https://mango.pdf.zone/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2022-01-12)
+Processing feed 983/1263: 김영민의 본다는 것은｜동아일보
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.donga.com/news/Series/70040700000002
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 984/1263: Julia Evans
+  Feed URL: http://jvns.ca/atom.xml
+  Result: 7 posts/year (Status: OK, Last: 2025-10-10)
+Processing feed 985/1263: Paul Cavallaro's Blog on Paul Cavallaro
+  Feed URL: https://paulcavallaro.com/blog/index.xml
+  Result: 1 posts/year (Status: OK, Last: 2025-07-25)
+Processing feed 986/1263: KAIST, NSLab 일상 생활
+  Feed URL: http://nslab.tistory.com/rss
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 987/1263: Alexis King’s Blog
+  Feed URL: https://lexi-lambda.github.io/feeds/all.rss.xml
+  Result: 1 posts/year (Status: OK, Last: 2025-05-29)
+Processing feed 988/1263: Hall Place & Gardens
+  Feed URL: https://www.hallplace.org.uk/feed/
+  Result: 0 posts/year (Status: OLD, Last: 2024-11-07)
+Processing feed 989/1263: iRi
+  Feed URL: https://jerf.org/iri/rss.xml
+  Result: 10 posts/year (Status: OK, Last: 2025-11-11)
+Processing feed 990/1263: Till's blog
+  Feed URL: https://till.red/b/feed.xml
+  Result: 0 posts/year (Status: OLD, Last: 2023-08-16)
+Processing feed 991/1263: Simple Help
+  Feed URL: http://feedproxy.google.com/simplehelp
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 992/1263: The Changelog RSS Feed
+  Feed URL: http://changelog.complete.org/feed
+  Result: 17 posts/year (Status: OK, Last: 2025-10-11)
+Processing feed 993/1263: Bartosz Ciechanowski
+  Feed URL: https://ciechanow.ski/atom.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-12-17)
+Processing feed 994/1263: 전체 - PADO
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.pado.kr/all
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 995/1263: Matt Godbolt’s blog
+  Feed URL: https://xania.org/feed.atom
+  Result: 20 posts/year (Status: OK, Last: 2025-12-31)
+Processing feed 996/1263: 대한민국역사박물관
+  Feed URL: https://brunch.co.kr/rss/@@c8wm
+  Result: 0 posts/year (Status: OLD, Last: 2022-08-31)
+Processing feed 997/1263: sunshowers
+  Feed URL: https://sunshowers.io/index.xml
+  Result: 7 posts/year (Status: OK, Last: 2025-12-02)
+Processing feed 998/1263: Determinate Systems
+  Feed URL: https://determinate.systems/rss.xml
+  Result: 34 posts/year (Status: OK, Last: 2025-12-10)
+Processing feed 999/1263: 이택민(ytm707) 님의 방
+  Feed URL: https://rss.diffbot.com/rss?url=https://m.ohmynews.com/NWS_Web/Mobile/i_Room/articles/news_list.aspx?MEM_CD%3D00801759
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 1000/1263: Command-Line-Fu
+  Feed URL: http://feeds2.feedburner.com/Command-line-fu
+  Result: 12 posts/year (Status: OK, Last: 2025-11-25)
+Processing feed 1001/1263: Blog | jackkelly.name
+  Feed URL: http://jackkelly.name/blog/rss.xml
+  Result: 2 posts/year (Status: OK, Last: 2025-02-06)
+Processing feed 1002/1263: Dan Luu
+  Feed URL: https://danluu.com/atom.xml
+  Result: 0 posts/year (Status: OLD, Last: 2024-10-28)
+Processing feed 1003/1263: 스코틀랜드에서 삽니다
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.ohmynews.com/NWS_Web/Series/series_general_list.aspx?SRS_CD%3D0000017956
+  Result: 0 posts/year (Status: ERROR, Last: None)
+Processing feed 1004/1263: Probably Dance
+  Feed URL: https://probablydance.com/feed/
+  Result: 6 posts/year (Status: OK, Last: 2025-11-04)
+Processing feed 1005/1263: 루나파크
+  Feed URL: http://blog.rss.naver.com/lunaparkblog.xml
+  Result: 13 posts/year (Status: OK, Last: 2025-12-08)
