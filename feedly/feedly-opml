@@ -130,13 +130,13 @@ def parse_opml(file_path):
                 current = outline
                 while current is not None:
                     parent = parent_map.get(current)
-                    if parent is not None and parent.get('title') and parent.tag == 'outline':
-                        category_title = parent.get('title')
-                        if category_title not in feed['categories']:
+                    if parent is not None and parent.tag == 'outline' and not parent.get('xmlUrl'):
+                        category_title = parent.get('title', parent.get('text'))
+                        if category_title and category_title not in feed['categories']:
                             feed['categories'].insert(0, category_title)  # Insert at beginning for proper order
                     current = parent
                 
-                # If no categories found, use default
+                # If no categories found, use default (should not happen with proper OPML)
                 if not feed['categories']:
                     feed['categories'] = ['Uncategorized']
                 
@@ -272,7 +272,7 @@ if __name__ == "__main__":
             pass
     
     # Process feeds in parallel
-    with ThreadPoolExecutor(max_workers=10) as executor, open(log_file, 'w', encoding='utf-8') as log:
+    with ThreadPoolExecutor(max_workers=20) as executor, open(log_file, 'w', encoding='utf-8') as log:
         # Write log header
         log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         log.write(f"User request: Parse OPML file and analyze feed frequencies\n")
