@@ -142,11 +142,44 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Excluded 130 feeds, resulting in 400 working feeds
    - Shows exclusion count in output for transparency
 
+24. **Implemented two-phase processing architecture**
+   - Request: Separate OPML parsing from feed fetching for better reliability
+   - Added --populate-only flag to feedly-opml for OPML parsing phase
+   - Added --fetch-only flag for frequency data collection phase
+   - Enables debugging and partial processing of large feed lists
+   - Improved error handling by separating concerns
+
+25. **Fixed category parsing bugs**
+   - Request: Missing feeds from "다읽기" category (66 feeds missing)
+   - Fixed parent-child relationship traversal in OPML parsing
+   - Proper exclusion of feeds (xmlUrl check) from category names
+   - Restored missing feeds, now showing correct counts (176 feeds in "다읽기")
+
+26. **Increased parallel processing workers**
+   - Request: Speed up processing for large feed collections
+   - Increased concurrent workers from 10 to 20
+   - Improved throughput for 763 feed processing
+   - Maintained thread-safe file operations
+
+27. **Fixed jsonl-to-opml to preserve all original categories**
+   - Request: Categorized OPML should have 1,263 original + new category feeds
+   - **MAJOR FIX**: Script was only preserving "다읽기" and "뉴스레터" categories
+   - Modified to preserve ALL 77 original categories from OPML (1,263 feeds total)
+   - Final output: 1,825 feeds (360 working + 202 unprocessed + 1,263 original)
+   - Maintains complete feed collection while adding frequency-based organization
+
+28. **Added JSONL cleanup functionality**
+   - Request: Remove feeds from JSONL that are no longer in OPML
+   - Enhanced --populate-only to sync JSONL with current OPML structure
+   - Removes orphaned feeds no longer in OPML
+   - Updates categories for feeds moved between OPML categories
+   - Preserves frequency analysis data while maintaining OPML synchronization
+
 ## Current State
-- `feedly-opml`: Parses OPML export, analyzes RSS feeds with improved interval-based frequency calculation, supports --retry-failed/--retry-all/--test-feed options
-- `jsonl-to-opml`: Converts JSONL to categorized OPML excluding specified categories ("다읽기", "뉴스레터")
+- `feedly-opml`: Parses OPML export, analyzes RSS feeds with improved interval-based frequency calculation, supports --retry-failed/--retry-all/--test-feed/--populate-only/--fetch-only options, includes JSONL cleanup
+- `jsonl-to-opml`: Converts JSONL to categorized OPML preserving ALL original categories plus new frequency-based categories
 - `flake.nix`: Nix environment with uv and dependencies
 - Frequency calculation: Interval-based estimation using average time between posts (posts per year)
-- Output: JSONL format with thread-safe parallel processing (10 workers)
-- Categorization: 42 categories with ~6 posts/day each, 400 working feeds after exclusions
-- Processing: Parallel with ThreadPoolExecutor, incremental updates, Korean text support
+- Output: JSONL format with thread-safe parallel processing (20 workers)
+- Categorization: 40 frequency-based + 77 original categories, 1,825 total feeds preserving complete collection
+- Processing: Two-phase architecture with OPML sync, parallel processing, incremental updates, Korean text support
