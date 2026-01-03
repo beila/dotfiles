@@ -77,9 +77,9 @@ def categorize_feeds(feeds):
             current_daily_total += daily_posts
         else:
             if current_category:
-                min_freq = min(f['posts_per_year'] for f in current_category)
+                min_freq_monthly = min(f['posts_per_year'] for f in current_category) / 12
                 categories.append({
-                    'name': f'{category_num:02d}-feeds-{min_freq}py',
+                    'name': f'{category_num:02d}-feeds-{min_freq_monthly:.0f}pm',
                     'feeds': current_category
                 })
                 category_num += 1
@@ -88,9 +88,9 @@ def categorize_feeds(feeds):
             current_daily_total = daily_posts
     
     if current_category:
-        min_freq = min(f['posts_per_year'] for f in current_category)
+        min_freq_monthly = min(f['posts_per_year'] for f in current_category) / 12
         categories.append({
-            'name': f'{category_num:02d}-feeds-{min_freq}py',
+            'name': f'{category_num:02d}-feeds-{min_freq_monthly:.0f}pm',
             'feeds': current_category
         })
     
