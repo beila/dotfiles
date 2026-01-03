@@ -121,8 +121,32 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Ignores week-based filtering when using --retry-all
    - Useful for refreshing all frequency data
 
+21. **Improved frequency calculation algorithm**
+   - Request: "The Independent" showing 100 posts/year vs Feedly's 2338 posts/week
+   - **MAJOR CHANGE**: Switched from counting RSS entries to interval-based estimation
+   - Algorithm: Calculate average time between posts, extrapolate to annual frequency
+   - Formula: `posts_per_year = (24 / avg_interval_hours) * 365`
+   - Much more accurate for low-to-medium frequency feeds
+   - Added --test-feed option for debugging individual feeds
+
+22. **Created OPML categorization script**
+   - Request: Convert JSONL to categorized OPML with working feeds only
+   - Created `jsonl-to-opml` script following categorise-feeds.md rules
+   - Groups feeds into categories with ~6 posts/day each
+   - Caps high-frequency feeds at 2 posts/day for calculation
+   - Categories named for sorting: `{number:02d}-feeds-{min_frequency}py`
+
+23. **Added category exclusion feature**
+   - Request: Exclude feeds from "다읽기" and "뉴스레터" categories
+   - Modified jsonl-to-opml to filter out specified categories
+   - Excluded 130 feeds, resulting in 400 working feeds
+   - Shows exclusion count in output for transparency
+
 ## Current State
-- `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
+- `feedly-opml`: Parses OPML export, analyzes RSS feeds with improved interval-based frequency calculation, supports --retry-failed/--retry-all/--test-feed options
+- `jsonl-to-opml`: Converts JSONL to categorized OPML excluding specified categories ("다읽기", "뉴스레터")
 - `flake.nix`: Nix environment with uv and dependencies
-- Frequency unit: posts per month
-- Output: CSV file written incrementally
+- Frequency calculation: Interval-based estimation using average time between posts (posts per year)
+- Output: JSONL format with thread-safe parallel processing (10 workers)
+- Categorization: 42 categories with ~6 posts/day each, 400 working feeds after exclusions
+- Processing: Parallel with ThreadPoolExecutor, incremental updates, Korean text support
