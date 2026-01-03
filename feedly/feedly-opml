@@ -151,17 +151,19 @@ def parse_opml(file_path):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: ./feedly-opml <path-to-opml-file> [--retry-failed]")
+        print("Usage: ./feedly-opml <path-to-opml-file> [--retry-failed] [--retry-all]")
         print("\nTo get your OPML file:")
         print("1. Go to https://feedly.com/i/opml")
         print("2. Click 'Export OPML'")
         print("3. Save the file and run: ./feedly-opml ~/Downloads/feedly.opml")
         print("\nOptions:")
         print("  --retry-failed    Only retry feeds with ERROR, EMPTY, or OLD status")
+        print("  --retry-all       Retry all feeds regardless of status or date")
         sys.exit(1)
     
     opml_file = sys.argv[1]
     retry_failed = "--retry-failed" in sys.argv
+    retry_all = "--retry-all" in sys.argv
     
     if retry_failed:
         # Load existing data and filter for failed feeds
@@ -186,6 +188,27 @@ if __name__ == "__main__":
         
         print(f"Found {len(failed_feeds)} failed feeds to retry")
         feeds = failed_feeds
+    elif retry_all:
+        # Load existing data and retry all feeds
+        output_file = opml_file.replace('.opml', '_feeds.jsonl')
+        if not os.path.exists(output_file):
+            print("No existing data file found. Run without --retry-all first.")
+            sys.exit(1)
+        
+        all_feeds = []
+        with open(output_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    feed = json.loads(line)
+                    all_feeds.append({
+                        'title': feed['title'],
+                        'url': feed['url'],
+                        'feed_url': feed['feed_url'],
+                        'categories': feed['categories']
+                    })
+        
+        print(f"Found {len(all_feeds)} feeds to retry")
+        feeds = all_feeds
     else:
         feeds = parse_opml(opml_file)
     
@@ -223,43 +246,45 @@ if __name__ == "__main__":
         processed_count = 0
         file_lock = threading.Lock()
         
-def process_single_feed(feed, existing_data, retry_failed):
-    """Process a single feed and return the result"""
-    feed_url = feed['feed_url']
-    
-    # Skip if feed was processed recently (unless retrying failed feeds)
-    if not retry_failed and feed_url in existing_data:
-        try:
-            processed_date = datetime.strptime(existing_data[feed_url]['processed_date'], '%Y-%m-%d %H:%M:%S')
-            if datetime.now() - processed_date < timedelta(days=7):
-                return None, f"Skipping {feed['title']} (processed {processed_date.strftime('%Y-%m-%d')})"
-        except:
-            pass
-    
-    print(f"Processing: {feed['title']}")  # This will still be jumbled but shows activity
-    
-    # Get posting frequency
-    frequency, status, last_updated = get_feed_frequency(feed['feed_url'])
-    
-    # Create feed entry
-    feed_entry = {
-        'title': feed['title'],
-        'url': feed['url'],
-        'feed_url': feed['feed_url'],
-        'categories': feed['categories'],
-        'posts_per_year': frequency,
-        'status': status,
-        'last_updated': last_updated,
-        'processed_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    
-    return feed_entry, f"Frequency: {frequency} posts/year ({status}) Last: {last_updated or 'Unknown'}"
+        def process_single_feed(feed, existing_data, retry_failed):
+            """Process a single feed and return the result"""
+            feed_url = feed['feed_url']
+            
+            # Skip if feed was processed recently (unless retrying failed feeds or all feeds)
+            if not retry_failed and not retry_all and feed_url in existing_data:
+                try:
+                    processed_date = datetime.strptime(existing_data[feed_url]['processed_date'], '%Y-%m-%d %H:%M:%S')
+                    if datetime.now() - processed_date < timedelta(days=7):
+                        return None, f"Skipping {feed['title']} (processed {processed_date.strftime('%Y-%m-%d')})"
+                except:
+                    pass
+            
+            print(f"Processing: {feed['title']}")  # This will still be jumbled but shows activity
+            
+            # Get posting frequency
+            frequency, status, last_updated = get_feed_frequency(feed['feed_url'])
+            
+            # Create feed entry
+            feed_entry = {
+                'title': feed['title'],
+                'url': feed['url'],
+                'feed_url': feed['feed_url'],
+                'categories': feed['categories'],
+                'posts_per_year': frequency,
+                'status': status,
+                'last_updated': last_updated,
+                'processed_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            
+            return feed_entry, f"Frequency: {frequency} posts/year ({status}) Last: {last_updated or 'Unknown'}"
 
         # Submit all tasks
+        print(f"Starting to process {len(feeds)} feeds...")
         future_to_feed = {
-            executor.submit(process_single_feed, feed, existing_data, retry_failed): feed 
+            executor.submit(process_single_feed, feed, existing_data, retry_failed or retry_all): feed 
             for feed in feeds
         }
+        print(f"All {len(future_to_feed)} tasks submitted, processing...")
         
         # Process completed tasks
         for future in as_completed(future_to_feed):
@@ -290,7 +315,7 @@ def process_single_feed(feed, existing_data, retry_failed):
                     processed_count += 1
                     
                     # Print progress with lock to avoid jumbled output
-                    print(f"[{processed_count}/{len(feeds)}] {message}")
+                    print(f"[{processed_count}/{len(feeds)}] {message}", flush=True)
                     print("-" * 80)
                 
             except Exception as e:

@@ -115,6 +115,12 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Thread-safe file updates with locking
    - Significantly faster processing of large feed lists
 
+20. **Added retry all feeds option**
+   - Request: Add option to retry all feeds regardless of status
+   - Added --retry-all flag to reprocess all feeds
+   - Ignores week-based filtering when using --retry-all
+   - Useful for refreshing all frequency data
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies
