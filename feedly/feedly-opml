@@ -253,6 +253,24 @@ if __name__ == "__main__":
         print(f"Populated {len(feeds)} feeds from OPML to {output_file}")
         sys.exit(0)
     
+    if fetch_only:
+        # Phase 2: Only fetch feed data for existing JSONL entries
+        output_file = opml_file.replace('.opml', '_feeds.jsonl')
+        if not os.path.exists(output_file):
+            print("No JSONL file found. Run --populate-only first.")
+            sys.exit(1)
+        
+        # Load feeds from JSONL
+        feeds = []
+        with open(output_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    feed = json.loads(line)
+                    feeds.append(feed)
+        
+        print(f"Fetching data for {len(feeds)} feeds...")
+        # Continue with normal processing logic below
+    
     if retry_failed:
         output_file = opml_file.replace('.opml', '_feeds.jsonl')
         if not os.path.exists(output_file):
