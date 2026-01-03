@@ -257,8 +257,13 @@ if __name__ == "__main__":
                 'processed_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
-            # Update existing data or add new entry
+            # Update existing data
             existing_data[feed_url] = feed_entry
+            
+            # Rewrite entire file with updated data
+            with open(output_file, 'w', encoding='utf-8') as f:
+                for feed_data in existing_data.values():
+                    f.write(json.dumps(feed_data, ensure_ascii=False) + '\n')
             
             # Log the result
             log.write(f"  Result: {frequency} posts/year (Status: {status}, Last: {last_updated})\n")
@@ -270,10 +275,7 @@ if __name__ == "__main__":
             print(f"Frequency: {frequency} posts/year ({status}) Last: {last_updated or 'Unknown'}")
             print("-" * 80)
         
-        # Write all data back to file (overwrites existing file)
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for feed_data in existing_data.values():
-                f.write(json.dumps(feed_data, ensure_ascii=False) + '\n')
+        # Final summary (file already written incrementally)
         
         # Write summary to log
         log.write("SUMMARY:\n")
