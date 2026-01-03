@@ -148,16 +148,44 @@ def parse_opml(file_path):
         return []
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: ./feedly-opml <path-to-opml-file>")
+    if len(sys.argv) < 2:
+        print("Usage: ./feedly-opml <path-to-opml-file> [--retry-failed]")
         print("\nTo get your OPML file:")
         print("1. Go to https://feedly.com/i/opml")
         print("2. Click 'Export OPML'")
         print("3. Save the file and run: ./feedly-opml ~/Downloads/feedly.opml")
+        print("\nOptions:")
+        print("  --retry-failed    Only retry feeds with ERROR, EMPTY, or OLD status")
         sys.exit(1)
     
     opml_file = sys.argv[1]
-    feeds = parse_opml(opml_file)
+    retry_failed = "--retry-failed" in sys.argv
+    
+    if retry_failed:
+        # Load existing data and filter for failed feeds
+        output_file = opml_file.replace('.opml', '_feeds.jsonl')
+        if not os.path.exists(output_file):
+            print("No existing data file found. Run without --retry-failed first.")
+            sys.exit(1)
+        
+        failed_feeds = []
+        with open(output_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    feed = json.loads(line)
+                    if feed['status'] in ['ERROR', 'EMPTY', 'OLD']:
+                        # Convert back to OPML format for processing
+                        failed_feeds.append({
+                            'title': feed['title'],
+                            'url': feed['url'],
+                            'feed_url': feed['feed_url'],
+                            'categories': feed['categories']
+                        })
+        
+        print(f"Found {len(failed_feeds)} failed feeds to retry")
+        feeds = failed_feeds
+    else:
+        feeds = parse_opml(opml_file)
     
     # Open output files
     output_file = opml_file.replace('.opml', '_feeds.jsonl')
@@ -165,6 +193,7 @@ if __name__ == "__main__":
     
     # Load existing data if available
     existing_data = {}
+    all_feeds_data = []
     if os.path.exists(output_file):
         try:
             with open(output_file, 'r', encoding='utf-8') as f:
@@ -172,10 +201,11 @@ if __name__ == "__main__":
                     if line.strip():
                         feed = json.loads(line)
                         existing_data[feed['feed_url']] = feed
+                        all_feeds_data.append(feed)
         except:
             pass
     
-    with open(output_file, 'a', encoding='utf-8') as f, open(log_file, 'w', encoding='utf-8') as log:
+    with open(log_file, 'w', encoding='utf-8') as log:
         
         # Write log header
         log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -193,8 +223,8 @@ if __name__ == "__main__":
         for i, feed in enumerate(feeds, 1):
             feed_url = feed['feed_url']
             
-            # Check if we should skip (processed within last week)
-            if feed_url in existing_data:
+            # Skip if feed was processed recently (unless retrying failed feeds)
+            if not retry_failed and feed_url in existing_data:
                 try:
                     processed_date = datetime.strptime(existing_data[feed_url]['processed_date'], '%Y-%m-%d %H:%M:%S')
                     if datetime.now() - processed_date < timedelta(days=7):
@@ -227,9 +257,8 @@ if __name__ == "__main__":
                 'processed_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
             
-            # Write to JSONL immediately (one line per feed)
-            f.write(json.dumps(feed_entry, ensure_ascii=False) + '\n')
-            f.flush()
+            # Update existing data or add new entry
+            existing_data[feed_url] = feed_entry
             
             # Log the result
             log.write(f"  Result: {frequency} posts/year (Status: {status}, Last: {last_updated})\n")
@@ -240,6 +269,11 @@ if __name__ == "__main__":
             
             print(f"Frequency: {frequency} posts/year ({status}) Last: {last_updated or 'Unknown'}")
             print("-" * 80)
+        
+        # Write all data back to file (overwrites existing file)
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for feed_data in existing_data.values():
+                f.write(json.dumps(feed_data, ensure_ascii=False) + '\n')
         
         # Write summary to log
         log.write("SUMMARY:\n")
