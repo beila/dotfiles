@@ -2,17 +2,14 @@
 <opml version="1.0">
   <head>
     <title>Feedly Feeds - Categorized</title>
-    <dateCreated>Sat, 03 Jan 2026 17:39:33 </dateCreated>
+    <dateCreated>Sat, 03 Jan 2026 18:19:43 </dateCreated>
   </head>
   <body>
     <outline text="01-feeds-1py" title="01-feeds-1py">
       <outline type="rss" text="tech.ssut" title="tech.ssut" xmlUrl="https://tech.ssut.me/rss/" htmlUrl="https://tech.ssut.me/"/>
       <outline type="rss" text="Kalzumeus Software" title="Kalzumeus Software" xmlUrl="http://www.kalzumeus.com/feed/" htmlUrl="https://www.kalzumeus.com"/>
-      <outline type="rss" text="parsonsmatt.org" title="parsonsmatt.org" xmlUrl="https://www.parsonsmatt.org/feed.xml" htmlUrl="https://www.parsonsmatt.org"/>
-      <outline type="rss" text="Paul Cavallaro's Blog on Paul Cavallaro" title="Paul Cavallaro's Blog on Paul Cavallaro" xmlUrl="https://paulcavallaro.com/blog/index.xml" htmlUrl="https://paulcavallaro.com/blog/"/>
       <outline type="rss" text="SpeakOfTheDevrel.Cloud: Doug Sillars" title="SpeakOfTheDevrel.Cloud: Doug Sillars" xmlUrl="https://dougsillars.com/feed/" htmlUrl="https://speakofthedevrel.cloud"/>
       <outline type="rss" text="atthis.link" title="atthis.link" xmlUrl="https://atthis.link/rss.xml" htmlUrl="https://atthis.link"/>
-      <outline type="rss" text="Blog on Dan North &amp;amp; Associates Limited" title="Blog on Dan North &amp;amp; Associates Limited" xmlUrl="https://dannorth.net/blog/index.xml" htmlUrl="https://dannorth.net/blog/"/>
       <outline type="rss" text="Paged Out! Magazine" title="Paged Out! Magazine" xmlUrl="https://pagedout.institute/rss.xml" htmlUrl="https://pagedout.institute/rss.xml"/>
       <outline type="rss" text="최규성의 대중문화산책" title="최규성의 대중문화산책" xmlUrl="http://blog.rss.naver.com/oopldh.xml" htmlUrl="https://blog.naver.com/oopldh?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Evil Mad Scientist Laboratories" title="Evil Mad Scientist Laboratories" xmlUrl="http://www.evilmadscientist.com/backend/geeklog.rss" htmlUrl="https://www.evilmadscientist.com"/>
@@ -26,54 +23,40 @@
       <outline type="rss" text="Ludwig" title="Ludwig" xmlUrl="https://ludwigabap.bearblog.dev/feed/" htmlUrl="https://ludwigabap.bearblog.dev/"/>
       <outline type="rss" text="AKE.kr" title="AKE.kr" xmlUrl="https://ake.kr/rss.xml" htmlUrl="https://ake.kr"/>
       <outline type="rss" text="Martin Kleppmann's blog" title="Martin Kleppmann's blog" xmlUrl="http://feeds.feedburner.com/martinkl" htmlUrl="http://martin.kleppmann.com/"/>
-      <outline type="rss" text="Laurent Renard’s (lorenzofox) blog" title="Laurent Renard’s (lorenzofox) blog" xmlUrl="https://lorenzofox.dev/feed.xml" htmlUrl="https://lorenzofox.dev"/>
       <outline type="rss" text="Alexis King’s Blog" title="Alexis King’s Blog" xmlUrl="https://lexi-lambda.github.io/feeds/all.rss.xml" htmlUrl="https://lexi-lambda.github.io/"/>
       <outline type="rss" text="Sue B. Moon's Blog" title="Sue B. Moon's Blog" xmlUrl="http://sbmoon.tistory.com/rss" htmlUrl="https://sbmoon.tistory.com/"/>
       <outline type="rss" text="the jsomers.net blog" title="the jsomers.net blog" xmlUrl="http://jsomers.net/blog/feed" htmlUrl="https://jsomers.net/blog"/>
       <outline type="rss" text="Understand Legacy Code" title="Understand Legacy Code" xmlUrl="https://understandlegacycode.com/rss.xml" htmlUrl="https://understandlegacycode.com/"/>
-      <outline type="rss" text="Willem Pennings" title="Willem Pennings" xmlUrl="https://willempennings.nl/feed/" htmlUrl="https://willempennings.nl"/>
       <outline type="rss" text="AlastairC" title="AlastairC" xmlUrl="https://alastairc.uk/feed/" htmlUrl="https://alastairc.uk"/>
       <outline type="rss" text="drublic – Software Architecture - Hans Christian Reinl, Cologne" title="drublic – Software Architecture - Hans Christian Reinl, Cologne" xmlUrl="https://drublic.de/feed.xml" htmlUrl="https://www.hansreinl.de/blog/"/>
       <outline type="rss" text="One Pixel to the Left" title="One Pixel to the Left" xmlUrl="https://andrewchilds.com/rss.xml" htmlUrl="https://andrewchilds.com/"/>
-      <outline type="rss" text="Acko.net" title="Acko.net" xmlUrl="http://acko.net/atom.xml" htmlUrl="https://acko.net/"/>
       <outline type="rss" text="Bit Bashing" title="Bit Bashing" xmlUrl="http://bitbashing.io/feed.xml" htmlUrl="https://bitbashing.io/"/>
       <outline type="rss" text="David Walsh Blog" title="David Walsh Blog" xmlUrl="http://feeds.feedburner.com/Bludice" htmlUrl="https://davidwalsh.name"/>
       <outline type="rss" text="CPP Rendering – Antoine MORRIER" title="CPP Rendering – Antoine MORRIER" xmlUrl="http://cpp-rendering.io/feed/" htmlUrl="https://cpp-rendering.io/"/>
       <outline type="rss" text="Andreas Writing" title="Andreas Writing" xmlUrl="http://beza1e1.tuxen.de/articles.atom" htmlUrl="https://beza1e1.tuxen.de/"/>
-      <outline type="rss" text="C++ on a Friday" title="C++ on a Friday" xmlUrl="http://blog.knatten.org/feed/" htmlUrl="https://blog.knatten.org"/>
       <outline type="rss" text="Unknown" title="Unknown" xmlUrl="https://yosemitesam.ch/feed.xml" htmlUrl="https://yosemitesam.ch/"/>
-      <outline type="rss" text="samwho.dev" title="samwho.dev" xmlUrl="https://samwho.dev/rss.xml" htmlUrl="https://samwho.dev/"/>
       <outline type="rss" text="Design in government" title="Design in government" xmlUrl="https://designnotes.blog.gov.uk/feed/" htmlUrl="https://designnotes.blog.gov.uk"/>
       <outline type="rss" text="Danny van Kooten" title="Danny van Kooten" xmlUrl="https://dannyvankooten.com/feed.xml" htmlUrl="https://www.dannyvankooten.com/"/>
       <outline type="rss" text="." title="." xmlUrl="http://blog.rss.naver.com/hedaran.xml" htmlUrl="https://blog.naver.com/hedaran?fromRss=true&amp;trackingCode=rss"/>
-      <outline type="rss" text="benjojo blog" title="benjojo blog" xmlUrl="https://blog.benjojo.co.uk/rss.xml" htmlUrl="https://blog.benjojo.co.uk"/>
       <outline type="rss" text="notgull" title="notgull" xmlUrl="https://notgull.net/feed.xml" htmlUrl="http://notgull.net/"/>
-      <outline type="rss" text="William Durand" title="William Durand" xmlUrl="http://feeds.feedburner.com/williamdurand" htmlUrl="https://williamdurand.fr"/>
       <outline type="rss" text="Guillaume Gomez's RSS (blog posts about IT and Rust)" title="Guillaume Gomez's RSS (blog posts about IT and Rust)" xmlUrl="https://blog.guillaume-gomez.fr/rss" htmlUrl="https://blog.guillaume-gomez"/>
       <outline type="rss" text="Chromium Blog" title="Chromium Blog" xmlUrl="http://blog.chromium.org/feeds/posts/default" htmlUrl="http://blog.chromium.org/"/>
       <outline type="rss" text="사진이 걸린 방" title="사진이 걸린 방" xmlUrl="http://blog.rss.naver.com/lenz1839.xml" htmlUrl="https://blog.naver.com/lenz1839?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="fabiensanglard.net" title="fabiensanglard.net" xmlUrl="http://fabiensanglard.net/rss.xml" htmlUrl="https://fabiensanglard.net"/>
       <outline type="rss" text="dthompson" title="dthompson" xmlUrl="https://dthompson.us/feed.xml" htmlUrl="https://dthompson.us"/>
       <outline type="rss" text="Andrzej's C++ blog" title="Andrzej's C++ blog" xmlUrl="https://akrzemi1.wordpress.com/feed/" htmlUrl="https://akrzemi1.wordpress.com"/>
-      <outline type="rss" text="기획·연재 | 이상헌의 공평한 어리석음" title="기획·연재 | 이상헌의 공평한 어리석음" xmlUrl="https://rss.diffbot.com/rss?url=https://www.khan.co.kr/series/articles/ao479" htmlUrl="https://www.khan.co.kr/series/articles/ao479"/>
-      <outline type="rss" text="정보엔지니어 (맥스웰의 도깨비, 양자컴퓨터)" title="정보엔지니어 (맥스웰의 도깨비, 양자컴퓨터)" xmlUrl="https://infoengineer.tistory.com/rss" htmlUrl="https://infoengineer.tistory.com/"/>
-      <outline type="rss" text="marcoshplace" title="marcoshplace" xmlUrl="http://marcosh.github.io/feed.xml" htmlUrl="http://marcosh.github.io/"/>
-      <outline type="rss" text="MOND←TECH MAGAZINE" title="MOND←TECH MAGAZINE" xmlUrl="https://herecomesthemoon.net/posts/index.xml" htmlUrl="https://herecomesthemoon.net/posts/"/>
       <outline type="rss" text="Caffeinspiration" title="Caffeinspiration" xmlUrl="https://alexanderell.is/index.xml" htmlUrl="https://alexanderell.is/"/>
       <outline type="rss" text="NOVA | PBS" title="NOVA | PBS" xmlUrl="http://www.pbs.org/wgbh/nova/rss/nova.xml" htmlUrl="https://www.pbs.org/wgbh/nova/"/>
       <outline type="rss" text="Articles &amp; Experiments by Roman Komarov on kizu.ru" title="Articles &amp; Experiments by Roman Komarov on kizu.ru" xmlUrl="http://feeds.feedburner.com/kizuruen" htmlUrl="https://kizu.dev/"/>
       <outline type="rss" text="Ben Morris. Software architect." title="Ben Morris. Software architect." xmlUrl="http://www.ben-morris.com/feed" htmlUrl="https://www.ben-morris.com/"/>
       <outline type="rss" text="Haterade" title="Haterade" xmlUrl="https://haterade.substack.com/feed/" htmlUrl="https://haterade.substack.com"/>
       <outline type="rss" text="Cameron Sun" title="Cameron Sun" xmlUrl="https://www.csun.io/feed.xml" htmlUrl="https://www.csun.io/"/>
-      <outline type="rss" text="Instapaper Blog" title="Instapaper Blog" xmlUrl="http://blog.instapaper.com/rss" htmlUrl="https://blog.instapaper.com/"/>
       <outline type="rss" text="sunshowers" title="sunshowers" xmlUrl="https://sunshowers.io/index.xml" htmlUrl="https://sunshowers.io/"/>
-      <outline type="rss" text="Probably Dance" title="Probably Dance" xmlUrl="https://probablydance.com/feed/" htmlUrl="https://probablydance.com"/>
       <outline type="rss" text="Potentials, IEEE - new TOC" title="Potentials, IEEE - new TOC" xmlUrl="http://ieeexplore.ieee.org/rss/TOC45.XML" htmlUrl="http://ieeexplore.ieee.org"/>
       <outline type="rss" text="Random ASCII – tech blog of Bruce Dawson" title="Random ASCII – tech blog of Bruce Dawson" xmlUrl="http://randomascii.wordpress.com/feed/" htmlUrl="https://randomascii.wordpress.com"/>
       <outline type="rss" text="여행과 사진에 미치다" title="여행과 사진에 미치다" xmlUrl="http://blog.rss.naver.com/sapawind.xml" htmlUrl="https://blog.naver.com/sapawind?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Monroe Clinton" title="Monroe Clinton" xmlUrl="https://monroeclinton.com//index.xml" htmlUrl="https://monroeclinton.com/"/>
       <outline type="rss" text="Several People Are Coding" title="Several People Are Coding" xmlUrl="https://slack.engineering/feed" htmlUrl="https://slack.engineering"/>
-      <outline type="rss" text="Nico Brailovsky's thought repository" title="Nico Brailovsky's thought repository" xmlUrl="https://nicolasbrailo.github.io/blog/rss.xml" htmlUrl="https://nicolasbrailo.github.io/"/>
       <outline type="rss" text="IEEE Annals of the History of Computing - new TOC" title="IEEE Annals of the History of Computing - new TOC" xmlUrl="http://ieeexplore.ieee.org/rss/TOC85.XML" htmlUrl="http://ieeexplore.ieee.org"/>
       <outline type="rss" text="CSS Wizardry" title="CSS Wizardry" xmlUrl="http://feeds.feedburner.com/csswizardry" htmlUrl="https://csswizardry.com/"/>
       <outline type="rss" text="Gmail Blog" title="Gmail Blog" xmlUrl="http://feeds.feedburner.com/OfficialGmailBlog" htmlUrl="https://blog.google/products/gmail/"/>
@@ -88,7 +71,6 @@
       <outline type="rss" text="Domenic Denicola" title="Domenic Denicola" xmlUrl="http://domenic.me/atom.xml" htmlUrl="https://domenic.me/"/>
       <outline type="rss" text="Hold The Robot Blog" title="Hold The Robot Blog" xmlUrl="https://holdtherobot.com/blog/rss.xml" htmlUrl="https://holdtherobot.com/blog"/>
       <outline type="rss" text="Gabe Mays" title="Gabe Mays" xmlUrl="https://gmays.com/feed/" htmlUrl="https://gmays.com/"/>
-      <outline type="rss" text="Julia Evans" title="Julia Evans" xmlUrl="http://jvns.ca/atom.xml" htmlUrl="https://jvns.ca"/>
       <outline type="rss" text="사용기" title="사용기" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/tutorial?sst%3Dwr_good%26sod%3Ddesc%26sop%3Dand%26page%3D1" htmlUrl="https://damoang.net/tutorial?sst=wr_good&amp;sod=desc&amp;sop=and&amp;page=1"/>
       <outline type="rss" text="Thoughts From Eric" title="Thoughts From Eric" xmlUrl="http://meyerweb.com/eric/thoughts/rss2/summary" htmlUrl="https://meyerweb.com/eric/thoughts"/>
       <outline type="rss" text="HTML + CSS + JavaScript" title="HTML + CSS + JavaScript" xmlUrl="http://feeds2.feedburner.com/HtmlCssJavascript" htmlUrl="https://htmlcssjavascript.com"/>
@@ -99,28 +81,21 @@
       <outline type="rss" text="tracks and traces" title="tracks and traces" xmlUrl="https://exclav.es/index.xml" htmlUrl="https://exclav.es/"/>
       <outline type="rss" text="qouteall notes Blog" title="qouteall notes Blog" xmlUrl="https://qouteall.fun/qouteall-blog/rss.xml" htmlUrl="https://qouteall.github.io/qouteall-blog"/>
       <outline type="rss" text="Ahmad Shadeed" title="Ahmad Shadeed" xmlUrl="http://ishadeed.com/feed.xml" htmlUrl="https://ishadeed.com/"/>
-      <outline type="rss" text="Brendan Gregg's Blog" title="Brendan Gregg's Blog" xmlUrl="https://www.brendangregg.com/blog/rss.xml" htmlUrl="http://www.brendangregg.com/blog"/>
-      <outline type="rss" text="Brian Donohue – Makin’ that Instapaper" title="Brian Donohue – Makin’ that Instapaper" xmlUrl="https://bthdonohue.com/feed.xml" htmlUrl="https://bthdonohue.com/"/>
       <outline type="rss" text="Starkey Comics" title="Starkey Comics" xmlUrl="https://starkeycomics.com/feed/" htmlUrl="https://starkeycomics.com/"/>
       <outline type="rss" text="Terraform Industries Blog" title="Terraform Industries Blog" xmlUrl="https://terraformindustries.wordpress.com/feed/" htmlUrl="https://terraformindustries.wordpress.com"/>
       <outline type="rss" text="Dan Moore!" title="Dan Moore!" xmlUrl="http://www.mooreds.com/wordpress/feed" htmlUrl="https://www.mooreds.com/wordpress"/>
       <outline type="rss" text="The Anttidote" title="The Anttidote" xmlUrl="https://suanto.com/feed.xml" htmlUrl="https://suanto.com/"/>
       <outline type="rss" text="POPO LETTER 포포레터" title="POPO LETTER 포포레터" xmlUrl="https://kill-the-newsletter.com/feeds/6x6ltg25ik5i1141e1r3.xml" htmlUrl="https://kill-the-newsletter.com/feeds/6x6ltg25ik5i1141e1r3.xml"/>
-      <outline type="rss" text="Wait But Why" title="Wait But Why" xmlUrl="https://waitbutwhy.com/feed" htmlUrl="https://waitbutwhy.com/"/>
       <outline type="rss" text="Roy Tanck" title="Roy Tanck" xmlUrl="http://feeds.feedburner.com/RoyTancksWeblog" htmlUrl="https://roytanck.com"/>
       <outline type="rss" text="TigerBeetle Blog" title="TigerBeetle Blog" xmlUrl="https://tigerbeetle.com/blog/atom.xml" htmlUrl="https://tigerbeetle.com/blog"/>
       <outline type="rss" text="A Few Thoughts on Cryptographic Engineering" title="A Few Thoughts on Cryptographic Engineering" xmlUrl="https://blog.cryptographyengineering.com/feed/" htmlUrl="https://blog.cryptographyengineering.com"/>
       <outline type="rss" text="Jan Miksovsky’s blog" title="Jan Miksovsky’s blog" xmlUrl="https://jan.miksovsky.com/rss.xml" htmlUrl="https://jan.miksovsky.com"/>
-      <outline type="rss" text="Jay and Mark" title="Jay and Mark" xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbbQalJ4OaC0oQ0AqRaOJ9g" htmlUrl="https://www.youtube.com/channel/UCbbQalJ4OaC0oQ0AqRaOJ9g"/>
       <outline type="rss" text="James Sinclair" title="James Sinclair" xmlUrl="http://jrsinclair.com/index.rss" htmlUrl="https://jrsinclair.com/"/>
-      <outline type="rss" text="Steve Klabnik" title="Steve Klabnik" xmlUrl="https://steveklabnik.com/feed.xml" htmlUrl="https://steveklabnik.com/"/>
       <outline type="rss" text="Pete Warden's blog" title="Pete Warden's blog" xmlUrl="http://feeds.feedburner.com/typepad/petewarden" htmlUrl="https://petewarden.com"/>
       <outline type="rss" text="Nettuts+" title="Nettuts+" xmlUrl="http://net.tutsplus.com/feed/" htmlUrl="https://code.tutsplus.com"/>
       <outline type="rss" text="Agentultra" title="Agentultra" xmlUrl="https://agentultra.com/feed.xml" htmlUrl="https://agentultra.com"/>
       <outline type="rss" text="Eric Bailey" title="Eric Bailey" xmlUrl="https://ericwbailey.design/feed/feed.xml" htmlUrl="https://ericwbailey.website"/>
       <outline type="rss" text="wingolog" title="wingolog" xmlUrl="http://wingolog.org/feed/atom" htmlUrl="https://wingolog.org/"/>
-      <outline type="rss" text="루나파크" title="루나파크" xmlUrl="http://blog.rss.naver.com/lunaparkblog.xml" htmlUrl="https://blog.naver.com/lunaparkblog?fromRss=true&amp;trackingCode=rss"/>
-      <outline type="rss" text="&lt;antirez&gt;" title="&lt;antirez&gt;" xmlUrl="http://antirez.com/rss" htmlUrl="http://antirez.com"/>
       <outline type="rss" text="Quentin Santos" title="Quentin Santos" xmlUrl="https://qsantos.fr/feed/" htmlUrl="https://qsantos.fr/"/>
       <outline type="rss" text="언론사람" title="언론사람" xmlUrl="https://kill-the-newsletter.com/feeds/uatpjsyz4v2yoci6.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="Greek Myth Comix" title="Greek Myth Comix" xmlUrl="http://greekmythcomix.wordpress.com/feed/" htmlUrl="https://greekmythcomix.com"/>
@@ -131,10 +106,7 @@
       <outline type="rss" text="시간의 푸른 그늘" title="시간의 푸른 그늘" xmlUrl="http://blog.rss.naver.com/sylph58.xml" htmlUrl="https://blog.naver.com/sylph58?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="행복한 꿈쟁이 김수영" title="행복한 꿈쟁이 김수영" xmlUrl="https://rss.blog.naver.com/cyberelf00.xml" htmlUrl="https://blog.naver.com/cyberelf00?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="catherine jue" title="catherine jue" xmlUrl="https://kill-the-newsletter.com/feeds/uo5qe1wkkmsemnmu6in7.xml" htmlUrl="https://kill-the-newsletter.com/feeds/uo5qe1wkkmsemnmu6in7.xml"/>
-      <outline type="rss" text="김영민의 본다는 것은｜동아일보" title="김영민의 본다는 것은｜동아일보" xmlUrl="https://rss.diffbot.com/rss?url=https://www.donga.com/news/Series/70040700000002" htmlUrl="https://www.donga.com/news/Series/70040700000002"/>
-      <outline type="rss" text="Command-Line-Fu" title="Command-Line-Fu" xmlUrl="http://feeds2.feedburner.com/Command-line-fu" htmlUrl="http://www.commandlinefu.com/commands/browse/rss"/>
       <outline type="rss" text="Blog | jackkelly.name" title="Blog | jackkelly.name" xmlUrl="http://jackkelly.name/blog/rss.xml" htmlUrl="http://jackkelly.name"/>
-      <outline type="rss" text="조성문의 블로그" title="조성문의 블로그" xmlUrl="http://sungmoon.wordpress.com/feed/" htmlUrl="https://sungmooncho.com"/>
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://feeds.bbci.co.uk/news/in_pictures/rss.xml" htmlUrl="https://www.bbc.co.uk/news/in_pictures"/>
       <outline type="rss" text="지도와 Web2.0 그리고 한국의 미래" title="지도와 Web2.0 그리고 한국의 미래" xmlUrl="http://feeds2.feedburner.com/blogspot/InternetMap" htmlUrl="https://www.internetmap.kr/"/>
       <outline type="rss" text="컬리 기술 블로그" title="컬리 기술 블로그" xmlUrl="http://thefarmersfront.github.io/feed.xml" htmlUrl="http://thefarmersfront.github.io/"/>
@@ -147,12 +119,8 @@
       <outline type="rss" text="Boris Smus" title="Boris Smus" xmlUrl="http://feeds.feedburner.com/smuscom" htmlUrl="https://smus.com"/>
       <outline type="rss" text="이새별 블로그" title="이새별 블로그" xmlUrl="http://blog.rss.naver.com/joymodem" htmlUrl="https://blog.naver.com/joymodem?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Chris Grossack's Blog" title="Chris Grossack's Blog" xmlUrl="https://grossack.site/feed.xml" htmlUrl="https://grossack.site"/>
-      <outline type="rss" text="Woodlands Farm Trust" title="Woodlands Farm Trust" xmlUrl="https://www.thewoodlandsfarmtrust.org/blog-feed.xml" htmlUrl="https://www.thewoodlandsfarmtrust.org/information"/>
-      <outline type="rss" text="The Pudding" title="The Pudding" xmlUrl="https://pudding.cool/feed/index.xml" htmlUrl="https://pudding.cool"/>
-      <outline type="rss" text="MaskRay" title="MaskRay" xmlUrl="https://maskray.me/blog/atom.xml" htmlUrl="https://maskray.me/blog/"/>
       <outline type="rss" text="루리카의 PDA 활용기 (SPH-M4650 / M4655)" title="루리카의 PDA 활용기 (SPH-M4650 / M4655)" xmlUrl="http://ruryca.tistory.com/rss" htmlUrl="https://ruryca.tistory.com/"/>
       <outline type="rss" text="Firefox Nightly News" title="Firefox Nightly News" xmlUrl="https://blog.nightly.mozilla.org/feed/" htmlUrl="https://blog.nightly.mozilla.org"/>
-      <outline type="rss" text="Repebble" title="Repebble" xmlUrl="https://kill-the-newsletter.com/feeds/xtcduxsdeqk4v7qj8ejv.xml" htmlUrl="https://kill-the-newsletter.com/feeds/xtcduxsdeqk4v7qj8ejv.xml"/>
       <outline type="rss" text="Jonathan Snook" title="Jonathan Snook" xmlUrl="http://feeds.feedburner.com/snookca" htmlUrl="https://snook.ca/"/>
       <outline type="rss" text="Ye Olde Blogroll — Firehose" title="Ye Olde Blogroll — Firehose" xmlUrl="https://blogroll.org/feed/" htmlUrl="https://blogroll.org"/>
       <outline type="rss" text="AddyOsmani.com" title="AddyOsmani.com" xmlUrl="http://addyosmani.com/rss.xml" htmlUrl="https://addyosmani.com"/>
@@ -164,37 +132,24 @@
       <outline type="rss" text="blog.allegro.tech" title="blog.allegro.tech" xmlUrl="https://blog.allegro.tech/feed.xml" htmlUrl="https://blog.allegro.tech/"/>
       <outline type="rss" text="Outreach Newsletter" title="Outreach Newsletter" xmlUrl="https://kill-the-newsletter.com/feeds/6q3nssjk6sjzqn3jq19p.xml" htmlUrl="https://kill-the-newsletter.com/feeds/6q3nssjk6sjzqn3jq19p.xml"/>
       <outline type="rss" text="Ken Shirriff's blog" title="Ken Shirriff's blog" xmlUrl="http://www.righto.com/feeds/posts/default" htmlUrl="http://www.righto.com/"/>
-      <outline type="rss" text="Beyond Tabs Job Board" title="Beyond Tabs Job Board" xmlUrl="https://beyond-tabs.com/jobs/atom?filters=%7B%22languages%22:%5B%5D,%22countries%22:%5B%22GBR%22%5D,%22remote%22:false%7D" htmlUrl="https://beyond-tabs.com/jobs"/>
-      <outline type="rss" text="Numb at the Lodge" title="Numb at the Lodge" xmlUrl="https://samkriss.substack.com/feed" htmlUrl="https://samkriss.substack.com"/>
-      <outline type="rss" text="세상을 바꾸는 시민언론 민들레" title="세상을 바꾸는 시민언론 민들레" xmlUrl="https://rss.diffbot.com/rss?url=https://www.mindlenews.com/news/articleList.html?sc_sub_section_code%3DS2N1" htmlUrl="https://www.mindlenews.com/news/articleList.html?sc_sub_section_code=S2N1"/>
-      <outline type="rss" text="The Changelog RSS Feed" title="The Changelog RSS Feed" xmlUrl="http://changelog.complete.org/feed" htmlUrl="https://changelog.complete.org"/>
-      <outline type="rss" text="olano.dev" title="olano.dev" xmlUrl="https://olano.dev/feed.xml" htmlUrl="https://olano.dev"/>
-      <outline type="rss" text="Fortress of Doors" title="Fortress of Doors" xmlUrl="https://www.fortressofdoors.com/rss/" htmlUrl="https://www.fortressofdoors.com/"/>
       <outline type="rss" text="Spectrum, IEEE - new TOC" title="Spectrum, IEEE - new TOC" xmlUrl="http://ieeexplore.ieee.org/rss/TOC6.XML" htmlUrl="http://ieeexplore.ieee.org"/>
       <outline type="rss" text="Stepcase Lifehack" title="Stepcase Lifehack" xmlUrl="http://www.lifehack.org/feed" htmlUrl="https://www.lifehack.org/"/>
       <outline type="rss" text="Adrian Roselli" title="Adrian Roselli" xmlUrl="http://adrianroselli.com/feed" htmlUrl="https://adrianroselli.com"/>
       <outline type="rss" text="tonsky.me" title="tonsky.me" xmlUrl="http://tonsky.me/blog/atom.xml" htmlUrl="https://tonsky.me/"/>
       <outline type="rss" text="꽃이야기" title="꽃이야기" xmlUrl="https://kill-the-newsletter.com/feeds/q81twzoano4wdptt.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="micahflee" title="micahflee" xmlUrl="https://micahflee.com/feed.xml" htmlUrl="https://micahflee.com/"/>
-      <outline type="rss" text="Posts on The C++ way" title="Posts on The C++ way" xmlUrl="https://thecppway.com/posts/index.xml" htmlUrl="https://www.thecppway.com/posts/"/>
       <outline type="rss" text="mattorb" title="mattorb" xmlUrl="https://mattorb.com/rss/" htmlUrl="https://mattorb.com/"/>
       <outline type="rss" text="서성록의 미술이야기" title="서성록의 미술이야기" xmlUrl="http://blog.rss.naver.com/seongrok123.xml" htmlUrl="https://blog.naver.com/seongrok123?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Strategy business" title="Strategy business" xmlUrl="http://www.strategy-business.com/all_updates.xml" htmlUrl="https://www.strategy-business.com"/>
-      <outline type="rss" text="Butler's Log" title="Butler's Log" xmlUrl="https://blog.gitbutler.com/rss/" htmlUrl="https://blog.gitbutler.com"/>
-      <outline type="rss" text="위스키디아" title="위스키디아" xmlUrl="https://kill-the-newsletter.com/feeds/8u1x0jzzmx7qb5sjcdhq.xml" htmlUrl="https://kill-the-newsletter.com/feeds/8u1x0jzzmx7qb5sjcdhq.xml"/>
       <outline type="rss" text="BlogGeek.me" title="BlogGeek.me" xmlUrl="http://bloggeek.me/feed/" htmlUrl="https://bloggeek.me/"/>
       <outline type="rss" text="Best of The Atlantic" title="Best of The Atlantic" xmlUrl="http://feeds.feedburner.com/Best-Of-The-Atlantic" htmlUrl="https://www.theatlantic.com/"/>
       <outline type="rss" text="Works on My Machine" title="Works on My Machine" xmlUrl="https://worksonmymachine.substack.com/feed" htmlUrl="https://worksonmymachine.ai"/>
-      <outline type="rss" text="임명묵닷컴" title="임명묵닷컴" xmlUrl="https://m2lim.com/rss/" htmlUrl="https://m2lim.withbluedot.site/"/>
-      <outline type="rss" text="Bambu Lab" title="Bambu Lab" xmlUrl="https://kill-the-newsletter.com/feeds/5lqe0840qndaht7awimp.xml" htmlUrl="https://kill-the-newsletter.com/feeds/5lqe0840qndaht7awimp.xml"/>
       <outline type="rss" text="토토로의 여행공작소" title="토토로의 여행공작소" xmlUrl="http://blog.rss.naver.com/babtol2000.xml" htmlUrl="https://blog.naver.com/babtol2000?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Friendly Bit - Web development blog" title="Friendly Bit - Web development blog" xmlUrl="https://friendlybit.com/feed/" htmlUrl="https://friendlybit.com/"/>
       <outline type="rss" text="Casey Handmer's blog" title="Casey Handmer's blog" xmlUrl="https://caseyhandmer.wordpress.com/feed/" htmlUrl="https://caseyhandmer.wordpress.com"/>
       <outline type="rss" text="Tech World With Milan Newsletter" title="Tech World With Milan Newsletter" xmlUrl="https://newsletter.techworld-with-milan.com/feed" htmlUrl="https://newsletter.techworld-with-milan.com"/>
       <outline type="rss" text="SOVIDENCE" title="SOVIDENCE" xmlUrl="http://sovidence.tistory.com/rss" htmlUrl="https://sovidence.tistory.com/"/>
       <outline type="rss" text="Thingiverse - Popular Things" title="Thingiverse - Popular Things" xmlUrl="http://www.thingiverse.com/rss/popular" htmlUrl="https://www.thingiverse.com/popular"/>
-    </outline>
-    <outline text="02-feeds-31py" title="02-feeds-31py">
       <outline type="rss" text="클리앙 : 덕질한당" title="클리앙 : 덕질한당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_ku" htmlUrl="https://www.clien.net/service/board/cm_ku"/>
       <outline type="rss" text="클리앙 : 날아간당" title="클리앙 : 날아간당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_airplane" htmlUrl="https://www.clien.net/service/board/cm_airplane"/>
       <outline type="rss" text="lcamtuf’s thing" title="lcamtuf’s thing" xmlUrl="https://lcamtuf.substack.com/feed" htmlUrl="https://lcamtuf.substack.com"/>
@@ -206,21 +161,16 @@
       <outline type="rss" text="The Technium" title="The Technium" xmlUrl="http://www.kk.org/thetechnium/index.xml" htmlUrl="https://kk.org/thetechnium"/>
       <outline type="rss" text="클리앙 : 리눅서당" title="클리앙 : 리눅서당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_linux" htmlUrl="https://www.clien.net/service/board/cm_linux"/>
       <outline type="rss" text="클리앙 : e북본당" title="클리앙 : e북본당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_ebook" htmlUrl="https://www.clien.net/service/board/cm_ebook"/>
-      <outline type="rss" text="Stories by Martin Ayvazyan on Medium" title="Stories by Martin Ayvazyan on Medium" xmlUrl="https://medium.com/feed/@martin00001313" htmlUrl="https://medium.com/@martin00001313?source=rss-4a528c57ee66------2"/>
       <outline type="rss" text="Philosophy Now" title="Philosophy Now" xmlUrl="http://www.philosophynow.org/rss" htmlUrl="https://philosophynow.org"/>
       <outline type="rss" text="Natalie the Nerd's blog" title="Natalie the Nerd's blog" xmlUrl="https://blog.nataliethenerd.com/rss/" htmlUrl="https://blog.nataliethenerd.com/"/>
       <outline type="rss" text="길 위의 나날들(The Days on the Road)" title="길 위의 나날들(The Days on the Road)" xmlUrl="http://blog.rss.naver.com/travelmaker.xml" htmlUrl="https://blog.naver.com/travelmaker?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="클리앙 : 레고당" title="클리앙 : 레고당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_lego" htmlUrl="https://www.clien.net/service/board/cm_lego"/>
       <outline type="rss" text="클리앙 : 소리당" title="클리앙 : 소리당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_music" htmlUrl="https://www.clien.net/service/board/cm_music"/>
-      <outline type="rss" text="London Spy" title="London Spy" xmlUrl="https://www.thelondonspy.co.uk/feed" htmlUrl="https://www.thelondonspy.co.uk"/>
-      <outline type="rss" text="Determinate Systems" title="Determinate Systems" xmlUrl="https://determinate.systems/rss.xml" htmlUrl="https://determinate.systems/"/>
+    </outline>
+    <outline text="02-feeds-37py" title="02-feeds-37py">
       <outline type="rss" text="Bruce Lawson's personal site" title="Bruce Lawson's personal site" xmlUrl="http://www.brucelawson.co.uk/feed/" htmlUrl="https://brucelawson.co.uk"/>
       <outline type="rss" text="Better world by better software" title="Better world by better software" xmlUrl="http://glebbahmutov.com/blog/atom.xml" htmlUrl="https://glebbahmutov.com/blog/"/>
       <outline type="rss" text="TED Blog" title="TED Blog" xmlUrl="http://feeds.feedburner.com/tedblog" htmlUrl="https://blog.ted.com"/>
-      <outline type="rss" text="Recent Commits to fe-news:master" title="Recent Commits to fe-news:master" xmlUrl="https://github.com/naver/fe-news/commits/master.atom" htmlUrl="https://github.com/naver/fe-news/commits/master"/>
-      <outline type="rss" text="휘클리" title="휘클리" xmlUrl="https://kill-the-newsletter.com/feeds/2tvu6j4qovgyhixh241p.xml" htmlUrl="https://kill-the-newsletter.com/feeds/2tvu6j4qovgyhixh241p.xml"/>
-      <outline type="rss" text="오픈소스를 좋아하려 하는 개발자가 꿈인 태환" title="오픈소스를 좋아하려 하는 개발자가 꿈인 태환" xmlUrl="http://thdev.net/rss" htmlUrl="https://thdev.net/"/>
-      <outline type="rss" text="#haymanSplaining" title="#haymanSplaining" xmlUrl="https://blog.hayman.net/feed/" htmlUrl="https://blog.hayman.net/"/>
       <outline type="rss" text="Baymard Institute" title="Baymard Institute" xmlUrl="http://feeds.baymard.com/baymard" htmlUrl="https://baymard.com"/>
       <outline type="rss" text="키보드당" title="키보드당" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/keyboard" htmlUrl="https://damoang.net/keyboard"/>
       <outline type="rss" text="Remy Sharp" title="Remy Sharp" xmlUrl="http://feeds.feedburner.com/remysharp" htmlUrl="https://remysharp.com"/>
@@ -234,7 +184,6 @@
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_world_edition/front_page/rss.xml" htmlUrl="https://www.bbc.co.uk/news"/>
       <outline type="rss" text="기억보단 기록을" title="기억보단 기록을" xmlUrl="http://jojoldu.tistory.com/rss" htmlUrl="https://jojoldu.tistory.com/"/>
       <outline type="rss" text="nixCraft Linux Sys Admin Blog" title="nixCraft Linux Sys Admin Blog" xmlUrl="http://feeds.cyberciti.biz/Nixcraft-LinuxFreebsdSolarisTipsTricks" htmlUrl="https://www.cyberciti.biz/atom/"/>
-      <outline type="rss" text="기계인간 John Grib" title="기계인간 John Grib" xmlUrl="https://johngrib.github.io/feed.xml" htmlUrl="https://johngrib.github.io/"/>
       <outline type="rss" text="dream catcher" title="dream catcher" xmlUrl="http://blog.rss.naver.com/sunset0902.xml" htmlUrl="https://blog.naver.com/sunset0902?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="kciter.so" title="kciter.so" xmlUrl="https://kciter.so/feed.xml" htmlUrl="https://kciter.so"/>
       <outline type="rss" text="Freethink" title="Freethink" xmlUrl="https://www.freethink.com/feed/all" htmlUrl="https://www.freethink.com//feed/all"/>
@@ -244,55 +193,39 @@
       <outline type="rss" text="Learning English Stories" title="Learning English Stories" xmlUrl="http://downloads.bbc.co.uk/podcasts/worldservice/elt_drama/rss.xml" htmlUrl="http://www.bbc.co.uk/programmes/p02pc9s1"/>
       <outline type="rss" text="Xe Iaso's blog" title="Xe Iaso's blog" xmlUrl="https://xeiaso.net/blog.rss" htmlUrl="https://xeiaso.net/"/>
       <outline type="rss" text="Register Spill" title="Register Spill" xmlUrl="https://registerspill.thorstenball.com/feed" htmlUrl="https://registerspill.thorstenball.com"/>
-      <outline type="rss" text="먼나라 이웃나라 역사 프리즘" title="먼나라 이웃나라 역사 프리즘" xmlUrl="https://rss.diffbot.com/rss?url=https://www.joongang.co.kr/series/11656" htmlUrl="https://www.joongang.co.kr/series/11656"/>
       <outline type="rss" text="Adactio: Articles" title="Adactio: Articles" xmlUrl="http://adactio.com/articles/rss" htmlUrl="https://adactio.com/articles/"/>
       <outline type="rss" text="COFFEEPOT" title="COFFEEPOT" xmlUrl="https://kill-the-newsletter.com/feeds/e02o1j2jnigea4e7.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="Kellan Elliott-McCrea: Blog" title="Kellan Elliott-McCrea: Blog" xmlUrl="http://laughingmeme.org/feed" htmlUrl="https://laughingmeme.org//"/>
       <outline type="rss" text="Hacker News Digest 20 weekly" title="Hacker News Digest 20 weekly" xmlUrl="https://kill-the-newsletter.com/feeds/k45sgtkczw95ep66.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-    </outline>
-    <outline text="03-feeds-52py" title="03-feeds-52py">
       <outline type="rss" text="로글로그" title="로글로그" xmlUrl="https://buptle-lawglog.tistory.com/rss" htmlUrl="https://buptle-lawglog.tistory.com/"/>
       <outline type="rss" text="The Craftsman Blog" title="The Craftsman Blog" xmlUrl="http://www.thecraftsmanblog.com/feed/" htmlUrl="https://thecraftsmanblog.com/"/>
       <outline type="rss" text="Entropic Thoughts" title="Entropic Thoughts" xmlUrl="https://buttondown.com/entropicthoughts/rss" htmlUrl="https://buttondown.com/entropicthoughts"/>
-      <outline type="rss" text="Tom Scott's Weekly Newsletter" title="Tom Scott's Weekly Newsletter" xmlUrl="http://www.tomscott.com/updates.xml" htmlUrl="https://www.tomscott.com/newsletter"/>
-      <outline type="rss" text="김도훈의 엑스레이 - 조선일보" title="김도훈의 엑스레이 - 조선일보" xmlUrl="https://rss.diffbot.com/rss?url=https://www.chosun.com/tag/kim-x-ray/" htmlUrl="https://www.chosun.com/tag/kim-x-ray/"/>
       <outline type="rss" text="킬크로그 (killklog)" title="킬크로그 (killklog)" xmlUrl="http://cusee.net/rss" htmlUrl="https://cusee.net/"/>
       <outline type="rss" text="수요동물원" title="수요동물원" xmlUrl="https://kill-the-newsletter.com/feeds/l169tyt8wmozryrg.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-      <outline type="rss" text="Money Tips" title="Money Tips" xmlUrl="https://kill-the-newsletter.com/feeds/nvgtzce5f58tdgnd.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-      <outline type="rss" text="알스카토" title="알스카토" xmlUrl="https://brunch.co.kr/atom/@@40WR" htmlUrl="https://brunch.co.kr/@@40WR"/>
       <outline type="rss" text="David Bushell" title="David Bushell" xmlUrl="http://dbushell.com/rss/" htmlUrl="https://dbushell.com/blog/"/>
       <outline type="rss" text="클리앙 : 바다건너당" title="클리앙 : 바다건너당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_oversea" htmlUrl="https://www.clien.net/service/board/cm_oversea"/>
       <outline type="rss" text="Chris Coyier" title="Chris Coyier" xmlUrl="http://feeds2.feedburner.com/ChrisCoyier" htmlUrl="https://chriscoyier.net"/>
       <outline type="rss" text="자작나무통신" title="자작나무통신" xmlUrl="http://www.betulo.co.kr/rss" htmlUrl="https://www.betulo.co.kr/"/>
       <outline type="rss" text="daverupert.com" title="daverupert.com" xmlUrl="http://daverupert.com/atom.xml" htmlUrl="https://daverupert.com"/>
       <outline type="rss" text="Baldur Bjarnason's Notes on the Web" title="Baldur Bjarnason's Notes on the Web" xmlUrl="http://feedpress.me/baldurbjarnason" htmlUrl="https://www.baldurbjarnason.com/"/>
-      <outline type="rss" text="Andy Balaam's Blog" title="Andy Balaam's Blog" xmlUrl="http://www.artificialworlds.net/blog/feed/" htmlUrl="https://artificialworlds.net/blog"/>
-      <outline type="rss" text="Jorge Ortiz-Fuentes' DevBites" title="Jorge Ortiz-Fuentes' DevBites" xmlUrl="https://jorgeortiz.dev/index.xml" htmlUrl="https://jorgeortiz.dev/"/>
       <outline type="rss" text="Climate Drift" title="Climate Drift" xmlUrl="https://climatedrift.substack.com/feed" htmlUrl="https://climatedrift.substack.com"/>
-      <outline type="rss" text="Talk About English (Learn English)" title="Talk About English (Learn English)" xmlUrl="http://downloads.bbc.co.uk/podcasts/worldservice/tae/rss.xml" htmlUrl="http://www.bbc.co.uk/programmes/p02pc9zn"/>
       <outline type="rss" text="LukeW | Writings on Digital Product Strategy and Design" title="LukeW | Writings on Digital Product Strategy and Design" xmlUrl="http://feeds.feedburner.com/FunctioningForm" htmlUrl="http://www.lukew.com"/>
-      <outline type="rss" text="Our World in Data" title="Our World in Data" xmlUrl="http://www.ourworldindata.org/feed/" htmlUrl="https://ourworldindata.org"/>
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_world_edition/science/nature/rss.xml" htmlUrl="https://www.bbc.co.uk/news/science_and_environment"/>
       <outline type="rss" text="녹색전환연구소" title="녹색전환연구소" xmlUrl="https://rss.diffbot.com/rss?url=http://igt.or.kr/" htmlUrl="http://igt.or.kr/"/>
+    </outline>
+    <outline text="03-feeds-61py" title="03-feeds-61py">
       <outline type="rss" text="Centauri Dreams — Imagining and Planning Interstellar Exploration" title="Centauri Dreams — Imagining and Planning Interstellar Exploration" xmlUrl="https://follow.it/centauri-dreams-imagining-and-planning-interstellar-exploration/rss" htmlUrl="https://follow.it/centauri-dreams-imagining-and-planning-interstellar-exploration"/>
       <outline type="rss" text="Ancient Origins - Unravelling the Mysteries of the Past" title="Ancient Origins - Unravelling the Mysteries of the Past" xmlUrl="http://www.ancient-origins.net/rss.xml" htmlUrl="https://www.ancient-origins.net/"/>
       <outline type="rss" text="The Crucial Years" title="The Crucial Years" xmlUrl="https://billmckibben.substack.com/feed" htmlUrl="https://billmckibben.substack.com"/>
       <outline type="rss" text="CodePen" title="CodePen" xmlUrl="http://blog.codepen.io/feed/" htmlUrl="https://blog.codepen.io"/>
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/education/rss.xml" htmlUrl="https://www.bbc.co.uk/news/education"/>
       <outline type="rss" text="Linux Journal - The Original Magazine of the Linux Community" title="Linux Journal - The Original Magazine of the Linux Community" xmlUrl="http://www.linuxjournal.com/node/feed" htmlUrl="https://www.linuxjournal.com/"/>
-      <outline type="rss" text="Martin Fowler" title="Martin Fowler" xmlUrl="http://martinfowler.com/feed.atom" htmlUrl="https://martinfowler.com"/>
       <outline type="rss" text="Quastor" title="Quastor" xmlUrl="https://rss.beehiiv.com/feeds/nczRb4PQ6t.xml" htmlUrl="https://blog.quastor.org/"/>
       <outline type="rss" text="많이본기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레" title="많이본기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레" xmlUrl="http://www.hani.co.kr/rss/newsrank/" htmlUrl="https://www.hani.co.kr"/>
       <outline type="rss" text="클리앙 : 키보드당" title="클리앙 : 키보드당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_keyboard" htmlUrl="https://www.clien.net/service/board/cm_keyboard"/>
-      <outline type="rss" text="what happened last week" title="what happened last week" xmlUrl="https://kill-the-newsletter.com/feeds/h5dopw5l3aqlf6s5.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="Troy Hunt's Blog" title="Troy Hunt's Blog" xmlUrl="http://feeds.feedburner.com/TroyHunt" htmlUrl="https://www.troyhunt.com/"/>
-      <outline type="rss" text="LY Corporation Tech Blog" title="LY Corporation Tech Blog" xmlUrl="https://engineering.linecorp.com/ko/feed/" htmlUrl="https://techblog.lycorp.co.jp"/>
-    </outline>
-    <outline text="04-feeds-76py" title="04-feeds-76py">
       <outline type="rss" text="Krebs on Security" title="Krebs on Security" xmlUrl="http://krebsonsecurity.com/feed/" htmlUrl="https://krebsonsecurity.com"/>
       <outline type="rss" text="혁명은 언제나 시기상조" title="혁명은 언제나 시기상조" xmlUrl="http://weirdhat.net/blog/?feed=rss2" htmlUrl="https://weirdhat.net/blog"/>
-      <outline type="rss" text="고등과학원 HORIZON" title="고등과학원 HORIZON" xmlUrl="http://horizon.kias.re.kr/feed/" htmlUrl="https://horizon.kias.re.kr"/>
-      <outline type="rss" text="Gresham College" title="Gresham College" xmlUrl="https://kill-the-newsletter.com/feeds/okuja0em8yqohit0t2hu.xml" htmlUrl="https://kill-the-newsletter.com/feeds/okuja0em8yqohit0t2hu.xml"/>
       <outline type="rss" text="클리앙 : 클다방" title="클리앙 : 클다방" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_coffee" htmlUrl="https://www.clien.net/service/board/cm_coffee"/>
       <outline type="rss" text="London SE1" title="London SE1" xmlUrl="http://www.london-se1.co.uk/news/rss" htmlUrl="https://www.se1.news/"/>
       <outline type="rss" text="Uncharted Territories" title="Uncharted Territories" xmlUrl="https://unchartedterritories.tomaspueyo.com/feed" htmlUrl="https://unchartedterritories.tomaspueyo.com"/>
@@ -308,34 +241,28 @@
       <outline type="rss" text="Mashable Light Speed" title="Mashable Light Speed" xmlUrl="https://kill-the-newsletter.com/feeds/r6g8pkubu2ffg4fe.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="NewsPeppermint » Feed" title="NewsPeppermint » Feed" xmlUrl="http://newspeppermint.com/feed/" htmlUrl="https://newspeppermint.com"/>
       <outline type="rss" text="Technology | The Guardian" title="Technology | The Guardian" xmlUrl="http://www.theguardian.com/technology/rss" htmlUrl="https://www.theguardian.com/us/technology"/>
+    </outline>
+    <outline text="04-feeds-96py" title="04-feeds-96py">
       <outline type="rss" text="삶에 대처하는 나의 자세" title="삶에 대처하는 나의 자세" xmlUrl="http://blog.rss.naver.com/likedream.xml" htmlUrl="https://blog.naver.com/likedream?fromRss=true&amp;trackingCode=rss"/>
-      <outline type="rss" text="indiz" title="indiz" xmlUrl="http://blog.rss.naver.com/indizio.xml" htmlUrl="https://blog.naver.com/indizio?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="The Greenwich Wire" title="The Greenwich Wire" xmlUrl="http://853blog.wordpress.com/feed/" htmlUrl="https://greenwichwire.co.uk/"/>
       <outline type="rss" text="Blog on Tailscale" title="Blog on Tailscale" xmlUrl="https://tailscale.com/blog/index.xml" htmlUrl="https://tailscale.com/blog/"/>
       <outline type="rss" text="The Public Domain Review" title="The Public Domain Review" xmlUrl="http://publicdomainreview.org/feed/" htmlUrl="https://publicdomainreview.org"/>
-    </outline>
-    <outline text="05-feeds-101py" title="05-feeds-101py">
       <outline type="rss" text="Good Movies to Watch – Highly-Rated Movies on Amazon Prime" title="Good Movies to Watch – Highly-Rated Movies on Amazon Prime" xmlUrl="https://rss.diffbot.com/rss?url=https://agoodmovietowatch.com/all/?service%3Dusa-amazon-prime%26sort%3Dtop" htmlUrl="https://agoodmovietowatch.com/all/?service=usa-amazon-prime&amp;sort=top"/>
-      <outline type="rss" text="Economic View » Feed" title="Economic View » Feed" xmlUrl="http://feeds.feedburner.com/Economic_View" htmlUrl="http://economicview.net"/>
       <outline type="rss" text="토마스모어의영화방" title="토마스모어의영화방" xmlUrl="http://blog.rss.naver.com/cine212722.xml" htmlUrl="https://blog.naver.com/cine212722?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="당근마켓 팀블로그" title="당근마켓 팀블로그" xmlUrl="https://medium.com/feed/daangn/" htmlUrl="https://medium.com/daangn?source=rss----4505f82a2dbd---4"/>
-      <outline type="rss" text="Deutscher Parnass" title="Deutscher Parnass" xmlUrl="http://blog.rss.naver.com/pamina7776" htmlUrl="https://blog.naver.com/pamina7776?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="BIG by Matt Stoller" title="BIG by Matt Stoller" xmlUrl="https://mattstoller.substack.com/feed/" htmlUrl="https://www.thebignewsletter.com"/>
       <outline type="rss" text="NOEMA" title="NOEMA" xmlUrl="https://www.noemamag.com/feed/" htmlUrl="https://www.noemamag.com"/>
       <outline type="rss" text="초록섬" title="초록섬" xmlUrl="http://blog.rss.naver.com/77attic.xml" htmlUrl="https://blog.naver.com/77attic?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="들꽃편지" title="들꽃편지" xmlUrl="http://blog.rss.naver.com/dhfodhfo00" htmlUrl="https://blog.naver.com/dhfodhfo00?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Smashing Coding" title="Smashing Coding" xmlUrl="http://rss1.smashingmagazine.com/feed/?f=coding-std" htmlUrl="https://www.smashingmagazine.com/"/>
-      <outline type="rss" text="Pluralistic: Daily links from Cory Doctorow" title="Pluralistic: Daily links from Cory Doctorow" xmlUrl="https://pluralistic.net/feed/" htmlUrl="https://pluralistic.net"/>
       <outline type="rss" text="My mail collection" title="My mail collection" xmlUrl="https://kill-the-newsletter.com/feeds/j50w0hwaltovoqbe.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="다초리의 숲속여행" title="다초리의 숲속여행" xmlUrl="http://blog.rss.naver.com/dachori" htmlUrl="https://blog.naver.com/dachori?fromRss=true&amp;trackingCode=rss"/>
-      <outline type="rss" text="더슬랭" title="더슬랭" xmlUrl="https://kill-the-newsletter.com/feeds/kwjtcd4zczxvd3ux.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="The Atlantic Photo" title="The Atlantic Photo" xmlUrl="http://feeds.feedburner.com/theatlantic/infocus" htmlUrl="https://www.theatlantic.com/photo/"/>
       <outline type="rss" text="우아한형제들 기술블로그" title="우아한형제들 기술블로그" xmlUrl="https://techblog.woowahan.com/feed/" htmlUrl="https://techblog.woowahan.com"/>
       <outline type="rss" text="Society | The Guardian" title="Society | The Guardian" xmlUrl="http://feeds.guardian.co.uk/theguardian/society/rss" htmlUrl="https://www.theguardian.com/society"/>
-    </outline>
-    <outline text="06-feeds-142py" title="06-feeds-142py">
       <outline type="rss" text="Thoughtworks Insights" title="Thoughtworks Insights" xmlUrl="http://www.thoughtworks.com/rss/insights.xml" htmlUrl="https://www.thoughtworks.com/insights"/>
-      <outline type="rss" text="미라클레터 MIRAKLE" title="미라클레터 MIRAKLE" xmlUrl="https://kill-the-newsletter.com/feeds/il59ouj8gko6nczv.xml" htmlUrl="https://kill-the-newsletter.com/"/>
+    </outline>
+    <outline text="05-feeds-146py" title="05-feeds-146py">
       <outline type="rss" text="Transactions on Computers - new TOC" title="Transactions on Computers - new TOC" xmlUrl="http://ieeexplore.ieee.org/rss/TOC12.XML" htmlUrl="http://ieeexplore.ieee.org"/>
       <outline type="rss" text="august 의 軍史世界" title="august 의 軍史世界" xmlUrl="http://blog.rss.naver.com/xqon1.xml" htmlUrl="https://blog.naver.com/xqon1?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="자연과 꽃과 여행 ... ♥" title="자연과 꽃과 여행 ... ♥" xmlUrl="http://blog.rss.naver.com/cychang2" htmlUrl="https://blog.naver.com/cychang2?fromRss=true&amp;trackingCode=rss"/>
@@ -344,15 +271,13 @@
       <outline type="rss" text="NASA Image of the Day (Large)" title="NASA Image of the Day (Large)" xmlUrl="http://www.nasa.gov/rss/lg_image_of_the_day.rss" htmlUrl="https://www.nasa.gov/image-of-the-day/"/>
       <outline type="rss" text="클리앙 : 나스당" title="클리앙 : 나스당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_nas" htmlUrl="https://www.clien.net/service/board/cm_nas"/>
       <outline type="rss" text="Science | The Guardian" title="Science | The Guardian" xmlUrl="http://feeds.guardian.co.uk/theguardian/science/rss" htmlUrl="https://www.theguardian.com/science"/>
-      <outline type="rss" text="Semafor" title="Semafor" xmlUrl="https://kill-the-newsletter.com/feeds/tbu27bmxwa20hou7.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="Explainers | Vox" title="Explainers | Vox" xmlUrl="http://www.vox.com/rss/explainers/index.xml" htmlUrl="https://www.vox.com/explainers"/>
       <outline type="rss" text="바다건너당" title="바다건너당" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/overseas" htmlUrl="https://damoang.net/overseas"/>
-    </outline>
-    <outline text="07-feeds-176py" title="07-feeds-176py">
       <outline type="rss" text="MakeUseOf.com » Linux" title="MakeUseOf.com » Linux" xmlUrl="http://www.makeuseof.com/service/linux/feed/" htmlUrl="https://www.makeuseof.com"/>
-      <outline type="rss" text="Truly님의 집." title="Truly님의 집." xmlUrl="http://blog.moneta.co.kr/rss/blog/chung110110/-1" htmlUrl="http://blog.moneta.co.kr/blog.screen?blogId=chung110110"/>
       <outline type="rss" text="O'Reilly Radar - Insight, analysis, and research about emerging technologies." title="O'Reilly Radar - Insight, analysis, and research about emerging technologies." xmlUrl="http://feeds2.feedburner.com/oreilly/radar/atom" htmlUrl="https://www.oreilly.com/radar"/>
       <outline type="rss" text="The Marginalian" title="The Marginalian" xmlUrl="https://www.brainpickings.org/feed/" htmlUrl="https://www.themarginalian.org"/>
+    </outline>
+    <outline text="06-feeds-186py" title="06-feeds-186py">
       <outline type="rss" text="Reasons to be Cheerful" title="Reasons to be Cheerful" xmlUrl="https://reasonstobecheerful.world/feed/" htmlUrl="https://reasonstobecheerful.world/"/>
       <outline type="rss" text="Terence Eden’s Blog" title="Terence Eden’s Blog" xmlUrl="https://shkspr.mobi/blog/feed/atom/" htmlUrl="https://shkspr.mobi/blog"/>
       <outline type="rss" text="Science News Explores" title="Science News Explores" xmlUrl="https://www.snexplores.org/feed" htmlUrl="https://www.snexplores.org"/>
@@ -360,237 +285,208 @@
       <outline type="rss" text="Rest of World -" title="Rest of World -" xmlUrl="https://restofworld.org/feed/" htmlUrl="https://restofworld.org"/>
       <outline type="rss" text="lines and colors :: a blog about drawing, painting, illustration, comics, concept art and other visual arts" title="lines and colors :: a blog about drawing, painting, illustration, comics, concept art and other visual arts" xmlUrl="http://www.linesandcolors.com/feed/" htmlUrl="https://linesandcolors.com"/>
       <outline type="rss" text="살려면 돌아다녀야 한다 돌아다니는 것만이 살 길이다" title="살려면 돌아다녀야 한다 돌아다니는 것만이 살 길이다" xmlUrl="http://blog.rss.naver.com/dondogi.xml" htmlUrl="https://blog.naver.com/dondogi?fromRss=true&amp;trackingCode=rss"/>
-    </outline>
-    <outline text="08-feeds-200py" title="08-feeds-200py">
       <outline type="rss" text="오른쪽 BEST BEST" title="오른쪽 BEST BEST" xmlUrl="https://rss.diffbot.com/rss?url=https://m.ruliweb.com/best/hit_history" htmlUrl="https://m.ruliweb.com/best/hit_history"/>
-      <outline type="rss" text="Axios Login" title="Axios Login" xmlUrl="https://kill-the-newsletter.com/feeds/gvzz5p2z99n3radr.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-      <outline type="rss" text="점선면" title="점선면" xmlUrl="https://kill-the-newsletter.com/feeds/7hutrnbzwt4u6px0.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="Quanta Magazine" title="Quanta Magazine" xmlUrl="http://www.quantamagazine.org/feed/" htmlUrl="https://www.quantamagazine.org"/>
       <outline type="rss" text="Otter Letter" title="Otter Letter" xmlUrl="https://kill-the-newsletter.com/feeds/xb7mtpdo9lil6zpi.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-      <outline type="rss" text="Noahpinion" title="Noahpinion" xmlUrl="https://noahpinion.substack.com/feed/" htmlUrl="https://www.noahpinion.blog"/>
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_world_edition/business/rss.xml" htmlUrl="https://www.bbc.co.uk/news/business"/>
+    </outline>
+    <outline text="07-feeds-218py" title="07-feeds-218py">
       <outline type="rss" text="디에디트" title="디에디트" xmlUrl="http://the-edit.co.kr/feed" htmlUrl="https://the-edit.co.kr"/>
       <outline type="rss" text="BBC Culture" title="BBC Culture" xmlUrl="http://www.bbc.com/culture/feed.rss" htmlUrl="https://www.bbc.com/"/>
       <outline type="rss" text="The Space Review" title="The Space Review" xmlUrl="http://www.thespacereview.com/articles.xml" htmlUrl="http://www.thespacereview.com/"/>
-    </outline>
-    <outline text="09-feeds-234py" title="09-feeds-234py">
-      <outline type="rss" text="Stratechery by Ben Thompson" title="Stratechery by Ben Thompson" xmlUrl="https://stratechery.com/feed/" htmlUrl="https://stratechery.com"/>
       <outline type="rss" text="피렌체의 식탁" title="피렌체의 식탁" xmlUrl="https://kill-the-newsletter.com/feeds/aip8onivzyqw2fqv.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="이충재의 인사이트" title="이충재의 인사이트" xmlUrl="https://kill-the-newsletter.com/feeds/zyvbiqfd0g0bbgb2.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="astrobites" title="astrobites" xmlUrl="http://astrobites.com/feed/" htmlUrl="https://astrobites.org"/>
       <outline type="rss" text="OTTER LETTER" title="OTTER LETTER" xmlUrl="https://otterletter.com/rss/" htmlUrl="https://otterletter.com/"/>
       <outline type="rss" text="차카게살자 우스며살자" title="차카게살자 우스며살자" xmlUrl="http://blog.rss.naver.com/zonmini.xml" htmlUrl="https://blog.naver.com/zonmini?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="개발한당" title="개발한당" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/development" htmlUrl="https://damoang.net/development"/>
-      <outline type="rss" text="Atlas Obscura" title="Atlas Obscura" xmlUrl="http://atlasobscura.com/rss.xml" htmlUrl="https://www.atlasobscura.com"/>
-      <outline type="rss" text="London Minute" title="London Minute" xmlUrl="https://londonminute.substack.com/feed" htmlUrl="https://londonminute.substack.com"/>
     </outline>
-    <outline text="10-feeds-248py" title="10-feeds-248py">
+    <outline text="08-feeds-247py" title="08-feeds-247py">
+      <outline type="rss" text="Atlas Obscura" title="Atlas Obscura" xmlUrl="http://atlasobscura.com/rss.xml" htmlUrl="https://www.atlasobscura.com"/>
       <outline type="rss" text="OnLondon" title="OnLondon" xmlUrl="https://onlondon.co.uk/feed/" htmlUrl="https://www.onlondon.co.uk/"/>
       <outline type="rss" text="MakeUseOf - iPhone" title="MakeUseOf - iPhone" xmlUrl="http://www.makeuseof.com/service/ios/feed/" htmlUrl="https://www.makeuseof.com"/>
-      <outline type="rss" text="Draco" title="Draco" xmlUrl="http://feeds.feedburner.com/dracokr" htmlUrl="https://draco.pe.kr"/>
       <outline type="rss" text="Money | The Guardian" title="Money | The Guardian" xmlUrl="http://feeds.guardian.co.uk/theguardian/money/rss" htmlUrl="https://www.theguardian.com/uk/money"/>
       <outline type="rss" text="ClickHouse Blog" title="ClickHouse Blog" xmlUrl="https://clickhouse.com/rss.xml" htmlUrl="https://clickhouse.com/blog"/>
       <outline type="rss" text="Music | The Guardian" title="Music | The Guardian" xmlUrl="http://feeds.guardian.co.uk/theguardian/music/rss" htmlUrl="https://www.theguardian.com/music"/>
       <outline type="rss" text="MakeUseOf - Technology News" title="MakeUseOf - Technology News" xmlUrl="http://www.makeuseof.com/service/news/feed/" htmlUrl="https://www.makeuseof.com"/>
-      <outline type="rss" text="The Download" title="The Download" xmlUrl="https://kill-the-newsletter.com/feeds/p51vej0aiihprsuu.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-    </outline>
-    <outline text="11-feeds-272py" title="11-feeds-272py">
       <outline type="rss" text="BBC Travel" title="BBC Travel" xmlUrl="http://www.bbc.com/travel/feed.rss" htmlUrl="https://www.bbc.com/"/>
+    </outline>
+    <outline text="09-feeds-275py" title="09-feeds-275py">
       <outline type="rss" text="자유게시판" title="자유게시판" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/free" htmlUrl="https://damoang.net/free"/>
       <outline type="rss" text="자전거당" title="자전거당" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/bicycle" htmlUrl="https://damoang.net/bicycle"/>
-      <outline type="rss" text="Matt Godbolt’s blog" title="Matt Godbolt’s blog" xmlUrl="https://xania.org/feed.atom" htmlUrl="http://xania.org/?utm_source=feed&amp;utm_medium=rss"/>
-      <outline type="rss" text="ㅍㅍㅅㅅ" title="ㅍㅍㅅㅅ" xmlUrl="http://feeds.feedburner.com/ppss" htmlUrl="https://ppss.kr"/>
       <outline type="rss" text="Longreads" title="Longreads" xmlUrl="http://longreads.com/rss" htmlUrl="https://longreads.com/"/>
-      <outline type="rss" text="ResearchBuzz" title="ResearchBuzz" xmlUrl="https://researchbuzz.me/feed/" htmlUrl="https://researchbuzz.me"/>
-    </outline>
-    <outline text="12-feeds-298py" title="12-feeds-298py">
       <outline type="rss" text="BBC Future" title="BBC Future" xmlUrl="http://www.bbc.com/future/feed.rss" htmlUrl="https://www.bbc.com/"/>
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_world_edition/technology/rss.xml" htmlUrl="https://www.bbc.co.uk/news/technology"/>
       <outline type="rss" text="News Shopper | Bexley" title="News Shopper | Bexley" xmlUrl="http://www.newsshopper.co.uk/news/bexley/rss/" htmlUrl="https://www.newsshopper.co.uk/news/bexley/"/>
       <outline type="rss" text="The Endeavour" title="The Endeavour" xmlUrl="http://feeds.feedburner.com/theendeavour" htmlUrl="https://www.johndcook.com/blog"/>
-      <outline type="rss" text="거리의 풍경" title="거리의 풍경" xmlUrl="http://blog.rss.naver.com/unviajero.xml" htmlUrl="https://blog.naver.com/unviajero?fromRss=true&amp;trackingCode=rss"/>
-      <outline type="rss" text="inyourarea" title="inyourarea" xmlUrl="https://kill-the-newsletter.com/feeds/ydfcvyh4m3nfvmsy.xml" htmlUrl="https://kill-the-newsletter.com/"/>
     </outline>
-    <outline text="13-feeds-363py" title="13-feeds-363py">
+    <outline text="10-feeds-336py" title="10-feeds-336py">
+      <outline type="rss" text="거리의 풍경" title="거리의 풍경" xmlUrl="http://blog.rss.naver.com/unviajero.xml" htmlUrl="https://blog.naver.com/unviajero?fromRss=true&amp;trackingCode=rss"/>
       <outline type="rss" text="Omg! Ubuntu!" title="Omg! Ubuntu!" xmlUrl="http://feeds.feedburner.com/d0od" htmlUrl="https://www.omgubuntu.co.uk/"/>
       <outline type="rss" text="FlowingData" title="FlowingData" xmlUrl="http://feeds.feedburner.com/FlowingData" htmlUrl="https://flowingdata.com"/>
       <outline type="rss" text="Toxel.com" title="Toxel.com" xmlUrl="http://feeds.feedburner.com/toxel" htmlUrl="https://www.toxel.com"/>
       <outline type="rss" text="Spitalfields Life" title="Spitalfields Life" xmlUrl="http://spitalfieldslife.com/feed/" htmlUrl="https://spitalfieldslife.com"/>
       <outline type="rss" text="Aeon | a world of ideas" title="Aeon | a world of ideas" xmlUrl="https://aeon.co/feed.rss" htmlUrl="https://aeon.co"/>
-      <outline type="rss" text="Merriam-Webster's Word of the Day" title="Merriam-Webster's Word of the Day" xmlUrl="http://www.merriam-webster.com/word/index.xml" htmlUrl="https://www.merriam-webster.com/word-of-the-day"/>
     </outline>
-    <outline text="14-feeds-365py" title="14-feeds-365py">
+    <outline text="11-feeds-365py" title="11-feeds-365py">
+      <outline type="rss" text="Merriam-Webster's Word of the Day" title="Merriam-Webster's Word of the Day" xmlUrl="http://www.merriam-webster.com/word/index.xml" htmlUrl="https://www.merriam-webster.com/word-of-the-day"/>
       <outline type="rss" text="Quotes of the Day" title="Quotes of the Day" xmlUrl="http://www.quotationspage.com/data/qotd.rss" htmlUrl="http://www.quotationspage.com/qotd.html"/>
       <outline type="rss" text="Dhananjay Kumar" title="Dhananjay Kumar" xmlUrl="http://debugmode.net/feed/" htmlUrl="https://debugmode.net"/>
       <outline type="rss" text="404 Media" title="404 Media" xmlUrl="https://www.404media.co/rss/" htmlUrl="https://www.404media.co/"/>
-      <outline type="rss" text="한겨레 곽노필 기자" title="한겨레 곽노필 기자" xmlUrl="https://rss.diffbot.com/rss?url=https://www.hani.co.kr/arti/JOURNALIST/7837a7b1" htmlUrl="https://www.hani.co.kr/arti/JOURNALIST/7837a7b1"/>
       <outline type="rss" text="클리앙 : 개발한당" title="클리앙 : 개발한당" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_app" htmlUrl="https://www.clien.net/service/board/cm_app"/>
     </outline>
-    <outline text="15-feeds-413py" title="15-feeds-413py">
+    <outline text="12-feeds-413py" title="12-feeds-413py">
       <outline type="rss" text="The Register - On-Prem: Personal Tech" title="The Register - On-Prem: Personal Tech" xmlUrl="http://www.theregister.co.uk/hardware/pc_chips/headlines.atom" htmlUrl="https://www.theregister.com/on_prem/personal_tech/"/>
       <outline type="rss" text="Global Voices in English » Feature" title="Global Voices in English » Feature" xmlUrl="http://globalvoicesonline.org/-/type/feature/feed/" htmlUrl="https://globalvoices.org"/>
       <outline type="rss" text="LWN.net featured content" title="LWN.net featured content" xmlUrl="http://lwn.net/headlines/Features" htmlUrl="https://lwn.net/Articles/"/>
-      <outline type="rss" text="OSnews" title="OSnews" xmlUrl="http://www.osnews.com/files/recent.xml" htmlUrl="https://www.osnews.com"/>
-    </outline>
-    <outline text="16-feeds-454py" title="16-feeds-454py">
       <outline type="rss" text="House of Commons Library" title="House of Commons Library" xmlUrl="https://commonslibrary.parliament.uk/feed/" htmlUrl="https://commonslibrary.parliament.uk/"/>
-      <outline type="rss" text="머니레터" title="머니레터" xmlUrl="https://kill-the-newsletter.com/feeds/bcbdcrii8gx5ef8u.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-      <outline type="rss" text="Cojette의 Data Wonderland" title="Cojette의 Data Wonderland" xmlUrl="https://cojette.github.io/feed.xml" htmlUrl="http://cojette.github.io/"/>
-      <outline type="rss" text="Open Culture" title="Open Culture" xmlUrl="https://www.openculture.com/feed" htmlUrl="https://www.openculture.com/"/>
     </outline>
-    <outline text="17-feeds-516py" title="17-feeds-516py">
+    <outline text="13-feeds-472py" title="13-feeds-472py">
+      <outline type="rss" text="Cojette의 Data Wonderland" title="Cojette의 Data Wonderland" xmlUrl="https://cojette.github.io/feed.xml" htmlUrl="http://cojette.github.io/"/>
       <outline type="rss" text="Environment news, comment and analysis | guardian.co.uk" title="Environment news, comment and analysis | guardian.co.uk" xmlUrl="http://feeds.guardian.co.uk/theguardian/environment/rss" htmlUrl="https://www.theguardian.com/us/environment"/>
       <outline type="rss" text="ProPublica" title="ProPublica" xmlUrl="http://feeds.propublica.org/propublica/main" htmlUrl="https://www.propublica.org/"/>
-      <outline type="rss" text="기사" title="기사" xmlUrl="http://www.ddanzi.com/ddanziNews/rss" htmlUrl="https://www.ddanzi.com/ddanziNews"/>
     </outline>
-    <outline text="18-feeds-624py" title="18-feeds-624py">
+    <outline text="14-feeds-624py" title="14-feeds-624py">
       <outline type="rss" text="freeCodeCamp Programming Tutorials: Python, JavaScript, Git &amp; More" title="freeCodeCamp Programming Tutorials: Python, JavaScript, Git &amp; More" xmlUrl="https://www.freecodecamp.org/news/rss/" htmlUrl="https://www.freecodecamp.org/news/"/>
       <outline type="rss" text="MIT Technology Review via ifttt" title="MIT Technology Review via ifttt" xmlUrl="https://kill-the-newsletter.com/feeds/umtle7x9bi18ltj1.xml" htmlUrl="https://kill-the-newsletter.com/"/>
       <outline type="rss" text="Reactor" title="Reactor" xmlUrl="https://reactormag.com/feed/" htmlUrl="https://reactormag.com/"/>
     </outline>
-    <outline text="19-feeds-669py" title="19-feeds-669py">
+    <outline text="15-feeds-669py" title="15-feeds-669py">
       <outline type="rss" text="Everything" title="Everything" xmlUrl="http://www.newyorker.com/services/mrss/feeds/everything.xml" htmlUrl="https://www.newyorker.com"/>
       <outline type="rss" text="Opinion | The Guardian" title="Opinion | The Guardian" xmlUrl="http://feeds.theguardian.com/theguardian/us/commentisfree/rss" htmlUrl="https://www.theguardian.com/us/commentisfree"/>
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/england/london/rss.xml" htmlUrl="https://www.bbc.co.uk/news/england/london"/>
     </outline>
-    <outline text="20-feeds-737py" title="20-feeds-737py">
-      <outline type="rss" text="슬로우뉴스." title="슬로우뉴스." xmlUrl="http://feeds.feedburner.com/slownews" htmlUrl="https://slownews.kr"/>
+    <outline text="16-feeds-760py" title="16-feeds-760py">
       <outline type="rss" text="Ubergizmo" title="Ubergizmo" xmlUrl="http://www.ubergizmo.com/index.xml" htmlUrl="https://www.ubergizmo.com"/>
-      <outline type="rss" text="ianVisits" title="ianVisits" xmlUrl="https://www.ianvisits.co.uk/articles/feed/" htmlUrl="https://www.ianvisits.co.uk/articles"/>
-    </outline>
-    <outline text="21-feeds-812py" title="21-feeds-812py">
-      <outline type="rss" text="Simon Willison's Weblog" title="Simon Willison's Weblog" xmlUrl="https://simonwillison.net/atom/everything/" htmlUrl="http://simonwillison.net/"/>
       <outline type="rss" text="UK news | The Guardian" title="UK news | The Guardian" xmlUrl="http://feeds.theguardian.com/theguardian/uk-news/rss" htmlUrl="https://www.theguardian.com/uk-news"/>
       <outline type="rss" text="Computing | The Guardian" title="Computing | The Guardian" xmlUrl="http://www.guardian.co.uk/technology/computing/rss" htmlUrl="https://www.theguardian.com/technology/computing"/>
     </outline>
-    <outline text="22-feeds-883py" title="22-feeds-883py">
-      <outline type="rss" text="Londonist" title="Londonist" xmlUrl="http://www.londonist.com/index.rdf" htmlUrl="https://londonist.com/"/>
+    <outline text="17-feeds-904py" title="17-feeds-904py">
       <outline type="rss" text="Lemmy - technology" title="Lemmy - technology" xmlUrl="https://lemmy.ml/feeds/c/technology.xml?sort=Hot" htmlUrl="https://lemmy.ml/c/technology"/>
       <outline type="rss" text="Culture | The Guardian" title="Culture | The Guardian" xmlUrl="http://feeds.guardian.co.uk/theguardian/culture/rss" htmlUrl="https://www.theguardian.com/us/culture"/>
-    </outline>
-    <outline text="23-feeds-1049py" title="23-feeds-1049py">
       <outline type="rss" text="국가데이터처 공식 블로그" title="국가데이터처 공식 블로그" xmlUrl="http://blog.rss.naver.com/hi_nso.xml" htmlUrl="https://blog.naver.com/hi_nso?fromRss=true&amp;trackingCode=rss"/>
+    </outline>
+    <outline text="18-feeds-1056py" title="18-feeds-1056py">
       <outline type="rss" text="Vox" title="Vox" xmlUrl="http://www.vox.com/rss/index.xml" htmlUrl="https://www.vox.com"/>
       <outline type="rss" text="Nautilus" title="Nautilus" xmlUrl="https://nautil.us/feed/" htmlUrl="https://nautil.us/"/>
-    </outline>
-    <outline text="24-feeds-1136py" title="24-feeds-1136py">
       <outline type="rss" text="The Independent" title="The Independent" xmlUrl="http://www.independent.co.uk/rss" htmlUrl="https://www.independent.co.uk/rss"/>
+    </outline>
+    <outline text="19-feeds-1176py" title="19-feeds-1176py">
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://newsrss.bbc.co.uk/rss/newsonline_uk_edition/uk/rss.xml" htmlUrl="https://www.bbc.co.uk/news/uk"/>
       <outline type="rss" text="Techdirt" title="Techdirt" xmlUrl="http://www.techdirt.com/techdirt_rss.xml" htmlUrl="https://www.techdirt.com"/>
-    </outline>
-    <outline text="25-feeds-1270py" title="25-feeds-1270py">
       <outline type="rss" text="TechBlogPosts" title="TechBlogPosts" xmlUrl="https://techblogposts.com/rss.xml" htmlUrl="https://techblogposts.com/"/>
+    </outline>
+    <outline text="20-feeds-1383py" title="20-feeds-1383py">
       <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://news.bbc.co.uk/rss/newsonline_world_edition/entertainment/rss.xml" htmlUrl="https://www.bbc.co.uk/news/entertainment_and_arts"/>
       <outline type="rss" text="National Review" title="National Review" xmlUrl="http://www.nationalreview.com/rss.xml" htmlUrl="https://www.nationalreview.com"/>
-    </outline>
-    <outline text="26-feeds-1406py" title="26-feeds-1406py">
       <outline type="rss" text="굴러간당" title="굴러간당" xmlUrl="https://rss.diffbot.com/rss?url=https://damoang.net/car" htmlUrl="https://damoang.net/car"/>
-      <outline type="rss" text="nextdoor" title="nextdoor" xmlUrl="https://kill-the-newsletter.com/feeds/xefr0c4c7gji5woo.xml" htmlUrl="https://kill-the-newsletter.com/"/>
-      <outline type="rss" text="Bear Blog Trending Posts" title="Bear Blog Trending Posts" xmlUrl="https://bearblog.dev/discover/feed/" htmlUrl="https://bearblog.dev/discover/"/>
     </outline>
-    <outline text="27-feeds-1454py" title="27-feeds-1454py">
+    <outline text="21-feeds-1447py" title="21-feeds-1447py">
+      <outline type="rss" text="Bear Blog Trending Posts" title="Bear Blog Trending Posts" xmlUrl="https://bearblog.dev/discover/feed/" htmlUrl="https://bearblog.dev/discover/"/>
       <outline type="rss" text="Informed Comment" title="Informed Comment" xmlUrl="http://www.juancole.com/feed/atom" htmlUrl="https://www.juancole.com"/>
       <outline type="rss" text="Hacker News" title="Hacker News" xmlUrl="http://news.ycombinator.com/rss" htmlUrl="https://news.ycombinator.com/"/>
-      <outline type="rss" text="Universe Today" title="Universe Today" xmlUrl="http://www.universetoday.com/universetoday.xml" htmlUrl="https://www.universetoday.com"/>
     </outline>
-    <outline text="28-feeds-1489py" title="28-feeds-1489py">
+    <outline text="22-feeds-1467py" title="22-feeds-1467py">
+      <outline type="rss" text="Universe Today" title="Universe Today" xmlUrl="http://www.universetoday.com/universetoday.xml" htmlUrl="https://www.universetoday.com"/>
       <outline type="rss" text="Time Out London" title="Time Out London" xmlUrl="http://www.timeout.com/london/blog/feed.rss" htmlUrl="https://www.timeout.com/london"/>
       <outline type="rss" text="Lobsters: Top Stories of the Past Week" title="Lobsters: Top Stories of the Past Week" xmlUrl="https://lobste.rs/top/rss" htmlUrl="https://lobste.rs/"/>
-      <outline type="rss" text="InfoQ" title="InfoQ" xmlUrl="http://www.infoq.com/rss/rss.action" htmlUrl="https://www.infoq.com"/>
     </outline>
-    <outline text="29-feeds-1679py" title="29-feeds-1679py">
+    <outline text="23-feeds-1554py" title="23-feeds-1554py">
+      <outline type="rss" text="InfoQ" title="InfoQ" xmlUrl="http://www.infoq.com/rss/rss.action" htmlUrl="https://www.infoq.com"/>
       <outline type="rss" text="TweakTown News RSS Feed" title="TweakTown News RSS Feed" xmlUrl="http://feeds.feedburner.com/TweaktownNewsRss" htmlUrl="https://www.tweaktown.com/news/index.html"/>
       <outline type="rss" text="오마이뉴스 - 여행" title="오마이뉴스 - 여행" xmlUrl="http://rss.ohmynews.com/rss/travel.xml" htmlUrl="https://www.ohmynews.com/"/>
-      <outline type="rss" text="Which? News" title="Which? News" xmlUrl="http://www.which.co.uk/feeds/news.xml" htmlUrl="https://www.which.co.uk/news"/>
     </outline>
-    <outline text="30-feeds-1796py" title="30-feeds-1796py">
+    <outline text="24-feeds-1783py" title="24-feeds-1783py">
+      <outline type="rss" text="Which? News" title="Which? News" xmlUrl="http://www.which.co.uk/feeds/news.xml" htmlUrl="https://www.which.co.uk/news"/>
       <outline type="rss" text="Discover Blogs" title="Discover Blogs" xmlUrl="http://feeds.feedburner.com/DiscoverBlogs" htmlUrl="https://www.discovermagazine.com/rss/all"/>
       <outline type="rss" text="Deutsche Welle" title="Deutsche Welle" xmlUrl="http://rss.dw-world.de/rdf/rss-en-all" htmlUrl="https://www.dw.com/english/?maca=en-rss-en-all-1573-rdf"/>
-      <outline type="rss" text="The Guardian" title="The Guardian" xmlUrl="https://www.theguardian.com/uk/rss" htmlUrl="https://www.theguardian.com/uk"/>
     </outline>
-    <outline text="31-feeds-1987py" title="31-feeds-1987py">
+    <outline text="25-feeds-1900py" title="25-feeds-1900py">
+      <outline type="rss" text="The Guardian" title="The Guardian" xmlUrl="https://www.theguardian.com/uk/rss" htmlUrl="https://www.theguardian.com/uk"/>
       <outline type="rss" text="Quartz" title="Quartz" xmlUrl="http://qz.com/feed/" htmlUrl="https://qz.com"/>
       <outline type="rss" text="The Free Press" title="The Free Press" xmlUrl="https://bariweiss.substack.com/feed/" htmlUrl="https://www.thefp.com"/>
-      <outline type="rss" text="Ars Technica - All content" title="Ars Technica - All content" xmlUrl="http://feeds.arstechnica.com/arstechnica/index/" htmlUrl="https://arstechnica.com"/>
     </outline>
-    <outline text="32-feeds-2327py" title="32-feeds-2327py">
+    <outline text="26-feeds-2215py" title="26-feeds-2215py">
+      <outline type="rss" text="Ars Technica - All content" title="Ars Technica - All content" xmlUrl="http://feeds.arstechnica.com/arstechnica/index/" htmlUrl="https://arstechnica.com"/>
       <outline type="rss" text="The Register" title="The Register" xmlUrl="http://www.theregister.co.uk/excerpts.rss" htmlUrl="https://www.theregister.com/"/>
       <outline type="rss" text="Cycling UK Forum" title="Cycling UK Forum" xmlUrl="https://forum.cyclinguk.org/app.php/feed/topics?sid=741a57a35bb2ba7efc6307b71d2d3f27" htmlUrl="https://forum.cyclinguk.org/index.php"/>
-      <outline type="rss" text="Lifehacker" title="Lifehacker" xmlUrl="http://lifehacker.com/vip.xml" htmlUrl="https://lifehacker.com/feed/rss"/>
     </outline>
-    <outline text="33-feeds-2434py" title="33-feeds-2434py">
+    <outline text="27-feeds-2389py" title="27-feeds-2389py">
+      <outline type="rss" text="Lifehacker" title="Lifehacker" xmlUrl="http://lifehacker.com/vip.xml" htmlUrl="https://lifehacker.com/feed/rss"/>
       <outline type="rss" text="ScienceDaily: Latest Science News" title="ScienceDaily: Latest Science News" xmlUrl="http://www.sciencedaily.com/newsfeed.xml" htmlUrl="https://www.sciencedaily.com"/>
       <outline type="rss" text="World news | The Guardian" title="World news | The Guardian" xmlUrl="http://feeds.guardian.co.uk/theguardian/world/rss" htmlUrl="https://www.theguardian.com/world"/>
-      <outline type="rss" text="The Verge" title="The Verge" xmlUrl="http://www.theverge.com/rss/full.xml" htmlUrl="https://www.theverge.com"/>
     </outline>
-    <outline text="34-feeds-2681py" title="34-feeds-2681py">
+    <outline text="28-feeds-2646py" title="28-feeds-2646py">
+      <outline type="rss" text="The Verge" title="The Verge" xmlUrl="http://www.theverge.com/rss/full.xml" htmlUrl="https://www.theverge.com"/>
       <outline type="rss" text="경향신문:IT.과학" title="경향신문:IT.과학" xmlUrl="http://www.khan.co.kr/rss/rssdata/it_news.xml" htmlUrl="http://www.khan.co.kr/rss/rssdata/"/>
       <outline type="rss" text="CONNECTING HEARTS! 커뮤니티 포털 디시인사이드입니다." title="CONNECTING HEARTS! 커뮤니티 포털 디시인사이드입니다." xmlUrl="https://rss.diffbot.com/rss?url=https://www.dcinside.com/" htmlUrl="https://www.dcinside.com/"/>
-      <outline type="rss" text="Hack a Day" title="Hack a Day" xmlUrl="http://hackaday.com/feed/" htmlUrl="https://hackaday.com"/>
     </outline>
-    <outline text="35-feeds-3025py" title="35-feeds-3025py">
+    <outline text="29-feeds-2921py" title="29-feeds-2921py">
+      <outline type="rss" text="Hack a Day" title="Hack a Day" xmlUrl="http://hackaday.com/feed/" htmlUrl="https://hackaday.com"/>
       <outline type="rss" text="Phoronix" title="Phoronix" xmlUrl="http://www.phoronix.com/rss.php" htmlUrl="https://www.phoronix.com/"/>
       <outline type="rss" text="Axios" title="Axios" xmlUrl="https://www.axios.com/feeds/feed.rss" htmlUrl="https://www.axios.com/"/>
-      <outline type="rss" text="SPACE.com" title="SPACE.com" xmlUrl="http://www.space.com/syn/space.xml" htmlUrl="https://www.space.com"/>
     </outline>
-    <outline text="36-feeds-3442py" title="36-feeds-3442py">
+    <outline text="30-feeds-3406py" title="30-feeds-3406py">
+      <outline type="rss" text="SPACE.com" title="SPACE.com" xmlUrl="http://www.space.com/syn/space.xml" htmlUrl="https://www.space.com"/>
       <outline type="rss" text="Business | The Guardian" title="Business | The Guardian" xmlUrl="http://www.guardian.co.uk/business/rss" htmlUrl="https://www.theguardian.com/us/business"/>
       <outline type="rss" text="오늘의유머" title="오늘의유머" xmlUrl="https://rss.diffbot.com/rss?url=http://m.todayhumor.co.kr/list.php?table%3Dbestofbest" htmlUrl="http://m.todayhumor.co.kr/list.php?table=bestofbest"/>
-      <outline type="rss" text="미디어스 - 최근인기기사" title="미디어스 - 최근인기기사" xmlUrl="http://www.mediaus.co.kr/rss/clickTop.xml" htmlUrl="https://www.mediaus.co.kr"/>
     </outline>
-    <outline text="37-feeds-3673py" title="37-feeds-3673py">
+    <outline text="31-feeds-3514py" title="31-feeds-3514py">
+      <outline type="rss" text="미디어스 - 최근인기기사" title="미디어스 - 최근인기기사" xmlUrl="http://www.mediaus.co.kr/rss/clickTop.xml" htmlUrl="https://www.mediaus.co.kr"/>
       <outline type="rss" text="Semafor" title="Semafor" xmlUrl="https://www.semafor.com/rss.xml" htmlUrl="https://www.semafor.com"/>
       <outline type="rss" text="KentOnline News" title="KentOnline News" xmlUrl="http://www.kentonline.co.uk/feeds/kent_online_news_feed.xml" htmlUrl="http://www.kentonline.co.uk/"/>
-      <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://feeds.bbci.co.uk/news/world/rss.xml" htmlUrl="https://www.bbc.co.uk/news/world"/>
     </outline>
-    <outline text="38-feeds-4073py" title="38-feeds-4073py">
+    <outline text="32-feeds-3910py" title="32-feeds-3910py">
+      <outline type="rss" text="BBC News" title="BBC News" xmlUrl="http://feeds.bbci.co.uk/news/world/rss.xml" htmlUrl="https://www.bbc.co.uk/news/world"/>
       <outline type="rss" text="Cycling UK Forum" title="Cycling UK Forum" xmlUrl="https://forum.cyclinguk.org/app.php/feed/forum/55?sid=c640585fb4d2be3887a7e8505b9de849" htmlUrl="https://forum.cyclinguk.org/index.php"/>
       <outline type="rss" text="LessWrong" title="LessWrong" xmlUrl="http://lesswrong.com/.rss" htmlUrl="https://www.lesswrong.com"/>
-      <outline type="rss" text="Engadget" title="Engadget" xmlUrl="http://www.engadget.com/rss.xml" htmlUrl="http://www.engadget.com"/>
     </outline>
-    <outline text="39-feeds-4477py" title="39-feeds-4477py">
+    <outline text="33-feeds-4303py" title="33-feeds-4303py">
+      <outline type="rss" text="Engadget" title="Engadget" xmlUrl="http://www.engadget.com/rss.xml" htmlUrl="http://www.engadget.com"/>
       <outline type="rss" text="Kagi News - Gaming" title="Kagi News - Gaming" xmlUrl="https://kite.kagi.com/gaming.xml" htmlUrl="https://kite.kagi.com/gaming.xml"/>
       <outline type="rss" text="전체 BEST" title="전체 BEST" xmlUrl="https://rss.diffbot.com/rss?url=https://m.ruliweb.com/best/all" htmlUrl="https://m.ruliweb.com/best/all"/>
-      <outline type="rss" text="Slashdot" title="Slashdot" xmlUrl="http://rss.slashdot.org/Slashdot/slashdot" htmlUrl="https://slashdot.org/"/>
     </outline>
-    <outline text="40-feeds-4842py" title="40-feeds-4842py">
+    <outline text="34-feeds-4800py" title="34-feeds-4800py">
+      <outline type="rss" text="Slashdot" title="Slashdot" xmlUrl="http://rss.slashdot.org/Slashdot/slashdot" htmlUrl="https://slashdot.org/"/>
       <outline type="rss" text="오늘의뉴스" title="오늘의뉴스" xmlUrl="http://rss.etnews.co.kr/Section901.xml" htmlUrl="https://www.etnews.com"/>
       <outline type="rss" text="GeekNews - 개발/기술/스타트업 뉴스 서비스" title="GeekNews - 개발/기술/스타트업 뉴스 서비스" xmlUrl="https://news.hada.io/rss/news" htmlUrl="https://news.hada.io"/>
-      <outline type="rss" text="오마이뉴스 - 사회" title="오마이뉴스 - 사회" xmlUrl="http://rss.ohmynews.com/rss/society.xml" htmlUrl="https://www.ohmynews.com/"/>
     </outline>
-    <outline text="41-feeds-5125py" title="41-feeds-5125py">
+    <outline text="35-feeds-5078py" title="35-feeds-5078py">
+      <outline type="rss" text="오마이뉴스 - 사회" title="오마이뉴스 - 사회" xmlUrl="http://rss.ohmynews.com/rss/society.xml" htmlUrl="https://www.ohmynews.com/"/>
       <outline type="rss" text="The Independent UK" title="The Independent UK" xmlUrl="http://www.independent.co.uk/news/uk/rss" htmlUrl="https://www.independent.co.uk/news/uk/rss"/>
       <outline type="rss" text="미디어오늘 - 전체기사" title="미디어오늘 - 전체기사" xmlUrl="http://www.mediatoday.co.kr/rss/allArticle.xml" htmlUrl="https://www.mediatoday.co.kr"/>
-      <outline type="rss" text="Hacker News: Best Comments" title="Hacker News: Best Comments" xmlUrl="https://hnrss.org/bestcomments" htmlUrl="https://news.ycombinator.com/bestcomments"/>
     </outline>
-    <outline text="42-feeds-5553py" title="42-feeds-5553py">
+    <outline text="36-feeds-5378py" title="36-feeds-5378py">
+      <outline type="rss" text="Hacker News: Best Comments" title="Hacker News: Best Comments" xmlUrl="https://hnrss.org/bestcomments" htmlUrl="https://news.ycombinator.com/bestcomments"/>
       <outline type="rss" text="Techmeme" title="Techmeme" xmlUrl="http://www.techmeme.com/index.xml" htmlUrl="http://www.techmeme.com/"/>
       <outline type="rss" text="Kagi News - Business" title="Kagi News - Business" xmlUrl="https://kite.kagi.com/business.xml" htmlUrl="https://kite.kagi.com/business.xml"/>
-      <outline type="rss" text="Kagi News - World" title="Kagi News - World" xmlUrl="https://kite.kagi.com/world.xml" htmlUrl="https://kite.kagi.com/world.xml"/>
     </outline>
-    <outline text="43-feeds-6570py" title="43-feeds-6570py">
+    <outline text="37-feeds-6268py" title="37-feeds-6268py">
+      <outline type="rss" text="Kagi News - World" title="Kagi News - World" xmlUrl="https://kite.kagi.com/world.xml" htmlUrl="https://kite.kagi.com/world.xml"/>
       <outline type="rss" text="freshnews.org - most clicked links" title="freshnews.org - most clicked links" xmlUrl="http://feeds.feedburner.com/FreshnewsMostClicked" htmlUrl="https://www.freshnews.org"/>
       <outline type="rss" text="Main section | The Guardian" title="Main section | The Guardian" xmlUrl="http://www.guardian.co.uk/theguardian/mainsection/rss" htmlUrl="https://www.theguardian.com/theguardian/mainsection"/>
-      <outline type="rss" text="Kagi News - Technology" title="Kagi News - Technology" xmlUrl="https://kite.kagi.com/tech.xml" htmlUrl="https://kite.kagi.com/tech.xml"/>
     </outline>
-    <outline text="44-feeds-7469py" title="44-feeds-7469py">
+    <outline text="38-feeds-7375py" title="38-feeds-7375py">
+      <outline type="rss" text="Kagi News - Technology" title="Kagi News - Technology" xmlUrl="https://kite.kagi.com/tech.xml" htmlUrl="https://kite.kagi.com/tech.xml"/>
       <outline type="rss" text="뉴스톱 - 전체기사" title="뉴스톱 - 전체기사" xmlUrl="http://www.newstof.com/rss/allArticle.xml" htmlUrl="https://www.newstopkorea.com"/>
       <outline type="rss" text="Kagi News - Science" title="Kagi News - Science" xmlUrl="https://kite.kagi.com/science.xml" htmlUrl="https://kite.kagi.com/science.xml"/>
-      <outline type="rss" text="Mashable!" title="Mashable!" xmlUrl="http://feeds2.feedburner.com/Mashable" htmlUrl="https://mashable.com"/>
     </outline>
-    <outline text="45-feeds-13227py" title="45-feeds-13227py">
+    <outline text="39-feeds-8646py" title="39-feeds-8646py">
+      <outline type="rss" text="Mashable!" title="Mashable!" xmlUrl="http://feeds2.feedburner.com/Mashable" htmlUrl="https://mashable.com"/>
       <outline type="rss" text="경향신문:사회" title="경향신문:사회" xmlUrl="http://www.khan.co.kr/rss/rssdata/society_news.xml" htmlUrl="http://www.khan.co.kr/rss/rssdata/"/>
       <outline type="rss" text="Features | The Guardian" title="Features | The Guardian" xmlUrl="http://www.guardian.co.uk/tone/features/rss" htmlUrl="https://www.theguardian.com/tone/features"/>
-      <outline type="rss" text="reddit: the front page of the internet" title="reddit: the front page of the internet" xmlUrl="http://programming.reddit.com/.rss" htmlUrl="https://www.reddit.com/"/>
     </outline>
-    <outline text="46-feeds-19192py" title="46-feeds-19192py">
+    <outline text="40-feeds-18030py" title="40-feeds-18030py">
+      <outline type="rss" text="reddit: the front page of the internet" title="reddit: the front page of the internet" xmlUrl="http://programming.reddit.com/.rss" htmlUrl="https://www.reddit.com/"/>
       <outline type="rss" text="경향신문:전체기사" title="경향신문:전체기사" xmlUrl="http://www.khan.co.kr/rss/rssdata/total_news.xml" htmlUrl="http://www.khan.co.kr/rss/rssdata/"/>
       <outline type="rss" text="News - South China Morning Post" title="News - South China Morning Post" xmlUrl="http://www.scmp.com/rss/91/feed" htmlUrl="https://www.scmp.com/rss/91/feed"/>
-      <outline type="rss" text="클리앙 : 모두의공원" title="클리앙 : 모두의공원" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/park" htmlUrl="https://www.clien.net/service/board/park"/>
     </outline>
-    <outline text="47-feeds-147135py" title="47-feeds-147135py">
+    <outline text="41-feeds-83856py" title="41-feeds-83856py">
+      <outline type="rss" text="클리앙 : 모두의공원" title="클리앙 : 모두의공원" xmlUrl="https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/park" htmlUrl="https://www.clien.net/service/board/park"/>
       <outline type="rss" text="박태웅" title="박태웅" xmlUrl="https://brunch.co.kr/rss/@@Qk4" htmlUrl="https://brunch.co.kr/@@Qk4"/>
       <outline type="rss" text="Standard Ebooks - Newest Ebooks" title="Standard Ebooks - Newest Ebooks" xmlUrl="https://standardebooks.org/feeds/atom/new-releases" htmlUrl="https://standardebooks.org/feeds/atom/new-releases"/>
+    </outline>
+    <outline text="42-feeds-31536000py" title="42-feeds-31536000py">
       <outline type="rss" text="Computer - new TOC" title="Computer - new TOC" xmlUrl="http://ieeexplore.ieee.org/rss/TOC2.XML" htmlUrl="http://ieeexplore.ieee.org"/>
     </outline>
   </body>
