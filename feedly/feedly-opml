@@ -1,13 +1,87 @@
 #!/usr/bin/env -S uv run --script
 # /// script
-# dependencies = ["requests", "xml.etree.ElementTree"]
+# dependencies = ["requests", "feedparser", "python-dateutil"]
 # ///
 
 import requests
 import xml.etree.ElementTree as ET
+import feedparser
 import sys
+import json
+from datetime import datetime, timedelta
+from dateutil import parser as date_parser
+
+def get_feed_frequency(feed_url):
+    """Estimate posting frequency by checking recent entries"""
+    try:
+        # Parse the RSS/Atom feed
+        feed = feedparser.parse(feed_url)
+        
+        if not feed.entries:
+            return 0
+        
+        # Get dates of recent entries
+        dates = []
+        for entry in feed.entries[:10]:  # Check last 10 entries
+            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                dates.append(datetime(*entry.published_parsed[:6]))
+            elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                dates.append(datetime(*entry.updated_parsed[:6]))
+        
+        if len(dates) < 2:
+            return "Insufficient data"
+        
+        # Calculate average time between posts
+        dates.sort(reverse=True)  # Most recent first
+        intervals = []
+        for i in range(len(dates) - 1):
+            interval = dates[i] - dates[i + 1]
+            intervals.append(interval.total_seconds() / 86400)  # Convert to days
+        
+        avg_days = sum(intervals) / len(intervals)
+        
+        # Return posts per week as standard unit
+        posts_per_week = 7 / avg_days if avg_days > 0 else 0
+        return round(posts_per_week, 2)
+            
+    except Exception as e:
+        return 0
 
 def parse_opml(file_path):
+    """Parse OPML file and extract feed information"""
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        
+        feeds = []
+        
+        # Build a map of parent-child relationships
+        parent_map = {c: p for p in tree.iter() for c in p}
+        
+        # Find all outline elements (feeds and categories)
+        for outline in root.findall('.//outline'):
+            # Check if it's a feed (has xmlUrl) or category
+            xml_url = outline.get('xmlUrl')
+            if xml_url:  # It's a feed
+                feed = {
+                    'title': outline.get('title', outline.get('text', 'Unknown')),
+                    'url': outline.get('htmlUrl', xml_url),
+                    'feed_url': xml_url,
+                    'category': 'Uncategorized'
+                }
+                
+                # Find parent category
+                parent = parent_map.get(outline)
+                if parent is not None and parent.get('title'):
+                    feed['category'] = parent.get('title')
+                
+                feeds.append(feed)
+        
+        return feeds
+        
+    except Exception as e:
+        print(f"Error parsing OPML: {e}")
+        return []
     """Parse OPML file and extract feed information"""
     try:
         tree = ET.parse(file_path)
@@ -60,4 +134,9 @@ if __name__ == "__main__":
         print(f"   URL: {feed['url']}")
         print(f"   Feed URL: {feed['feed_url']}")
         print(f"   Category: {feed['category']}")
+        
+        # Get posting frequency
+        print("   Checking frequency...", end=" ", flush=True)
+        frequency = get_feed_frequency(feed['feed_url'])
+        print(f"Frequency: {frequency}")
         print("-" * 80)
