@@ -86,6 +86,17 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Properly implemented week-based skipping logic
    - Much more memory efficient for large datasets
 
+15. **Fixed Korean encoding issues**
+   - Request: Korean text broken in output file
+   - Added explicit UTF-8 encoding for file operations
+   - Used ensure_ascii=False in JSON dumps to preserve Korean characters
+
+16. **Fixed multiple categories support**
+   - Request: Feeds can be in multiple categories, not just one
+   - Updated OPML parsing to walk up the tree and collect all parent categories
+   - Changed from single 'category' field to 'categories' array
+   - Categories are ordered from top-level to most specific
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies
