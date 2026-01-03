@@ -7,9 +7,10 @@ import sys
 from datetime import datetime
 
 def load_feeds(jsonl_file):
-    feeds = []
+    working_feeds = []
+    excluded_feeds = []
+    unprocessed_feeds = []
     excluded_categories = ["다읽기", "뉴스레터"]
-    excluded_count = 0
     
     with open(jsonl_file, 'r', encoding='utf-8') as f:
         for line in f:
@@ -18,14 +19,16 @@ def load_feeds(jsonl_file):
                 
                 # Check if feed has any excluded categories
                 if any(cat in excluded_categories for cat in feed.get('categories', [])):
-                    excluded_count += 1
-                    continue
-                    
-                if feed['status'] == 'OK' and feed['posts_per_year'] > 0:
-                    feeds.append(feed)
+                    excluded_feeds.append(feed)
+                elif feed['status'] == 'OK' and feed['posts_per_year'] > 0:
+                    working_feeds.append(feed)
+                else:
+                    unprocessed_feeds.append(feed)
     
-    print(f"Excluded {excluded_count} feeds from categories: {', '.join(excluded_categories)}")
-    return feeds
+    print(f"Found {len(working_feeds)} working feeds, {len(unprocessed_feeds)} unprocessed/failed feeds")
+    print(f"Excluded {len(excluded_feeds)} feeds from categories: {', '.join(excluded_categories)} (preserved in original categories)")
+    
+    return working_feeds, unprocessed_feeds, excluded_feeds
 
 def calculate_daily_posts(posts_per_year):
     daily = posts_per_year / 365
@@ -67,7 +70,7 @@ def categorize_feeds(feeds):
     
     return categories
 
-def create_opml(categories):
+def create_opml(categories, unprocessed_feeds, excluded_feeds):
     opml = ET.Element('opml', version='1.0')
     head = ET.SubElement(opml, 'head')
     ET.SubElement(head, 'title').text = 'Feedly Feeds - Categorized'
@@ -75,6 +78,7 @@ def create_opml(categories):
     
     body = ET.SubElement(opml, 'body')
     
+    # Add categorized working feeds
     for category in categories:
         outline = ET.SubElement(body, 'outline', text=category['name'], title=category['name'])
         
@@ -86,23 +90,62 @@ def create_opml(categories):
                          xmlUrl=feed['feed_url'],
                          htmlUrl=feed['url'])
     
+    # Add unprocessed/failed feeds to a separate category
+    if unprocessed_feeds:
+        unprocessed_outline = ET.SubElement(body, 'outline', text='99-unprocessed', title='99-unprocessed')
+        for feed in unprocessed_feeds:
+            ET.SubElement(unprocessed_outline, 'outline',
+                         type='rss', 
+                         text=feed['title'],
+                         title=feed['title'],
+                         xmlUrl=feed['feed_url'],
+                         htmlUrl=feed['url'])
+    
+    # Add excluded feeds in their original categories
+    excluded_by_category = {}
+    for feed in excluded_feeds:
+        for category in feed['categories']:
+            if category not in excluded_by_category:
+                excluded_by_category[category] = []
+            excluded_by_category[category].append(feed)
+    
+    for category_name, feeds in excluded_by_category.items():
+        outline = ET.SubElement(body, 'outline', text=category_name, title=category_name)
+        for feed in feeds:
+            ET.SubElement(outline, 'outline',
+                         type='rss',
+                         text=feed['title'], 
+                         title=feed['title'],
+                         xmlUrl=feed['feed_url'],
+                         htmlUrl=feed['url'])
+    
     return opml
 
 def main():
     jsonl_file = sys.argv[1] if len(sys.argv) > 1 else 'feedly_feeds.jsonl'
     output_file = sys.argv[2] if len(sys.argv) > 2 else 'feedly_categorized.opml'
     
-    feeds = load_feeds(jsonl_file)
-    print(f"Loaded {len(feeds)} working feeds")
+    working_feeds, unprocessed_feeds, excluded_feeds = load_feeds(jsonl_file)
     
-    categories = categorize_feeds(feeds)
+    categories = categorize_feeds(working_feeds)
     print(f"Created {len(categories)} categories")
     
     for cat in categories:
         daily_total = sum(calculate_daily_posts(f['posts_per_year']) for f in cat['feeds'])
         print(f"  {cat['name']}: {len(cat['feeds'])} feeds, {daily_total:.1f} posts/day")
     
-    opml = create_opml(categories)
+    if unprocessed_feeds:
+        print(f"  99-unprocessed: {len(unprocessed_feeds)} feeds (unprocessed/failed)")
+    
+    if excluded_feeds:
+        excluded_by_category = {}
+        for feed in excluded_feeds:
+            for category in feed['categories']:
+                excluded_by_category[category] = excluded_by_category.get(category, 0) + 1
+        for category, count in excluded_by_category.items():
+            print(f"  {category}: {count} feeds (original category)")
+    
+    opml = create_opml(categories, unprocessed_feeds, excluded_feeds)
     
     rough_string = ET.tostring(opml, 'unicode')
     reparsed = minidom.parseString(rough_string)
@@ -112,6 +155,7 @@ def main():
         f.write(pretty)
     
     print(f"OPML saved to: {output_file}")
+    print(f"Total feeds: {len(working_feeds) + len(unprocessed_feeds) + len(excluded_feeds)}")
 
 if __name__ == '__main__':
     main()
