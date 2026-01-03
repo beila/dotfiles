@@ -97,6 +97,12 @@ User asked for a script to get title, url, velocity and categories for each feed
    - Changed from single 'category' field to 'categories' array
    - Categories are ordered from top-level to most specific
 
+17. **Added retry failed feeds option**
+   - Request: Add option to retry feeds with non-OK status
+   - Added --retry-failed flag to only process ERROR/EMPTY/OLD feeds
+   - Skips week-based filtering when retrying failed feeds
+   - Loads failed feeds from existing JSONL output
+
 ## Current State
 - `feedly-opml`: Parses OPML export, analyzes RSS feeds, outputs CSV with frequency data
 - `flake.nix`: Nix environment with uv and dependencies
