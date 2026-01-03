@@ -1,0 +1,23 @@
+Feedly Feed Analysis Log - 2026-01-03 12:50:59
+User request: Parse OPML file and analyze feed frequencies
+Input file: ./feedly.opml
+Output file: ./feedly_feeds.csv
+============================================================
+
+Processing feed 1/1263: NewsPeppermint » Feed
+  Feed URL: http://newspeppermint.com/feed/
+  Result: 7.94 posts/month
+
+Processing feed 2/1263: HowToCreate - Opera
+  Feed URL: http://www.howtocreate.co.uk/operaStuff/operaStuff.xml
+  Result: 0.41 posts/month
+
+Processing feed 3/1263: 오늘의뉴스
+  Feed URL: http://rss.etnews.co.kr/Section901.xml
+  Result: 300 posts/month
+
+Processing feed 4/1263: 많이본기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레
+  Feed URL: http://www.hani.co.kr/rss/newsrank/
+  Result: 30 posts/month
+  Note: Used default frequency (entries found but no dates)
+

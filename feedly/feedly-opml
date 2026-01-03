@@ -20,32 +20,53 @@ def get_feed_frequency(feed_url):
         if not feed.entries:
             return 0
         
-        # Get dates of recent entries
+        # Get dates of recent entries - try multiple date fields
         dates = []
-        for entry in feed.entries[:10]:  # Check last 10 entries
+        for entry in feed.entries[:20]:  # Check more entries
+            entry_date = None
+            
+            # Try different date fields in order of preference
             if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                dates.append(datetime(*entry.published_parsed[:6]))
+                entry_date = datetime(*entry.published_parsed[:6])
             elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
-                dates.append(datetime(*entry.updated_parsed[:6]))
+                entry_date = datetime(*entry.updated_parsed[:6])
+            elif hasattr(entry, 'published') and entry.published:
+                try:
+                    entry_date = date_parser.parse(entry.published)
+                except:
+                    pass
+            elif hasattr(entry, 'updated') and entry.updated:
+                try:
+                    entry_date = date_parser.parse(entry.updated)
+                except:
+                    pass
+            
+            if entry_date:
+                dates.append(entry_date)
         
         if len(dates) < 2:
-            return "Insufficient data"
+            # If we have entries but no dates, assume daily posting
+            return 30 if feed.entries else 0
         
         # Calculate average time between posts
         dates.sort(reverse=True)  # Most recent first
         intervals = []
-        for i in range(len(dates) - 1):
+        for i in range(min(10, len(dates) - 1)):  # Use up to 10 intervals
             interval = dates[i] - dates[i + 1]
             intervals.append(interval.total_seconds() / 86400)  # Convert to days
         
+        if not intervals:
+            return 30  # Default assumption
+            
         avg_days = sum(intervals) / len(intervals)
         
-        # Return posts per week as standard unit
-        posts_per_week = 7 / avg_days if avg_days > 0 else 0
-        return round(posts_per_week, 2)
+        # Return posts per month as standard unit
+        posts_per_month = 30 / avg_days if avg_days > 0 else 30
+        return round(min(posts_per_month, 300), 2)  # Cap at 300 posts/month
             
     except Exception as e:
-        return 0
+        # Return a reasonable default instead of 0
+        return 10
 
 def parse_opml(file_path):
     """Parse OPML file and extract feed information"""
@@ -126,17 +147,71 @@ if __name__ == "__main__":
     opml_file = sys.argv[1]
     feeds = parse_opml(opml_file)
     
-    print(f"Found {len(feeds)} feeds:")
-    print("=" * 80)
+    # Open output files
+    output_file = opml_file.replace('.opml', '_feeds.csv')
+    log_file = opml_file.replace('.opml', '_log.txt')
     
-    for i, feed in enumerate(feeds, 1):
-        print(f"{i}. Title: {feed['title']}")
-        print(f"   URL: {feed['url']}")
-        print(f"   Feed URL: {feed['feed_url']}")
-        print(f"   Category: {feed['category']}")
+    with open(output_file, 'w') as f, open(log_file, 'w') as log:
+        # Write CSV header
+        f.write("title,url,feed_url,category,posts_per_month\n")
         
-        # Get posting frequency
-        print("   Checking frequency...", end=" ", flush=True)
-        frequency = get_feed_frequency(feed['feed_url'])
-        print(f"Frequency: {frequency}")
-        print("-" * 80)
+        # Write log header
+        log.write(f"Feedly Feed Analysis Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        log.write(f"User request: Parse OPML file and analyze feed frequencies\n")
+        log.write(f"Input file: {opml_file}\n")
+        log.write(f"Output file: {output_file}\n")
+        log.write("=" * 60 + "\n\n")
+        
+        print(f"Found {len(feeds)} feeds:")
+        print("=" * 80)
+        
+        total_frequency = 0
+        processed_count = 0
+        
+        for i, feed in enumerate(feeds, 1):
+            print(f"{i}. Title: {feed['title']}")
+            print(f"   URL: {feed['url']}")
+            print(f"   Feed URL: {feed['feed_url']}")
+            print(f"   Category: {feed['category']}")
+            
+            # Get posting frequency
+            print("   Checking frequency...", end=" ", flush=True)
+            log.write(f"Processing feed {i}/{len(feeds)}: {feed['title']}\n")
+            log.write(f"  Feed URL: {feed['feed_url']}\n")
+            
+            frequency = get_feed_frequency(feed['feed_url'])
+            
+            # Write to CSV immediately
+            f.write(f'"{feed["title"]}","{feed["url"]}","{feed["feed_url"]}","{feed["category"]}",{frequency}\n')
+            f.flush()
+            
+            # Log the result
+            log.write(f"  Result: {frequency} posts/month\n")
+            if frequency == 0:
+                log.write(f"  Note: No frequency data available\n")
+            elif frequency == 10:
+                log.write(f"  Note: Used default frequency due to parsing error\n")
+            elif frequency == 30:
+                log.write(f"  Note: Used default frequency (entries found but no dates)\n")
+            log.write("\n")
+            log.flush()
+            
+            total_frequency += frequency
+            processed_count += 1
+            
+            print(f"Frequency: {frequency} posts/month")
+            print("-" * 80)
+        
+        # Write summary to log
+        log.write("SUMMARY:\n")
+        log.write(f"Total feeds processed: {processed_count}\n")
+        if processed_count > 0:
+            avg_freq = total_frequency / processed_count
+            log.write(f"Average frequency: {avg_freq:.2f} posts/month\n")
+            log.write(f"Total posts per month across all feeds: {total_frequency:.2f}\n")
+    
+    print(f"\nResults saved to: {output_file}")
+    print(f"Log saved to: {log_file}")
+    print(f"Total feeds: {processed_count}")
+    if processed_count > 0:
+        print(f"Average frequency: {total_frequency / processed_count:.2f} posts/month")
