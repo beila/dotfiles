@@ -7,18 +7,82 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import time
+import pickle
+import os
 
 def get_feedly_feeds():
     options = Options()
-    options.add_argument('--headless')
+    # Remove headless mode so you can see and interact with the browser
+    # options.add_argument('--headless')
+    options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    options.add_argument('--disable-blink-features=AutomationControlled')
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
     driver = webdriver.Chrome(options=options)
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     
     try:
         # Login to Feedly (you'll need to handle authentication)
         driver.get("https://feedly.com/i/my")
         
-        # Wait for manual login or implement automated login
-        input("Please login to Feedly in the browser, then press Enter...")
+        # Try to load saved cookies
+        cookie_file = os.path.expanduser("~/.feedly_cookies.pkl")
+        if os.path.exists(cookie_file):
+            print("Loading saved login session...")
+            
+            with open(cookie_file, "rb") as f:
+                all_cookies = pickle.load(f)
+            
+            # Load Google cookies first
+            try:
+                driver.get("https://accounts.google.com")
+                time.sleep(2)
+                for cookie in all_cookies:
+                    try:
+                        if 'domain' in cookie and ('google.com' in cookie['domain'] or 'accounts.google.com' in cookie['domain']):
+                            driver.add_cookie(cookie)
+                    except:
+                        pass
+            except:
+                pass
+            
+            # Then load Feedly cookies
+            driver.get("https://feedly.com")
+            time.sleep(2)
+            
+            for cookie in all_cookies:
+                try:
+                    if 'domain' in cookie and ('feedly.com' in cookie['domain'] or cookie['domain'].startswith('.feedly')):
+                        driver.add_cookie(cookie)
+                except:
+                    pass
+            
+            # Now navigate to the actual page
+            driver.get("https://feedly.com/i/my")
+            time.sleep(3)
+        else:
+            driver.get("https://feedly.com/i/my")
+        
+        # Check if login is needed
+        time.sleep(3)
+        current_url = driver.current_url
+        if "login" in current_url.lower() or "signin" in current_url.lower() or "auth" in current_url.lower():
+            print("Please login to Feedly in the browser window")
+            print("Complete the full Google OAuth process")
+            print("DO NOT press Enter until you're back at Feedly and fully logged in")
+            input("Press Enter only when you see your Feedly feed list...")
+            
+            # Don't do any navigation checks - just trust the user
+            print("Proceeding with scraping...")
+            
+            # Save cookies after successful login from current page only
+            print("Saving login session...")
+            cookies = driver.get_cookies()
+            with open(cookie_file, "wb") as f:
+                pickle.dump(cookies, f)
+            print("Login session saved!")
+        else:
+            print("Already logged in!")
         
         # Navigate to subscriptions/organize page
         driver.get("https://feedly.com/i/organize")
@@ -26,24 +90,65 @@ def get_feedly_feeds():
         
         feeds = []
         
-        # Find feed elements (selectors may need adjustment)
-        feed_elements = driver.find_elements(By.CSS_SELECTOR, "[data-feed-id]")
+        # Try different selectors for feed elements
+        feed_elements = driver.find_elements(By.CSS_SELECTOR, "[data-feed-id], .subscription, .feed-item, .source")
         
-        for element in feed_elements:
+        if not feed_elements:
+            # Try alternative approach - get from subscriptions page
+            driver.get("https://feedly.com/i/subscriptions")
+            time.sleep(3)
+            feed_elements = driver.find_elements(By.CSS_SELECTOR, ".subscription, .feed-item, .source, [data-feed-id]")
+        
+        print(f"Found {len(feed_elements)} potential feed elements")
+        
+        for i, element in enumerate(feed_elements):
             try:
-                title = element.find_element(By.CSS_SELECTOR, ".title").text
-                url = element.get_attribute("data-feed-id")
+                # Try multiple ways to get title
+                title = ""
+                for selector in [".title", ".source-title", "h3", ".name", "[title]"]:
+                    try:
+                        title_elem = element.find_element(By.CSS_SELECTOR, selector)
+                        title = title_elem.text or title_elem.get_attribute("title")
+                        if title:
+                            break
+                    except:
+                        continue
+                
+                # Try to get URL/feed ID
+                url = element.get_attribute("data-feed-id") or element.get_attribute("href") or ""
+                
+                # Try to get velocity/frequency info
+                velocity = ""
+                for selector in [".velocity", ".frequency", ".posts-per-week", ".activity"]:
+                    try:
+                        vel_elem = element.find_element(By.CSS_SELECTOR, selector)
+                        velocity = vel_elem.text
+                        break
+                    except:
+                        continue
                 
                 # Try to get category info
-                category_elem = element.find_element(By.CSS_SELECTOR, ".category")
-                category = category_elem.text if category_elem else "Uncategorized"
+                categories = []
+                for selector in [".category", ".folder", ".tag", ".collection"]:
+                    try:
+                        cat_elems = element.find_elements(By.CSS_SELECTOR, selector)
+                        categories = [elem.text for elem in cat_elems if elem.text]
+                        if categories:
+                            break
+                    except:
+                        continue
                 
-                feeds.append({
-                    "title": title,
-                    "url": url,
-                    "category": category
-                })
-            except:
+                if title:  # Only add if we found a title
+                    feeds.append({
+                        "title": title,
+                        "url": url,
+                        "velocity": velocity or "Unknown",
+                        "categories": categories or ["Uncategorized"]
+                    })
+                    print(f"Found feed {i+1}: {title}")
+                    
+            except Exception as e:
+                print(f"Error processing element {i}: {e}")
                 continue
         
         return feeds
@@ -53,8 +158,11 @@ def get_feedly_feeds():
 
 if __name__ == "__main__":
     feeds = get_feedly_feeds()
-    for feed in feeds:
-        print(f"Title: {feed['title']}")
-        print(f"URL: {feed['url']}")
-        print(f"Category: {feed['category']}")
-        print("-" * 50)
+    print(f"\nFound {len(feeds)} feeds:")
+    print("=" * 80)
+    for i, feed in enumerate(feeds, 1):
+        print(f"{i}. Title: {feed['title']}")
+        print(f"   URL: {feed['url']}")
+        print(f"   Velocity: {feed['velocity']}")
+        print(f"   Categories: {', '.join(feed['categories'])}")
+        print("-" * 80)
