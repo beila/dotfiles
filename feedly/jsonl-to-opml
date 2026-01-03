@@ -8,12 +8,23 @@ from datetime import datetime
 
 def load_feeds(jsonl_file):
     feeds = []
+    excluded_categories = ["다읽기", "뉴스레터"]
+    excluded_count = 0
+    
     with open(jsonl_file, 'r', encoding='utf-8') as f:
         for line in f:
             if line.strip():
                 feed = json.loads(line)
+                
+                # Check if feed has any excluded categories
+                if any(cat in excluded_categories for cat in feed.get('categories', [])):
+                    excluded_count += 1
+                    continue
+                    
                 if feed['status'] == 'OK' and feed['posts_per_year'] > 0:
                     feeds.append(feed)
+    
+    print(f"Excluded {excluded_count} feeds from categories: {', '.join(excluded_categories)}")
     return feeds
 
 def calculate_daily_posts(posts_per_year):
