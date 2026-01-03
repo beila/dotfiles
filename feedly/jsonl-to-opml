@@ -30,7 +30,7 @@ def parse_opml_structure(opml_file):
 def load_feeds(jsonl_file, opml_file):
     working_feeds = []
     unprocessed_feeds = []
-    excluded_categories = ["다읽기", "뉴스레터"]
+    excluded_categories = ["다읽기", "뉴스레터", "instapaper"]
     
     # Get original OPML structure
     original_categories = parse_opml_structure(opml_file)
