@@ -81,6 +81,20 @@ def get_feed_frequency(feed_url):
                 avg_interval_hours = sum(intervals) / len(intervals)
                 posts_per_day = 24 / avg_interval_hours if avg_interval_hours > 0 else len(recent_dates)
                 posts_per_year = int(posts_per_day * 365)
+                
+                # Debug output for --test-feed
+                if len(sys.argv) > 1 and "--test-feed" in sys.argv:
+                    print(f"Debug: Found {len(recent_dates)} entries in last year")
+                    print(f"Debug: {len(intervals)} intervals calculated")
+                    print(f"Debug: Average interval: {avg_interval_hours:.2f} hours")
+                    print(f"Debug: Posts per day: {posts_per_day:.2f}")
+                    print("\nPost timestamps and intervals:")
+                    for i, date in enumerate(recent_dates):
+                        if i == 0:
+                            print(f"{i+1:3d}. {date.strftime('%Y-%m-%d %H:%M:%S')} (first post)")
+                        else:
+                            interval_hours = intervals[i-1]
+                            print(f"{i+1:3d}. {date.strftime('%Y-%m-%d %H:%M:%S')} (+{interval_hours:.1f}h)")
             else:
                 posts_per_year = len(recent_dates)
         
