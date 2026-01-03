@@ -1,4 +1,4 @@
-Feedly Feed Analysis Log - 2026-01-03 12:50:59
+Feedly Feed Analysis Log - 2026-01-03 12:54:35
 User request: Parse OPML file and analyze feed frequencies
 Input file: ./feedly.opml
 Output file: ./feedly_feeds.csv
@@ -6,18 +6,394 @@ Output file: ./feedly_feeds.csv
 
 Processing feed 1/1263: NewsPeppermint » Feed
   Feed URL: http://newspeppermint.com/feed/
-  Result: 7.94 posts/month
-
+  Result: 7.94 posts/month (Status: OK)
 Processing feed 2/1263: HowToCreate - Opera
   Feed URL: http://www.howtocreate.co.uk/operaStuff/operaStuff.xml
-  Result: 0.41 posts/month
-
+  Result: 0.41 posts/month (Status: OK)
 Processing feed 3/1263: 오늘의뉴스
   Feed URL: http://rss.etnews.co.kr/Section901.xml
-  Result: 300 posts/month
-
+  Result: 300 posts/month (Status: OK)
 Processing feed 4/1263: 많이본기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레
   Feed URL: http://www.hani.co.kr/rss/newsrank/
-  Result: 30 posts/month
-  Note: Used default frequency (entries found but no dates)
-
+  Result: 30 posts/month (Status: OK)
+Processing feed 5/1263: 뉴스톱 - 전체기사
+  Feed URL: http://www.newstof.com/rss/allArticle.xml
+  Result: 300 posts/month (Status: OK)
+Processing feed 6/1263: 주요기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레
+  Feed URL: http://www.hani.co.kr/rss/lead/
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 7/1263: 오마이뉴스 - 사회
+  Feed URL: http://rss.ohmynews.com/rss/society.xml
+  Result: 285.11 posts/month (Status: OK)
+Processing feed 8/1263: 미디어오늘 - 전체기사
+  Feed URL: http://www.mediatoday.co.kr/rss/allArticle.xml
+  Result: 275.79 posts/month (Status: OK)
+Processing feed 9/1263: 채널예스 : 영화
+  Feed URL: http://ch.yes24.com/feed/column/2172
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 10/1263: 채널예스 : 책
+  Feed URL: http://ch.yes24.com/feed/column/2162
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 11/1263: 채널예스 : 만나고 싶었어요!
+  Feed URL: http://ch.yes24.com/feed/columns/1958
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 12/1263: 채널예스 : 작가와의 만남
+  Feed URL: http://ch.yes24.com/feed/columns/1959
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 13/1263: 채널예스 : 특집 기획
+  Feed URL: http://ch.yes24.com/feed/column/2184
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 14/1263: 채널예스 : 여행/취미
+  Feed URL: http://ch.yes24.com/feed/column/2168
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 15/1263: London Review of Books
+  Feed URL: http://www.lrb.co.uk/homerss.xml
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 16/1263: 채널예스 : 음악
+  Feed URL: http://ch.yes24.com/feed/column/2163
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 17/1263: 채널예스 : 주목, 이주의 신간
+  Feed URL: http://ch.yes24.com/feed/column/2177
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 18/1263: 채널예스 : 대중문화
+  Feed URL: http://ch.yes24.com/feed/column/2165
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 19/1263: 디에디트
+  Feed URL: http://the-edit.co.kr/feed
+  Result: 17.95 posts/month (Status: OK)
+Processing feed 20/1263: Philosophy Now
+  Feed URL: http://www.philosophynow.org/rss
+  Result: 30 posts/month (Status: OK)
+Processing feed 21/1263: 클리앙 : 덕질한당
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_ku
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 22/1263: 클리앙 : 날아간당
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_airplane
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 23/1263: Potentials, IEEE - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC45.XML
+  Result: 1.75 posts/month (Status: OK)
+Processing feed 24/1263: 클리앙 : 달린당
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/cm_running
+  Result: 3.05 posts/month (Status: OK)
+Processing feed 25/1263: What's On
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.gresham.ac.uk/whats-on
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 26/1263: News Shopper | Bexley
+  Feed URL: http://www.newsshopper.co.uk/news/bexley/rss/
+  Result: 33.33 posts/month (Status: OK)
+Processing feed 27/1263: MakeUseOf - iPhone
+  Feed URL: http://www.makeuseof.com/service/ios/feed/
+  Result: 20.67 posts/month (Status: OK)
+Processing feed 28/1263: Aeon | a world of ideas
+  Feed URL: https://aeon.co/feed.rss
+  Result: 27.27 posts/month (Status: OK)
+Processing feed 29/1263: Merriam-Webster's Word of the Day
+  Feed URL: http://www.merriam-webster.com/word/index.xml
+  Result: 30.0 posts/month (Status: OK)
+Processing feed 30/1263: FlowingData
+  Feed URL: http://feeds.feedburner.com/FlowingData
+  Result: 29.99 posts/month (Status: OK)
+Processing feed 31/1263: 거리의 풍경
+  Feed URL: http://blog.rss.naver.com/unviajero.xml
+  Result: 24.99 posts/month (Status: OK)
+Processing feed 32/1263: IEEE Annals of the History of Computing - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC85.XML
+  Result: 30 posts/month (Status: OK)
+Processing feed 33/1263: Toxel.com
+  Feed URL: http://feeds.feedburner.com/toxel
+  Result: 30.0 posts/month (Status: OK)
+Processing feed 34/1263: Terence Eden’s Blog
+  Feed URL: https://shkspr.mobi/blog/feed/atom/
+  Result: 15.0 posts/month (Status: OK)
+Processing feed 35/1263: Computing | The Guardian
+  Feed URL: http://www.guardian.co.uk/technology/computing/rss
+  Result: 53.43 posts/month (Status: OK)
+Processing feed 36/1263: Best of The Atlantic
+  Feed URL: http://feeds.feedburner.com/Best-Of-The-Atlantic
+  Result: 223.89 posts/month (Status: OK)
+Processing feed 37/1263: Semafor
+  Feed URL: https://www.semafor.com/rss.xml
+  Result: 299.4 posts/month (Status: OK)
+Processing feed 38/1263: (구)아이포니앙
+  Feed URL: https://rss.diffbot.com/rss?url=https://damoang.net/iphone
+  Result: 30 posts/month (Status: NO_DATES)
+Processing feed 39/1263: 그림만화 BEST
+  Feed URL: https://rss.diffbot.com/rss?url=https://m.ruliweb.com/best/cartoon
+  Result: 83.3 posts/month (Status: OK)
+Processing feed 40/1263: Hack a Day
+  Feed URL: http://hackaday.com/feed/
+  Result: 239.87 posts/month (Status: OK)
+Processing feed 41/1263: Atlas Obscura
+  Feed URL: http://atlasobscura.com/rss.xml
+  Result: 93.22 posts/month (Status: OK)
+Processing feed 42/1263: BBC News
+  Feed URL: http://newsrss.bbc.co.uk/rss/newsonline_world_edition/business/rss.xml
+  Result: 121.74 posts/month (Status: OK)
+Processing feed 43/1263: Wired Top Stories
+  Feed URL: http://www.wired.com/news/feeds/rss2/0,2610,,00.xml
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 44/1263: Phoronix
+  Feed URL: http://www.phoronix.com/rss.php
+  Result: 232.07 posts/month (Status: OK)
+Processing feed 45/1263: Everything
+  Feed URL: http://www.newyorker.com/services/mrss/feeds/everything.xml
+  Result: 150.0 posts/month (Status: OK)
+Processing feed 46/1263: 달린당
+  Feed URL: https://rss.diffbot.com/rss?url=https://damoang.net/running
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 47/1263: 바다건너당
+  Feed URL: https://rss.diffbot.com/rss?url=https://damoang.net/overseas
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 48/1263: Philosophy Now
+  Feed URL: http://www.philosophynow.org/rss
+  Result: 30 posts/month (Status: OK)
+Processing feed 49/1263: Potentials, IEEE - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC45.XML
+  Result: 1.75 posts/month (Status: OK)
+Processing feed 50/1263: Spectrum, IEEE - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC6.XML
+  Result: 30 posts/month (Status: OK)
+Processing feed 51/1263: IEEE Annals of the History of Computing - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC85.XML
+  Result: 30 posts/month (Status: OK)
+Processing feed 52/1263: Transactions on Computers - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC12.XML
+  Result: 14.29 posts/month (Status: OK)
+Processing feed 53/1263: Computer - new TOC
+  Feed URL: http://ieeexplore.ieee.org/rss/TOC2.XML
+  Result: 300 posts/month (Status: OK)
+Processing feed 54/1263: Engadget
+  Feed URL: http://www.engadget.com/rss.xml
+  Result: 300 posts/month (Status: OK)
+Processing feed 55/1263: 지도와 Web2.0 그리고 한국의 미래
+  Feed URL: http://feeds2.feedburner.com/blogspot/InternetMap
+  Result: 1.4 posts/month (Status: OK)
+Processing feed 56/1263: Christian Heilmann
+  Feed URL: http://www.wait-till-i.com/wp-atom.php
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 57/1263: Jonathan Snook
+  Feed URL: http://feeds.feedburner.com/snookca
+  Result: 1.7 posts/month (Status: OK)
+Processing feed 58/1263: Nettuts+
+  Feed URL: http://net.tutsplus.com/feed/
+  Result: 0.94 posts/month (Status: OK)
+Processing feed 59/1263: Remy Sharp
+  Feed URL: http://feeds.feedburner.com/remysharp
+  Result: 4.55 posts/month (Status: OK)
+Processing feed 60/1263: Thoughts From Eric
+  Feed URL: http://meyerweb.com/eric/thoughts/rss2/summary
+  Result: 0.69 posts/month (Status: OK)
+Processing feed 61/1263: Bruce Lawson's personal site
+  Feed URL: http://www.brucelawson.co.uk/feed/
+  Result: 3.06 posts/month (Status: OK)
+Processing feed 62/1263: HTML + CSS + JavaScript
+  Feed URL: http://feeds2.feedburner.com/HtmlCssJavascript
+  Result: 0.22 posts/month (Status: OK)
+Processing feed 63/1263: Software As She's Developed
+  Feed URL: http://softwareas.com/feed
+  Result: 0.12 posts/month (Status: OK)
+Processing feed 64/1263: Lea Verou
+  Feed URL: http://leaverou.me/feed/
+  Result: 9.45 posts/month (Status: OK)
+Processing feed 65/1263: Smashing Coding
+  Feed URL: http://rss1.smashingmagazine.com/feed/?f=coding-std
+  Result: 9.09 posts/month (Status: OK)
+Processing feed 66/1263: Universe Today
+  Feed URL: http://www.universetoday.com/universetoday.xml
+  Result: 149.52 posts/month (Status: OK)
+Processing feed 67/1263: Centauri Dreams — Imagining and Planning Interstellar Exploration
+  Feed URL: https://follow.it/centauri-dreams-imagining-and-planning-interstellar-exploration/rss
+  Result: 4.29 posts/month (Status: OK)
+Processing feed 68/1263: The Space Review
+  Feed URL: http://www.thespacereview.com/articles.xml
+  Result: 21.43 posts/month (Status: OK)
+Processing feed 69/1263: SPACE.com
+  Feed URL: http://www.space.com/syn/space.xml
+  Result: 300 posts/month (Status: OK)
+Processing feed 70/1263: astrobites
+  Feed URL: http://astrobites.com/feed/
+  Result: 19.48 posts/month (Status: OK)
+Processing feed 71/1263: SkyandTelescope.com's Most Recent Articles
+  Feed URL: http://www.skyandtelescope.com/MostRecent.rss
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 72/1263: Cycling UK Forum
+  Feed URL: https://forum.cyclinguk.org/app.php/feed/forum/55?sid=c640585fb4d2be3887a7e8505b9de849
+  Result: 300 posts/month (Status: OK)
+Processing feed 73/1263: Ye Olde Blogroll — Firehose
+  Feed URL: https://blogroll.org/feed/
+  Result: 0.37 posts/month (Status: OK)
+Processing feed 74/1263: 채널예스 : ARTICLE
+  Feed URL: http://ch.yes24.com/feed/columns/
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 75/1263: The Free Press
+  Feed URL: https://bariweiss.substack.com/feed/
+  Result: 179.9 posts/month (Status: OK)
+Processing feed 76/1263: Discover Blogs
+  Feed URL: http://feeds.feedburner.com/DiscoverBlogs
+  Result: 139.81 posts/month (Status: OK)
+Processing feed 77/1263: Opinion | The Guardian
+  Feed URL: http://feeds.theguardian.com/theguardian/us/commentisfree/rss
+  Result: 266.58 posts/month (Status: OK)
+Processing feed 78/1263: 강갑생의 바퀴와 날개
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.joongang.co.kr/series/11059
+  Result: 1.53 posts/month (Status: OK)
+Processing feed 79/1263: InfoQ
+  Feed URL: http://www.infoq.com/rss/rss.action
+  Result: 104.91 posts/month (Status: OK)
+Processing feed 80/1263: TechBlogPosts
+  Feed URL: https://techblogposts.com/rss.xml
+  Result: 104.44 posts/month (Status: OK)
+Processing feed 81/1263: BBC News
+  Feed URL: http://newsrss.bbc.co.uk/rss/newsonline_world_edition/technology/rss.xml
+  Result: 60.9 posts/month (Status: OK)
+Processing feed 82/1263: 클리앙 : 사용기
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.clien.net/service/board/use
+  Result: 94.95 posts/month (Status: OK)
+Processing feed 83/1263: ErgoMechBoards
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.reddit.com/r/ErgoMechKeyboards/
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 84/1263: 책과 생각 뉴스
+  Feed URL: https://rss.diffbot.com/rss?url=https://www.hani.co.kr/arti/culture/book
+  Result: 300 posts/month (Status: OK)
+Processing feed 85/1263: 개발한당
+  Feed URL: https://rss.diffbot.com/rss?url=https://damoang.net/development
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 86/1263: Time Out London
+  Feed URL: http://www.timeout.com/london/blog/feed.rss
+  Result: 70.06 posts/month (Status: OK)
+Processing feed 87/1263: Bear Blog Trending Posts
+  Feed URL: https://bearblog.dev/discover/feed/
+  Result: 136.32 posts/month (Status: OK)
+Processing feed 88/1263: Tip Tech : KBDMania
+  Feed URL: http://www.kbdmania.net/xe/?mid=tipandtech&act=rss
+  Result: 0.48 posts/month (Status: OK)
+Processing feed 89/1263: OECD.org - Korea
+  Feed URL: http://www.oecd.org/RSS_channel/0,3045,en_33873108_33873555_1_1_1_1_1,00.xml
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 90/1263: Life is Good
+  Feed URL: http://feeds.feedburner.com/tistory-lifeisgood
+  Result: 25.39 posts/month (Status: OK)
+Processing feed 91/1263: 대영제국에서 온 편지
+  Feed URL: https://kill-the-newsletter.com/feeds/jhj2a69t5g5lu93s.xml
+  Result: 4.29 posts/month (Status: OK)
+Processing feed 92/1263: Paul Graham: Essays
+  Feed URL: http://www.aaronsw.com/2002/feeds/pgessays.rss
+  Result: 30 posts/month (Status: NO_DATES)
+Processing feed 93/1263: PATENT DROP
+  Feed URL: https://patentdrop.substack.com/feed/
+  Result: 0 posts/month (Status: EMPTY)
+Processing feed 94/1263: 이글루스 '얼리어답터' 테마 인기글
+  Feed URL: http://valley.egloos.com/theme/rss/top/earlyadopter
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 95/1263: The Rebooting
+  Feed URL: https://therebooting.substack.com/feed/
+  Result: 11.11 posts/month (Status: OK)
+Processing feed 96/1263: 박태웅
+  Feed URL: https://brunch.co.kr/rss/@@Qk4
+  Result: 0.33 posts/month (Status: OK)
+Processing feed 97/1263: nixCraft Linux Sys Admin Blog
+  Feed URL: http://feeds.cyberciti.biz/Nixcraft-LinuxFreebsdSolarisTipsTricks
+  Result: 3.05 posts/month (Status: OK)
+Processing feed 98/1263: Software As She's Developed
+  Feed URL: http://softwareas.com/feed
+  Result: 0.12 posts/month (Status: OK)
+Processing feed 99/1263: tech.ssut
+  Feed URL: https://tech.ssut.me/rss/
+  Result: 0.16 posts/month (Status: OK)
+Processing feed 100/1263: Starkey Comics
+  Feed URL: https://starkeycomics.com/feed/
+  Result: 0.94 posts/month (Status: OK)
+Processing feed 101/1263: 컬리 기술 블로그
+  Feed URL: http://thefarmersfront.github.io/feed.xml
+  Result: 4.03 posts/month (Status: OK)
+Processing feed 102/1263: 과학 – NewsPeppermint
+  Feed URL: http://newspeppermint.com/category/science-environment/feed/
+  Result: 0.47 posts/month (Status: OK)
+Processing feed 103/1263: 라디오키즈@LifeLog
+  Feed URL: http://feeds.neoearly.net/radiokidz
+  Result: 0 posts/month (Status: EMPTY)
+Processing feed 104/1263: Joel on Software
+  Feed URL: http://www.joelonsoftware.com/rss.xml
+  Result: 0.16 posts/month (Status: OK)
+Processing feed 105/1263: Alden's Dev Log
+  Feed URL: https://alden-kang.tistory.com/rss
+  Result: 2.57 posts/month (Status: OK)
+Processing feed 106/1263: Fathy Boundjadj
+  Feed URL: https://fathy.fr/rss.xml
+  Result: 0.39 posts/month (Status: OK)
+Processing feed 107/1263: 노란 잠수함
+  Feed URL: http://blog.rss.naver.com/rockks77.xml
+  Result: 1.28 posts/month (Status: OK)
+Processing feed 108/1263: Blog Needs a Name
+  Feed URL: https://rss.diffbot.com/rss?url=https://ahgamut.github.io/
+  Result: 0.22 posts/month (Status: OK)
+Processing feed 109/1263: 이글루스 '도서' 테마 인기글
+  Feed URL: http://valley.egloos.com/theme/rss/top/book
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 110/1263: Design in government
+  Feed URL: https://designnotes.blog.gov.uk/feed/
+  Result: 0.47 posts/month (Status: OK)
+Processing feed 111/1263: 주요기사 : 뉴스 : 한겨레 뉴스 - 인터넷한겨레
+  Feed URL: http://www.hani.co.kr/rss/lead/
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 112/1263: 이글루스 '애니메이션' 테마 인기글
+  Feed URL: http://valley.egloos.com/theme/rss/top/animation
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 113/1263: 딥다이브
+  Feed URL: https://kill-the-newsletter.com/feeds/n6qd9vhay5vjko7z.xml
+  Result: 30 posts/month (Status: NO_DATES)
+Processing feed 114/1263: Instructables: featured
+  Feed URL: http://feeds.feedburner.com/instructables/featured
+  Result: 300 posts/month (Status: OK)
+Processing feed 115/1263: 이기적이고 주관적이고 객관성없는곳
+  Feed URL: http://blog.rss.naver.com/raimorenji.xml
+  Result: 0.02 posts/month (Status: OK)
+Processing feed 116/1263: CaN (Computer & Network) Tips
+  Feed URL: http://pakcw.cafe24.com/rss
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 117/1263: Roy Tanck
+  Feed URL: http://feeds.feedburner.com/RoyTancksWeblog
+  Result: 0.3 posts/month (Status: OK)
+Processing feed 118/1263: Posts on Tech Notes by Natan Yellin
+  Feed URL: https://natanyellin.com/posts/index.xml
+  Result: 0.23 posts/month (Status: OK)
+Processing feed 119/1263: 책습관
+  Feed URL: https://brunch.co.kr/rss/@@hTC
+  Result: 2.42 posts/month (Status: OK)
+Processing feed 120/1263: 채널예스 : 작가와의 만남
+  Feed URL: http://ch.yes24.com/feed/columns/1959
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 121/1263: Lambda the Ultimate - Programming Languages Weblog
+  Feed URL: http://lambda-the-ultimate.org/rss.xml
+  Result: 0.39 posts/month (Status: OK)
+Processing feed 122/1263: Kellan Elliott-McCrea: Blog
+  Feed URL: http://laughingmeme.org/feed
+  Result: 0.31 posts/month (Status: OK)
+Processing feed 123/1263: 썸원의 SUMMARY&EDIT
+  Feed URL: https://kill-the-newsletter.com/feeds/9kaluz14ci2ppe19.xml
+  Result: 300 posts/month (Status: OK)
+Processing feed 124/1263: Pikuma
+  Feed URL: https://pikuma.com/feed
+  Result: 0.31 posts/month (Status: OK)
+Processing feed 125/1263: High Scalability
+  Feed URL: http://feeds.feedburner.com/HighScalability
+  Result: 0.62 posts/month (Status: OK)
+Processing feed 126/1263: Instructables: popular
+  Feed URL: http://feeds.feedburner.com/instructables/popular
+  Result: 0.22 posts/month (Status: OK)
+Processing feed 127/1263: Kalzumeus Software
+  Feed URL: http://www.kalzumeus.com/feed/
+  Result: 0.14 posts/month (Status: OK)
+Processing feed 128/1263: Lea Verou
+  Feed URL: http://leaverou.me/feed/
+  Result: 9.45 posts/month (Status: OK)
+Processing feed 129/1263: 이글루스 '영화' 테마 인기글
+  Feed URL: http://valley.egloos.com/theme/rss/top/movie
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 130/1263: Insuk's memolog at Yellow Submarine
+  Feed URL: http://feed43.com/0880813416673318.xml
+  Result: 0 posts/month (Status: ERROR)
+Processing feed 131/1263: eincs
+  Feed URL: http://eincs.com/atom.xml
+  Result: 0.21 posts/month (Status: OK)
