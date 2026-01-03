@@ -7,6 +7,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import time
+import pickle
+import os
 
 def get_feedly_feeds():
     options = Options()
@@ -23,9 +25,49 @@ def get_feedly_feeds():
         # Login to Feedly (you'll need to handle authentication)
         driver.get("https://feedly.com/i/my")
         
-        # Wait for manual login or implement automated login
-        print("Please open https://feedly.com/i/my in your browser and login")
-        input("After logging in, press Enter to continue...")
+        # Try to load saved cookies
+        cookie_file = os.path.expanduser("~/.feedly_cookies.pkl")
+        if os.path.exists(cookie_file):
+            print("Loading saved login session...")
+            with open(cookie_file, "rb") as f:
+                cookies = pickle.load(f)
+            for cookie in cookies:
+                try:
+                    driver.add_cookie(cookie)
+                except:
+                    pass
+            driver.refresh()
+            time.sleep(3)
+        
+        # Check if login is needed
+        time.sleep(3)
+        current_url = driver.current_url
+        if "login" in current_url.lower() or "signin" in current_url.lower() or "auth" in current_url.lower():
+            print("Please login to Feedly in the browser window that opened")
+            print("This may redirect you to Google - complete the full login process")
+            print("Press Enter ONLY after you see the Feedly dashboard/feed list...")
+            input()
+            
+            # Wait for user to complete login and return to Feedly
+            print("Waiting for login to complete...")
+            for i in range(30):
+                try:
+                    if "feedly.com" in driver.current_url and "login" not in driver.current_url.lower():
+                        print("Login detected!")
+                        break
+                except:
+                    pass
+                time.sleep(1)
+                print(f"Waiting... ({i+1}/30)")
+            
+            # Save cookies after successful login
+            print("Saving login session...")
+            cookies = driver.get_cookies()
+            with open(cookie_file, "wb") as f:
+                pickle.dump(cookies, f)
+            print("Login session saved!")
+        else:
+            print("Already logged in!")
         
         # Navigate to subscriptions/organize page
         driver.get("https://feedly.com/i/organize")
