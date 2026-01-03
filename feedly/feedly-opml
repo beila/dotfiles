@@ -1,0 +1,63 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# dependencies = ["requests", "xml.etree.ElementTree"]
+# ///
+
+import requests
+import xml.etree.ElementTree as ET
+import sys
+
+def parse_opml(file_path):
+    """Parse OPML file and extract feed information"""
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        
+        feeds = []
+        
+        # Find all outline elements (feeds and categories)
+        for outline in root.findall('.//outline'):
+            # Check if it's a feed (has xmlUrl) or category
+            xml_url = outline.get('xmlUrl')
+            if xml_url:  # It's a feed
+                feed = {
+                    'title': outline.get('title', outline.get('text', 'Unknown')),
+                    'url': outline.get('htmlUrl', xml_url),
+                    'feed_url': xml_url,
+                    'category': 'Uncategorized'
+                }
+                
+                # Find parent category
+                parent = outline.getparent()
+                if parent is not None and parent.get('title'):
+                    feed['category'] = parent.get('title')
+                
+                feeds.append(feed)
+        
+        return feeds
+        
+    except Exception as e:
+        print(f"Error parsing OPML: {e}")
+        return []
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: ./feedly-opml <path-to-opml-file>")
+        print("\nTo get your OPML file:")
+        print("1. Go to https://feedly.com/i/opml")
+        print("2. Click 'Export OPML'")
+        print("3. Save the file and run: ./feedly-opml ~/Downloads/feedly.opml")
+        sys.exit(1)
+    
+    opml_file = sys.argv[1]
+    feeds = parse_opml(opml_file)
+    
+    print(f"Found {len(feeds)} feeds:")
+    print("=" * 80)
+    
+    for i, feed in enumerate(feeds, 1):
+        print(f"{i}. Title: {feed['title']}")
+        print(f"   URL: {feed['url']}")
+        print(f"   Feed URL: {feed['feed_url']}")
+        print(f"   Category: {feed['category']}")
+        print("-" * 80)
