@@ -60,6 +60,7 @@ def calculate_daily_posts(posts_per_year):
     daily = posts_per_year / 365
     return min(daily, 2.0)  # Cap at 2 posts per day
 
+# categorise-feeds.md has the specification.
 def categorize_feeds(feeds):
     # Sort feeds by frequency
     feeds.sort(key=lambda f: f['posts_per_year'])
@@ -106,7 +107,6 @@ def create_opml(categories, unprocessed_feeds, original_categories, processed_fe
     body = ET.SubElement(opml, 'body')
     
     # Add categorized working feeds
-    # categorise-feeds.md
     for category in categories:
         outline = ET.SubElement(body, 'outline', text=category['name'], title=category['name'])
         
