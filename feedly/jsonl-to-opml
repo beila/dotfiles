@@ -30,7 +30,7 @@ def parse_opml_structure(opml_file):
 def load_feeds(jsonl_file, opml_file):
     working_feeds = []
     unprocessed_feeds = []
-    excluded_categories = ["다읽기", "뉴스레터", "instapaper"]
+    excluded_categories = ["다읽기", "뉴스레터", "Instapaper"]
     
     # Get original OPML structure
     original_categories = parse_opml_structure(opml_file)
@@ -106,6 +106,7 @@ def create_opml(categories, unprocessed_feeds, original_categories, processed_fe
     body = ET.SubElement(opml, 'body')
     
     # Add categorized working feeds
+    # categorise-feeds.md
     for category in categories:
         outline = ET.SubElement(body, 'outline', text=category['name'], title=category['name'])
         
