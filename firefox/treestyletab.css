@@ -49,6 +49,6 @@ tab-item.active tab-counter {
 }
 
 /* tabs stuck at the edge */
-:root {
-  --tabbar-bg: var(--theme-colors-frame,#222222);
+tab-item.sticky .background {
+  background-color: #333333;
 }
