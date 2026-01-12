@@ -1,0 +1,105 @@
+/* "#tabbar" is required for TST 3.4.0 and later! */
+/*
+#tabbar tab-item tab-item-substance:not(:hover) tab-closebox {
+  display: none;
+}
+*/
+/* Show title of unread tabs with red and italic font */
+:root.sidebar tab-item.unread .label-content {
+  color: grey;
+/*  font-style: italic !important;*/
+}
+
+/* Add private browsing indicator per tab */
+:root.sidebar tab-item.private-browsing tab-label:before {
+  content: "🕶";
+}
+
+/* Tab numbering and counting
+
+Important note: CSS counter hack on this section is not available anymore on TST 4.0 and later. Instead there are helper addons for the purpose: tst-tabcount (adds numbers to every tab), tst-tab-count and/or TST Active and Total Tabs Counter (adds tab count to "new tab" button).
+
+All of the options in this section need the raw count of tabs available. This is done using CSS counters:
+*/
+#tabbar {
+  counter-reset: vtabs atabs tabs;
+  /* vtabs tracks visible tabs, atabs tracks active tabs, tabs tracks all tabs */
+}
+tab-item:not(.collapsed):not(.discarded) {
+  counter-increment: vtabs atabs tabs;
+}
+tab-item:not(.collapsed) {
+  counter-increment: vtabs tabs;
+}
+tab-item:not(.discarded) {
+  counter-increment: atabs tabs;
+}
+tab-item {
+  counter-increment: tabs;
+}
+
+/* Numbering of tabs #1601, #2220 */
+
+tab-item .extra-items-container.behind {
+  z-index: unset !important;
+}
+tab-item .extra-items-container.behind::after {
+  background: Highlight;
+  color: HighlightText;
+  content: counter(vtabs);
+  font-size: x-small;
+  right: 1em;
+  padding: 0.2em;
+  pointer-events: none;
+  position: absolute;
+  bottom: 0.2em;
+  z-index: 1000;
+}
+
+/* Tab numbering on hovered tabs
+Note: this requires the counting CSS block listed here and the label CSS block listed here. To show tab numbering only on hovered tabs, use this CSS:
+*/
+tab-item .extra-items-container.behind::after {
+  opacity: 0;
+  transition: 0.2s;
+}
+tab-item tab-item-substance:hover .extra-items-container.behind::after {
+  opacity: 1;
+}
+
+/* Indicating state, domain, containers */
+
+/* Change styling of the favicon of pending (unloaded) tabs */
+tab-item.discarded tab-favicon {
+  opacity: 0.5 !important;
+}
+
+/* Highlight active tab
+This makes the active tab very noticeable increasing its height and modifying the color and font
+*/
+
+tab-item.active tab-item-substance {
+  height: 39px !important;
+}
+tab-item.active .background {
+  background-color: steelblue;
+}
+tab-item.active .label-content {
+  font-weight: bold;
+  font-size: 14px;
+}
+tab-item.active tab-twisty,
+tab-item.active .label-content,
+tab-item.active tab-counter {
+  color: #fff;
+}
+
+/* Only show tab close button on hover */
+
+/* "#tabbar" is required for TST 3.4.0 and later! */
+
+#tabbar tab-item tab-item-substance:not(:hover) tab-closebox {
+  display: none;
+}
+
+
