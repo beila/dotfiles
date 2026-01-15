@@ -23,7 +23,7 @@
 # https://lwn.net/Articles/1042355/#:~:text=%5Bmerge%20%22mergiraf%22%5D,%25Y%20%2Dp%20%25P%20%2Dl%20%25L
 [merge "mergiraf"]
 	name = mergiraf
-	driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L --verbose
+	driver = mergiraf merge --verbose --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
 [rerere]
 	enabled = true
 [alias]
