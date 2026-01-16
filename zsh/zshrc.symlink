@@ -1,6 +1,10 @@
-# Always auto-attach to tmux
+# Always auto-attach to tmux with grouped sessions
 if [[ -z "$TMUX" ]] && hash tmux; then
-    tmux attach-session -t default || tmux new-session -s default
+    if tmux has-session -t main 2>/dev/null; then
+        tmux new-session -t main -s "main-$$"
+    else
+        tmux new-session -s main
+    fi
     exit $?
 fi
 
