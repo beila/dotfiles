@@ -1,25 +1,10 @@
 #!/bin/bash
-# http://superuser.com/a/350336
-export DISPLAY="${DISPLAY:-:0.0}"
-export XAUTHORITY="${XAUTHORITY:-$HOME/.Xauthority}"
-echo "$(date): keyb started" >> /tmp/keyb-debug.log
+sleep 1 # apparently this seems needed. Without it, this scipt sometimes doens't work
 
-sleep 1
-
-# https://bbs.archlinux.org/viewtopic.php?pid=1440918#p1440918
-# Add this line to /etc/udev/rules.d/90-hojin-keyboard-mouse.rules
-# ACTION=="add", ATTR{product}=="Microsoft USB Optical Mouse", RUN+="/home/hojin/.dotfiles/xwindow/bin/mouseleft"
-# ACTION=="remove", ATTR{product}=="Microsoft USB Optical Mouse", RUN+="/home/hojin/.dotfiles/xwindow/bin/mousereset"
-# ACTION=="add", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/keyb"
-# ACTION=="remove", ATTR{product}=="Apple Keyboard", RUN+="/home/hojin/.dotfiles/xwindow/bin/KEYBRESET"
-
-xset r rate 200 30 >> /tmp/keyb-debug.log 2>&1
-#numlockx
-#setxkbmap -layout "de" -variant nodeadkeys
-setxkbmap -layout us >> /tmp/keyb-debug.log 2>&1
-setxkbmap -option caps:none >> /tmp/keyb-debug.log 2>&1
-xmodmap "${HOME}"/.Xmodmap >> /tmp/keyb-debug.log 2>&1
-#(killall xbindkeys || true) &> /dev/null  # Continue even if exit status is 1
-#xbindkeys  # Only one instance will run
-notify-send -t 5000 "Keyboard settings applied"
-echo "$(date): keyb completed" >> /tmp/keyb-debug.log
+{
+    echo "$(date): keyb started"
+    xset r rate 200 30
+    setxkbmap -layout us
+    xmodmap "${HOME}"/.Xmodmap
+    echo "$(date): keyb completed"
+} >> /tmp/keyb-debug.log 2>&1
