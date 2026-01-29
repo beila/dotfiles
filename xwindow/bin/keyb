@@ -2,7 +2,11 @@
 sleep 1 # apparently this seems needed. Without it, this scipt sometimes doens't work
 
 {
-    echo "$(date): keyb started"
+    if [ -n "$SYSTEMD_EXEC_PID" ]; then
+        echo "$(date): keyb started (auto-triggered)"
+    else
+        echo "$(date): keyb started (manual)"
+    fi
     xset r rate 200 30
     setxkbmap -layout us
     xmodmap "${HOME}"/.Xmodmap

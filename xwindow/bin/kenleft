@@ -10,7 +10,11 @@
 #      4  5
 #  2          1
 {
-    echo "$(date): kenleft started"
+    if [ -n "$SYSTEMD_EXEC_PID" ]; then
+        echo "$(date): kenleft started (auto-triggered)"
+    else
+        echo "$(date): kenleft started (manual)"
+    fi
     xmodmap -e "pointer = 2 3 1 5 4 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20"
     echo "$(date): kenleft xmodmap completed"
 } >> /tmp/kensington-debug.log 2>&1
