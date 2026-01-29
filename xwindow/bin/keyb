@@ -17,6 +17,7 @@ xset r rate 200 30 >> /tmp/keyb-debug.log 2>&1
 #numlockx
 #setxkbmap -layout "de" -variant nodeadkeys
 setxkbmap -layout us >> /tmp/keyb-debug.log 2>&1
+setxkbmap -option caps:none >> /tmp/keyb-debug.log 2>&1
 xmodmap "${HOME}"/.Xmodmap >> /tmp/keyb-debug.log 2>&1
 #(killall xbindkeys || true) &> /dev/null  # Continue even if exit status is 1
 #xbindkeys  # Only one instance will run
