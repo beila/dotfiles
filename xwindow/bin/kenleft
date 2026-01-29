@@ -1,5 +1,4 @@
 #!/bin/bash
-echo "$(date): kenleft started" >> /tmp/kensington-debug.log
 
 #Kensington Expert Mouse physical buttons
 #  2          8
@@ -10,8 +9,11 @@ echo "$(date): kenleft started" >> /tmp/kensington-debug.log
 #  3          8
 #      4  5
 #  2          1
-xmodmap -e "pointer = 2 3 1 5 4 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20" >> /tmp/kensington-debug.log 2>&1
-echo "$(date): kenleft xmodmap completed" >> /tmp/kensington-debug.log
+{
+    echo "$(date): kenleft started"
+    xmodmap -e "pointer = 2 3 1 5 4 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20"
+    echo "$(date): kenleft xmodmap completed"
+} >> /tmp/kensington-debug.log 2>&1
 #
 # logical buttons used with right hand
 #  8          3

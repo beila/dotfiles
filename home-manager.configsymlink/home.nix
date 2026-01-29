@@ -31,6 +31,7 @@ in
         pkgs.cargo
         pkgs.cmake
         pkgs.mergiraf
+        pkgs.shellcheck
 
         pkgs.helix
         pkgs.clang-tools  # includes clangd
