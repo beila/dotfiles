@@ -1,9 +1,3 @@
 #!env zsh
 1=${1:---all} # --all if there's no argument
-git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always "$@" |
-  fzf --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' --border --bind ctrl-/:toggle-preview \
-    --header 'Press CTRL-S to toggle sort, CTRL-/ to toggle preview' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --patch-with-stat --color=always' |
-    grep -o "[a-f0-9]\{7,\}" |
-    head -1 |
-    xargs
+git log --topo-order --graph --pretty=format:"${_git_log_oneline_format}" "$@"
