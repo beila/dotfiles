@@ -106,3 +106,6 @@ setopt HIST_REDUCE_BLANKS
 
 # https://unix.stackexchange.com/a/595628
 export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
+
+# Added by AIM CLI
+export PATH="/home/ANT.AMAZON.COM/hojin/.aim/mcp-servers:$PATH"
