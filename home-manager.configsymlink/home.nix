@@ -30,6 +30,7 @@ in
         pkgs.awscli2
         pkgs.cargo
         pkgs.cmake
+        pkgs.jujutsu
         pkgs.mergiraf
         pkgs.shellcheck
 
