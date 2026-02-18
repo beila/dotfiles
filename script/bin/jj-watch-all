@@ -1,30 +1,34 @@
 #!/usr/bin/env bash
-# Start jj watch for all existing and future jj repos under $HOME
+# Snapshot all jj repos on file changes
 
 set -euo pipefail
 
 declare -A watched
 
-start_watch() {
+watch_repo() {
     local repo="$1"
     if [[ -z "${watched[$repo]+_}" ]]; then
         watched[$repo]=1
-        echo "Starting jj watch in $repo"
-        (cd "$repo" && jj watch) &
+        echo "Watching $repo"
+        (
+            inotifywait -m -r -e close_write,create,delete,move \
+                --exclude '/\.jj/' "$repo" 2>/dev/null |
+            while read -r; do
+                jj -R "$repo" snapshot 2>/dev/null
+            done
+        ) &
     fi
 }
 
 # Watch existing repos
 while IFS= read -r jj_dir; do
-    repo="$(dirname "$jj_dir")"
-    start_watch "$repo"
+    watch_repo "$(dirname "$jj_dir")"
 done < <(find "$HOME" -name ".jj" -type d 2>/dev/null | grep -v "/.jj/")
 
 # Watch for new repos
 inotifywait -m -r -e create --format "%w%f" "$HOME" 2>/dev/null |
 while IFS= read -r path; do
     if [[ "$path" == *"/.jj" ]] && [[ -d "$path" ]]; then
-        repo="$(dirname "$path")"
-        start_watch "$repo"
+        watch_repo "$(dirname "$path")"
     fi
 done
