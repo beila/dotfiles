@@ -1,26 +1,8 @@
 #!/usr/bin/env bash
-# Snapshot all jj repos on file changes
+# Periodically snapshot all jj repos
 
-set -euo pipefail
+INTERVAL=30
 
-declare -A watched
-
-watch_repo() {
-    local repo="$1"
-    if [[ -z "${watched[$repo]+_}" ]]; then
-        watched[$repo]=1
-        echo "Watching $repo"
-        (
-            inotifywait -m -r -e close_write,create,delete,move \
-                --exclude '/\.jj/' "$repo" 2>/dev/null |
-            while read -r; do
-                jj -R "$repo" snapshot 2>/dev/null
-            done
-        ) &
-    fi
-}
-
-# Watch existing repos
 find_jj_dirs() {
     if command -v fd &>/dev/null; then
         fd -H -t d -E '/.jj/' '^\.jj$' "$HOME"
@@ -29,14 +11,10 @@ find_jj_dirs() {
     fi
 }
 
-while IFS= read -r jj_dir; do
-    watch_repo "$(dirname "$jj_dir")"
-done < <(find_jj_dirs)
-
-# Watch for new repos
-inotifywait -m -r -e create --format "%w%f" "$HOME" 2>/dev/null |
-while IFS= read -r path; do
-    if [[ "$path" == *"/.jj" ]] && [[ -d "$path" ]]; then
-        watch_repo "$(dirname "$path")"
-    fi
+while true; do
+    while IFS= read -r jj_dir; do
+        jj -R "$(dirname "$jj_dir")" snapshot 2>/dev/null &
+    done < <(find_jj_dirs)
+    wait
+    sleep "$INTERVAL"
 done
