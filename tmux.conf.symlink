@@ -179,3 +179,4 @@ bind C-p previous-window
 bind C-w choose-window
 bind C-x confirm-before -p "kill-pane #P? (y/n)" kill-pane
 bind C-z resize-pane -Z
+set -g history-file ~/.tmux_history
