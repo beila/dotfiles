@@ -21,9 +21,17 @@ watch_repo() {
 }
 
 # Watch existing repos
+find_jj_dirs() {
+    if command -v fd &>/dev/null; then
+        fd -H -t d -E '/.jj/' '^\.jj$' "$HOME"
+    else
+        find "$HOME" -name ".jj" -type d 2>/dev/null | grep -v "/.jj/"
+    fi
+}
+
 while IFS= read -r jj_dir; do
     watch_repo "$(dirname "$jj_dir")"
-done < <(find "$HOME" -name ".jj" -type d 2>/dev/null | grep -v "/.jj/")
+done < <(find_jj_dirs)
 
 # Watch for new repos
 inotifywait -m -r -e create --format "%w%f" "$HOME" 2>/dev/null |
