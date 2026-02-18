@@ -1,3 +1,0 @@
-#!env zsh
-log_prefix_ignore="just "\
-    just --justfile ~/.justfile run just "$@"
