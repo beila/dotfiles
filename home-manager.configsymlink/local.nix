@@ -1,4 +1,4 @@
 {
   username = "hojin";
-  homeDirectory = "/home/hojin";
+  homeDirectory = "/home/ANT.AMAZON.COM/hojin";
 }
