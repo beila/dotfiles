@@ -27,18 +27,20 @@ in
     # # "Hello, world!" when run.
     # pkgs.hello
 
-        pkgs.awscli2
-        pkgs.cargo
+        pkgs.bat
         pkgs.cmake
+        pkgs.fzf
         pkgs.jujutsu
+        pkgs.just
         pkgs.mergiraf
         pkgs.neovide
         pkgs.shellcheck
         pkgs.zsh
+        pkgs.zoxide
 
-        pkgs.helix
+        pkgs.awscli2
+        pkgs.cargo
         pkgs.clang-tools  # includes clangd
-        pkgs.just  # includes just-lsp
         pkgs.taplo  # TOML language server
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
