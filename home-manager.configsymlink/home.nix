@@ -32,7 +32,9 @@ in
         pkgs.cmake
         pkgs.jujutsu
         pkgs.mergiraf
+        pkgs.neovide
         pkgs.shellcheck
+        pkgs.zsh
 
         pkgs.helix
         pkgs.clang-tools  # includes clangd
