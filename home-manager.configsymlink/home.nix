@@ -35,6 +35,7 @@ in
         pkgs.hishtory
         pkgs.mergiraf
         pkgs.neovide
+        pkgs.neovim
         pkgs.scrot
         pkgs.shellcheck
         pkgs.zsh
@@ -99,5 +100,8 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  targets.genericLinux.enable = true;
+  targets.genericLinux = {
+    enable = true;
+    gpu = { enable = true; };
+  };
 }
