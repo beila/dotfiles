@@ -38,6 +38,7 @@ in
         pkgs.neovim
         pkgs.scrot
         pkgs.shellcheck
+        pkgs.wl-clipboard
         pkgs.zoxide
         pkgs.zsh
 
