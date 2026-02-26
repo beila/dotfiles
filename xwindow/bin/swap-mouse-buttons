@@ -1,0 +1,6 @@
+#!/bin/bash
+# Swap left/right buttons on Logitech USB Optical Mouse (046d:c018)
+# Works on both X11 and Wayland (via XWayland)
+DEVICE="Logitech USB Optical Mouse"
+id=$(xinput list --id-only "$DEVICE" 2>/dev/null)
+[ -n "$id" ] && xinput set-button-map "$id" 3 2 1
