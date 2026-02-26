@@ -92,7 +92,7 @@ in
   #  /etc/profiles/per-user/hojin/etc/profile.d/hm-session-vars.sh
   #
   home.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
+    # EDITOR = "emacs";
   };
 
   # Let Home Manager install and manage itself.
