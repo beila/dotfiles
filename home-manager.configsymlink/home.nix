@@ -34,7 +34,7 @@ in
         pkgs.just
         pkgs.hishtory
         pkgs.mergiraf
-        pkgs.neovide
+        (config.lib.nixGL.wrap pkgs.neovide)
         pkgs.neovim
         pkgs.scrot
         pkgs.shellcheck
