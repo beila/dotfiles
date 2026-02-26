@@ -32,6 +32,7 @@ in
         pkgs.fzf
         pkgs.jujutsu
         pkgs.just
+        pkgs.hishtory
         pkgs.mergiraf
         pkgs.neovide
         pkgs.scrot
@@ -97,4 +98,6 @@ in
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  targets.genericLinux.enable = true;
 }
