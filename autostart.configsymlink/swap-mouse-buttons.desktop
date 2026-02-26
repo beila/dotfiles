@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Swap Mouse Buttons
+Exec=/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/swap-mouse-buttons
+X-GNOME-Autostart-enabled=true
