@@ -100,8 +100,5 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  targets.genericLinux = {
-    enable = true;
-    gpu = { enable = true; };
-  };
+  targets.genericLinux.enable = true;
 }
