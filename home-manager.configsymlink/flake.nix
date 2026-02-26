@@ -23,6 +23,7 @@
 
         modules = [
           ./home.nix
+          ./gnome.nix
           {
             nixGL.packages = nixgl.packages;
           }
