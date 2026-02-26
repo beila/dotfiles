@@ -60,7 +60,10 @@ in
     # '')
   ];
 
-  #nixpkgs.config.allowUnfreePredicate = _: true;
+  nixpkgs.config.allowUnfreePredicate = pkg:
+    builtins.elem (pkgs.lib.getName pkg) [
+      "zoom"
+    ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
