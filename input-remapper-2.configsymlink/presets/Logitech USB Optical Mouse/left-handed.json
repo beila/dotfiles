@@ -1,32 +1,26 @@
 [
     {
-        "input": {
-            "input_combination": [
-                {
-                    "type": 1,
-                    "code": 272,
-                    "origin_hash": "Logitech USB Optical Mouse"
-                }
-            ],
-            "target_uinput": "mouse",
-            "output_symbol": null,
-            "output_type": 1,
-            "output_code": 273
-        }
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 272,
+                "origin_hash": "Logitech USB Optical Mouse"
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 273
     },
     {
-        "input": {
-            "input_combination": [
-                {
-                    "type": 1,
-                    "code": 273,
-                    "origin_hash": "Logitech USB Optical Mouse"
-                }
-            ],
-            "target_uinput": "mouse",
-            "output_symbol": null,
-            "output_type": 1,
-            "output_code": 272
-        }
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 273,
+                "origin_hash": "Logitech USB Optical Mouse"
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 272
     }
 ]
