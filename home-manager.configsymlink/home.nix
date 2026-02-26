@@ -38,7 +38,6 @@ in
         pkgs.neovim
         pkgs.scrot
         pkgs.shellcheck
-        pkgs.zoom-us
         pkgs.zoxide
         pkgs.zsh
 
