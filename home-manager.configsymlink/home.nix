@@ -34,6 +34,7 @@ in
         pkgs.just
         pkgs.mergiraf
         pkgs.neovide
+        pkgs.scrot
         pkgs.shellcheck
         pkgs.zsh
         pkgs.zoxide
