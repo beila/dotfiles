@@ -30,16 +30,17 @@ in
         pkgs.bat
         pkgs.cmake
         pkgs.fzf
+        pkgs.hishtory
         pkgs.jujutsu
         pkgs.just
-        pkgs.hishtory
         pkgs.mergiraf
         (config.lib.nixGL.wrap pkgs.neovide)
         pkgs.neovim
         pkgs.scrot
         pkgs.shellcheck
-        pkgs.zsh
+        pkgs.zoom-us
         pkgs.zoxide
+        pkgs.zsh
 
         pkgs.awscli2
         pkgs.cargo
