@@ -8,5 +8,8 @@
       delay = lib.gvariant.mkUint32 200;
       repeat-interval = lib.gvariant.mkUint32 10;
     };
+    "org/gnome/desktop/peripherals/mouse" = {
+      speed = 0.75;
+    };
   };
 }
