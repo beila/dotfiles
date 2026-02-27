@@ -5,8 +5,8 @@ nix_develop_command() {
         return
 
     git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop --ignore-env --command" ||
-        echo "nix develop path:. --ignore-env --command"
+        echo "nix develop --ignore-env --keep SSH_AUTH_SOCK --keep HOME --keep USER --keep NIX_SSL_CERT_FILE --keep SSL_CERT_FILE --keep LD_LIBRARY_PATH --command" ||
+        echo "nix develop path:. --ignore-env --keep SSH_AUTH_SOCK --keep HOME --keep USER --keep NIX_SSL_CERT_FILE --keep SSL_CERT_FILE --keep LD_LIBRARY_PATH --command"
 }
 set -x  # FIXME log name includes nix-shell-env
 log_prefix_ignore="$(nix_develop_command) just "\
