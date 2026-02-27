@@ -7,6 +7,13 @@ then
     return
 fi
 
+OPEN=$(which xdg-open 2> /dev/null)
+if [ "$?" -eq 0 ]
+then
+    ${OPEN} "$@"
+    return
+fi
+
 OPEN=$(which open 2> /dev/null)
 if [ "$?" -eq 0 ]
 then
