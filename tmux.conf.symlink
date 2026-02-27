@@ -11,6 +11,9 @@ bind C-a send-prefix
 # Use vim keybindings in copy mode (h/j/k/l navigation)
 setw -g mode-keys vi
 
+# Enable mouse scrolling
+set -g mouse on
+
 # Near-infinite scroll buffer
 set -g history-limit 1000000
 
