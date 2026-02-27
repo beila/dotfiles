@@ -7,9 +7,8 @@
                 "origin_hash": "ExpertBT5.0 Mouse"
             }
         ],
-        "target_uinput": "mouse",
-        "output_type": 1,
-        "output_code": 274
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_LEFTALT + KEY_TAB"
     },
     {
         "input_combination": [
@@ -34,5 +33,17 @@
         "target_uinput": "mouse",
         "output_type": 1,
         "output_code": 272
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 275,
+                "origin_hash": "ExpertBT5.0 Mouse"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_type": 1,
+        "output_code": 125
     }
 ]
