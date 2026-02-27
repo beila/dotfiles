@@ -37,6 +37,7 @@ in
         pkgs.mergiraf
         (config.lib.nixGL.wrap pkgs.neovide)
         pkgs.neovim
+        pkgs.ripgrep
         pkgs.scrot
         pkgs.shellcheck
         pkgs.wl-clipboard
