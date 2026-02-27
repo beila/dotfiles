@@ -5,10 +5,6 @@ is_in_git_repo() {
   git rev-parse HEAD > /dev/null 2>&1
 }
 
-is_in_jj_repo() {
-  jj root > /dev/null 2>&1
-}
-
 fzf_down() {
   fzf --height 50% --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
 }
@@ -31,14 +27,7 @@ _gf_get_file() {
 }
 
 _gf() {
-  if is_in_jj_repo; then
-    jj status --color=always | grep '^[AMD]' |
-      fzf_down -m --ansi --nth 2.. \
-        --preview 'file=$(awk "{print \$2}" <<< {}); jj diff --color=always -- "$file"' |
-      awk '{print $2}'
-    return
-  fi
-  if ! is_in_git_repo; then return; fi
+  is_in_git_repo || return
 # shellcheck disable=SC2016,SC2154
   git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --short |
     fzf_down -m --ansi --nth 2..,.. \
