@@ -1,0 +1,17 @@
+# input-remapper presets
+
+Managed by input-remapper-daemon (apt). Autoloads on device connect.
+
+## Logitech USB Optical Mouse — left-handed.json
+Swap left/right buttons (BTN_LEFT ↔ BTN_RIGHT).
+
+## ExpertBT5.0 Mouse (Kensington Expert Trackball BT) — left-handed.json
+Left-hand button remap matching `xmodmap "pointer = 2 3 1"`:
+- BTN_LEFT(272) → BTN_MIDDLE(274)
+- BTN_MIDDLE(274) → BTN_RIGHT(273)
+- BTN_RIGHT(273) → BTN_LEFT(272)
+
+## Kinesis Advantage2 Keyboard — remap.json
+- Left Ctrl(29) → Super/Win(125)
+- Right Ctrl(97) → Super/Win(125)
+- Right Super(126) → Right Ctrl(97)
