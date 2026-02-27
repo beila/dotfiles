@@ -18,7 +18,7 @@ setup_shell:
 
     # this has completions at the end and we want them after aliases. It doesn't work otherwise for some reason.
     [ -f $HOME/hjdocs/public-docs/recurse-brazil/justfile ] &&
-        just --justfile=$HOME/hjdocs/public-docs/recurse-brazil/justfile setup_shell
+        SHELL=zsh just --justfile=$HOME/hjdocs/public-docs/recurse-brazil/justfile setup_shell
 
     just --completions zsh
 
