@@ -31,6 +31,7 @@ in
         pkgs.cmake
         pkgs.fzf
         pkgs.hishtory
+        pkgs.jetbrains-mono
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf
