@@ -118,7 +118,7 @@ _jj_log_fzf() {
 
 _gh() {
   if is_in_jj_repo; then
-    jj log --color=always | _jj_log_fzf
+    jj log --color=always -T 'builtin_log_oneline' | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
@@ -129,7 +129,7 @@ _gh() {
 
 _gyy() {
   if is_in_jj_repo; then
-    jj log --color=always -r 'all()' | _jj_log_fzf
+    jj log --color=always -T 'builtin_log_oneline' -r 'all()' | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
@@ -140,7 +140,7 @@ _gyy() {
 
 _ghh() {
   if is_in_jj_repo; then
-    jj log --color=always -r '::@ & ::remote_bookmarks()' | _jj_log_fzf
+    jj log --color=always -T 'builtin_log_oneline' -r '::@ & ::remote_bookmarks()' | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then

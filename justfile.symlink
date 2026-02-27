@@ -20,7 +20,7 @@ setup_shell:
     [ -f $HOME/hjdocs/public-docs/recurse-brazil/justfile ] &&
         just --justfile=$HOME/hjdocs/public-docs/recurse-brazil/justfile setup_shell
 
-    just --completions $(basename $SHELL)
+    just --completions zsh
 
 setup_git:
     #!/usr/bin/env zsh
