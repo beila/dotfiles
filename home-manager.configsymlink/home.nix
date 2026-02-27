@@ -61,6 +61,15 @@ in
     # '')
   ];
 
+  xdg.desktopEntries.neovide = {
+    name = "Neovide";
+    comment = "No Nonsense Neovim Client in Rust";
+    exec = "neovide %F";
+    icon = "neovide";
+    type = "Application";
+    categories = [ "Utility" "TextEditor" ];
+  };
+
   #nixpkgs.config.allowUnfreePredicate = _: true;
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
