@@ -38,7 +38,7 @@ _gf() {
       awk '{print $2}'
     return
   fi
-  if ! is_in_git_repo; then return; fi
+  if is_in_git_repo; then
 # shellcheck disable=SC2016,SC2154
   git -c color.status=always status --ignore-submodules="${_git_status_ignore_submodules}" --short |
     fzf_down -m --ansi --nth 2..,.. \
@@ -48,6 +48,7 @@ _gf() {
         if [[ "$(_gf_show_diff --no-ext-diff "$file")" ]]; then _gf_show_diff "$file"
         else; bat "$file" 2>/dev/null || cat "$file" 2>/dev/null || ls -l --color=always "$file" ; fi' |
     _gf_get_file
+  fi
 }
 
 _gb() {
@@ -58,30 +59,47 @@ _gb() {
       awk '{print $1}'
     return
   fi
-  if ! is_in_git_repo; then return; fi
+  if is_in_git_repo; then
 # shellcheck disable=SC2016
   git branch -a --color=always | grep -v '/HEAD\s' | sort |
   fzf_down --ansi --multi --tac --preview-window right:70% \
     --preview 'git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%cd %h%d %s" $(sed s/^..// <<< {} | cut -d" " -f1)' |
   sed 's/^..//' | cut -d' ' -f1 |
   sed 's#^remotes/##'
+  fi
 }
 
 _gbb() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj workspace list --color=always |
+      fzf_down --ansi --multi --preview-window right:70% \
+        --preview 'jj log --color=always -r "$(cut -d: -f1 <<< {})"' |
+      cut -d: -f1
+    return
+  fi
+  if is_in_git_repo; then
 # shellcheck disable=SC2016
   git worktree list |
       fzf_down --ansi --multi --tac --preview-window right:70% \
           --preview 'git -C $(awk "{print \$1}" <<< {}) diff --stat --color=always
             git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%d %s (%an)" --color=always "$(awk "{print \$2}" <<< {})" "^$(git merge-base "$(awk "{print \$2}" <<< {})" "origin/HEAD")^@"' |
       cut -d' ' -f1
+  fi
 }
 
 _gt() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj tag list --color=always |
+      fzf_down --ansi --multi --preview-window right:70% \
+        --preview 'jj show --color=always "$(awk "{print \$1}" <<< {})"' |
+      awk '{print $1}'
+    return
+  fi
+  if is_in_git_repo; then
   git tag --sort -version:refname |
   fzf_down --multi --preview-window right:70% \
     --preview 'git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always {}'
+  fi
 }
 
 _git_log_fzf() {
@@ -99,43 +117,72 @@ _jj_log_fzf() {
 }
 
 _gh() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj log --color=always | _jj_log_fzf
+    return
+  fi
+  if is_in_git_repo; then
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
   _git_log_fzf
+  fi
 }
 
 _gyy() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj log --color=always -r 'all()' | _jj_log_fzf
+    return
+  fi
+  if is_in_git_repo; then
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
   _git_log_fzf
+  fi
 }
 
 _ghh() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj log --color=always -r '::@ & ::remote_bookmarks()' | _jj_log_fzf
+    return
+  fi
+  if is_in_git_repo; then
   git rev-parse "@{u}" || { echo "No upstream"; return }
   all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
   _git_log_fzf
+  fi
 }
 
 _gy() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj operation log --color=always | _jj_log_fzf
+    return
+  fi
+  if is_in_git_repo; then
   git reflog --date=relative --color=always |
   _git_log_fzf
+  fi
 }
 
 _gr() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj git remote list |
+      fzf_down --tac \
+        --preview 'jj log --color=always -r "remote_bookmarks(exact:$(awk "{print \$1}" <<< {}))"' |
+      awk '{print $1}'
+    return
+  fi
+  if is_in_git_repo; then
   git remote -v | awk '{print $1 "\t" $2}' | uniq |
   fzf_down --tac \
     --preview 'git log --oneline --graph --date=short --pretty="format:%C(auto)%cd %h%d %s" {1}' |
   cut -d$'\t' -f1
+  fi
 }
 
 _gs() {
-  is_in_git_repo || return
+  if is_in_git_repo; then
   git stash list | fzf_down --reverse -d: \
     --preview-window=right,70% \
     --preview 'DFT_COLOR=always DFT_DISPLAY=inline git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always {1} --ext-diff' |
   cut -d: -f1
+  fi
 }
