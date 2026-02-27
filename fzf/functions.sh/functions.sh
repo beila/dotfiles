@@ -51,7 +51,14 @@ _gf() {
 }
 
 _gb() {
-  is_in_git_repo || return
+  if is_in_jj_repo; then
+    jj bookmark list --all-remotes --color=always |
+      fzf_down --ansi --multi --preview-window right:70% \
+        --preview 'jj log --color=always -r "$(awk "{print \$1}" <<< {})"' |
+      awk '{print $1}'
+    return
+  fi
+  if ! is_in_git_repo; then return; fi
 # shellcheck disable=SC2016
   git branch -a --color=always | grep -v '/HEAD\s' | sort |
   fzf_down --ansi --multi --tac --preview-window right:70% \
@@ -77,9 +84,7 @@ _gt() {
     --preview 'git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always {}'
 }
 
-_gh() {
-  is_in_git_repo || return
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
+_git_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always' |
@@ -87,38 +92,36 @@ _gh() {
   head -1
 }
 
+_jj_log_fzf() {
+  fzf_down --ansi --no-sort --reverse --multi \
+    --preview 'grep -o "[a-z]\{8,\}" <<< {} | head -1 | xargs -I% jj show --color=always %' |
+  grep -o "[a-z]\{8,\}" | head -1
+}
+
+_gh() {
+  is_in_git_repo || return
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
+  _git_log_fzf
+}
+
 _gyy() {
   is_in_git_repo || return
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
-  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
-    --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always' |
-  grep -o "[a-f0-9]\{7,\}" |
-  head -1
+  _git_log_fzf
 }
 
 _ghh() {
   is_in_git_repo || return
   git rev-parse "@{u}" || { echo "No upstream"; return }
   all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
-  # Exclude (^ prefix) all parents of the merge-base between HEAD and upstream
-  # leaving HEAD, upstream head and the merge-base, inclusively.
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
-  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
-    --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always' |
-  grep -o "[a-f0-9]\{7,\}" |
-  head -1
+  _git_log_fzf
 }
 
 _gy() {
   is_in_git_repo || return
   git reflog --date=relative --color=always |
-  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
-    --header 'Press CTRL-S to toggle sort' \
-    --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always' |
-  grep -o "[a-f0-9]\{7,\}" |
-  head -1
+  _git_log_fzf
 }
 
 _gr() {
