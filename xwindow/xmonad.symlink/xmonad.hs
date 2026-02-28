@@ -17,7 +17,7 @@ import XMonad.Config.Gnome
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
-    , (title =? "Desktop" <&&> className =? "Gnome-flashback")       --> doIgnore
+    , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doIgnore
     , className =? "Tilda"                                           --> doFloat
     , className =? "ignition"                                        --> doFloat
     , className =? "Evolution-alarm-notify"                          --> doFloat
