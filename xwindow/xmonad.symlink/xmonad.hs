@@ -63,7 +63,8 @@ myConfig = gnomeConfig
         setWMName "LG3D",
                   -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
         startupHook gnomeConfig,
-        fullscreenStartupHook
+        fullscreenStartupHook,
+        spawn "pgrep xfce4-panel || xfce4-panel"
     ]
     , handleEventHook = handleEventHook gnomeConfig
     , modMask = mod4Mask
