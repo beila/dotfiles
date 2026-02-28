@@ -24,6 +24,7 @@
         modules = [
           ./home.nix
           ./gnome.nix
+          ./neovide.nix
           ./xmonad.nix
           ./xdg.nix
           {

@@ -33,11 +33,9 @@ in
         pkgs.fd
         pkgs.fzf
         pkgs.hishtory
-        pkgs.jetbrains-mono
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf
-        (config.lib.nixGL.wrap pkgs.neovide)
         pkgs.neovim
         pkgs.ripgrep
         pkgs.scrot
@@ -65,15 +63,6 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
   ];
-
-  xdg.desktopEntries.neovide = {
-    name = "Neovide";
-    comment = "No Nonsense Neovim Client in Rust";
-    exec = "neovide %F";
-    icon = "neovide";
-    type = "Application";
-    categories = [ "Utility" "TextEditor" ];
-  };
 
   #nixpkgs.config.allowUnfreePredicate = _: true;
 

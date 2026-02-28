@@ -26,6 +26,10 @@
     "org/gnome/gnome-flashback" = {
       desktop = false;
     };
+    # Remove gnome-panel bars (replaced by xfce4-panel)
+    "org/gnome/gnome-panel/layout" = {
+      toplevel-id-list = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
+    };
     "org/gnome/desktop/peripherals/mouse" = {
       speed = 0.75;
     };
