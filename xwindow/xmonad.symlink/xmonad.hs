@@ -58,7 +58,8 @@ main = ewmhFullscreen <$> dzen myConfig >>= xmonad
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = gnomeConfig
-    { startupHook = composeAll [
+    { terminal = "gnome-terminal"
+    , startupHook = composeAll [
         -- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
         setWMName "LG3D",
                   -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
