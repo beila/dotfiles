@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=XMonad
-Exec=/home/ANT.AMAZON.COM/hojin/.nix-profile/bin/xmonad
+Exec=xmonad
 NoDisplay=true
 X-GNOME-WMName=XMonad
 X-GNOME-Autostart-Phase=WindowManager
