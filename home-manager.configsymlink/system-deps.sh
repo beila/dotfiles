@@ -5,4 +5,5 @@ set -xeuo pipefail
 
 sudo apt install -y \
   ibus-hangul \
-  input-remapper
+  input-remapper \
+  xmonad libghc-xmonad-contrib-dev libghc-xmonad-wallpaper-dev
