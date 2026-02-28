@@ -23,6 +23,9 @@
       delay = lib.gvariant.mkUint32 200;
       repeat-interval = lib.gvariant.mkUint32 15;
     };
+    "org/gnome/gnome-flashback" = {
+      desktop = false;
+    };
     "org/gnome/desktop/peripherals/mouse" = {
       speed = 0.75;
     };
