@@ -13,3 +13,4 @@ sudo apt install -y \
 # GNOME + XMonad session
 sudo cp "$SCRIPT_DIR/../xwindow/gnome-xmonad.desktop" /usr/share/xsessions/
 sudo cp "$SCRIPT_DIR/../xwindow/gnome-flashback-xmonad.session" /usr/share/gnome-session/sessions/
+sudo cp "$SCRIPT_DIR/../xwindow/xmonad.desktop" /usr/share/applications/
