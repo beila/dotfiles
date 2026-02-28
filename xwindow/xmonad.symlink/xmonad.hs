@@ -17,8 +17,7 @@ import XMonad.Config.Gnome
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
-    , appName   =? "desktop_window"                                  --> doIgnore
-    , appName   =? "gnome-flashback"                                 --> doIgnore
+    , (title =? "Desktop" <&&> className =? "Gnome-flashback")       --> doIgnore
     , className =? "Tilda"                                           --> doFloat
     , className =? "ignition"                                        --> doFloat
     , className =? "Evolution-alarm-notify"                          --> doFloat
@@ -55,7 +54,7 @@ myManageHook = composeAll
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
 {-main = xmonad =<< xmobar myConfig-}
-main = xmonad =<< dzen myConfig
+main = ewmhFullscreen <$> dzen myConfig >>= xmonad
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = gnomeConfig
@@ -66,10 +65,7 @@ myConfig = gnomeConfig
         startupHook gnomeConfig,
         fullscreenStartupHook
     ]
-    , handleEventHook = composeAll [
-        handleEventHook gnomeConfig,
-        fullscreenEventHook
-    ]
+    , handleEventHook = handleEventHook gnomeConfig
     , modMask = mod4Mask
     -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
     , workspaces = myWorkspaces
@@ -87,7 +83,7 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
-    , ((mod4Mask, xK_0), moveTo Next EmptyWS)  -- find a free workspace
+    , ((mod4Mask, xK_0), moveTo Next emptyWS)  -- find a free workspace
     ] ++
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
