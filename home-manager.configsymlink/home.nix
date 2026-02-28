@@ -29,6 +29,7 @@ in
 
         pkgs.bat
         pkgs.cmake
+        pkgs.dzen2
         pkgs.fzf
         pkgs.hishtory
         pkgs.jetbrains-mono
