@@ -41,6 +41,7 @@ in
         pkgs.scrot
         pkgs.shellcheck
         pkgs.wl-clipboard
+        pkgs.xclip
         pkgs.zoxide
         pkgs.zsh
 
