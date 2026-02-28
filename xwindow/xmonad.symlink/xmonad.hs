@@ -13,7 +13,6 @@ import qualified XMonad.StackSet as W
 import qualified Data.List as L (find,filter)
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.WallpaperSetter
-import XMonad.Layout.Gaps
 import XMonad.Config.Gnome
 
 myManageHook = composeAll
@@ -73,7 +72,7 @@ myConfig = gnomeConfig
     -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
     , manageHook = myManageHook
-    , layoutHook = avoidStruts $ gaps [(D, 48)] $ layoutHook gnomeConfig
+    , layoutHook = avoidStruts $ layoutHook gnomeConfig
     } `additionalKeys` myKeys
 
 myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
