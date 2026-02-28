@@ -2,8 +2,14 @@
 # System-level dependencies that can't be managed by Home Manager.
 # Run this on a new machine before `home-manager switch`.
 set -xeuo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 sudo apt install -y \
   ibus-hangul \
   input-remapper \
-  xmonad libghc-xmonad-contrib-dev libghc-xmonad-wallpaper-dev
+  xmonad libghc-xmonad-contrib-dev libghc-xmonad-wallpaper-dev \
+  gnome-session-flashback
+
+# GNOME + XMonad session
+sudo cp "$SCRIPT_DIR/../xwindow/gnome-xmonad.desktop" /usr/share/xsessions/
+sudo cp "$SCRIPT_DIR/../xwindow/gnome-flashback-xmonad.session" /usr/share/gnome-session/sessions/
