@@ -32,10 +32,10 @@ _gf_get_file() {
 
 _gf() {
   if is_in_jj_repo; then
-    jj status --color=always | grep '^[AMD]' |
-      fzf_down -m --ansi --nth 2.. \
-        --preview 'file=$(awk "{print \$2}" <<< {}); jj diff --color=always -- "$file"' |
-      awk '{print $2}'
+    jj diff --stat --color=always |
+      fzf_down -m --ansi \
+        --preview 'file=$(awk "{print \$1}" <<< {}); jj diff --color=always -- "$file"' |
+      awk '{print $1}'
     return
   fi
   if is_in_git_repo; then
