@@ -29,7 +29,6 @@ in
 
         pkgs.bat
         pkgs.cmake
-        pkgs.dzen2
         pkgs.fd
         pkgs.fzf
         pkgs.hishtory
