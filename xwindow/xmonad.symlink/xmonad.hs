@@ -1,18 +1,16 @@
 import Control.Monad
 import Data.Maybe
+import qualified Data.List as L (find,filter)
+import qualified XMonad.StackSet as W
 import XMonad
+import XMonad.Actions.CycleWS
+import XMonad.Config.Gnome
 import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.SetWMName
-import XMonad.Actions.CycleWS
-import XMonad.Util.EZConfig(additionalKeys)
-import XMonad.Util.Run(spawnPipe)
 import XMonad.Layout.PerWorkspace
-import qualified XMonad.StackSet as W
-import qualified Data.List as L (find,filter)
-import XMonad.Hooks.EwmhDesktops
-import XMonad.Hooks.WallpaperSetter
-import XMonad.Config.Gnome
+import XMonad.Util.EZConfig(additionalKeys)
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
