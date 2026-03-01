@@ -1,8 +1,7 @@
 import Control.Monad
 import Data.Maybe
 import XMonad
-import XMonad.Hooks.DynamicLog
-import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.SetWMName
 import XMonad.Actions.CycleWS
@@ -53,7 +52,7 @@ myManageHook = composeAll
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
 {-main = xmonad =<< xmobar myConfig-}
-main = ewmhFullscreen <$> dzen myConfig >>= xmonad
+main = xmonad $ ewmhFullscreen myConfig
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 myConfig = gnomeConfig
@@ -89,7 +88,7 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
     | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
-    , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask), (W.view, controlMask), (myGreedyView, mod2Mask)]
+    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (myGreedyView, mod2Mask)]
     ]
 
 -- TODO let's make it lruView
