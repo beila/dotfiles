@@ -43,3 +43,4 @@
 # resize-overlay-duration = 4s 200ms
 
 command = zsh -l
+gtk-titlebar = false
