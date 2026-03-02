@@ -31,6 +31,7 @@ in
         pkgs.cmake
         pkgs.fd
         pkgs.fzf
+        (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.hishtory
         pkgs.jujutsu
         pkgs.just
