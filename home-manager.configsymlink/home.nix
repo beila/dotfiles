@@ -41,6 +41,7 @@ in
         pkgs.shellcheck
         pkgs.wl-clipboard
         pkgs.xclip
+        pkgs.xcape  # makes Super tap emit F13 for albert toggle
         pkgs.zoxide
         pkgs.zsh
 
