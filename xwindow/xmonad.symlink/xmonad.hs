@@ -5,6 +5,7 @@ import qualified XMonad.StackSet as W
 import XMonad
 import XMonad.Actions.CycleWS
 import XMonad.Config.Gnome
+import XMonad.Util.NamedScratchpad
 import Graphics.X11.ExtraTypes.XF86
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
@@ -12,6 +13,11 @@ import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.SetWMName
 import XMonad.Layout.PerWorkspace
 import XMonad.Util.EZConfig(additionalKeys)
+
+-- Scratchpad: toggle a floating ghostty terminal with End or PgDn
+myScratchpads = [ NS "ghostty" "ghostty --class=scratchpad"
+                     (className =? "scratchpad")
+                     (customFloating $ W.RationalRect 0.1 0.1 0.8 0.8) ]
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
@@ -47,6 +53,7 @@ myManageHook = composeAll
     , className =? "firefox"                                         --> doShift "1:browser"
     , manageHook gnomeConfig
     , manageDocks
+    , namedScratchpadManageHook myScratchpads
     ]
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
@@ -84,6 +91,8 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
+    , ((0, xF86XK_Launch2), namedScratchpadAction myScratchpads "ghostty")  -- End key
+    , ((0, xF86XK_Launch3), namedScratchpadAction myScratchpads "ghostty")  -- PgDn key
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
