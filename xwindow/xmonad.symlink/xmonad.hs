@@ -71,6 +71,10 @@ myConfig = gnomeConfig
         fullscreenStartupHook,
         spawn "pgrep xfce4-panel || xfce4-panel",
         spawn "pgrep albert || albert",
+        -- Reapply xmodmap on keyboard hotplug (GNOME resets keymap on device changes)
+        spawn "pgrep inputplug || inputplug -c ~/.dotfiles/xwindow/bin/on-input-change",
+        -- Initial xmodmap apply (sleep to let GNOME set its keymap first)
+        spawn "sleep 2 && xmodmap ~/.Xmodmap",
         -- xcape: tap Super alone → emit F13 (used to toggle albert)
         -- Super still works as modifier when held with other keys
         spawn "pgrep xcape || xcape -e 'Super_L=XF86Launch1'"
