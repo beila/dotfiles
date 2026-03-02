@@ -91,8 +91,8 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
-    , ((0, xF86XK_Launch2), namedScratchpadAction myScratchpads "ghostty")  -- End key
-    , ((0, xF86XK_Launch3), namedScratchpadAction myScratchpads "ghostty")  -- PgDn key
+    , ((0, xF86XK_Launch2), namedScratchpadAction myScratchpads "ghostty")  -- End key (remapped in ~/.Xmodmap)
+    , ((0, xF86XK_Launch3), namedScratchpadAction myScratchpads "ghostty")  -- PgDn key (remapped in ~/.Xmodmap)
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
