@@ -33,4 +33,19 @@
       speed = 0.75;
     };
   };
+
+  # Change lock screen wallpaper daily
+  systemd.user.services.random-lockscreen = {
+    Unit.Description = "Set random lock screen wallpaper";
+    Service.ExecStart = "%h/.dotfiles/xwindow/bin/random-lockscreen";
+    Service.Type = "oneshot";
+  };
+  systemd.user.timers.random-lockscreen = {
+    Unit.Description = "Daily random lock screen wallpaper";
+    Timer = {
+      OnCalendar = "daily";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 }
