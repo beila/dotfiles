@@ -1,5 +1,0 @@
-#!/bin/bash
-# Re-apply xmodmap when keyboards are connected
-# Called by udev rule and xmonad startup
-sleep 1
-DISPLAY=:0 xmodmap ~/.Xmodmap 2>/dev/null
