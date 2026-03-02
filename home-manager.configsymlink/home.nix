@@ -33,6 +33,7 @@ in
         pkgs.fzf
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.hishtory
+        pkgs.inputplug  # reapply xmodmap on keyboard hotplug
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf

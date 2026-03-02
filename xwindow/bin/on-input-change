@@ -1,0 +1,10 @@
+#!/bin/bash
+# Called by inputplug when X input devices change.
+# Args: $1=event $2=id $3=type
+# Reapply xmodmap when a keyboard is added.
+event="$1"
+type="$3"
+if [ "$event" = "XISlaveAdded" ] && [ "$type" = "XISlaveKeyboard" ]; then
+    sleep 1
+    xmodmap ~/.Xmodmap 2>/dev/null
+fi
