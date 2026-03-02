@@ -5,6 +5,7 @@ import qualified XMonad.StackSet as W
 import XMonad
 import XMonad.Actions.CycleWS
 import XMonad.Config.Gnome
+import Graphics.X11.ExtraTypes.XF86
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
@@ -65,7 +66,7 @@ myConfig = gnomeConfig
         spawn "pgrep albert || albert",
         -- xcape: tap Super alone → emit F13 (used to toggle albert)
         -- Super still works as modifier when held with other keys
-        spawn "pgrep xcape || xcape -e 'Super_L=F13'"
+        spawn "pgrep xcape || xcape -e 'Super_L=XF86Launch1'"
     ]
     , handleEventHook = handleEventHook gnomeConfig
     , modMask = mod4Mask
@@ -82,7 +83,7 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
-    , ((0, xK_F13), spawn "albert toggle")  -- triggered by Super tap via xcape
+    , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
