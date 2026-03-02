@@ -1,12 +1,11 @@
 #!/bin/bash
 # Called by inputplug when X input devices change.
 # Args: $1=event $2=id $3=type
-# Reapply xmodmap when any device is added (GNOME resets keymap on all device changes)
+# Reapply xmodmap when any device is added, because GNOME settings daemon
+# resets the entire keymap on device changes.
 event="$1"
-type="$3"
-echo "$(date): $event $2 $type" >> /tmp/inputplug.log
 if [ "$event" = "XISlaveAdded" ]; then
-    sleep 2
+    # Sleep to let GNOME finish resetting the keymap first
+    sleep 3
     DISPLAY=:0 xmodmap ~/.Xmodmap 2>/dev/null
-    echo "$(date): xmodmap reapplied" >> /tmp/inputplug.log
 fi
