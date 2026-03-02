@@ -2,7 +2,6 @@
 {
   dconf.settings = {
     "org/gnome/desktop/input-sources" = {
-      xkb-options = [ "ctrl:nocaps" ];
       sources = [
         (lib.gvariant.mkTuple [ "xkb" "us" ])
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
