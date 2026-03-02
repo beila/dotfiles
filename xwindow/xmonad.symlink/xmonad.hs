@@ -15,8 +15,8 @@ import XMonad.Layout.PerWorkspace
 import XMonad.Util.EZConfig(additionalKeys)
 
 -- Scratchpad: toggle a floating ghostty terminal with End or PgDn
-myScratchpads = [ NS "ghostty" "ghostty --class=scratchpad"
-                     (className =? "scratchpad")
+myScratchpads = [ NS "ghostty" "ghostty --x11-instance-name=scratchpad"
+                     (appName =? "scratchpad")
                      (customFloating $ W.RationalRect 0.1 0.1 0.8 0.8) ]
 
 myManageHook = composeAll
