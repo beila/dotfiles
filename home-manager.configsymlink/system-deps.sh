@@ -7,6 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 sudo apt install -y \
   ibus-hangul \
   input-remapper \
+  volumeicon-alsa \
   xmonad libghc-xmonad-contrib-dev libghc-xmonad-wallpaper-dev \
   gnome-session-flashback
 
