@@ -38,6 +38,7 @@ in
         pkgs.just
         pkgs.mergiraf
         pkgs.pavucontrol
+        pkgs.pasystray  # PulseAudio tray: volume OSD + device switching
         pkgs.neovim
         pkgs.ripgrep
         pkgs.scrot
