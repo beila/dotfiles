@@ -71,6 +71,7 @@ myConfig = gnomeConfig
         fullscreenStartupHook,
         spawn "pgrep xfce4-panel || xfce4-panel",
         spawn "pgrep albert || albert",
+        spawn "pgrep pasystray || pasystray",
         -- Reapply xmodmap on keyboard hotplug (GNOME resets keymap on device changes)
         spawn "pgrep inputplug || inputplug -c ~/.dotfiles/xwindow/bin/on-input-change",
         -- Initial xmodmap apply (sleep to let GNOME set its keymap first)
