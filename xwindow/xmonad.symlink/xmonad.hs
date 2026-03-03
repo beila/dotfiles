@@ -101,6 +101,7 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     , ((0, xF86XK_AudioRaiseVolume), spawn "amixer -q set Master 5%+")
     , ((0, xF86XK_AudioLowerVolume), spawn "amixer -q set Master 5%-")
     , ((0, xF86XK_AudioMute), spawn "amixer -q set Master toggle")
+    , ((mod4Mask, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-output")
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
