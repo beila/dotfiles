@@ -1,29 +1,28 @@
 #!/bin/bash
 # Cycle to next audio input (source) and show OSD via dzen2.
-# Uses wpctl (PipeWire).
+# Uses wpctl (PipeWire). Skips sources that fail to set.
+# Filters out video (camera) sources.
 
-sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.')
-
-# Get all source IDs
+sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -v 'Camera\|V4L2\|Video')
 mapfile -t ids < <(echo "$sources" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
-
-# Get current default source ID
 current=$(echo "$sources" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
 
-# Find and switch to next source
 total=${#ids[@]}
 for i in "${!ids[@]}"; do
     if [ "${ids[$i]}" = "$current" ]; then
-        next_i=$(( (i + 1) % total ))
-        wpctl set-default "${ids[$next_i]}"
+        for ((j=1; j<total; j++)); do
+            next_i=$(( (i + j) % total ))
+            wpctl set-default "${ids[$next_i]}" 2>/dev/null
+            sleep 0.2
+            new=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
+            [ "$new" != "$current" ] && break
+        done
         break
     fi
 done
 
-# Get new default source name
-name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 
-# Show OSD
 pkill -f "dzen2.*mic-osd" 2>/dev/null
 echo "  MIC: $name  " | dzen2 -p 3 -x 100 -y 220 -w 1000 -h 100 \
     -fn "JetBrains Mono:size=28:style=Bold" \
