@@ -47,7 +47,6 @@ in
         pkgs.shellcheck
         pkgs.wl-clipboard
         pkgs.xclip
-        pkgs.xdotool  # for Super+C/V clipboard shortcuts
         pkgs.xournalpp
         pkgs.xcape  # makes Super tap emit F13 for albert toggle
         pkgs.zoxide
