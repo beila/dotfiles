@@ -8,7 +8,7 @@ LOCKFILE="/tmp/audio-in-osd-lock"
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
-    (tail -f "$FIFO" | dzen2 -p -x 100 -y 240 -w 900 -h 120 \
+    (tail -f "$FIFO" | dzen2 -p -x 100 -y 320 -w 1240 -h 100 \
         -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
         -bg "#0d0d1a" -fg "#ff79c6" -title-name "audio-in-osd") &
     sleep 0.2

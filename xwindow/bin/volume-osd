@@ -1,7 +1,6 @@
 #!/bin/bash
 # Change volume and show OSD via dzen2.
 # Uses a FIFO so rapid key presses update text without flicker.
-# A background process hides dzen2 after 2 seconds of inactivity.
 # Usage: volume-osd up|down|toggle
 FIFO="/tmp/volume-osd-fifo"
 LOCKFILE="/tmp/volume-osd-lock"
@@ -9,23 +8,20 @@ LOCKFILE="/tmp/volume-osd-lock"
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
-    (tail -f "$FIFO" | dzen2 -p -x 100 -y 100 -w 900 -h 120 \
+    (tail -f "$FIFO" | dzen2 -p -x 100 -y 100 -w 1240 -h 100 \
         -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
         -bg "#0d0d1a" -fg "#50fa7b" -title-name "vol-osd") &
     sleep 0.2
 }
 
-# Start dzen2 if FIFO doesn't exist or is broken
 [ -p "$FIFO" ] || start_dzen
 
-# Change volume
 case "$1" in
     up)     amixer -q set Master 5%+ ;;
     down)   amixer -q set Master 5%- ;;
     toggle) amixer -q set Master toggle ;;
 esac
 
-# Get current state
 vol=$(amixer get Master | grep -oP '\d+%' | head -1)
 mute=$(amixer get Master | grep -oP '\[o[fn]+\]' | head -1)
 pct=${vol%\%}
@@ -43,6 +39,5 @@ fi
 
 echo "$text" > "$FIFO"
 
-# Schedule hide: kill dzen2 after 2s of no updates
 echo $$ > "$LOCKFILE"
 (sleep 2; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*vol-osd" && rm -f "$FIFO") &
