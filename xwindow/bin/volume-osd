@@ -9,8 +9,8 @@ LOCKFILE="/tmp/volume-osd-lock"
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
-    (tail -f "$FIFO" | dzen2 -p -x 100 -y 100 -w 700 -h 120 \
-        -fn "JetBrains Mono:size=36:style=Bold" \
+    (tail -f "$FIFO" | dzen2 -p -x 100 -y 100 -w 900 -h 120 \
+        -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
         -bg "#0d0d1a" -fg "#50fa7b" -title-name "vol-osd") &
     sleep 0.2
 }
@@ -31,14 +31,14 @@ mute=$(amixer get Master | grep -oP '\[o[fn]+\]' | head -1)
 pct=${vol%\%}
 
 if [ "$mute" = "[off]" ]; then
-    text="  ×  MUTED"
+    text="  󰝟  MUTED"
 else
     bar=""
     filled=$((pct / 5))
     for ((i=0; i<20; i++)); do
-        if [ $i -lt $filled ]; then bar+="█"; else bar+="░"; fi
+        if [ $i -lt $filled ]; then bar+="━"; else bar+="┄"; fi
     done
-    text="  ♪  $bar  $vol"
+    text="  󰕾  $bar  $vol"
 fi
 
 echo "$text" > "$FIFO"
