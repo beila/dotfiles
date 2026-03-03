@@ -1,21 +1,22 @@
 #!/bin/bash
-# Change volume and show OSD via a persistent dzen2 instance.
+# Change volume and show OSD via dzen2.
+# Uses a FIFO so rapid key presses update text without flicker.
+# A background process hides dzen2 after 2 seconds of inactivity.
 # Usage: volume-osd up|down|toggle
 FIFO="/tmp/volume-osd-fifo"
-PIDFILE="/tmp/volume-osd-pid"
+LOCKFILE="/tmp/volume-osd-lock"
 
-# Start persistent dzen2 if not running
-if [ ! -p "$FIFO" ] || ! kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
-    # Keep fifo open with a background cat that never closes
-    (tail -f "$FIFO" | dzen2 -x 100 -y 100 -w 600 -h 120 \
+    (tail -f "$FIFO" | dzen2 -p -x 100 -y 100 -w 700 -h 120 \
         -fn "JetBrains Mono:size=36:style=Bold" \
-        -bg "#0d0d1a" -fg "#50fa7b" -title-name "vol-osd" \
-        -e "onstart=hide" -p) &
-    echo $! > "$PIDFILE"
-    sleep 0.3
-fi
+        -bg "#0d0d1a" -fg "#50fa7b" -title-name "vol-osd") &
+    sleep 0.2
+}
+
+# Start dzen2 if FIFO doesn't exist or is broken
+[ -p "$FIFO" ] || start_dzen
 
 # Change volume
 case "$1" in
@@ -27,18 +28,21 @@ esac
 # Get current state
 vol=$(amixer get Master | grep -oP '\d+%' | head -1)
 mute=$(amixer get Master | grep -oP '\[o[fn]+\]' | head -1)
+pct=${vol%\%}
+
 if [ "$mute" = "[off]" ]; then
-    label="  ×  MUTED  "
-    echo "^unhide()$label^hide()" > "$FIFO"
+    text="  ×  MUTED"
 else
     bar=""
-    pct=${vol%\%}
     filled=$((pct / 5))
     for ((i=0; i<20; i++)); do
         if [ $i -lt $filled ]; then bar+="█"; else bar+="░"; fi
     done
-    echo "^unhide()  $vol  $bar  ^hide()" > "$FIFO"
+    text="  ♪  $bar  $vol"
 fi
 
-# Auto-hide after 2 seconds
-(sleep 2; echo "^hide()" > "$FIFO") &
+echo "$text" > "$FIFO"
+
+# Schedule hide: kill dzen2 after 2s of no updates
+echo $$ > "$LOCKFILE"
+(sleep 2; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*vol-osd" && rm -f "$FIFO") &
