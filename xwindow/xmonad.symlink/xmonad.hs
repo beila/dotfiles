@@ -97,6 +97,9 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
     , ((0, xF86XK_Launch2), namedScratchpadAction myScratchpads "ghostty")  -- End key (remapped in ~/.Xmodmap)
     , ((0, xF86XK_Launch3), namedScratchpadAction myScratchpads "ghostty")  -- PgDn key (remapped in ~/.Xmodmap)
+    , ((0, xF86XK_AudioRaiseVolume), spawn "amixer -q set Master 5%+")
+    , ((0, xF86XK_AudioLowerVolume), spawn "amixer -q set Master 5%-")
+    , ((0, xF86XK_AudioMute), spawn "amixer -q set Master toggle")
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
