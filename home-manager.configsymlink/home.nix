@@ -35,6 +35,8 @@ in
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.hishtory
         pkgs.inputplug  # reapply xmodmap on keyboard hotplug
+        pkgs.jetbrains-mono
+        (pkgs.nerd-fonts.override { fonts = [ "JetBrainsMono" ]; })
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf
