@@ -1,22 +1,44 @@
 #!/bin/bash
-# Change volume and show OSD via dzen2.
+# Change volume and show OSD via a persistent dzen2 instance.
 # Usage: volume-osd up|down|toggle
-action="$1"
-case "$action" in
+FIFO="/tmp/volume-osd-fifo"
+PIDFILE="/tmp/volume-osd-pid"
+
+# Start persistent dzen2 if not running
+if [ ! -p "$FIFO" ] || ! kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null; then
+    rm -f "$FIFO"
+    mkfifo "$FIFO"
+    # Keep fifo open with a background cat that never closes
+    (tail -f "$FIFO" | dzen2 -x 100 -y 100 -w 600 -h 120 \
+        -fn "JetBrains Mono:size=36:style=Bold" \
+        -bg "#0d0d1a" -fg "#50fa7b" -title-name "vol-osd" \
+        -e "onstart=hide" -p) &
+    echo $! > "$PIDFILE"
+    sleep 0.3
+fi
+
+# Change volume
+case "$1" in
     up)     amixer -q set Master 5%+ ;;
     down)   amixer -q set Master 5%- ;;
     toggle) amixer -q set Master toggle ;;
 esac
 
+# Get current state
 vol=$(amixer get Master | grep -oP '\d+%' | head -1)
 mute=$(amixer get Master | grep -oP '\[o[fn]+\]' | head -1)
 if [ "$mute" = "[off]" ]; then
-    label="MUTED"
+    label="  ×  MUTED  "
+    echo "^unhide()$label^hide()" > "$FIFO"
 else
-    label="VOL: $vol"
+    bar=""
+    pct=${vol%\%}
+    filled=$((pct / 5))
+    for ((i=0; i<20; i++)); do
+        if [ $i -lt $filled ]; then bar+="█"; else bar+="░"; fi
+    done
+    echo "^unhide()  $vol  $bar  ^hide()" > "$FIFO"
 fi
 
-pkill -f "dzen2.*vol-osd" 2>/dev/null
-echo "  $label  " | dzen2 -p 2 -x 100 -y 100 -w 500 -h 100 \
-    -fn "JetBrains Mono:size=28:style=Bold" \
-    -bg "#1a1a2e" -fg "#50fa7b" -title-name "vol-osd" &
+# Auto-hide after 2 seconds
+(sleep 2; echo "^hide()" > "$FIFO") &
