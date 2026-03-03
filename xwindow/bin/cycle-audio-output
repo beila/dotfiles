@@ -2,13 +2,15 @@
 # Cycle to next audio output (sink) and show OSD via dzen2.
 # Uses wpctl (PipeWire).
 
-# Get current default sink ID
-current=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*\*' | grep -oP '\d+(?=\.)' | head -1)
+sinks=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*[0-9]\.')
 
 # Get all sink IDs
-mapfile -t ids < <(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*[0-9]\.' | grep -oP '\d+(?=\.)' )
+mapfile -t ids < <(echo "$sinks" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
 
-# Find next sink
+# Get current default sink ID
+current=$(echo "$sinks" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+
+# Find and switch to next sink
 total=${#ids[@]}
 for i in "${!ids[@]}"; do
     if [ "${ids[$i]}" = "$current" ]; then
@@ -19,10 +21,10 @@ for i in "${!ids[@]}"; do
 done
 
 # Get new default sink name
-name=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+name=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 
-# Show OSD (kill previous, show for 3 seconds)
+# Show OSD
 pkill -f "dzen2.*audio-osd" 2>/dev/null
-echo "  🔊  $name  " | dzen2 -p 3 -x 100 -y 100 -w 700 -h 100 \
+echo "  OUT: $name  " | dzen2 -p 3 -x 100 -y 100 -w 1000 -h 100 \
     -fn "JetBrains Mono:size=28:style=Bold" \
     -bg "#1a1a2e" -fg "#8be9fd" -title-name "audio-osd" &
