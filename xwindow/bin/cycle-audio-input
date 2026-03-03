@@ -1,7 +1,20 @@
 #!/bin/bash
-# Cycle to next audio input (source) and show OSD via dzen2.
+# Cycle to next audio input (source) and show OSD via persistent dzen2.
 # Uses wpctl (PipeWire). Skips sources that fail to set.
 # Filters out video (camera) sources.
+FIFO="/tmp/audio-in-osd-fifo"
+LOCKFILE="/tmp/audio-in-osd-lock"
+
+start_dzen() {
+    rm -f "$FIFO"
+    mkfifo "$FIFO"
+    (tail -f "$FIFO" | dzen2 -p -x 100 -y 240 -w 900 -h 120 \
+        -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
+        -bg "#0d0d1a" -fg "#ff79c6" -title-name "audio-in-osd") &
+    sleep 0.2
+}
+
+[ -p "$FIFO" ] || start_dzen
 
 sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -v 'Camera\|V4L2\|Video')
 mapfile -t ids < <(echo "$sources" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
@@ -22,8 +35,7 @@ for i in "${!ids[@]}"; do
 done
 
 name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+echo "  󰍬  $name" > "$FIFO"
 
-pkill -f "dzen2.*mic-osd" 2>/dev/null
-echo "  MIC: $name  " | dzen2 -p 3 -x 100 -y 220 -w 1000 -h 100 \
-    -fn "JetBrains Mono:size=28:style=Bold" \
-    -bg "#1a1a2e" -fg "#ff79c6" -title-name "mic-osd" &
+echo $$ > "$LOCKFILE"
+(sleep 3; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*audio-in-osd" && rm -f "$FIFO") &
