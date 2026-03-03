@@ -1,9 +1,10 @@
 #!/bin/bash
-# Cycle to next audio input (source) and show OSD via persistent dzen2.
-# Uses wpctl (PipeWire). Skips sources that fail to set.
+# Cycle audio input (source) with OSD.
+# First press: show current device. Subsequent presses while visible: cycle to next.
 # Filters out video (camera) sources.
 FIFO="/tmp/audio-in-osd-fifo"
 LOCKFILE="/tmp/audio-in-osd-lock"
+STATEFILE="/tmp/audio-in-osd-showing"
 
 start_dzen() {
     rm -f "$FIFO"
@@ -14,28 +15,31 @@ start_dzen() {
     sleep 0.2
 }
 
-[ -p "$FIFO" ] || start_dzen
+if [ -f "$STATEFILE" ] && [ -p "$FIFO" ]; then
+    sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -v 'Camera\|V4L2\|Video')
+    mapfile -t ids < <(echo "$sources" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+    current=$(echo "$sources" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
 
-sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -v 'Camera\|V4L2\|Video')
-mapfile -t ids < <(echo "$sources" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
-current=$(echo "$sources" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+    total=${#ids[@]}
+    for i in "${!ids[@]}"; do
+        if [ "${ids[$i]}" = "$current" ]; then
+            for ((j=1; j<total; j++)); do
+                next_i=$(( (i + j) % total ))
+                wpctl set-default "${ids[$next_i]}" 2>/dev/null
+                sleep 0.2
+                new=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
+                [ "$new" != "$current" ] && break
+            done
+            break
+        fi
+    done
+else
+    [ -p "$FIFO" ] || start_dzen
+fi
 
-total=${#ids[@]}
-for i in "${!ids[@]}"; do
-    if [ "${ids[$i]}" = "$current" ]; then
-        for ((j=1; j<total; j++)); do
-            next_i=$(( (i + j) % total ))
-            wpctl set-default "${ids[$next_i]}" 2>/dev/null
-            sleep 0.2
-            new=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
-            [ "$new" != "$current" ] && break
-        done
-        break
-    fi
-done
-
+touch "$STATEFILE"
 name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 echo "  󰍬  $name" > "$FIFO"
 
 echo $$ > "$LOCKFILE"
-(sleep 3; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*audio-in-osd" && rm -f "$FIFO") &
+(sleep 3; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*audio-in-osd" && rm -f "$FIFO" "$STATEFILE") &
