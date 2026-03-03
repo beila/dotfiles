@@ -37,6 +37,7 @@ in
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf
+        pkgs.pavucontrol
         pkgs.neovim
         pkgs.ripgrep
         pkgs.scrot
