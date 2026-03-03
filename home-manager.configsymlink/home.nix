@@ -36,7 +36,7 @@ in
         pkgs.hishtory
         pkgs.inputplug  # reapply xmodmap on keyboard hotplug
         pkgs.jetbrains-mono
-        (pkgs.nerd-fonts.override { fonts = [ "JetBrainsMono" ]; })
+        pkgs.nerd-fonts.jetbrains-mono
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf
