@@ -1,6 +1,19 @@
 #!/bin/bash
-# Cycle to next audio output (sink) and show OSD via dzen2.
+# Cycle to next audio output (sink) and show OSD via persistent dzen2.
 # Uses wpctl (PipeWire). Skips sinks that fail to set.
+FIFO="/tmp/audio-out-osd-fifo"
+LOCKFILE="/tmp/audio-out-osd-lock"
+
+start_dzen() {
+    rm -f "$FIFO"
+    mkfifo "$FIFO"
+    (tail -f "$FIFO" | dzen2 -p -x 100 -y 100 -w 900 -h 120 \
+        -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
+        -bg "#0d0d1a" -fg "#8be9fd" -title-name "audio-out-osd") &
+    sleep 0.2
+}
+
+[ -p "$FIFO" ] || start_dzen
 
 sinks=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*[0-9]\.')
 mapfile -t ids < <(echo "$sinks" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
@@ -9,7 +22,6 @@ current=$(echo "$sinks" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\
 total=${#ids[@]}
 for i in "${!ids[@]}"; do
     if [ "${ids[$i]}" = "$current" ]; then
-        # Try each next sink until one works
         for ((j=1; j<total; j++)); do
             next_i=$(( (i + j) % total ))
             wpctl set-default "${ids[$next_i]}" 2>/dev/null
@@ -22,8 +34,7 @@ for i in "${!ids[@]}"; do
 done
 
 name=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+echo "  󰓃  $name" > "$FIFO"
 
-pkill -f "dzen2.*audio-osd" 2>/dev/null
-echo "  OUT: $name  " | dzen2 -p 3 -x 100 -y 100 -w 1000 -h 100 \
-    -fn "JetBrains Mono:size=28:style=Bold" \
-    -bg "#1a1a2e" -fg "#8be9fd" -title-name "audio-osd" &
+echo $$ > "$LOCKFILE"
+(sleep 3; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*audio-out-osd" && rm -f "$FIFO") &
