@@ -7,10 +7,6 @@
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
-    "org/gnome/desktop/wm/keybindings" = {
-      switch-input-source = [ "<Shift>space" ];
-      switch-input-source-backward = [ "<Shift><Super>space" ];
-    };
     # ibus-hangul: use 3-bulsik layout (requires: sudo apt install ibus-hangul)
     "org/freedesktop/ibus/general/hotkey" = {
       triggers = [ "<Shift>space" ];
