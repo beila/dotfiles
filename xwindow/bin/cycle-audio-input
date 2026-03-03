@@ -2,13 +2,15 @@
 # Cycle to next audio input (source) and show OSD via dzen2.
 # Uses wpctl (PipeWire).
 
-# Get current default source ID
-current=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*\*' | grep -oP '\d+(?=\.)' | head -1)
+sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.')
 
 # Get all source IDs
-mapfile -t ids < <(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -oP '\d+(?=\.)' )
+mapfile -t ids < <(echo "$sources" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
 
-# Find next source
+# Get current default source ID
+current=$(echo "$sources" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+
+# Find and switch to next source
 total=${#ids[@]}
 for i in "${!ids[@]}"; do
     if [ "${ids[$i]}" = "$current" ]; then
@@ -19,10 +21,10 @@ for i in "${!ids[@]}"; do
 done
 
 # Get new default source name
-name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 
-# Show OSD (kill previous, show for 3 seconds)
+# Show OSD
 pkill -f "dzen2.*mic-osd" 2>/dev/null
-echo "  🎤  $name  " | dzen2 -p 3 -x 100 -y 220 -w 700 -h 100 \
+echo "  MIC: $name  " | dzen2 -p 3 -x 100 -y 220 -w 1000 -h 100 \
     -fn "JetBrains Mono:size=28:style=Bold" \
     -bg "#1a1a2e" -fg "#ff79c6" -title-name "mic-osd" &
