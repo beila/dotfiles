@@ -34,5 +34,41 @@
         "target_uinput": "keyboard",
         "output_type": 1,
         "output_code": 97
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 119,
+                "origin_hash": "Kinesis Advantage2 Keyboard"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_type": 1,
+        "output_code": 115
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 70,
+                "origin_hash": "Kinesis Advantage2 Keyboard"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_type": 1,
+        "output_code": 114
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 99,
+                "origin_hash": "Kinesis Advantage2 Keyboard"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_type": 1,
+        "output_code": 113
     }
 ]
