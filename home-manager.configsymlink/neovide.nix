@@ -16,10 +16,11 @@
   };
 
   # Copy nix-installed fonts to ~/.local/share/fonts so neovide's skia
-  # renderer can find them (it doesn't read nix font paths)
+  # renderer and dzen2 can find them (they don't read nix font paths)
   home.activation.copyFonts = ''
     mkdir -p ~/.local/share/fonts
     cp -u ${pkgs.jetbrains-mono}/share/fonts/truetype/JetBrainsMono-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
+    cp -u ${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono/JetBrainsMonoNerdFont-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
     fc-cache -f 2>/dev/null || true
   '';
 }
