@@ -103,9 +103,6 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     , ((0, xF86XK_AudioMute), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd toggle")
     , ((mod4Mask, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-output")
     , ((mod4Mask, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-input")
-    -- Super+C/V for copy/paste (sends Ctrl+C/V to focused app)
-    , ((mod4Mask, xK_c), spawn "sleep 0.1 && xdotool key --clearmodifiers ctrl+c && albert hide")
-    , ((mod4Mask, xK_v), spawn "sleep 0.1 && xdotool key --clearmodifiers ctrl+v && albert hide")
     -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
     , ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
