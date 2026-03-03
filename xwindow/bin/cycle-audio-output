@@ -1,34 +1,28 @@
 #!/bin/bash
-# Cycle to next audio output (sink) and show current device name via dzen2 popup.
+# Cycle to next audio output (sink) and show OSD via dzen2.
 # Uses wpctl (PipeWire).
 
-# Get all sink IDs and names
-mapfile -t sinks < <(wpctl status | sed -n '/Sinks:/,/^$/p' | grep '^\s*│\s*\*\?\s*[0-9]' | sed 's/.*│\s*\*\?\s*//' | sed 's/\[vol:.*//')
-
 # Get current default sink ID
-current=$(wpctl status | sed -n '/Sinks:/,/^$/p' | grep '^\s*│\s*\*' | sed 's/.*│\s*\*\s*//' | awk '{print $1}' | tr -d '.')
+current=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*\*' | grep -oP '\d+(?=\.)' | head -1)
 
 # Get all sink IDs
-mapfile -t ids < <(wpctl status | sed -n '/Sinks:/,/^$/p' | grep '^\s*│\s*\*\?\s*[0-9]' | sed 's/.*│\s*\*\?\s*//' | awk '{print $1}' | tr -d '.')
+mapfile -t ids < <(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*[0-9]\.' | grep -oP '\d+(?=\.)' )
 
 # Find next sink
 total=${#ids[@]}
 for i in "${!ids[@]}"; do
     if [ "${ids[$i]}" = "$current" ]; then
         next_i=$(( (i + 1) % total ))
-        next_id=${ids[$next_i]}
+        wpctl set-default "${ids[$next_i]}"
         break
     fi
 done
 
-# Switch to next sink
-wpctl set-default "$next_id"
+# Get new default sink name
+name=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 
-# Get new sink name
-name=$(wpctl status | sed -n '/Sinks:/,/^$/p' | grep '^\s*│\s*\*' | sed 's/.*│\s*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
-
-# Show popup via dzen2 (centered, 2 seconds)
-screen_w=$(xdpyinfo | grep dimensions | awk '{print $2}' | cut -dx -f1)
-w=400
-x=$(( (screen_w - w) / 2 ))
-echo "🔊 $name" | dzen2 -p 2 -x "$x" -y 40 -w "$w" -h 30 -fn "JetBrains Mono:size=12" -bg "#333333" -fg "#ffffff" &
+# Show OSD (kill previous, show for 3 seconds)
+pkill -f "dzen2.*audio-osd" 2>/dev/null
+echo "  🔊  $name  " | dzen2 -p 3 -x 100 -y 100 -w 700 -h 100 \
+    -fn "JetBrains Mono:size=28:style=Bold" \
+    -bg "#1a1a2e" -fg "#8be9fd" -title-name "audio-osd" &

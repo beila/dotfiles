@@ -1,0 +1,28 @@
+#!/bin/bash
+# Cycle to next audio input (source) and show OSD via dzen2.
+# Uses wpctl (PipeWire).
+
+# Get current default source ID
+current=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*\*' | grep -oP '\d+(?=\.)' | head -1)
+
+# Get all source IDs
+mapfile -t ids < <(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -oP '\d+(?=\.)' )
+
+# Find next source
+total=${#ids[@]}
+for i in "${!ids[@]}"; do
+    if [ "${ids[$i]}" = "$current" ]; then
+        next_i=$(( (i + 1) % total ))
+        wpctl set-default "${ids[$next_i]}"
+        break
+    fi
+done
+
+# Get new default source name
+name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+
+# Show OSD (kill previous, show for 3 seconds)
+pkill -f "dzen2.*mic-osd" 2>/dev/null
+echo "  🎤  $name  " | dzen2 -p 3 -x 100 -y 220 -w 700 -h 100 \
+    -fn "JetBrains Mono:size=28:style=Bold" \
+    -bg "#1a1a2e" -fg "#ff79c6" -title-name "mic-osd" &
