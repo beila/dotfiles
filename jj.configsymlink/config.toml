@@ -14,7 +14,3 @@ merge-args = ["-f", "-d", "$output", "-M",
     "-c", "wincmd J", "-c", "set modifiable",
     "-c", "set write"]
 merge-tool-edits-conflict-markers = true
-
-[fix.tools.mergiraf]
-command = ["mergiraf", "solve", "$path"]
-patterns = ["glob:'**/*'"]
