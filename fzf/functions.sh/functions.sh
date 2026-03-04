@@ -32,9 +32,9 @@ _gf_get_file() {
 
 _gf() {
   if is_in_jj_repo; then
-    jj diff --stat --color=always |
+    jj --quiet diff --stat --color=always 2>/dev/null |
       fzf_down -m --ansi \
-        --preview 'file=$(awk "{print \$1}" <<< {}); jj diff --color=always -- "$file"' |
+        --preview 'file=$(awk "{print \$1}" <<< {}); jj --quiet diff --color=always -- "$file"' |
       awk '{print $1}'
     return
   fi
@@ -53,9 +53,9 @@ _gf() {
 
 _gb() {
   if is_in_jj_repo; then
-    jj bookmark list --all-remotes --color=always |
+    jj --quiet bookmark list --all-remotes --color=always 2>/dev/null |
       fzf_down --ansi --multi --preview-window right:70% \
-        --preview 'jj log --color=always -r "$(awk "{print \$1}" <<< {})"' |
+        --preview 'jj --quiet log --color=always -r "$(awk "{print \$1}" <<< {})"' |
       awk '{print $1}'
     return
   fi
@@ -71,9 +71,9 @@ _gb() {
 
 _gbb() {
   if is_in_jj_repo; then
-    jj workspace list --color=always |
+    jj --quiet workspace list --color=always 2>/dev/null |
       fzf_down --ansi --multi --preview-window right:70% \
-        --preview 'jj log --color=always -r "$(cut -d: -f1 <<< {})"' |
+        --preview 'jj --quiet log --color=always -r "$(cut -d: -f1 <<< {})"' |
       cut -d: -f1
     return
   fi
@@ -89,9 +89,9 @@ _gbb() {
 
 _gt() {
   if is_in_jj_repo; then
-    jj tag list --color=always |
+    jj --quiet tag list --color=always 2>/dev/null |
       fzf_down --ansi --multi --preview-window right:70% \
-        --preview 'jj show --color=always "$(awk "{print \$1}" <<< {})"' |
+        --preview 'jj --quiet show --color=always "$(awk "{print \$1}" <<< {})"' |
       awk '{print $1}'
     return
   fi
@@ -112,13 +112,13 @@ _git_log_fzf() {
 
 _jj_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi \
-    --preview 'grep -o "[a-z]\{8,\}" <<< {} | head -1 | xargs -I% jj show --color=always %' |
+    --preview 'grep -o "[a-z]\{8,\}" <<< {} | head -1 | xargs -I% jj --quiet show --color=always %' |
   grep -o "[a-z]\{8,\}" | head -1
 }
 
 _gh() {
   if is_in_jj_repo; then
-    jj log --color=always -T 'builtin_log_oneline' -r '::@' | _jj_log_fzf
+    jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
@@ -129,7 +129,7 @@ _gh() {
 
 _gyy() {
   if is_in_jj_repo; then
-    jj log --color=always -T 'builtin_log_oneline' -r 'all()' | _jj_log_fzf
+    jj --quiet log --color=always -T 'builtin_log_oneline' -r 'all()' 2>/dev/null | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
@@ -140,7 +140,7 @@ _gyy() {
 
 _ghh() {
   if is_in_jj_repo; then
-    jj log --color=always -T 'builtin_log_oneline' -r '::@ & ::remote_bookmarks()' | _jj_log_fzf
+    jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@ & ::remote_bookmarks()' 2>/dev/null | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
@@ -153,7 +153,7 @@ _ghh() {
 
 _gy() {
   if is_in_jj_repo; then
-    jj operation log --color=always | _jj_log_fzf
+    jj --quiet operation log --color=always 2>/dev/null | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
@@ -164,9 +164,9 @@ _gy() {
 
 _gr() {
   if is_in_jj_repo; then
-    jj git remote list |
+    jj --quiet git remote list 2>/dev/null |
       fzf_down --tac \
-        --preview 'jj log --color=always -r "remote_bookmarks(exact:$(awk "{print \$1}" <<< {}))"' |
+        --preview 'jj --quiet log --color=always -r "remote_bookmarks(exact:$(awk "{print \$1}" <<< {}))"' |
       awk '{print $1}'
     return
   fi
