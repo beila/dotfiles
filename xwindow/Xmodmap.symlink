@@ -21,11 +21,16 @@
 !  1          2
 !pointer = 1 8 2 5 4 6 7 3 9 10 11 12 13
 
-! CapsLock → Control (also handled by inputplug on hotplug)
-remove Lock = Caps_Lock
+! CapsLock → Control
+clear Lock
 keycode 0x42 = Control_L
 add Control = Control_L
 
 ! Remap End/PgDn to XF86Launch keys for xmonad scratchpad bindings
 keycode 115 = XF86Launch2
 keycode 117 = XF86Launch3
+
+! Remap Pause/ScrollLock/PrintScreen to volume keys
+keycode 127 = XF86AudioRaiseVolume
+keycode 78 = XF86AudioLowerVolume
+keycode 107 = XF86AudioMute
