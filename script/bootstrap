@@ -158,11 +158,12 @@ setup_dotfiles_sync () {
   (
     GIT_EXECUTABLE_FINDING="$(which -a git.exe git 2>/dev/null | head -1)"
     GIT_SUBREPO=${DOTFILES_ROOT}/git/git-subrepo/lib/git-subrepo
+    HOSTNAME=$(which hostname)
     for SYNC_TARGET in $TARGETS;
     do
       if [ -d "$SYNC_TARGET" ]
       then
-        echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_dotfiles $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
+        echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} HOSTNAME=${HOSTNAME} $DOTFILES_ROOT/script/sync_dotfiles $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
       fi
      done
 
