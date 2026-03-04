@@ -1,5 +1,6 @@
 import Control.Monad
 import Data.Maybe
+import System.Directory (getHomeDirectory, setCurrentDirectory)
 import qualified Data.List as L (find,filter)
 import qualified XMonad.StackSet as W
 import XMonad
@@ -15,7 +16,7 @@ import XMonad.Layout.PerWorkspace
 import XMonad.Util.EZConfig(additionalKeys)
 
 -- Scratchpad: toggle a floating ghostty terminal with End or PgDn
-myScratchpads = [ NS "ghostty" "ghostty --x11-instance-name=scratchpad"
+myScratchpads = [ NS "ghostty" "ghostty --x11-instance-name=scratchpad --working-directory=$HOME"
                      (appName =? "scratchpad")
                      (customFloating $ W.RationalRect 0.1 0.1 0.8 0.8) ]
 
@@ -82,6 +83,7 @@ main = xmonad $ ewmhFullscreen myConfig
 myConfig = gnomeConfig
     { terminal = "gnome-terminal"
     , startupHook = composeAll [
+        io (getHomeDirectory >>= setCurrentDirectory),
         -- https://bbs.archlinux.org/viewtopic.php?pid=744577#p744577
         setWMName "LG3D",
                   -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
