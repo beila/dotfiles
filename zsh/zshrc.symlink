@@ -1,10 +1,6 @@
-# Always auto-attach to tmux with grouped sessions
-if [[ -z "$TMUX" ]] && hash tmux; then
-    if tmux has-session -t main 2>/dev/null; then
-        tmux new-session -t main -s "main-$$"
-    else
-        tmux new-session -s main
-    fi
+# Always auto-attach to zellij
+if [[ -z "$ZELLIJ" ]] && hash zellij 2>/dev/null; then
+    zellij attach --create main
     exit $?
 fi
 
