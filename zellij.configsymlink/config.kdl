@@ -7,7 +7,7 @@ keybinds clear-defaults=true {
         bind "Alt t" { SwitchToMode "tab"; }
         bind "Alt n" { SwitchToMode "resize"; }
         bind "Alt h" { SwitchToMode "move"; }
-        bind "Alt v" { SwitchToMode "scroll"; }
+        bind "Alt v" { EditScrollback; }
         bind "Alt o" { SwitchToMode "session"; }
         bind "Alt b" { SwitchToMode "tmux"; }
         bind "Alt g" { SwitchToMode "locked"; }
