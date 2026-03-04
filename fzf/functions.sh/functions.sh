@@ -118,7 +118,7 @@ _jj_log_fzf() {
 
 _gh() {
   if is_in_jj_repo; then
-    jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf
+    jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf
     return
   fi
   if is_in_git_repo; then
