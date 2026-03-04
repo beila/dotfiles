@@ -7,7 +7,7 @@ keybinds clear-defaults=true {
         bind "Alt t" { SwitchToMode "tab"; }
         bind "Alt n" { SwitchToMode "resize"; }
         bind "Alt h" { SwitchToMode "move"; }
-        bind "Alt s" { SwitchToMode "scroll"; }
+        bind "Alt v" { SwitchToMode "scroll"; }
         bind "Alt o" { SwitchToMode "session"; }
         bind "Alt b" { SwitchToMode "tmux"; }
         bind "Alt g" { SwitchToMode "locked"; }
@@ -100,7 +100,7 @@ keybinds clear-defaults=true {
     }
     scroll {
         bind "Alt e" { EditScrollback; SwitchToMode "normal"; }
-        bind "Alt s" { SwitchToMode "normal"; }
+        bind "Alt v" { SwitchToMode "normal"; }
         bind "Alt /" { SwitchToMode "entersearch"; SearchInput 0; }
         bind "PageDown" { PageScrollDown; }
         bind "PageUp" { PageScrollUp; }
