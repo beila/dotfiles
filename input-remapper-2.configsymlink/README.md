@@ -16,6 +16,3 @@ Left-hand button remap matching `xmodmap "pointer = 2 3 1"`:
 - Left Ctrl(29) → Super/Win(125)
 - Right Ctrl(97) → Super/Win(125)
 - Right Super(126) → Right Ctrl(97)
-- Pause/Break(119) → Volume Up(115)
-- Scroll Lock(70) → Volume Down(114)
-- Print Screen(99) → Mute(113)
