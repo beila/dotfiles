@@ -151,9 +151,15 @@ _ghh() {
   fi
 }
 
+_dim_jj_op_ids() {
+  # Replace blue operation IDs (ansi 38;5;4) with dim gray, and fully reset after
+  sed "s/\x1b\[38;5;4m\([0-9a-f]*\)\x1b\[39m/\x1b[2;90m\1\x1b[0m/g"
+}
+
 _gy() {
   if is_in_jj_repo; then
     jj --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
+      _dim_jj_op_ids |
       fzf_down --ansi --no-sort --reverse --multi \
         --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
       grep -o "[0-9a-f]\{12,\}" | tail -1
