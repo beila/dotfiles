@@ -26,10 +26,6 @@ clear Lock
 keycode 0x42 = Control_L
 add Control = Control_L
 
-! Remap End/PgDn to XF86Launch keys for xmonad scratchpad bindings
-keycode 115 = XF86Launch2
-keycode 117 = XF86Launch3
-
 ! Remap Pause/ScrollLock/PrintScreen to volume keys
 keycode 127 = XF86AudioRaiseVolume
 keycode 78 = XF86AudioLowerVolume
