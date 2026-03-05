@@ -5,7 +5,7 @@ nix_develop_command() {
         return
 
     git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop --ignore-env --keep VERBOSE --command" ||
-        echo "nix develop path:. --ignore-env --keep VERBOSE --command"
+        echo "nix develop --ignore-env --impure --keep VERBOSE --command" ||
+        echo "nix develop path:. --ignore-env --impure --keep VERBOSE --command"
 }
 $(nix_develop_command) just --justfile ~/.justfile run "$@"
