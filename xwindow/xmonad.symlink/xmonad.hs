@@ -137,8 +137,8 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
-    , ((0, xF86XK_Launch2), scratchpadToggle "ghostty1" True)   -- End key (remapped in ~/.Xmodmap)
-    , ((0, xF86XK_Launch3), scratchpadToggle "ghostty2" False)  -- PgDn key (remapped in ~/.Xmodmap)
+    , ((0, xF86XK_Launch2), scratchpadToggle "ghostty1")   -- End key (remapped in ~/.Xmodmap)
+    , ((0, xF86XK_Launch3), scratchpadToggle "ghostty2")  -- PgDn key (remapped in ~/.Xmodmap)
     , ((0, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd up")
     , ((0, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd down")
     , ((0, xF86XK_AudioMute), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd toggle")
