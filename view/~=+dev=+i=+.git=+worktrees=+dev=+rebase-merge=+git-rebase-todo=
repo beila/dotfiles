@@ -33,14 +33,15 @@ setlocal buftype=
 setlocal nocindent
 setlocal cinkeys=0{,0},0),0],:,0#,!^F,o,O,e
 setlocal cinoptions=
+setlocal cinscopedecls=public,protected,private
 setlocal cinwords=if,else,while,do,for,switch
 setlocal colorcolumn=
 setlocal comments=:#
 setlocal commentstring=#\ %s
 setlocal complete=.,w,b,u,t,i
+setlocal completefunc=
 setlocal concealcursor=
 setlocal conceallevel=0
-setlocal completefunc=
 setlocal nocopyindent
 setlocal cryptmethod=
 setlocal nocursorbind
@@ -56,6 +57,7 @@ setlocal expandtab
 if &filetype != 'gitrebase'
 setlocal filetype=gitrebase
 endif
+setlocal fillchars=
 setlocal nofixendofline
 setlocal foldcolumn=0
 setlocal foldenable
@@ -68,8 +70,8 @@ setlocal foldminlines=1
 setlocal foldnestmax=20
 setlocal foldtext=foldtext()
 setlocal formatexpr=
-setlocal formatoptions=qcron1
 setlocal formatlistpat=^\\s*\\d\\+[\\]:.)}\\t\ ]\\s*
+setlocal formatoptions=qcron1
 setlocal formatprg=
 setlocal grepprg=
 setlocal iminsert=0
@@ -83,6 +85,7 @@ setlocal iskeyword=@,48-57,_,192-255
 setlocal keywordprg=git\ --git-dir='/home/ANT.AMAZON.COM/hojin/dev/i/.git/worktrees/dev'\ show
 setlocal linebreak
 setlocal nolisp
+setlocal lispoptions=
 setlocal lispwords=
 setlocal nolist
 setlocal listchars=
@@ -111,6 +114,7 @@ setlocal showbreak=
 setlocal sidescrolloff=-1
 setlocal signcolumn=auto
 setlocal nosmartindent
+setlocal nosmoothscroll
 setlocal softtabstop=-1
 setlocal nospell
 setlocal spellcapcheck=[.?!]\\_[\\])'\"\	\ ]\\+
@@ -146,14 +150,13 @@ setlocal wrap
 setlocal wrapmargin=0
 silent! normal! zE
 let &fdl = &fdl
-let s:l = 2 - ((1 * winheight(0) + 37) / 74)
+let s:l = 7 - ((6 * winheight(0) + 23) / 46)
 if s:l < 1 | let s:l = 1 | endif
 keepjumps exe s:l
 normal! zt
-keepjumps 2
-normal! 012|
+keepjumps 7
+normal! 011|
 lcd ~/dev/i/.git/worktrees/dev/rebase-merge
 let &g:so = s:so_save | let &g:siso = s:siso_save
-nohlsearch
 doautoall SessionLoadPost
 " vim: set ft=vim :
