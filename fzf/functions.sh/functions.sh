@@ -153,7 +153,10 @@ _ghh() {
 
 _gy() {
   if is_in_jj_repo; then
-    jj --quiet operation log --color=always 2>/dev/null | _jj_log_fzf
+    jj --quiet operation log --color=always 2>/dev/null |
+      fzf_down --ansi --no-sort --reverse --multi \
+        --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | head -1 | xargs -I% jj --quiet operation show --color=always %' |
+      grep -o "[0-9a-f]\{12,\}" | head -1
     return
   fi
   if is_in_git_repo; then
