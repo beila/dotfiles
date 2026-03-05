@@ -17,13 +17,27 @@ import XMonad.Util.EZConfig(additionalKeys)
 
 -- Scratchpads: two independent floating ghostty terminals
 -- End key toggles scratchpad1, PgDn toggles scratchpad2
--- Positioning handled dynamically by scratchpadToggle based on screen orientation
+-- Positioning handled by adaptiveFloat based on screen orientation
 myScratchpads = [ NS "ghostty1" "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME"
                      (appName =? "scratchpad1")
-                     defaultFloating
+                     (adaptiveFloat True)
                 , NS "ghostty2" "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME"
                      (appName =? "scratchpad2")
-                     defaultFloating ]
+                     (adaptiveFloat False) ]
+
+-- Float scratchpad as half the screen, adapting to orientation
+adaptiveFloat :: Bool -> ManageHook
+adaptiveFloat isFirst = do
+    sc <- liftX $ withWindowSet $ return . screenRect . W.screenDetail . W.current
+    let Rectangle _ _ sw sh = sc
+        rect = if sw > sh
+               then if isFirst
+                    then W.RationalRect 0.02 0.02 0.47 0.96
+                    else W.RationalRect 0.51 0.02 0.47 0.96
+               else if isFirst
+                    then W.RationalRect 0.02 0.02 0.96 0.47
+                    else W.RationalRect 0.02 0.51 0.96 0.47
+    doRectFloat rect
 
 -- Custom scratchpad toggle:
 -- focused → hide, visible but unfocused → focus, hidden → show on current workspace
