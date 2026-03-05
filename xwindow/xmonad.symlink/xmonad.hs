@@ -41,25 +41,11 @@ adaptiveFloat isFirst = do
 
 -- Custom scratchpad toggle:
 -- focused → hide, visible but unfocused → focus, hidden → show on current workspace
--- Positions scratchpads as halves: side-by-side on landscape, stacked on portrait
-scratchpadToggle name isFirst = withWindowSet $ \ws -> do
+scratchpadToggle name = withWindowSet $ \ws -> do
     let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
                     (NS _ _ q _:_) -> q
                     _              -> return False
     let isSP w = runQuery query w
-    let positionSP = withWindowSet $ \ws' -> do
-            let screen = W.screenDetail $ W.current ws'
-                Rectangle sx sy sw sh = screenRect screen
-                rect = if sw > sh  -- landscape
-                       then if isFirst
-                            then W.RationalRect 0.02 0.02 0.47 0.96
-                            else W.RationalRect 0.51 0.02 0.47 0.96
-                       else if isFirst  -- portrait
-                            then W.RationalRect 0.02 0.02 0.96 0.47
-                            else W.RationalRect 0.02 0.51 0.96 0.47
-            case W.peek ws' of
-                Just w -> windows $ W.float w rect
-                Nothing -> return ()
     case W.peek ws of
         Just w -> do
             sp <- isSP w
@@ -69,9 +55,9 @@ scratchpadToggle name isFirst = withWindowSet $ \ws -> do
                     let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
                     spWindows <- filterM isSP allVisible
                     case spWindows of
-                        (s:_) -> windows (W.focusWindow s) >> positionSP
-                        []    -> namedScratchpadAction myScratchpads name >> positionSP
-        Nothing -> namedScratchpadAction myScratchpads name >> positionSP
+                        (s:_) -> windows $ W.focusWindow s
+                        []    -> namedScratchpadAction myScratchpads name
+        Nothing -> namedScratchpadAction myScratchpads name
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
