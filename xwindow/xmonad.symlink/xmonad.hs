@@ -15,28 +15,34 @@ import XMonad.Hooks.SetWMName
 import XMonad.Layout.PerWorkspace
 import XMonad.Util.EZConfig(additionalKeys)
 
--- Scratchpad: toggle a floating ghostty terminal with End or PgDn
-myScratchpads = [ NS "ghostty" "ghostty --x11-instance-name=scratchpad --working-directory=$HOME"
-                     (appName =? "scratchpad")
+-- Scratchpads: two independent floating ghostty terminals
+-- End key toggles scratchpad1, PgDn toggles scratchpad2
+myScratchpads = [ NS "ghostty1" "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME"
+                     (appName =? "scratchpad1")
+                     (customFloating $ W.RationalRect 0.1 0.1 0.8 0.8)
+                , NS "ghostty2" "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME"
+                     (appName =? "scratchpad2")
                      (customFloating $ W.RationalRect 0.1 0.1 0.8 0.8) ]
 
 -- Custom scratchpad toggle:
 -- focused → hide, visible but unfocused → focus, hidden → show on current workspace
-scratchpadToggle = withWindowSet $ \ws -> do
-    let isScratchpad w = runQuery (appName =? "scratchpad") w
+scratchpadToggle name = withWindowSet $ \ws -> do
+    let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
+                    (NS _ _ q _:_) -> q
+                    _              -> return False
+    let isSP w = runQuery query w
     case W.peek ws of
         Just w -> do
-            isSP <- isScratchpad w
-            if isSP
-                then namedScratchpadAction myScratchpads "ghostty"  -- focused → hide
+            sp <- isSP w
+            if sp
+                then namedScratchpadAction myScratchpads name
                 else do
-                    -- Check if scratchpad is visible on any screen
                     let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
-                    spWindows <- filterM isScratchpad allVisible
+                    spWindows <- filterM isSP allVisible
                     case spWindows of
-                        (sp:_) -> windows $ W.focusWindow sp  -- visible → focus
-                        []     -> namedScratchpadAction myScratchpads "ghostty"  -- hidden → show
-        Nothing -> namedScratchpadAction myScratchpads "ghostty"
+                        (s:_) -> windows $ W.focusWindow s
+                        []    -> namedScratchpadAction myScratchpads name
+        Nothing -> namedScratchpadAction myScratchpads name
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
@@ -116,8 +122,8 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
-    , ((0, xF86XK_Launch2), scratchpadToggle)  -- End key (remapped in ~/.Xmodmap)
-    , ((0, xF86XK_Launch3), scratchpadToggle)  -- PgDn key (remapped in ~/.Xmodmap)
+    , ((0, xF86XK_Launch2), scratchpadToggle "ghostty1")  -- End key (remapped in ~/.Xmodmap)
+    , ((0, xF86XK_Launch3), scratchpadToggle "ghostty2")  -- PgDn key (remapped in ~/.Xmodmap)
     , ((0, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd up")
     , ((0, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd down")
     , ((0, xF86XK_AudioMute), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd toggle")
