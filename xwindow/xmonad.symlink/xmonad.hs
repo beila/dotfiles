@@ -40,12 +40,13 @@ adaptiveFloat isFirst = do
     doRectFloat rect
 
 -- Custom scratchpad toggle:
--- focused → hide, visible but unfocused → focus, hidden → show on current workspace
+-- focused → hide, visible but unfocused → focus+reposition, hidden → show+reposition
 scratchpadToggle name = withWindowSet $ \ws -> do
     let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
                     (NS _ _ q _:_) -> q
                     _              -> return False
     let isSP w = runQuery query w
+    let isFirst = name == "ghostty1"
     case W.peek ws of
         Just w -> do
             sp <- isSP w
@@ -55,9 +56,38 @@ scratchpadToggle name = withWindowSet $ \ws -> do
                     let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
                     spWindows <- filterM isSP allVisible
                     case spWindows of
-                        (s:_) -> windows $ W.focusWindow s
-                        []    -> namedScratchpadAction myScratchpads name
-        Nothing -> namedScratchpadAction myScratchpads name
+                        (s:_) -> do
+                            windows $ W.focusWindow s
+                            refloatAdaptive isFirst s
+                        []    -> do
+                            namedScratchpadAction myScratchpads name
+                            refloatScratchpad isFirst isSP
+        Nothing -> do
+            namedScratchpadAction myScratchpads name
+            refloatScratchpad isFirst isSP
+
+-- Find the scratchpad window and refloat it
+refloatScratchpad :: Bool -> (Window -> X Bool) -> X ()
+refloatScratchpad isFirst isSP = withWindowSet $ \ws -> do
+    let allWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
+    spWins <- filterM isSP allWins
+    case spWins of
+        (s:_) -> refloatAdaptive isFirst s
+        []    -> return ()
+
+-- Reposition a window using adaptiveFloat on the current screen
+refloatAdaptive :: Bool -> Window -> X ()
+refloatAdaptive isFirst w = do
+    sc <- withWindowSet $ return . screenRect . W.screenDetail . W.current
+    let Rectangle _ _ sw sh = sc
+        rect = if sw > sh
+               then if isFirst
+                    then W.RationalRect 0.02 0.02 0.47 0.96
+                    else W.RationalRect 0.51 0.02 0.47 0.96
+               else if isFirst
+                    then W.RationalRect 0.02 0.02 0.96 0.47
+                    else W.RationalRect 0.02 0.51 0.96 0.47
+    windows $ W.float w rect
 
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
