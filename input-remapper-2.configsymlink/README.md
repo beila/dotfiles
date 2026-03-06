@@ -15,4 +15,4 @@ Left-hand button remap matching `xmodmap "pointer = 2 3 1"`:
 ## Kinesis Advantage2 Keyboard — remap.json
 - Left Ctrl(29) → Super/Win(125)
 - Right Ctrl(97) → Super/Win(125)
-- Right Super(126) → Right Ctrl(97)
+- Right Super(126) → Right Alt(100) — tap triggers ghostty2 via xcape
