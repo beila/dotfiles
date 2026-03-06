@@ -30,6 +30,7 @@ in
         pkgs.bat
         pkgs.cmake
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
+        pkgs.difftastic
         pkgs.fd
         pkgs.fzf
         (config.lib.nixGL.wrap pkgs.ghostty)
