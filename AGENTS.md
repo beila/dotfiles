@@ -2,6 +2,7 @@
 
 ## TODO List
 
+11. **Remap AltGr → Right Alt** — on laptop keyboard only
 1. **Battery indicator** — xfce4-panel plugin or tray applet
 2. **Git commit message generator** — AI-assisted or template-based
 3. **jj periodic tasks** — auto-fetch, background operations
@@ -9,7 +10,7 @@
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with xcape/Albert
 9. **xmonad dynamic layout** — re-layout windows based on monitor shape (portrait vs landscape)
 10. **Fix open-in-container** — firefox-container URL handler
-11. **Remap AltGr → Right Alt** — on laptop keyboard only
+12. try switching to input-remapper from nix
 
 ## Architecture Overview
 
