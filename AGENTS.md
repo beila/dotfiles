@@ -37,7 +37,7 @@
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware
 
 ### Key Remapping Stack
-- **xmodmap** (`~/.Xmodmap`): CapsLock→Ctrl, Pause/ScrollLock/PrtSc→volume keys. Reapplied by inputplug on keyboard hotplug.
+- **xmodmap** (`~/.Xmodmap`): CapsLock→Ctrl, Pause/ScrollLock/PrtSc→volume keys, keycode 108→Alt_R (reclaim from ibus-hangul Hangul remap). Reapplied by inputplug on keyboard hotplug.
 - **xcape** (started by xmonad): Super tap→XF86Launch1 (albert), Alt_L tap→XF86Launch2 (ghostty1), Alt_R tap→XF86Launch3 (ghostty2). Modifiers still work normally when held.
 - **input-remapper** (per-device, systemd daemon):
   - Logitech USB Optical Mouse: left-handed (swap left/right)
