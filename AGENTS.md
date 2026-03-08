@@ -2,7 +2,6 @@
 
 ## TODO List
 
-11. **Remap AltGr → Right Alt** — on laptop keyboard only
 1. **Battery indicator** — xfce4-panel plugin or tray applet
 2. **Git commit message generator** — AI-assisted or template-based
 3. **jj periodic tasks** — auto-fetch, background operations
