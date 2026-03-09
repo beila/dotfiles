@@ -49,6 +49,9 @@
       <property name="known-legacy-items" type="array">
         <value type="string" value="gnome-flashback"/>
       </property>
+      <property name="hidden-legacy-items" type="array">
+        <value type="string" value="ZoomWebviewHost"/>
+      </property>
     </property>
     <property name="plugin-7" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
