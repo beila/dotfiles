@@ -9,7 +9,9 @@ STATEFILE="/tmp/audio-in-osd-showing"
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
-    (tail -f "$FIFO" | dzen2 -p -x 100 -y 320 -w 1240 -h 100 \
+    scale=$(xrdb -query 2>/dev/null | awk '/Xft.dpi/{printf "%d", $2/96}')
+    : "${scale:=1}"
+    (tail -f "$FIFO" | dzen2 -p -x $((100*scale)) -y $((320*scale)) -w $((1240*scale)) -h $((100*scale)) \
         -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
         -bg "#0d0d1a" -fg "#ff79c6" -title-name "audio-in-osd") &
     sleep 0.2
