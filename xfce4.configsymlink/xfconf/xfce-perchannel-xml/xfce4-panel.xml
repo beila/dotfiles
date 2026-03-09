@@ -43,15 +43,18 @@
     <property name="plugin-6" type="string" value="systray">
       <property name="square-icons" type="bool" value="true"/>
       <property name="known-items" type="array">
+        <value type="string" value="albert"/>
         <value type="string" value="zoom"/>
         <value type="string" value="nm-applet"/>
         <value type="string" value="com.amazon.acme_ui"/>
         <value type="string" value="chrome_status_icon_1"/>
       </property>
       <property name="known-legacy-items" type="array">
+        <value type="string" value="notifications"/>
         <value type="string" value="gnome-flashback"/>
       </property>
       <property name="hidden-legacy-items" type="array">
+        <value type="string" value="notifications"/>
         <value type="string" value="ZoomWebviewHost"/>
         <value type="string" value="gnome-flashback"/>
       </property>
