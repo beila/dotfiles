@@ -13,28 +13,6 @@ Left-hand button remap:
 - BTN_SIDE(275) → Super+Shift+C — close window
 
 ## Kinesis Advantage2 Keyboard (Mac mode) — remap.json
-
-```
-Advantage2 thumb clusters (Mac mode keycodes → remapped output):
-
-    LEFT                                RIGHT
-  ┌─────┬─────┐                  ┌─────┬─────┐
-  │ Opt │ Cmd │                  │ Cmd │Ctrl │
-  │  56 │  29 │                  │ 126 │  97 │
-  │[ = ]│[Sup]│                  │[ - ]│[Alt]│
-  ┌─────┼─────┼─────┐      ┌────┼─────┼─────┐
-  │     │     │Home │      │PgUp│     │     │
-  │Bksp │ Del │     │      │[ \ ]│Enter│Space│
-  │     │     ├─────┤      ├────┤     │     │
-  │     │     │ End │      │PgDn│     │     │
-  │     │     │[A_L]│      │[A_R]│     │     │
-  └─────┴─────┴─────┘      └────┴─────┴─────┘
-
-Other remapped keys (main keywell):
-  '(40)  → Right Ctrl    (tap → ' via xcape)
-  \(43)  → Tab           PgUp(104) → \
-  -(12)  → Esc           =(13) → Esc
-```
 - Left Ctrl(29) → Super/Win(125)
 - Right Super(97) → Right Alt(100) — tap triggers ghostty2 via xcape
 - Right Ctrl(126) → minus(12), minus(12) → Esc(1), equals(13) → Esc(1)
