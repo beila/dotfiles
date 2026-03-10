@@ -109,7 +109,7 @@ in
   #  /etc/profiles/per-user/hojin/etc/profile.d/hm-session-vars.sh
   #
   home.sessionVariables = {
-    GTK_IM_MODULE = "ibus";
+    # EDITOR = "emacs";
   };
 
   # Let Home Manager install and manage itself.
