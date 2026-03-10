@@ -1,4 +1,33 @@
 ! http://www.tldp.org/HOWTO/XWindow-User-HOWTO/moreconfig.html
+
+! Layout after input-remapper (Kinesis Advantage2, Mac mode):
+!
+! LEFT HAND                                              RIGHT HAND
+!
+!  ┌─────┬─────┬─────┬─────┬─────┬─────┐  ┌─────┬─────┬─────┬─────┬─────┬─────┐
+!  │ Esc │ 1   │ 2   │ 3   │ 4   │ 5   │  │ 6   │ 7   │ 8   │ 9   │ 0   │ Esc │
+!  ├─────┼─────┼─────┼─────┼─────┼─────┤  ├─────┼─────┼─────┼─────┼─────┼─────┤
+!  │Tab  │ Q   │ W   │ E   │ R   │ T   │  │ Y   │ U   │ I   │ O   │ P   │ Tab │
+!  ├─────┼─────┼─────┼─────┼─────┼─────┤  ├─────┼─────┼─────┼─────┼─────┼─────┤
+!  │Caps │ A   │ S   │ D   │ F   │ G   │  │ H   │ J   │ K   │ L   │ ;   │RCtrl│
+!  ├─────┼─────┼─────┼─────┼─────┼─────┤  ├─────┼─────┼─────┼─────┼─────┼─────┤
+!  │LShft│ Z   │ X   │ C   │ V   │ B   │  │ N   │ M   │ ,   │ .   │ /   │RShft│
+!  └─────┴─────┴─────┴─────┴─────┴─────┘  └─────┴─────┴─────┴─────┴─────┴─────┘
+!
+!           LEFT THUMB CLUSTER                      RIGHT THUMB CLUSTER
+!
+!                ┌─────┬─────┐        ┌─────┬─────┐
+!                │Super│  =  │        │  -  │Super│
+!          ┌─────┼─────┼─────┤        ├─────┼─────┼─────┐
+!          │BkSp │ Del │Home │        │  \  │     │     │
+!          │     │     │     │        │     │Enter│Space│
+!          │     │     ├─────┤        ├─────┤     │     │
+!          │     │     │LAlt │        │RAlt │     │     │
+!          └─────┴─────┴─────┘        └─────┴─────┴─────┘
+!
+! Xmodmap remaps below are applied on top of input-remapper.
+! Reapplied on device hotplug via inputplug.
+! See ~/.dotfiles/input-remapper-2.configsymlink/README.md for full remap details.
 ! Reverse mouse buttons for left-handed people
 !pointer = 3 2 1
 !pointer = 1 2 3
