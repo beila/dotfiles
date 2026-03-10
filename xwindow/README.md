@@ -15,6 +15,7 @@ Left-hand button remap:
 ## Kinesis Advantage2 Keyboard (Mac mode) — remap.json
 
 The keyboard is in Mac mode, which swaps Ctrl↔Cmd at the hardware level.
+No onboard remaps — all remapping done in input-remapper.
 Keycodes below are what Linux actually sees (evdev codes).
 
 ### Physical Layout (Mac mode keycodes)

@@ -22,11 +22,12 @@
         inherit pkgs;
 
         modules = [
-          ./home.nix
           ./gnome.nix
+          ./home.nix
           ./neovide.nix
-          ./xmonad.nix
+          ./nvim.nix
           ./xdg.nix
+          ./xmonad.nix
           {
             nixGL.packages = nixgl.packages;
           }
