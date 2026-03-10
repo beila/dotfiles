@@ -37,11 +37,16 @@
 
 ### Key Remapping Stack
 - **xmodmap** (`~/.Xmodmap`): CapsLock→Ctrl, Pause/ScrollLock/PrtSc→volume keys, keycode 108→Alt_R (reclaim from ibus-hangul Hangul remap). Reapplied by inputplug on keyboard hotplug.
-- **xcape** (started by xmonad): Super tap→XF86Launch1 (albert), Alt_L tap→XF86Launch2 (ghostty1), Alt_R tap→XF86Launch3 (ghostty2). Modifiers still work normally when held.
+- **xcape** (started by xmonad): Super tap→XF86Launch1 (albert), Alt_L tap→XF86Launch2 (ghostty1), Alt_R tap→XF86Launch3 (ghostty2), Ctrl_R tap→apostrophe. Modifiers still work normally when held.
 - **input-remapper** (per-device, systemd daemon):
   - Logitech USB Optical Mouse: left-handed (swap left/right)
   - ExpertBT5.0 Mouse (Kensington): left-handed remap + BTN_SIDE→Super+Shift+C (close window) + BTN_LEFT→Super+Tab
-  - Kinesis Advantage2 Keyboard: Left Ctrl→Super, Right Ctrl→Super, Right Super→Right Alt (tap triggers ghostty2 via xcape)
+  - Kinesis Advantage2 Keyboard (Mac mode — keycodes swapped vs PC):
+    - Left Ctrl(29)→Super, Right Super(97)→Right Alt (tap→ghostty2 via xcape)
+    - Right Ctrl(126)→minus, minus(12)→Esc, equals(13)→Esc
+    - Left Alt(56)→equals, End(107)→Left Alt, PgDn(109)→Right Alt
+    - apostrophe(40)→Right Ctrl (tap→apostrophe via xcape)
+    - backslash(43)→Tab, PgUp(104)→backslash
 
 ### xmonad Key Bindings
 - Super tap → Albert toggle
