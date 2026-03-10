@@ -6,13 +6,39 @@ Managed by input-remapper-daemon (apt). Autoloads on device connect.
 Swap left/right buttons (BTN_LEFT ↔ BTN_RIGHT).
 
 ## ExpertBT5.0 Mouse (Kensington Expert Trackball BT) — remap.json
-Left-hand button remap matching `xmodmap "pointer = 2 3 1"`:
-- BTN_LEFT(272) → Alt+Tab — toggle last two windows
+Left-hand button remap:
+- BTN_LEFT(272) → Super+Tab — switch windows
 - BTN_MIDDLE(274) → BTN_RIGHT(273)
 - BTN_RIGHT(273) → BTN_LEFT(272)
-- BTN_SIDE(275) → Super(125) — opens GNOME overview
+- BTN_SIDE(275) → Super+Shift+C — close window
 
-## Kinesis Advantage2 Keyboard — remap.json
+## Kinesis Advantage2 Keyboard (Mac mode) — remap.json
+
+```
+Advantage2 thumb clusters (Mac mode keycodes → remapped output):
+
+    LEFT                                RIGHT
+  ┌─────┬─────┐                  ┌─────┬─────┐
+  │ Opt │ Cmd │                  │ Cmd │Ctrl │
+  │  56 │  29 │                  │ 126 │  97 │
+  │[ = ]│[Sup]│                  │[ - ]│[Alt]│
+  ┌─────┼─────┼─────┐      ┌────┼─────┼─────┐
+  │     │     │Home │      │PgUp│     │     │
+  │Bksp │ Del │     │      │[ \ ]│Enter│Space│
+  │     │     ├─────┤      ├────┤     │     │
+  │     │     │ End │      │PgDn│     │     │
+  │     │     │[A_L]│      │[A_R]│     │     │
+  └─────┴─────┴─────┘      └────┴─────┴─────┘
+
+Other remapped keys (main keywell):
+  '(40)  → Right Ctrl    (tap → ' via xcape)
+  \(43)  → Tab           PgUp(104) → \
+  -(12)  → Esc           =(13) → Esc
+```
 - Left Ctrl(29) → Super/Win(125)
-- Right Ctrl(97) → Super/Win(125)
-- Right Super(126) → Right Alt(100) — tap triggers ghostty2 via xcape
+- Right Super(97) → Right Alt(100) — tap triggers ghostty2 via xcape
+- Right Ctrl(126) → minus(12), minus(12) → Esc(1), equals(13) → Esc(1)
+- Left Alt(56) → equals(13)
+- End(107) → Left Alt(56), PgDn(109) → Right Alt(100)
+- apostrophe(40) → Right Ctrl(97) — tap emits apostrophe via xcape
+- backslash(43) → Tab(15), PgUp(104) → backslash(43)
