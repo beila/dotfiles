@@ -27,7 +27,7 @@
 !
 ! Xmodmap remaps below are applied on top of input-remapper.
 ! Reapplied on device hotplug via inputplug.
-! See ~/.dotfiles/input-remapper-2.configsymlink/README.md for full remap details.
+! See ~/.dotfiles/xwindow/README.md for full remap details.
 ! Reverse mouse buttons for left-handed people
 !pointer = 3 2 1
 !pointer = 1 2 3
