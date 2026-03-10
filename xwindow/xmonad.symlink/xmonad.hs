@@ -146,8 +146,8 @@ myConfig = gnomeConfig
         spawn "pgrep inputplug || inputplug -c ~/.dotfiles/xwindow/bin/on-input-change",
         -- Initial xmodmap apply (sleep to let GNOME set its keymap first)
         spawn "sleep 2 && xmodmap ~/.Xmodmap",
-        -- xcape: Super tap → albert, Alt_L tap → ghostty1, Alt_R tap → ghostty2
-        spawn "pgrep xcape || xcape -e 'Super_L=XF86Launch1;Alt_L=XF86Launch2;Alt_R=XF86Launch3'"
+        -- xcape: Super tap → albert, Alt_L tap → ghostty1, Alt_R tap → ghostty2, Ctrl_R tap → apostrophe
+        spawn "pgrep xcape || xcape -e 'Super_L=XF86Launch1;Alt_L=XF86Launch2;Alt_R=XF86Launch3;Control_R=apostrophe'"
     ]
     , handleEventHook = handleEventHook gnomeConfig
     , modMask = mod4Mask
