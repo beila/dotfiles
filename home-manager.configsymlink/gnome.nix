@@ -7,12 +7,12 @@
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
-    # ibus-hangul: use 3-bulsik layout (requires: sudo apt install ibus-hangul)
+    # ibus-hangul: use Sebeolsik 390 layout (requires: sudo apt install ibus-hangul)
     "org/freedesktop/ibus/general/hotkey" = {
       triggers = [ "<Shift>space" ];
     };
     "org/freedesktop/ibus/engine/hangul" = {
-      hangul-keyboard = "3f";
+      hangul-keyboard = "39";
     };
     "org/gnome/desktop/peripherals/keyboard" = {
       delay = lib.gvariant.mkUint32 200;
