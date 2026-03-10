@@ -11,3 +11,4 @@ tags
 CMakeUserPresets.json
 .gdb_history
 .cache/
+.jj
