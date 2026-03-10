@@ -27,6 +27,7 @@ in
     # # "Hello, world!" when run.
     # pkgs.hello
 
+        pkgs.albert
         pkgs.bat
         pkgs.cmake
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
@@ -36,13 +37,12 @@ in
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.hishtory
         pkgs.inputplug  # reapply xmodmap on keyboard hotplug
-        pkgs.jetbrains-mono
-        pkgs.nerd-fonts.jetbrains-mono
+        pkgs.jetbrains-mono # For OSD popups
+        pkgs.nerd-fonts.jetbrains-mono  # For OSD popups
         pkgs.jujutsu
         pkgs.just
         pkgs.mergiraf
         pkgs.pavucontrol
-        pkgs.neovim
         pkgs.ripgrep
         pkgs.scrot
         pkgs.shellcheck
@@ -55,11 +55,8 @@ in
         pkgs.zellij
         pkgs.zsh
 
-        pkgs.albert
         pkgs.awscli2
-        pkgs.cargo
         pkgs.clang-tools  # includes clangd
-        pkgs.taplo  # TOML language server
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
