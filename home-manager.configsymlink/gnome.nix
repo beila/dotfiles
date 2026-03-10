@@ -7,6 +7,11 @@
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
+    # Disable GNOME input source switching (using ibus-hangul Shift+Space instead)
+    "org/gnome/desktop/wm/keybindings" = {
+      switch-input-source = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
+      switch-input-source-backward = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
+    };
     # ibus-hangul: use Sebeolsik 390 layout (requires: sudo apt install ibus-hangul)
     "org/freedesktop/ibus/general/hotkey" = {
       triggers = [ "<Shift>space" ];
