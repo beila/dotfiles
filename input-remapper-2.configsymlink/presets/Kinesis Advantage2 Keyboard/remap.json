@@ -27,6 +27,18 @@
         "input_combination": [
             {
                 "type": 1,
+                "code": 97,
+                "origin_hash": "Kinesis Advantage2 Keyboard"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_type": 1,
+        "output_code": 125
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
                 "code": 107,
                 "origin_hash": "Kinesis Advantage2 Keyboard"
             }
