@@ -119,12 +119,25 @@ Note: evdev codes shown. Xmodmap uses X11 keycodes (evdev + 8).
 
 ### xcape (tap behavior for modifiers)
 
-Started by xmonad.hs. XF86Launch keys are bound to actions in xmonad.hs.
+Started by xmonad.hs.
 
-- Super tap → Albert (XF86Launch1)
-- Alt_L tap → ghostty scratchpad 1 (XF86Launch2)
-- Alt_R tap → ghostty scratchpad 2 (XF86Launch3)
+- Super tap → XF86Launch1
+- Alt_L tap → XF86Launch2
+- Alt_R tap → XF86Launch3
 - Ctrl_R tap → apostrophe
+
+### xmonad key bindings
+
+- XF86Launch1 (Super tap) → Albert toggle
+- XF86Launch2 (Alt_L tap) → ghostty scratchpad 1
+- XF86Launch3 (Alt_R tap) → ghostty scratchpad 2
+- VolumeUp → volume-osd up
+- VolumeDown → volume-osd down
+- Mute → volume-osd toggle
+- Super+VolumeUp → cycle-audio-output
+- Super+VolumeDown → cycle-audio-input
+
+Volume keys come from xmodmap (Pause/ScrollLock/PrtSc → volume keys).
 
 ### Final effective layout (input-remapper + xmodmap + xcape)
 
