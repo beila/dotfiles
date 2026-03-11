@@ -25,6 +25,9 @@
     "org/gnome/gnome-panel/layout" = {
       toplevel-id-list = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
     };
+    "org/gnome/desktop/interface" = {
+      cursor-size = 48;
+    };
     "org/gnome/desktop/peripherals/mouse" = {
       speed = 0.75;
     };
