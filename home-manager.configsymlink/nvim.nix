@@ -12,6 +12,7 @@
   home.packages = with pkgs; [
     biome
     cargo   # rust-analyzer from Mason
+    python312  # gersemi (CMake formatter)
     taplo   # TOML language server
     uv      # nvim-dap-python
   ];
