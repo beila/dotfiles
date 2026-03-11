@@ -44,8 +44,8 @@
   - ExpertBT5.0 Mouse (Kensington): left-handed remap + BTN_SIDE→Super+Shift+C (close window) + BTN_LEFT→Super+Tab
   - Kinesis Advantage2 Keyboard (Mac mode — keycodes swapped vs PC):
     - Left Ctrl(29)→Super, Right Super(97)→Super
-    - Right Ctrl(126)→minus
-    - Left Alt(56)→equals, End(107)→Left Alt, PgDn(109)→Right Alt
+    - Left Alt(56)→Esc, Right Ctrl(126)→Esc
+    - End(107)→Left Alt, PgDn(109)→Right Alt
     - apostrophe(40)→Right Ctrl (tap→apostrophe via xcape)
     - backslash(43)→Tab, PgUp(104)→backslash
 - See `~/.dotfiles/xwindow/README.md` for full key remapping diagrams and documentation
