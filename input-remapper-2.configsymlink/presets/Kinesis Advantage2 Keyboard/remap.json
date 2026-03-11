@@ -21,7 +21,7 @@
         ],
         "target_uinput": "keyboard",
         "output_type": 1,
-        "output_code": 12
+        "output_code": 1
     },
     {
         "input_combination": [
@@ -99,36 +99,12 @@
         "input_combination": [
             {
                 "type": 1,
-                "code": 12,
-                "origin_hash": "Kinesis Advantage2 Keyboard"
-            }
-        ],
-        "target_uinput": "keyboard",
-        "output_type": 1,
-        "output_code": 1
-    },
-    {
-        "input_combination": [
-            {
-                "type": 1,
-                "code": 13,
-                "origin_hash": "Kinesis Advantage2 Keyboard"
-            }
-        ],
-        "target_uinput": "keyboard",
-        "output_type": 1,
-        "output_code": 1
-    },
-    {
-        "input_combination": [
-            {
-                "type": 1,
                 "code": 56,
                 "origin_hash": "Kinesis Advantage2 Keyboard"
             }
         ],
         "target_uinput": "keyboard",
         "output_type": 1,
-        "output_code": 13
+        "output_code": 1
     }
 ]
