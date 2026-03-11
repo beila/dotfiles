@@ -34,6 +34,7 @@ in
         pkgs.difftastic
         pkgs.fd
         pkgs.fzf
+        pkgs.git
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.hishtory
         pkgs.inputplug  # reapply xmodmap on keyboard hotplug
