@@ -16,9 +16,9 @@
 - Home Manager config: `~/.dotfiles/home-manager.configsymlink/`
   - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
   - `home.nix` — packages, unfree predicate (albert)
-  - `gnome.nix` — dconf settings (key repeat, mouse speed, Korean input Sebeolsik 390, disable gnome-panel/desktop, lock screen timer)
+  - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop, lock screen timer)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
-  - `nvim.nix` — neovim, cargo, biome, uv (nvim-dap-python)
+  - `nvim.nix` — neovim (default editor, vi/vim aliases), cargo, biome, python3, taplo, uv
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
   - `system-deps.sh` — apt packages (ibus-hangul, input-remapper, xmonad libs, gnome-session-flashback) + session file installs
@@ -38,7 +38,7 @@
 
 ### Key Remapping Stack
 - **xmodmap** (`~/.Xmodmap`): CapsLock→Ctrl, Pause/ScrollLock/PrtSc→volume keys, keycode 108→Alt_R (reclaim from ibus-hangul Hangul remap). Reapplied by inputplug on keyboard hotplug.
-- **xcape** (started by xmonad): Super tap→XF86Launch1 (albert), Alt_L tap→XF86Launch2 (ghostty1), Alt_R tap→XF86Launch3 (ghostty2), Ctrl_R tap→apostrophe. Modifiers still work normally when held.
+- **xcape** (started by xmonad, 200ms timeout): Super tap→XF86Launch1 (albert), Alt_L tap→XF86Launch2 (ghostty1), Alt_R tap→XF86Launch3 (ghostty2), Ctrl_L tap→Escape, Ctrl_R tap→apostrophe. Modifiers still work normally when held.
 - **input-remapper** (per-device, systemd daemon):
   - Logitech USB Optical Mouse: left-handed (swap left/right)
   - ExpertBT5.0 Mouse (Kensington): left-handed remap + BTN_SIDE→Super+Shift+C (close window) + BTN_LEFT→Super+Tab
