@@ -26,7 +26,7 @@
       toplevel-id-list = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
     };
     "org/gnome/desktop/interface" = {
-      cursor-size = 48;
+      cursor-size = 64;
     };
     "org/gnome/desktop/peripherals/mouse" = {
       speed = 0.75;
