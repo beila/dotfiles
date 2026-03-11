@@ -14,10 +14,11 @@
 
 ### Dotfiles Repo: ~/.dotfiles
 - Home Manager config: `~/.dotfiles/home-manager.configsymlink/`
-  - `flake.nix` — modules: home.nix, gnome.nix, neovide.nix, xmonad.nix, xdg.nix
+  - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
   - `home.nix` — packages, unfree predicate (albert)
-  - `gnome.nix` — dconf settings (key repeat, mouse speed, Korean input, disable gnome-panel/desktop, lock screen timer)
+  - `gnome.nix` — dconf settings (key repeat, mouse speed, Korean input Sebeolsik 390, disable gnome-panel/desktop, lock screen timer)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
+  - `nvim.nix` — neovim, cargo, biome, uv (nvim-dap-python)
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
   - `system-deps.sh` — apt packages (ibus-hangul, input-remapper, xmonad libs, gnome-session-flashback) + session file installs
