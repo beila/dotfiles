@@ -16,7 +16,7 @@ sudo cp "$SCRIPT_DIR/../xwindow/xmonad.desktop" /usr/share/applications/
 
 # keyd: system-level key remapping (replaces xmodmap)
 sudo mkdir -p /etc/keyd
-sudo cp "$SCRIPT_DIR/../keyd/default.conf" /etc/keyd/default.conf
+sudo cp "$SCRIPT_DIR/../keyd/"*.conf /etc/keyd/
 sudo tee /etc/systemd/system/keyd.service > /dev/null <<EOF
 [Unit]
 Description=key remapping daemon
