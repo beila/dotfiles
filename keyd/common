@@ -1,0 +1,31 @@
+# keyd common bindings — included by all keyboard configs
+# System-level daemon, applies at evdev level.
+# Replaces xmodmap and xcape. Not affected by GNOME keymap resets.
+#
+# Tap actions are handled by xmonad key bindings:
+#   prog1/XF86Launch1 (Super tap)  → Albert toggle
+#   prog2/XF86Launch2 (Alt_L tap)  → ghostty scratchpad 1
+#   prog3/XF86Launch3 (Alt_R tap)  → ghostty scratchpad 2
+#   Volume keys (Pause/ScrollLock/PrtSc) → volume-osd / cycle-audio
+
+[main]
+
+# CapsLock: hold → Control, tap → Escape
+capslock = overload(control, esc)
+
+# Super: hold → Super, tap → prog1 (XF86Launch1, albert via xmonad)
+leftmeta = overload(meta, prog1)
+
+# Left Alt: hold → Alt, tap → prog2 (XF86Launch2, ghostty1 via xmonad)
+leftalt = overload(alt, prog2)
+
+# Right Alt: hold → Alt, tap → prog3 (XF86Launch3, ghostty2 via xmonad)
+rightalt = overload(alt, prog3)
+
+# Right Control: hold → Control, tap → apostrophe
+rightcontrol = overload(control, apostrophe)
+
+# Pause/ScrollLock/PrintScreen → volume keys
+pause = volumeup
+scrolllock = volumedown
+sysrq = mute
