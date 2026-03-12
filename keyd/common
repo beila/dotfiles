@@ -1,6 +1,5 @@
 # keyd common bindings — included by all keyboard configs
-# System-level daemon, applies at evdev level.
-# Replaces xmodmap and xcape. Not affected by GNOME keymap resets.
+# Not affected by GNOME keymap resets.
 #
 # Tap actions are handled by xmonad key bindings:
 #   prog1/XF86Launch1 (Super tap)  → Albert toggle
