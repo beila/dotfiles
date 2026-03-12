@@ -6,7 +6,7 @@
 1. **Battery indicator** — xfce4-panel plugin or tray applet
 2. **Git commit message generator** — AI-assisted or template-based
 3. **jj periodic tasks** — auto-fetch, background operations
-8. **Copy/paste with Super key** — needs solution that doesn't conflict with xcape/Albert
+8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
 10. **Fix open-in-container** — firefox-container URL handler
 12. try switching to input-remapper from nix
 
@@ -21,9 +21,10 @@
   - `nvim.nix` — neovim (default editor, vi/vim aliases), cargo, biome, python3, taplo, uv
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
-  - `system-deps.sh` — apt packages (ibus-hangul, input-remapper, xmonad libs, gnome-session-flashback) + session file installs
+  - `system-deps.sh` — apt packages (ibus-hangul, input-remapper, gnome-session-flashback) + session file installs + keyd service setup
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
-- Xmodmap: `~/.dotfiles/xwindow/Xmodmap.symlink` (symlinked to ~/.Xmodmap)
+- Xmodmap: `~/.dotfiles/xwindow/Xmodmap.symlink` (symlinked to ~/.Xmodmap) — DEPRECATED, replaced by keyd
+- keyd config: `~/.dotfiles/keyd/default.conf` (copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/)
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored)
 - fzf functions: `~/.dotfiles/fzf/functions.sh/functions.sh` — jj-first/git-fallback Ctrl-G bindings
@@ -33,12 +34,11 @@
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
 - Audio scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
-- Keyboard hotplug: `~/.dotfiles/xwindow/bin/on-input-change` (called by inputplug)
+- Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware
 
 ### Key Remapping Stack
-- **xmodmap** (`~/.Xmodmap`): CapsLock→Ctrl, Pause/ScrollLock/PrtSc→volume keys, keycode 108→Alt_R (reclaim from ibus-hangul Hangul remap). Reapplied by inputplug on keyboard hotplug.
-- **xcape** (started by xmonad, 200ms timeout): Super tap→XF86Launch1 (albert), Alt_L tap→XF86Launch2 (ghostty1), Alt_R tap→XF86Launch3 (ghostty2), Ctrl_L tap→Escape, Ctrl_R tap→apostrophe. Modifiers still work normally when held.
+- **keyd** (`~/.dotfiles/keyd/default.conf`, system daemon): CapsLock→Ctrl (tap→Esc), Super tap→prog1 (XF86Launch1, albert), Alt_L tap→prog2 (XF86Launch2, ghostty1), Alt_R tap→prog3 (XF86Launch3, ghostty2), Ctrl_R tap→apostrophe, Pause/ScrollLock/PrtSc→volume keys. Applies to all keyboards.
 - **input-remapper** (per-device, systemd daemon):
   - Logitech USB Optical Mouse: left-handed (swap left/right)
   - ExpertBT5.0 Mouse (Kensington): left-handed remap + BTN_SIDE→Super+Shift+C (close window) + BTN_LEFT→Super+Tab
@@ -46,7 +46,7 @@
     - Left Ctrl(29)→Super, Right Super(97)→Super
     - Left Alt(56)→Esc, Right Ctrl(126)→Esc
     - End(107)→Left Alt, PgDn(109)→Right Alt
-    - apostrophe(40)→Right Ctrl (tap→apostrophe via xcape)
+    - apostrophe(40)→Right Ctrl (tap→apostrophe via keyd)
     - backslash(43)→Tab, PgUp(104)→backslash
 - See `~/.dotfiles/xwindow/README.md` for full key remapping diagrams and documentation
 
@@ -82,8 +82,6 @@
 
 ### Known Issues / Constraints
 - Nix-installed GTK apps don't show in xfce4-panel systray (library mismatch)
-- xmodmap gets reset by GNOME on device hotplug → inputplug reapplies with 3s delay
-- xcape Super tap conflicts with Super+key combos (e.g. Super+C/V triggers Albert)
 - xfconf needs dbus service registration (handled by Home Manager activation, re-runs on nix updates)
 - Fonts need copying to ~/.local/share/fonts for neovide/dzen2 (nix font paths not read by skia/dzen2)
 - User is on LDAP (can't chsh), $SHELL is bash, zsh started via exec from .bashrc

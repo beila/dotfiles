@@ -37,7 +37,6 @@ in
         pkgs.git
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.hishtory
-        pkgs.inputplug  # reapply xmodmap on keyboard hotplug
         pkgs.jetbrains-mono # For OSD popups
         pkgs.nerd-fonts.jetbrains-mono  # For OSD popups
         pkgs.jujutsu
@@ -51,7 +50,6 @@ in
         pkgs.wl-clipboard
         pkgs.xclip
         pkgs.xournalpp
-        pkgs.xcape  # makes Super tap emit F13 for albert toggle
         pkgs.zellij
         pkgs.zoxide
         pkgs.zellij
