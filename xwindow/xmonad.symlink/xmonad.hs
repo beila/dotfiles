@@ -10,6 +10,8 @@ import XMonad.Util.NamedScratchpad
 import Graphics.X11.ExtraTypes.XF86
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
+import XMonad.Actions.CopyWindow
+import XMonad.Hooks.InsertPosition
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.SetWMName
 import XMonad.Layout.PerWorkspace
@@ -113,6 +115,7 @@ myManageHook = composeAll
     , className =? "AmazonChime"                                     --> doShift "8:meeting"
     , title     =? "Amazon Chime — Mozilla Firefox"                  --> doShift "8:meeting"
     , className =? "zoom"                                            --> doShift "8:meeting"
+    , title     =? "zoom_linux_float_message_reminder"   --> doFloat <> doF copyToAll <> insertPosition Below Older
     , title     =? "zoom_linux_float_video_window"                   --> doFloat
     , title     =? "Meeting chat"                                    --> doShift "8:meeting"
     , className =? "yakyak"                                          --> doShift "9:messenger"
