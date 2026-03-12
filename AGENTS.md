@@ -79,6 +79,7 @@
 - `zoom_linux_float_message_reminder` window: floats on all workspaces without stealing focus (via `copyToAll` + `insertPosition Below Older`)
 
 ### Known Issues / Constraints
+- keyd v2.5.0 parser fails on UTF-8 box-drawing characters in default.conf comments (works in kinesis.conf — likely a parser bug)
 - Nix-installed GTK apps don't show in xfce4-panel systray (library mismatch)
 - xfconf needs dbus service registration (handled by Home Manager activation, re-runs on nix updates)
 - Fonts need copying to ~/.local/share/fonts for neovide/dzen2 (nix font paths not read by skia/dzen2)
