@@ -8,7 +8,7 @@
 3. **jj periodic tasks** — auto-fetch, background operations
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
 10. **Fix open-in-container** — firefox-container URL handler
-12. try switching to input-remapper from nix
+12. ~~try switching to input-remapper from nix~~ — Kinesis moved to keyd
 
 ## Architecture Overview
 
@@ -21,11 +21,10 @@
   - `nvim.nix` — neovim (default editor, vi/vim aliases), cargo, biome, python3, taplo, uv
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
-  - `system-deps.sh` — apt packages (ibus-hangul, input-remapper, gnome-session-flashback) + session file installs + keyd service setup
+  - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs + keyd service setup
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
-- Xmodmap: `~/.dotfiles/xwindow/Xmodmap.symlink` (symlinked to ~/.Xmodmap) — DEPRECATED, replaced by keyd
-- keyd config: `~/.dotfiles/keyd/default.conf` (copied to /etc/keyd/ by system-deps.sh)
-- input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/)
+- keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf — copied to /etc/keyd/ by system-deps.sh)
+- input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored)
 - fzf functions: `~/.dotfiles/fzf/functions.sh/functions.sh` — jj-first/git-fallback Ctrl-G bindings
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
@@ -38,17 +37,14 @@
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware
 
 ### Key Remapping Stack
-- **keyd** (`~/.dotfiles/keyd/default.conf`, system daemon): CapsLock→Ctrl (tap→Esc), Super tap→prog1 (XF86Launch1, albert), Alt_L tap→prog2 (XF86Launch2, ghostty1), Alt_R tap→prog3 (XF86Launch3, ghostty2), Ctrl_R tap→apostrophe, Pause/ScrollLock/PrtSc→volume keys. Applies to all keyboards.
+- **keyd** (`~/.dotfiles/keyd/`, system daemon, three files):
+  - `common` — shared bindings (included by both configs): CapsLock→Ctrl (tap→Esc), Super tap→prog1 (XF86Launch1, albert), Alt_L tap→prog2 (XF86Launch2, ghostty1), Alt_R tap→prog3 (XF86Launch3, ghostty2), Ctrl_R tap→apostrophe, Pause/ScrollLock/PrtSc→volume keys
+  - `default.conf` — all keyboards except Kinesis (`* -29ea:0102`), includes common
+  - `kinesis.conf` — Kinesis Advantage2 (`29ea:0102`), aliases for Mac-mode key swaps (LCtrl→Super, LAlt→Esc, End→LAlt, PgDn→RAlt, apostrophe→RCtrl, backslash→Tab, PgUp→backslash, RMeta→Esc, RCtrl→Super), includes common
 - **input-remapper** (per-device, systemd daemon):
   - Logitech USB Optical Mouse: left-handed (swap left/right)
   - ExpertBT5.0 Mouse (Kensington): left-handed remap + BTN_SIDE→Super+Shift+C (close window) + BTN_LEFT→Super+Tab
-  - Kinesis Advantage2 Keyboard (Mac mode — keycodes swapped vs PC):
-    - Left Ctrl(29)→Super, Right Super(97)→Super
-    - Left Alt(56)→Esc, Right Ctrl(126)→Esc
-    - End(107)→Left Alt, PgDn(109)→Right Alt
-    - apostrophe(40)→Right Ctrl (tap→apostrophe via keyd)
-    - backslash(43)→Tab, PgUp(104)→backslash
-- See `~/.dotfiles/xwindow/README.md` for full key remapping diagrams and documentation
+- See `~/.dotfiles/keyd/README.md` for full key remapping documentation
 
 ### xmonad Key Bindings
 - Super tap → Albert toggle
@@ -88,7 +84,7 @@
 - xfconf needs dbus service registration (handled by Home Manager activation, re-runs on nix updates)
 - Fonts need copying to ~/.local/share/fonts for neovide/dzen2 (nix font paths not read by skia/dzen2)
 - User is on LDAP (can't chsh), $SHELL is bash, zsh started via exec from .bashrc
-- AltGr on laptop keyboard doesn't map to Right Alt (needs per-device remap or xmodmap)
+- AltGr on laptop keyboard doesn't map to Right Alt (needs keyd per-device config)
 - gnome-flashback "Notifications" tray icon doesn't respond to clicks (no GNOME Shell notification panel)
 
 ### Monitors
