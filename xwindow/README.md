@@ -90,58 +90,32 @@ LEFT HAND                                              RIGHT HAND
         └─────┴─────┴─────┘        └─────┴─────┴─────┘
 ```
 
-### Xmodmap remappings (~/.Xmodmap)
+### keyd remappings (~/.dotfiles/keyd/default.conf)
 
-Applied on top of input-remapper. Affects all keyboards.
-Reapplied on device hotplug via inputplug.
+System-level daemon. Applies to all keyboards at evdev level.
+Replaces xmodmap and xcape. Not affected by GNOME keymap resets.
 
-```
-LEFT HAND                                              RIGHT HAND
-
- ┌─────┬─────┬─────┬─────┬─────┬─────┐  ┌─────┬─────┬─────┬─────┬─────┬─────┐
- │     │     │     │     │     │     │  │     │     │     │     │     │     │
- ├─────┼─────┼─────┼─────┼─────┼─────┤  ├─────┼─────┼─────┼─────┼─────┼─────┤
- │     │     │     │     │     │     │  │     │     │     │     │     │     │
- ├─────┼─────┼─────┼─────┼─────┼─────┤  ├─────┼─────┼─────┼─────┼─────┼─────┤
- │Ctrl │     │     │     │     │     │  │     │     │     │     │     │     │
- │(58) │     │     │     │     │     │  │     │     │     │     │     │     │
- ├─────┼─────┼─────┼─────┼─────┼─────┤  ├─────┼─────┼─────┼─────┼─────┼─────┤
- │     │     │     │     │     │     │  │     │     │     │     │     │     │
- └─────┴─────┴─────┴─────┴─────┴─────┘  └─────┴─────┴─────┴─────┴─────┴─────┘
-
- Function row (shared):
-   Pause(119) → VolumeUp    ScrollLock(70) → VolumeDown    PrtSc(99) → Mute
-
- Right of spacebar:
-   AltGr(100) → Alt_R  (reclaim from ibus-hangul Hangul remap)
-```
-
-Note: evdev codes shown. Xmodmap uses X11 keycodes (evdev + 8).
-
-### xcape (tap behavior for modifiers)
-
-Started by xmonad.hs. Timeout: 200ms.
-
-- Super tap → XF86Launch1
-- Alt_L tap → XF86Launch2
-- Alt_R tap → XF86Launch3
-- Ctrl_L tap → Escape (CapsLock, via xmodmap)
-- Ctrl_R tap → apostrophe
+- CapsLock: hold → Control, tap → Escape
+- Super: hold → Super, tap → prog1 (XF86Launch1)
+- Left Alt: hold → Alt, tap → prog2 (XF86Launch2)
+- Right Alt: hold → Alt, tap → prog3 (XF86Launch3)
+- Right Control: hold → Control, tap → apostrophe
+- Pause → VolumeUp, ScrollLock → VolumeDown, PrtSc → Mute
 
 ### xmonad key bindings
 
-- XF86Launch1 (Super tap) → Albert toggle
-- XF86Launch2 (Alt_L tap) → ghostty scratchpad 1
-- XF86Launch3 (Alt_R tap) → ghostty scratchpad 2
+- prog1/XF86Launch1 (Super tap) → Albert toggle
+- prog2/XF86Launch2 (Alt_L tap) → ghostty scratchpad 1
+- prog3/XF86Launch3 (Alt_R tap) → ghostty scratchpad 2
 - VolumeUp → volume-osd up
 - VolumeDown → volume-osd down
 - Mute → volume-osd toggle
 - Super+VolumeUp → cycle-audio-output
 - Super+VolumeDown → cycle-audio-input
 
-Volume keys come from xmodmap (Pause/ScrollLock/PrtSc → volume keys).
+Volume keys come from keyd (Pause/ScrollLock/PrtSc → volume keys).
 
-### Final effective layout (input-remapper + xmodmap + xcape)
+### Final effective layout (input-remapper + keyd)
 
 Hold behavior shown in key, tap behavior in parentheses where applicable.
 
@@ -175,12 +149,12 @@ LEFT HAND                                              RIGHT HAND
         │     │     │ gh1)│        │ gh2)│     │     │
         └─────┴─────┴─────┘        └─────┴─────┴─────┘
 
- Function row: VolUp  VolDown  Mute  (via xmodmap)
+ Function row: VolUp  VolDown  Mute  (via keyd)
 ```
 
 ### Summary table
 
-| Physical key     | Evdev | Remapped to     | Code | xcape tap     |
+| Physical key     | Evdev | Remapped to     | Code | keyd tap      |
 |------------------|-------|-----------------|------|---------------|
 | L Cmd            | 29    | Super           | 125  | Albert        |
 | L Option         | 56    | Escape          | 1    |               |

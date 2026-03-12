@@ -141,9 +141,7 @@ myConfig = gnomeConfig
         startupHook gnomeConfig,
         fullscreenStartupHook,
         spawn "pgrep xfce4-panel || xfce4-panel",
-        spawn "pgrep albert || albert",
-        -- xcape: Super tap → albert, Alt_L tap → ghostty1, Alt_R tap → ghostty2, Ctrl_R tap → apostrophe
-        spawn "pgrep xcape || xcape -t 200 -e 'Super_L=XF86Launch1;Alt_L=XF86Launch2;Alt_R=XF86Launch3;Control_R=apostrophe;Control_L=Escape'"
+        spawn "pgrep albert || albert"
     ]
     , handleEventHook = handleEventHook gnomeConfig
     , modMask = mod4Mask
@@ -160,9 +158,9 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
-    , ((0, xF86XK_Launch1), spawn "albert toggle")  -- triggered by Super tap via xcape
-    , ((0, xF86XK_Launch2), scratchpadToggle "ghostty1")   -- Alt_L tap (via xcape)
-    , ((0, xF86XK_Launch3), scratchpadToggle "ghostty2")  -- Alt_R tap (via xcape)
+    , ((0, xF86XK_Launch1), spawn "albert toggle")  -- Super tap via keyd (prog1)
+    , ((0, xF86XK_Launch2), scratchpadToggle "ghostty1")   -- Alt_L tap via keyd (prog2)
+    , ((0, xF86XK_Launch3), scratchpadToggle "ghostty2")  -- Alt_R tap via keyd (prog3)
     , ((0, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd up")
     , ((0, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd down")
     , ((0, xF86XK_AudioMute), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd toggle")
