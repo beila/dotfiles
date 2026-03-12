@@ -12,6 +12,8 @@
     };
     "org/freedesktop/ibus/engine/hangul" = {
       hangul-keyboard = "39";
+      hanja-keys = "F9";
+      switch-keys = "Shift+space";
     };
     "org/gnome/desktop/peripherals/keyboard" = {
       delay = lib.gvariant.mkUint32 200;
