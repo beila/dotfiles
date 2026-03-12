@@ -80,6 +80,9 @@
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show/focus
 - Identified by x11-instance-name (scratchpad1/scratchpad2)
 
+### Zoom Notification
+- `zoom_linux_float_message_reminder` window: floats on all workspaces without stealing focus (via `copyToAll` + `insertPosition Below Older`)
+
 ### Known Issues / Constraints
 - Nix-installed GTK apps don't show in xfce4-panel systray (library mismatch)
 - xfconf needs dbus service registration (handled by Home Manager activation, re-runs on nix updates)
