@@ -42,6 +42,7 @@ in
         pkgs.nerd-fonts.jetbrains-mono  # For OSD popups
         pkgs.jujutsu
         pkgs.just
+        pkgs.keyd
         pkgs.mergiraf
         pkgs.pavucontrol
         pkgs.ripgrep
