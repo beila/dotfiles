@@ -2,7 +2,6 @@
     "version": "2.0.1",
     "autoload": {
         "Logitech USB Optical Mouse": "left-handed",
-        "ExpertBT5.0 Mouse": "remap",
-        "Kinesis Advantage2 Keyboard": "remap"
+        "ExpertBT5.0 Mouse": "remap"
     }
 }
