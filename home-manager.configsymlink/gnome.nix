@@ -3,7 +3,6 @@
   dconf.settings = {
     "org/gnome/desktop/input-sources" = {
       sources = [
-        (lib.gvariant.mkTuple [ "xkb" "us" ])
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
