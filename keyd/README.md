@@ -3,10 +3,11 @@
 System daemon, applies at evdev level.
 Not affected by GNOME keymap resets.
 
-Split into three files:
-- `common` — shared bindings included by both configs
-- `default.conf` — all keyboards except Kinesis, includes common
+Split into four files:
+- `common` — shared bindings included by all configs
+- `default.conf` — all keyboards except Kinesis/ThinkPad, includes common
 - `kinesis.conf` — Kinesis Advantage2 aliases (Mac mode) + includes common
+- `thinkpad.conf` — ThinkPad laptop keyboard, Copilot key remap + includes common
 
 See each file for detailed comments and layout diagrams.
 
