@@ -34,11 +34,11 @@ adaptiveFloat isFirst = do
     let Rectangle _ _ sw sh = sc
         rect = if sw > sh
                then if isFirst
-                    then W.RationalRect 0.02 0.02 0.47 0.96
-                    else W.RationalRect 0.51 0.02 0.47 0.96
+                    then W.RationalRect 0.01 0.03 0.485 0.94
+                    else W.RationalRect 0.505 0.03 0.485 0.94
                else if isFirst
-                    then W.RationalRect 0.02 0.02 0.96 0.47
-                    else W.RationalRect 0.02 0.51 0.96 0.47
+                    then W.RationalRect 0.01 0.03 0.98 0.475
+                    else W.RationalRect 0.01 0.505 0.98 0.475
     doRectFloat rect
 
 -- Custom scratchpad toggle:
@@ -84,11 +84,11 @@ refloatAdaptive isFirst w = do
     let Rectangle _ _ sw sh = sc
         rect = if sw > sh
                then if isFirst
-                    then W.RationalRect 0.02 0.02 0.47 0.96
-                    else W.RationalRect 0.51 0.02 0.47 0.96
+                    then W.RationalRect 0.01 0.03 0.485 0.94
+                    else W.RationalRect 0.505 0.03 0.485 0.94
                else if isFirst
-                    then W.RationalRect 0.02 0.02 0.96 0.47
-                    else W.RationalRect 0.02 0.51 0.96 0.47
+                    then W.RationalRect 0.01 0.03 0.98 0.475
+                    else W.RationalRect 0.01 0.505 0.98 0.475
     windows $ W.float w rect
 
 myManageHook = composeAll
