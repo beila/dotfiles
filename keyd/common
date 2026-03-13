@@ -9,20 +9,23 @@
 
 [main]
 
+# overloadt2: only activates as modifier if held for timeout ms OR if another
+# key is tapped while held. Prevents accidental modifier when typing fast.
+
 # CapsLock: hold → Control, tap → Escape
-capslock = overload(control, esc)
+capslock = overloadt2(control, esc, 150)
 
 # Super: hold → Super, tap → prog1 (XF86Launch1, albert via xmonad)
-leftmeta = overload(meta, prog1)
+leftmeta = overloadt2(meta, prog1, 150)
 
 # Left Alt: hold → Alt, tap → prog2 (XF86Launch2, ghostty1 via xmonad)
-leftalt = overload(alt, prog2)
+leftalt = overloadt2(alt, prog2, 150)
 
 # Right Alt: hold → Alt, tap → prog3 (XF86Launch3, ghostty2 via xmonad)
-rightalt = overload(alt, prog3)
+rightalt = overloadt2(alt, prog3, 150)
 
 # Right Control: hold → Control, tap → apostrophe
-rightcontrol = overload(control, apostrophe)
+rightcontrol = overloadt2(control, apostrophe, 150)
 
 # Pause/ScrollLock/PrintScreen → volume keys
 pause = volumeup
