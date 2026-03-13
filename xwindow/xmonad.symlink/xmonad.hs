@@ -91,6 +91,10 @@ refloatAdaptive isFirst w = do
                     else W.RationalRect 0.01 0.505 0.98 0.475
     windows $ W.float w rect
 
+-- Copy the managed window (not the focused one) to all workspaces
+copyToAllHook :: ManageHook
+copyToAllHook = ask >>= \w -> doF (\s -> foldr (copyWindow w . W.tag) s (W.workspaces s))
+
 myManageHook = composeAll
     [ appName   =? "Alert"                                           --> doFloat
     , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
@@ -115,7 +119,7 @@ myManageHook = composeAll
     , className =? "AmazonChime"                                     --> doShift "8:meeting"
     , title     =? "Amazon Chime — Mozilla Firefox"                  --> doShift "8:meeting"
     , className =? "zoom"                                            --> doShift "8:meeting"
-    , title     =? "zoom_linux_float_message_reminder"   --> doFloat <> doF copyToAll <> insertPosition Below Older
+    , title     =? "zoom_linux_float_message_reminder"   --> doFloat <> copyToAllHook <> insertPosition Below Older
     , title     =? "zoom_linux_float_video_window"                   --> doFloat
     , title     =? "Meeting chat"                                    --> doShift "8:meeting"
     , className =? "yakyak"                                          --> doShift "9:messenger"
