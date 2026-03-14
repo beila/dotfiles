@@ -28,8 +28,10 @@
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
 - albert config: `~/.dotfiles/albert.configsymlink/` (symlinked to ~/.config/albert/)
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
+- gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
+- Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware

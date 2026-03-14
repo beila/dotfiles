@@ -17,5 +17,6 @@ See each file for detailed comments and layout diagrams.
 - prog2/XF86Launch2 (Alt_L tap) → ghostty scratchpad 1
 - prog3/XF86Launch3 (Alt_R tap) → ghostty scratchpad 2
 - VolumeUp/Down/Mute → volume-osd
+- BrightnessUp/Down → brightness-osd
 - Super+VolumeUp → cycle-audio-output
 - Super+VolumeDown → cycle-audio-input
