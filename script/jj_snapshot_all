@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Snapshot all jj repos under $HOME by running jj status (triggers auto-snapshot)
+DB="$HOME/.cache/plocate.db"
+
+if [ ! -f "$DB" ]; then
+    echo "plocate database not found, skipping" >&2
+    exit 0
+fi
+
+plocate --database "$DB" -r '/\.jj$' 2>/dev/null | sed 's|/\.jj$||' | while read -r repo; do
+    [ -d "$repo/.jj" ] && jj --repository "$repo" status &>/dev/null
+done
