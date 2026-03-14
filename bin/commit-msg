@@ -22,7 +22,7 @@ diff=$(echo "$diff" | head -200)
 
 PROMPT="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."
 
-curl -sf --max-time 30 http://localhost:11434/api/generate \
+curl -sf --max-time 300 http://localhost:11434/api/generate \
     -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT" --arg diff "$diff" \
         '{model: $model, prompt: ($diff + "\n\n" + $prompt), stream: false}')" \
     | jq -r '.response' | head -1
