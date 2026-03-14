@@ -7,7 +7,7 @@ if [ -n "$data" ]; then
     raw=$(curl -sf 'https://wttr.in/London?format=%l%0A%C%0A%t%0A%f%0A%h%0A%w%0A%S%0A%s' 2>/dev/null)
     summary=$(echo "$raw" | awk 'NR==1{loc=$0} NR==2{cond=$0} NR==3{temp=$0} NR==4{feel=$0} NR==5{hum=$0} NR==6{wind=$0} NR==7{rise=$0} NR==8{set=$0} END{
       gsub(/\+/,"",temp); gsub(/\+/,"",feel)
-      printf "%s\n%s\n🌡  %8s  (feels %s)\n💧  %8s humidity\n💨  %8s wind\n🌅  %s  🌇 %s", loc, cond, temp, feel, hum, wind, rise, set}')
+      printf "%s  —  %s\n\n🌡️ Temp:     %s (feels %s)\n💧 Humidity: %s\n💨 Wind:     %s\n🌅 Sun:      %s – %s", loc, cond, temp, feel, hum, wind, rise, set}')
     forecast=$(curl -sf 'https://wttr.in/London?format=j1' 2>/dev/null | python3 -c "
 import sys,json
 from datetime import datetime,timedelta
@@ -29,7 +29,7 @@ for label,temp,rain,desc in lines:
     if first_today and label.startswith('  '):
         print('Today')
         first_today=False
-    print(f'{label:<10} {temp:>8}  🌧{rain:>3}%  {desc}')
+    print(f'{label:<10} {temp:>8}  🌧 {rain:>3}%  {desc}')
 " 2>/dev/null)
     tooltip=$(printf "%s\n\n📅 Forecast\n%s" "$summary" "$forecast")
     echo "<tool>$tooltip</tool>"
