@@ -163,7 +163,7 @@ setup_dotfiles_sync () {
     do
       if [ -d "$SYNC_TARGET" ]
       then
-        echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} HOSTNAME=${HOSTNAME} $DOTFILES_ROOT/script/sync_dotfiles $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
+        echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_dotfiles $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
       fi
      done
 
@@ -190,7 +190,7 @@ for sm in $($DOTFILES_ROOT/zsh/functions/gSl); do
 done
 
 install_dotfiles
-setup_dotfiles_sync
+#setup_dotfiles_sync    # replaced with systemd servie set up by home manager
 setup_pbcopy_from_ssh
 
 #bash -x $DOTFILES_ROOT/script/install

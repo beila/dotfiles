@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Sync all known dotfiles/docs repos that exist on this machine
+DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
+SYNC="$DOTFILES_ROOT/script/sync_dotfiles"
+
+TARGETS="$DOTFILES_ROOT $HOME/hjdocs $HOME/hjdocs/public-docs $HOME/pp/insuk-www"
+TARGETS="$TARGETS $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i"
+TARGETS="$TARGETS $HOME/devc/hjdocs $HOME/devc/hjdocs/public-docs $HOME/devc/i $HOME/devc/i/devc1"
+TARGETS="$TARGETS $HOME/devm/hjdocs $HOME/devm/hjdocs/public-docs $HOME/devm/i"
+
+for dir in $TARGETS; do
+    [ -d "$dir" ] && "$SYNC" "$dir"
+done
+
+# Snapshot all other jj repos (not in TARGETS)
+"$DOTFILES_ROOT/script/jj_snapshot_all"
