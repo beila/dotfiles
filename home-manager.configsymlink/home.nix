@@ -47,7 +47,6 @@ in
         pkgs.just
         pkgs.keyd
         pkgs.mergiraf
-        pkgs.ollama
         pkgs.pavucontrol
         pkgs.ripgrep
         pkgs.scrot
@@ -119,16 +118,6 @@ in
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
-
-  # Ollama LLM server — used for local commit message generation
-  systemd.user.services.ollama = {
-    Unit.Description = "Ollama LLM server";
-    Install.WantedBy = [ "default.target" ];
-    Service = {
-      ExecStart = "${pkgs.ollama}/bin/ollama serve";
-      Restart = "on-failure";
-    };
-  };
 
   targets.genericLinux.enable = true;
 }

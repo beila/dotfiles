@@ -1,0 +1,23 @@
+#!/bin/bash
+# Generate a commit message from the current jj/git diff using a local LLM
+# Usage: commit-msg [revision]
+# Requires: ollama with qwen2.5-coder:3b
+
+MODEL="qwen2.5-coder:3b"
+REV="${1:-@}"
+
+if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
+    diff=$(jj diff -r "$REV" 2>/dev/null)
+else
+    diff=$(git diff --cached 2>/dev/null || git diff HEAD 2>/dev/null)
+fi
+
+if [ -z "$diff" ]; then
+    echo "No changes to describe." >&2
+    exit 1
+fi
+
+# Truncate large diffs to avoid overwhelming the model
+diff=$(echo "$diff" | head -200)
+
+echo "$diff" | ollama run "$MODEL" "Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."

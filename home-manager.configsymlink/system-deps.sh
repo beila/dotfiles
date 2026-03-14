@@ -32,3 +32,9 @@ WantedBy=multi-user.target
 EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now keyd
+
+# ollama: local LLM server (for commit message generation etc.)
+if ! command -v ollama &>/dev/null; then
+  curl -fsSL https://ollama.com/install.sh | sh
+fi
+ollama list 2>/dev/null | grep -q qwen2.5-coder:3b || ollama pull qwen2.5-coder:3b

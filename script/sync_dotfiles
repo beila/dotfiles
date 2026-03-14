@@ -7,17 +7,38 @@ cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
 
-$GIT submodule foreach bash -c "$GIT add --verbose --all .
-    $GIT commit --verbose -m \"Change from $($HOSTNAME -s)\" && WILL_PUSH=yes
-    $GIT pull --ff --verbose --no-edit --recurse-submodules=no
-    test \$WILL_PUSH && $GIT push || true"
+if jj root &>/dev/null 2>&1; then
+    CHANGE_ID=$(jj log -r @ --no-graph -T 'change_id' 2>/dev/null)
+    jj new
+    MSG=$("$1/bin/commit-msg" "$CHANGE_ID" 2>/dev/null) || MSG="Change from $($HOSTNAME -s)"
+    jj describe "$CHANGE_ID" -m "$MSG"
 
-$GIT add --verbose --all .
-$GIT commit --verbose --no-allow-empty -m "Change from $($HOSTNAME -s)"
-$GIT pull --ff --verbose --no-edit
+    # Push bookmarks and @ to remote 'hj' with hostname prefix
+    if jj git remote list 2>/dev/null | grep -q '^hj '; then
+        PREFIX=$($HOSTNAME -s)
+        for bm in $(jj bookmark list --all -T 'name ++ "\n"' 2>/dev/null); do
+            jj bookmark set "${PREFIX}/${bm}" -r "$bm" 2>/dev/null
+            jj git push --remote hj --bookmark "${PREFIX}/${bm}" --allow-new 2>/dev/null || true
+            jj bookmark delete "${PREFIX}/${bm}" 2>/dev/null
+        done
+        jj bookmark set "${PREFIX}/wc" -r @ 2>/dev/null
+        jj git push --remote hj --bookmark "${PREFIX}/wc" --allow-new 2>/dev/null || true
+        jj bookmark delete "${PREFIX}/wc" 2>/dev/null
+    fi
+else
+    $GIT submodule foreach bash -c "$GIT add --verbose --all .
+        $GIT commit --verbose -m \"Change from $($HOSTNAME -s)\" && WILL_PUSH=yes
+        $GIT pull --ff --verbose --no-edit --recurse-submodules=no
+        test \$WILL_PUSH && $GIT push || true"
 
-$GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all
-$GIT push --verbose
+    $GIT add --verbose --all .
+    MSG=$("$1/bin/commit-msg" 2>/dev/null) || MSG="Change from $($HOSTNAME -s)"
+    $GIT commit --verbose --no-allow-empty -m "$MSG"
+    $GIT pull --ff --verbose --no-edit
+
+    $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all
+    $GIT push --verbose
+fi
 
 #$GIT submodule foreach bash -c "$GIT add --verbose --all .
     #$GIT commit --verbose -m \"Change from $($HOSTNAME -s)\" && WILL_PUSH=yes

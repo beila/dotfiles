@@ -3,7 +3,7 @@
 ## TODO List
 
 1. ~~**Battery indicator**~~ — xfce4-power-manager plugin (nix)
-2. **Git commit message generator** — AI-assisted or template-based
+2. ~~**Git commit message generator**~~ — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
 3. **jj periodic tasks** — auto-fetch, background operations
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
