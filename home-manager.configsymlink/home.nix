@@ -29,6 +29,7 @@ in
 
         pkgs.albert
         pkgs.bat
+        pkgs.brightnessctl
         pkgs.cmake
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
         pkgs.difftastic
