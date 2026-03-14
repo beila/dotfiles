@@ -30,10 +30,10 @@ parse_main_domain() {
         {
             sub(/[:space:]*\/\/.*$/, "")    # remove // comments
             pattern="\\." $0 "$"
-            sub_domain=gensub(pattern, "", 1, host)
-            if (host != sub_domain) {
-                main_domain=gensub(/^.+\./, "", 1, sub_domain)
-                print main_domain
+            if (match(host, pattern)) {
+                sub_domain=substr(host, 1, RSTART - 1)
+                n=split(sub_domain, parts, "\\.")
+                print parts[n]
                 exit
             }
         }
