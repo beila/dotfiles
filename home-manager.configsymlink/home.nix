@@ -31,6 +31,8 @@ in
         pkgs.bat
         pkgs.brightnessctl
         pkgs.xfce.xfce4-power-manager
+        pkgs.xfce.xfce4-cpugraph-plugin
+        pkgs.xfce.xfce4-weather-plugin
         pkgs.cmake
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
         pkgs.difftastic
