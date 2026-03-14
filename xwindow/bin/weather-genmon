@@ -5,7 +5,25 @@ data=$(curl -sf "https://wttr.in/London?format=%c+%t" 2>/dev/null | sed 's/+\([0
 if [ -n "$data" ]; then
     echo "<txt>$data</txt>"
     raw=$(curl -sf 'https://wttr.in/London?format=%l%0A%C%0A%t%0A%f%0A%h%0A%w%0A%S%0A%s' 2>/dev/null)
-    tooltip=$(echo "$raw" | awk 'NR==1{loc=$0} NR==2{cond=$0} NR==3{temp=$0} NR==4{feel=$0} NR==5{hum=$0} NR==6{wind=$0} NR==7{rise=$0} NR==8{set=$0} END{printf "%s\n%s\n🌡 %s  (feels %s)\n💧 %s humidity\n💨 %s wind\n🌅 %s  🌇 %s", loc, cond, temp, feel, hum, wind, rise, set}')
+    summary=$(echo "$raw" | awk 'NR==1{loc=$0} NR==2{cond=$0} NR==3{temp=$0} NR==4{feel=$0} NR==5{hum=$0} NR==6{wind=$0} NR==7{rise=$0} NR==8{set=$0} END{printf "%s\n%s\n🌡 %s  (feels %s)\n💧 %s humidity\n💨 %s wind\n🌅 %s  🌇 %s", loc, cond, temp, feel, hum, wind, rise, set}')
+    forecast=$(curl -sf 'https://wttr.in/London?format=j1' 2>/dev/null | python3 -c "
+import sys,json
+from datetime import datetime,timedelta
+d=json.load(sys.stdin)
+today=datetime.now().date()
+for day in d['weather'][:3]:
+    dt=datetime.strptime(day['date'],'%Y-%m-%d').date()
+    diff=(dt-today).days
+    if diff==0: label='Today'
+    elif diff==1: label='Tomorrow'
+    else: label=dt.strftime('%A')
+    desc=day['hourly'][4]['weatherDesc'][0]['value'].strip()
+    hi=day['maxtempC']
+    lo=day['mintempC']
+    rain=day['hourly'][4]['chanceofrain']
+    print(f'{label:<10} {lo:>2}–{hi:>2}°C  🌧{rain:>3}%  {desc}')
+" 2>/dev/null)
+    tooltip=$(printf "%s\n\n📅 Forecast\n%s" "$summary" "$forecast")
     echo "<tool>$tooltip</tool>"
 else
     echo "<txt>☁ --</txt>"
