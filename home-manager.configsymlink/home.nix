@@ -48,6 +48,7 @@ in
         pkgs.keyd
         pkgs.mergiraf
         pkgs.pavucontrol
+        pkgs.plocate
         pkgs.ripgrep
         pkgs.scrot
         pkgs.shellcheck
@@ -118,6 +119,41 @@ in
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
+
+  # Sync all repos every 10 minutes
+  systemd.user.services.sync-repos = {
+    Unit.Description = "Sync dotfiles and docs repos";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "%h/.dotfiles/script/sync_all";
+    };
+  };
+  systemd.user.timers.sync-repos = {
+    Unit.Description = "Sync dotfiles and docs repos every 10 minutes";
+    Timer = {
+      OnCalendar = "*:0/10";
+      RandomizedDelaySec = "9m";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
+  # Update plocate database hourly (user home only)
+  systemd.user.services.updatedb = {
+    Unit.Description = "Update plocate database";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.plocate}/bin/updatedb --require-visibility 0 --output %h/.cache/plocate.db --database-root %h";
+    };
+  };
+  systemd.user.timers.updatedb = {
+    Unit.Description = "Update plocate database hourly";
+    Timer = {
+      OnCalendar = "hourly";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 
   targets.genericLinux.enable = true;
 }
