@@ -126,6 +126,8 @@ in
     Service = {
       Type = "oneshot";
       ExecStart = "%h/.dotfiles/script/sync_all";
+      Nice = 19;
+      IOSchedulingClass = "idle";
     };
   };
   systemd.user.timers.sync-repos = {
@@ -143,13 +145,13 @@ in
     Unit.Description = "Update plocate database";
     Service = {
       Type = "oneshot";
-      ExecStart = "${pkgs.plocate}/bin/updatedb --require-visibility 0 --output %h/.cache/plocate.db --database-root %h";
+      ExecStart = "%h/.dotfiles/script/updatedb";
     };
   };
   systemd.user.timers.updatedb = {
-    Unit.Description = "Update plocate database hourly";
+    Unit.Description = "Update plocate database every 3 minutes";
     Timer = {
-      OnCalendar = "hourly";
+      OnCalendar = "*:0/3";
       Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];
