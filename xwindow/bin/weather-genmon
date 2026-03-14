@@ -1,10 +1,11 @@
 #!/bin/bash
 # Weather genmon script for xfce4-panel
 # Uses wttr.in API — no API key needed
-data=$(curl -sf "https://wttr.in/London?format=%c+%t" 2>/dev/null)
+data=$(curl -sf "https://wttr.in/London?format=%c+%t" 2>/dev/null | sed 's/+\([0-9]\)/\1/')
 if [ -n "$data" ]; then
     echo "<txt>$data</txt>"
-    tooltip=$(curl -sf "https://wttr.in/London?format=%l:+%C,+%t+(%f),+%h+humidity,+%w+wind" 2>/dev/null)
+    raw=$(curl -sf 'https://wttr.in/London?format=%l%0A%C%0A%t%0A%f%0A%h%0A%w%0A%S%0A%s' 2>/dev/null)
+    tooltip=$(echo "$raw" | awk 'NR==1{loc=$0} NR==2{cond=$0} NR==3{temp=$0} NR==4{feel=$0} NR==5{hum=$0} NR==6{wind=$0} NR==7{rise=$0} NR==8{set=$0} END{printf "%s\n%s\n🌡 %s  (feels %s)\n💧 %s humidity\n💨 %s wind\n🌅 %s  🌇 %s", loc, cond, temp, feel, hum, wind, rise, set}')
     echo "<tool>$tooltip</tool>"
 else
     echo "<txt>☁ --</txt>"
