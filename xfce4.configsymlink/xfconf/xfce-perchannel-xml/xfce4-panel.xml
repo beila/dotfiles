@@ -25,10 +25,11 @@
         <value type="int" value="9"/>
         <value type="int" value="10"/>
         <value type="int" value="11"/>
-        <value type="int" value="2"/>
-        <value type="int" value="12"/>
         <value type="int" value="13"/>
         <value type="int" value="14"/>
+        <value type="int" value="2"/>
+        <value type="int" value="12"/>
+        <value type="int" value="15"/>
       </property>
       <property name="span-monitors" type="bool" value="false"/>
     </property>
@@ -189,7 +190,7 @@
     <property name="plugin-14" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
     </property>
-    <property name="plugin-15" type="empty">
+    <property name="plugin-15" type="string" value="genmon">
       <property name="location" type="empty">
         <property name="name" type="string" value="London, UK"/>
         <property name="latitude" type="string" value="51.507351"/>
@@ -223,6 +224,12 @@
         <property name="color" type="string" value="rgba(0,0,0,0)"/>
         <property name="use-color" type="bool" value="false"/>
       </property>
+      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/weather-genmon"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="text" type="string" value="(genmon)"/>
+      <property name="update-period" type="int" value="600000"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+      <property name="font" type="string" value="Ubuntu 11"/>
     </property>
   </property>
 </channel>
