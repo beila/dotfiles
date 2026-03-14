@@ -30,11 +30,16 @@ parse_main_domain() {
         {
             sub(/[:space:]*\/\/.*$/, "")    # remove // comments
             pattern="\\." $0 "$"
-            if (match(host, pattern)) {
-                sub_domain=substr(host, 1, RSTART - 1)
+            if (match(host, pattern) && length($0) > best_len) {
+                best_len=length($0)
+                best_rstart=RSTART
+            }
+        }
+        END {
+            if (best_rstart) {
+                sub_domain=substr(host, 1, best_rstart - 1)
                 n=split(sub_domain, parts, "\\.")
                 print parts[n]
-                exit
             }
         }
     ' ${my_dir}/publicsuffix/list/public_suffix_list.dat
