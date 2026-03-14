@@ -2,7 +2,7 @@
 
 ## TODO List
 
-1. **Battery indicator** — xfce4-panel plugin or tray applet
+1. ~~**Battery indicator**~~ — xfce4-power-manager plugin (nix)
 2. **Git commit message generator** — AI-assisted or template-based
 3. **jj periodic tasks** — auto-fetch, background operations
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
@@ -29,7 +29,7 @@
 - albert config: `~/.dotfiles/albert.configsymlink/` (symlinked to ~/.config/albert/)
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-- Audio scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`
+- Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware
@@ -50,6 +50,7 @@
 - Alt_L tap → ghostty scratchpad 1 (adaptive half-screen)
 - Alt_R tap → ghostty scratchpad 2 (adaptive half-screen)
 - Volume keys → volume-osd script (dzen2 FIFO-based, no flicker)
+- Brightness keys → brightness-osd script (5% steps ≤20%, 10% above)
 - Super+VolumeUp → cycle audio output (first press shows current, subsequent presses cycle)
 - Super+VolumeDown → cycle audio input (same behavior, filters cameras)
 - Super+N → W.view (focus workspace without swapping monitors)
@@ -67,6 +68,11 @@
 - Dimensions scale with Xft.dpi (base: x=100, w=1240, h=100 at 96dpi)
 - Font: JetBrainsMono Nerd Font, size 36 bold (not scaled — font respects DPI natively)
 - Auto-hide after 2-3 seconds using lockfile PID check
+
+### Brightness OSD
+- brightness-osd: /tmp/brightness-osd-fifo, yellow, y=430
+- Same dzen2 FIFO pattern as audio OSD
+- Uses brightnessctl (nix), 5% steps ≤20%, 10% above
 
 ### Scratchpad System
 - Two independent ghostty instances (scratchpad1, scratchpad2)
