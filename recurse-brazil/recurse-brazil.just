@@ -451,6 +451,7 @@ mwinitf *command:
 
 work_branch := ""
 
+[no-cd]
 new-ws dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
     set -xeo pipefail
@@ -481,7 +482,7 @@ new-ws dir main_package *more_packages: mwinit
     for p in {{ main_package }} ${more_packages[@]}
     do
         (
-            cd "{{ dir }}/src/$p"
+            cd "../$p"
             git fetch --all || true
             git checkout $my_branch || 
                 git checkout -b $my_branch ||
