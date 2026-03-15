@@ -32,11 +32,11 @@ while true; do
       text="$(printf '%s' "$msg" | jq -r '.params.arguments.text')"
       case "$tool" in
         say)
-          ~/.dotfiles/bin/say "$text" 2>/dev/null
+          ~/.dotfiles/bin/say "$text" &>/dev/null &
           send_msg "{\"jsonrpc\":\"2.0\",\"id\":$id,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Spoke: $text\"}]}}"
           ;;
         say_ko)
-          ~/.dotfiles/bin/say-ko "$text" 2>/dev/null
+          ~/.dotfiles/bin/say-ko "$text" &>/dev/null &
           send_msg "{\"jsonrpc\":\"2.0\",\"id\":$id,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Spoke: $text\"}]}}"
           ;;
         *)

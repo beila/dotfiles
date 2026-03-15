@@ -3,3 +3,4 @@ git/gitconfig.local.symlink
 vim.symlink
 nvim.configsymlink
 zprezto.symlink
+.kiro/agents/builder.json
