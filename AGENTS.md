@@ -4,7 +4,7 @@
 
 - Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
 - If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
-- TTS: at the end of every response, run `~/.dotfiles/bin/say` with a full summary of what was done or answered (the stop hook doesn't receive response content, so the agent must call `say` explicitly)
+- TTS: at the end of every response, run `~/.dotfiles/bin/say-ko` with a Korean translation of a full summary of what was done or answered (the stop hook doesn't receive response content, so the agent must call `say-ko` explicitly)
 - After making changes that affect architecture, conventions, or behavior described in `AGENTS.md` or `README.md`, update those docs to reflect the new state
 
 ## TODO List
@@ -63,6 +63,9 @@
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, models in `~/.local/share/piper/`
   - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`)
   - Override voice with `$PIPER_MODEL`
+- TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)
+  - Default rate: +50%, override with `$EDGE_TTS_RATE`
+  - Override voice with `$EDGE_TTS_VOICE` (available: ko-KR-SunHiNeural, ko-KR-InJoonNeural, ko-KR-HyunsuMultilingualNeural)
 
 ### Key Remapping Stack
 - **keyd** (`~/.dotfiles/keyd/`, system daemon, four files):

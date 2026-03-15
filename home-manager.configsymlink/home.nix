@@ -37,6 +37,7 @@ in
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
         pkgs.difftastic
         pkgs.fd
+        pkgs.ffmpeg
         pkgs.fzf
         pkgs.git
         (config.lib.nixGL.wrap pkgs.ghostty)
