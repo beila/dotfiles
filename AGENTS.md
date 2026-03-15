@@ -3,7 +3,8 @@
 ## Agent Instructions
 
 - Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
-- If the preferred tool is not installed, ask whether to install it (via nix profile or home-manager) or run it ad-hoc with `nix run nixpkgs#<pkg>`
+- If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
+- **MUST** run `~/.dotfiles/bin/say "<brief summary>"` at the end of every response to announce what was done or answered. Keep it to one or two sentences.
 
 ## TODO List
 
@@ -53,7 +54,10 @@
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — ollama + qwen2.5-coder:3b, jj-first/git-fallback
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
-- zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware
+- zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
+- TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, models in `~/.local/share/piper/`
+  - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`)
+  - Override voice with `$PIPER_MODEL`
 
 ### Key Remapping Stack
 - **keyd** (`~/.dotfiles/keyd/`, system daemon, four files):

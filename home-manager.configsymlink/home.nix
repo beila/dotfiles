@@ -48,6 +48,7 @@ in
         pkgs.keyd
         pkgs.mergiraf
         pkgs.pavucontrol
+        pkgs.piper-tts
         pkgs.plocate
         pkgs.ripgrep
         pkgs.scrot
@@ -57,7 +58,6 @@ in
         pkgs.xournalpp
         pkgs.zellij
         pkgs.zoxide
-        pkgs.zellij
         pkgs.zsh
 
         pkgs.awscli2
