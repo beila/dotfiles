@@ -10,6 +10,8 @@
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
 13. **Auto-merge to main on sync** — when pushing jj bookmarks, try merging to main branch
+14. **jj empty changes** — sync_dotfiles creates empty changes when there's nothing to commit
+15. **Ghostty unnecessary resizing** — ghostty scratchpads resize when they shouldn't
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 
 ## Architecture Overview
