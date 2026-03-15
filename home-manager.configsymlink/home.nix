@@ -125,6 +125,7 @@ in
     Unit.Description = "Sync dotfiles and docs repos";
     Service = {
       Type = "oneshot";
+      ExecCondition = "${pkgs.bash}/bin/bash -c '[ -n \"$TRIGGER_TIMER_MONOTONIC_USEC\" ]'";
       ExecStart = "%h/.dotfiles/script/sync_all";
       Nice = 19;
       IOSchedulingClass = "idle";
