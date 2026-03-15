@@ -120,7 +120,10 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  # Sync all repos every 10 minutes
+  # Sync all repos every 10 minutes (with random delay to avoid clashing across machines)
+  # Uses flock in sync_all to prevent concurrent runs
+  # Low priority (nice 19, idle IO) to not interfere with interactive work
+  # No Persistent=true — avoids running immediately on home-manager switch
   systemd.user.services.sync-repos = {
     Unit.Description = "Sync dotfiles and docs repos";
     Service = {
@@ -139,7 +142,9 @@ in
     Install.WantedBy = [ "timers.target" ];
   };
 
-  # Update plocate database hourly (user home only)
+  # Update plocate database every 3 minutes (user home only)
+  # Used by Albert for file search and jj_snapshot_all for repo discovery
+  # Notifies via desktop notification if update takes >10s
   systemd.user.services.updatedb = {
     Unit.Description = "Update plocate database";
     Service = {
@@ -151,7 +156,6 @@ in
     Unit.Description = "Update plocate database every 3 minutes";
     Timer = {
       OnCalendar = "*:0/3";
-      Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];
   };
