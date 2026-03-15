@@ -15,7 +15,7 @@
    - `sync_all` runs every 10min via systemd timer (randomized delay, low priority, flock)
    - `jj_snapshot_all` snapshots all jj repos found via plocate
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
-8. **universal Copy/paste key** — needs solution that doesn't conflict with keyd/Albert
+8. **universal Copy/paste key** — I need copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 13. ~~**Auto-merge to main on sync**~~ — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
 14. ~~**jj empty changes**~~ — sync_dotfiles skips when current change is empty
 15. ~~**Ghostty unnecessary resizing**~~ — scratchpadToggle no longer refloats when just focusing a visible scratchpad
@@ -24,6 +24,7 @@
 1. ~~zoom notification on all workspace~~
 1. change vim insert mode key bindings with jj to jjj
 1. fix sync_all creating "```commit" or "```markdown" description
+1. make say_done run in background
 
 ## Architecture Overview
 
