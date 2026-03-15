@@ -1,5 +1,10 @@
 # Dotfiles Workstation Setup — Context for AI Agent
 
+## Agent Instructions
+
+- Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
+- If the preferred tool is not installed, ask whether to install it (via nix profile or home-manager) or run it ad-hoc with `nix run nixpkgs#<pkg>`
+
 ## TODO List
 
 1. ~~**Battery indicator**~~ — xfce4-power-manager plugin (nix)
@@ -11,10 +16,10 @@
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
 13. ~~**Auto-merge to main on sync**~~ — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
 14. ~~**jj empty changes**~~ — sync_dotfiles skips when current change is empty
-15. **Ghostty unnecessary resizing** — ghostty scratchpads resize when they shouldn't
+15. ~~**Ghostty unnecessary resizing**~~ — scratchpadToggle no longer refloats when just focusing a visible scratchpad
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 10. kill tmux server and remove zsh integration
-1. zoom notification on all workspace
+1. ~~zoom notification on all workspace~~
 
 ## Architecture Overview
 
@@ -43,6 +48,9 @@
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - Sync scripts: `~/.dotfiles/script/sync_all` (all repos), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
+  - `sync_dotfiles` jj path: skips empty changes, describes with AI commit message, pushes current change to hj
+  - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
+  - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — ollama + qwen2.5-coder:3b, jj-first/git-fallback
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware

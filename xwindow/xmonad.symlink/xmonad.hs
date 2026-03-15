@@ -60,7 +60,6 @@ scratchpadToggle name = withWindowSet $ \ws -> do
                     case spWindows of
                         (s:_) -> do
                             windows $ W.focusWindow s
-                            refloatAdaptive isFirst s
                         []    -> do
                             namedScratchpadAction myScratchpads name
                             refloatScratchpad isFirst isSP
@@ -118,7 +117,7 @@ myManageHook = composeAll
     , title     =? "Email - hojin@amazon.co.uk — Mozilla Firefox"    --> doShift "7:calendar"
     , className =? "AmazonChime"                                     --> doShift "8:meeting"
     , title     =? "Amazon Chime — Mozilla Firefox"                  --> doShift "8:meeting"
-    , className =? "zoom"                                            --> doShift "8:meeting"
+    , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" --> doShift "8:meeting"
     , title     =? "zoom_linux_float_message_reminder"   --> doFloat <> copyToAllHook <> insertPosition Below Older
     , title     =? "zoom_linux_float_video_window"                   --> doFloat
     , title     =? "Meeting chat"                                    --> doShift "8:meeting"
