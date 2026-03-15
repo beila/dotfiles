@@ -1,9 +1,11 @@
 # Notify when long-running commands finish
-preexec() {
+autoload -Uz add-zsh-hook
+
+_cmd_timer_preexec() {
     _cmd_start=$(date +%s)
 }
 
-precmd() {
+_cmd_timer_precmd() {
     if [[ -n "$_cmd_start" ]]; then
         local duration=$(( $(date +%s) - _cmd_start ))
         unset _cmd_start
@@ -12,3 +14,6 @@ precmd() {
         fi
     fi
 }
+
+add-zsh-hook preexec _cmd_timer_preexec
+add-zsh-hook precmd _cmd_timer_precmd
