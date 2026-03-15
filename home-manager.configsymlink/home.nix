@@ -125,7 +125,6 @@ in
     Unit.Description = "Sync dotfiles and docs repos";
     Service = {
       Type = "oneshot";
-      ExecCondition = "${pkgs.bash}/bin/bash -c '[ -n \"$TRIGGER_TIMER_MONOTONIC_USEC\" ]'";
       ExecStart = "%h/.dotfiles/script/sync_all";
       Nice = 19;
       IOSchedulingClass = "idle";
@@ -136,7 +135,6 @@ in
     Timer = {
       OnCalendar = "*:0/10";
       RandomizedDelaySec = "9m";
-      Persistent = true;
     };
     Install.WantedBy = [ "timers.target" ];
   };
