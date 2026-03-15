@@ -1,8 +1,9 @@
 {
+  "name": "default",
   "hooks": {
     "stop": [
       {
-        "command": "~/.dotfiles/bin/say 'All done, happy to help.'"
+        "command": "~/.kiro/bin/kiro-response"
       }
     ]
   }
