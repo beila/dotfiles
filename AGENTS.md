@@ -9,10 +9,12 @@
    - `jj_snapshot_all` snapshots all jj repos found via plocate
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
-13. **Auto-merge to main on sync** — when pushing jj bookmarks, try merging to main branch
-14. **jj empty changes** — sync_dotfiles creates empty changes when there's nothing to commit
+13. ~~**Auto-merge to main on sync**~~ — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
+14. ~~**jj empty changes**~~ — sync_dotfiles skips when current change is empty
 15. **Ghostty unnecessary resizing** — ghostty scratchpads resize when they shouldn't
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
+10. kill tmux server and remove zsh integration
+1. zoom notification on all workspace
 
 ## Architecture Overview
 
