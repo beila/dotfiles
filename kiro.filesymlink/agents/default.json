@@ -1,9 +1,13 @@
 {
   "name": "default",
-  "allowedTools": ["@tts"],
   "mcpServers": {
     "tts": {
       "command": "~/.dotfiles/bin/mcp-tts"
+    }
+  },
+  "toolsSettings": {
+    "execute_bash": {
+      "autoAllowReadonly": true
     }
   }
 }

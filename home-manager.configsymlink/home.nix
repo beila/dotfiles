@@ -54,6 +54,8 @@ in
         pkgs.ripgrep
         pkgs.scrot
         pkgs.shellcheck
+        pkgs.uv  # edge-tts runner for say-ko
+        pkgs.alsa-utils  # aplay for say/say-ko
         pkgs.wl-clipboard
         pkgs.xclip
         pkgs.xournalpp

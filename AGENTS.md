@@ -4,7 +4,7 @@
 
 - Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
 - If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
-- TTS: at the end of every response, run `~/.dotfiles/bin/say-ko` with a Korean translation of a full summary of what was done or answered (the stop hook doesn't receive response content, so the agent must call `say-ko` explicitly)
+- TTS: at the end of every response, call the `say_ko` MCP tool with a Korean translation of a full summary of what was done or answered
 - After making changes that affect architecture, conventions, or behavior described in `AGENTS.md` or `README.md`, update those docs to reflect the new state
 
 ## TODO List
@@ -25,6 +25,9 @@
 1. change vim insert mode key bindings with jj to jjj
 1. fix sync_all creating "```commit" or "```markdown" description
 1. make say_done run in background
+1. add local settings file into a non-public VCS
+1. can't type hangul in zellij/ghostty
+1. fix lockscreen-related error message
 
 ## Architecture Overview
 
@@ -32,7 +35,7 @@
 - Home Manager config: `~/.dotfiles/home-manager.configsymlink/`
   - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
   - `home.nix` — packages, unfree predicate (albert)
-  - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop, lock screen timer)
+  - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop), random-lockscreen systemd timer (daily wallpaper)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
   - `nvim.nix` — neovim (default editor, vi/vim aliases), cargo, biome, python3, taplo, uv
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
@@ -48,7 +51,7 @@
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (stop hook), bin/kiro-response (TTS fallback)
+- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
@@ -129,11 +132,7 @@
 ### Monitors
 - Primary: varies (currently 1920x1200, 3440x1440, 1440x2560 portrait)
 - Multi-monitor: stacked/side-by-side configurations change frequently
-- xfce4-panel bottom bar: 48px gap via xmonad layout gaps (gnome-panel struts broken)
-  - Actually using avoidStruts now, gap was removed, panel struts issue was worked around
-- PipeWire with PulseAudio compatibility (pipewire-pulse)
-- wpctl for device switching, amixer for volume control
-- pavucontrol installed for GUI mixer
+- xfce4-panel bottom bar: 48px, using avoidStruts (panel struts issue was worked around)
 
 ### Sound System
 - PipeWire with PulseAudio compatibility (pipewire-pulse)
