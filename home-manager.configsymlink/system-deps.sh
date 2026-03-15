@@ -4,6 +4,13 @@
 set -xeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Set pretty hostname for this machine (used by sync scripts for branch names)
+CURRENT=$(hostnamectl --pretty 2>/dev/null)
+if [ -z "$CURRENT" ] || echo "$CURRENT" | grep -q '\.'; then
+    read -rp "Enter a pretty hostname for this machine [current: ${CURRENT:-<not set>}]: " PRETTY_NAME
+    [ -n "$PRETTY_NAME" ] && sudo hostnamectl set-hostname --pretty "$PRETTY_NAME"
+fi
+
 sudo apt install -y \
   ibus-hangul \
   input-remapper \
