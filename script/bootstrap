@@ -147,6 +147,17 @@ install_dotfiles () {
     dst="$HOME/.config/$(basename "${src%.*}")"
     link_file "$src" "$dst"
   done
+
+  for dir in $(find -H "$DOTFILES_ROOT" -maxdepth 3 -name '*.filesymlink' -type d -not -path '*.git*')
+  do
+    local base="$HOME/.$(basename "${dir%.*}")"
+    find -H "$dir" -type f | while read -r src; do
+      local rel="${src#$dir/}"
+      local dst="$base/$rel"
+      mkdir -p "$(dirname "$dst")"
+      link_file "$src" "$dst"
+    done
+  done
 }
 
 setup_dotfiles_sync () {

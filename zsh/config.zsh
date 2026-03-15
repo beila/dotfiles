@@ -15,5 +15,7 @@ _cmd_timer_precmd() {
     fi
 }
 
+add-zsh-hook -d preexec _cmd_timer_preexec
+add-zsh-hook -d precmd _cmd_timer_precmd
 add-zsh-hook preexec _cmd_timer_preexec
 add-zsh-hook precmd _cmd_timer_precmd
