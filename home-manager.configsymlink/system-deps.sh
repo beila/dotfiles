@@ -12,6 +12,7 @@ if [ -z "$CURRENT" ] || echo "$CURRENT" | grep -q '\.'; then
 fi
 
 sudo apt install -y \
+  gnome-screensaver \
   ibus-hangul \
   input-remapper \
   gnome-session-flashback
