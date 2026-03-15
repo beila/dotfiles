@@ -21,6 +21,10 @@ forked dotfiles — say, "Java" — you can simply add a `java` directory and pu
 files in there. Anything with an extension of `.zsh` will get automatically
 included into your shell. Anything with an extension of `.symlink` will get
 symlinked without extension into `$HOME` when you run `script/bootstrap`.
+Directories ending in `.configsymlink` get symlinked into `~/.config/`.
+Directories ending in `.filesymlink` have their individual files symlinked
+into `~/.<name>/`, creating parent directories as needed (fails if a
+destination file already exists and isn't the correct symlink).
 
 ## what's inside
 

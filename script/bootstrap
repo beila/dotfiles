@@ -155,7 +155,16 @@ install_dotfiles () {
       local rel="${src#$dir/}"
       local dst="$base/$rel"
       mkdir -p "$(dirname "$dst")"
-      link_file "$src" "$dst"
+      if [ -e "$dst" -o -L "$dst" ]; then
+        if [ "$(readlink "$dst")" = "$src" ]; then
+          success "skipped $src (already linked)"
+        else
+          fail "file already exists: $dst"
+        fi
+      else
+        ln -s "$src" "$dst"
+        success "linked $src to $dst"
+      fi
     done
   done
 }
