@@ -4,7 +4,7 @@
 
 - Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
 - If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
-- **MUST** run `~/.dotfiles/bin/say "<brief summary>"` at the end of every response to announce what was done or answered. Keep it to one or two sentences.
+- TTS announcement after every response is handled automatically by the Kiro `stop` hook (`~/.kiro/bin/kiro-response`)
 
 ## TODO List
 
@@ -44,6 +44,7 @@
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
+- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (stop hook), bin/kiro-response (TTS)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
