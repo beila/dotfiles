@@ -18,7 +18,7 @@
 14. ~~**jj empty changes**~~ — sync_dotfiles skips when current change is empty
 15. ~~**Ghostty unnecessary resizing**~~ — scratchpadToggle no longer refloats when just focusing a visible scratchpad
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
-10. kill tmux server and remove zsh integration
+10. ~~kill tmux server and remove zsh integration~~
 1. ~~zoom notification on all workspace~~
 
 ## Architecture Overview
