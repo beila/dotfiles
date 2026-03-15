@@ -1,10 +1,9 @@
 {
   "name": "default",
-  "hooks": {
-    "stop": [
-      {
-        "command": "~/.kiro/bin/kiro-response"
-      }
-    ]
+  "allowedTools": ["@tts"],
+  "mcpServers": {
+    "tts": {
+      "command": "~/.dotfiles/bin/mcp-tts"
+    }
   }
 }
