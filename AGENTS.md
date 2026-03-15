@@ -4,8 +4,12 @@
 
 1. ~~**Battery indicator**~~ — xfce4-power-manager plugin (nix)
 2. ~~**Git commit message generator**~~ — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
-3. **jj periodic tasks** — auto-fetch, background operations
+3. ~~**jj periodic tasks**~~ — auto-fetch, background operations
+   - `sync_all` runs every 10min via systemd timer (randomized delay, low priority, flock)
+   - `jj_snapshot_all` snapshots all jj repos found via plocate
+   - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
 8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
+13. **Auto-merge to main on sync** — when pushing jj bookmarks, try merging to main branch
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 
 ## Architecture Overview
@@ -34,6 +38,9 @@
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
+- Sync scripts: `~/.dotfiles/script/sync_all` (all repos), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
+- Commit message generator: `~/.dotfiles/bin/commit-msg` — ollama + qwen2.5-coder:3b, jj-first/git-fallback
+- plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open) — Wayland/X11 aware
 
 ### Key Remapping Stack
