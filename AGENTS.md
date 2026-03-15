@@ -4,7 +4,8 @@
 
 - Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
 - If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
-- TTS announcement after every response is handled automatically by the Kiro `stop` hook (`~/.kiro/bin/kiro-response`)
+- TTS: at the end of every response, run `~/.dotfiles/bin/say` with a full summary of what was done or answered (the stop hook doesn't receive response content, so the agent must call `say` explicitly)
+- After making changes that affect architecture, conventions, or behavior described in `AGENTS.md` or `README.md`, update those docs to reflect the new state
 
 ## TODO List
 
@@ -14,13 +15,15 @@
    - `sync_all` runs every 10min via systemd timer (randomized delay, low priority, flock)
    - `jj_snapshot_all` snapshots all jj repos found via plocate
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
-8. **Copy/paste with Super key** — needs solution that doesn't conflict with keyd/Albert
+8. **universal Copy/paste key** — needs solution that doesn't conflict with keyd/Albert
 13. ~~**Auto-merge to main on sync**~~ — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
 14. ~~**jj empty changes**~~ — sync_dotfiles skips when current change is empty
 15. ~~**Ghostty unnecessary resizing**~~ — scratchpadToggle no longer refloats when just focusing a visible scratchpad
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 10. ~~kill tmux server and remove zsh integration~~
 1. ~~zoom notification on all workspace~~
+1. change vim insert mode key bindings with jj to jjj
+1. fix sync_all creating "```commit" or "```markdown" description
 
 ## Architecture Overview
 
@@ -44,7 +47,7 @@
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (stop hook), bin/kiro-response (TTS)
+- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (stop hook), bin/kiro-response (TTS fallback)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
