@@ -1,33 +1,103 @@
 #!/bin/bash
-# System monitor genmon script for xfce4-panel
-# Shows: CPU%, MEM%, IO wait in panel; details in tooltip
+# System monitor genmon script — sparkline graphs with color
+# Shows: CPU, MEM, IO wait, Network in panel with Pango markup
+HIST=/tmp/sysmon-history
+LEN=8
 
-cpu=$(awk '/^cpu /{u=$2+$4; t=$2+$3+$4+$5+$6+$7+$8; printf "%.0f", u*100/t}' /proc/stat)
-iow=$(awk '/^cpu /{t=$2+$3+$4+$5+$6+$7+$8; printf "%.0f", $6*100/t}' /proc/stat)
-read -r total avail < <(awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{print t, a}' /proc/meminfo)
-mem=$(( (total - avail) * 100 / total ))
+color_bar() {
+    local pct=$1 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+    local idx=$(( pct * 7 / 100 ))
+    (( idx > 7 )) && idx=7
+    (( idx < 0 )) && idx=0
+    local bar="${bars[$idx]}"
+    if (( pct >= 75 )); then   printf "<span color='#ff5555'>%s</span>" "$bar"
+    elif (( pct >= 50 )); then printf "<span color='#f1fa8c'>%s</span>" "$bar"
+    else                       printf "<span color='#50fa7b'>%s</span>" "$bar"
+    fi
+}
 
-echo "<txt>C${cpu}% M${mem}% I${iow}%</txt>"
+read_hist() { grep "^$1 " "$HIST" 2>/dev/null | cut -d' ' -f2-; }
+push_hist() {
+    local key=$1 val=$2 old count tmp
+    old=$(read_hist "$key")
+    count=$(echo "$old" | wc -w)
+    (( count >= LEN )) && old=$(echo "$old" | cut -d' ' -f2-)
+    tmp=$(mktemp)
+    grep -v "^$key " "$HIST" 2>/dev/null > "$tmp"
+    echo "$key ${old:+$old }$val" >> "$tmp"
+    mv "$tmp" "$HIST"
+}
 
-# tooltip
-read -r memtotal memavail memfree buffers cached < <(awk '
-    /MemTotal/{t=$2} /MemAvailable/{a=$2} /MemFree/{f=$2}
-    /^Buffers/{b=$2} /^Cached/{c=$2}
-    END{print t, a, f, b, c}' /proc/meminfo)
-used=$(( (memtotal - memavail) / 1024 ))
-mtotal=$(( memtotal / 1024 ))
+spark() {
+    local vals out="" count v
+    vals=$(read_hist "$1")
+    count=$(echo "$vals" | wc -w)
+    for (( i=count; i<LEN; i++ )); do out+="$(color_bar 0)"; done
+    for v in $vals; do out+="$(color_bar "$v")"; done
+    echo "$out"
+}
 
+# --- CPU & IO (delta via awk for large numbers) ---
+read -r _ cu cn cs ci cio cirq csirq _ < /proc/stat
+prev=$(cat /tmp/sysmon-cpu-prev 2>/dev/null)
+if [ -n "$prev" ]; then
+    read -r cpu iow <<< "$(echo "$prev $cu $cn $cs $ci $cio $cirq $csirq" | awk '{
+        pt=$1+$2+$3+$4+$5+$6+$7; pi=$4; pio=$5
+        nt=$8+$9+$10+$11+$12+$13+$14; ni=$11; nio=$12
+        dt=nt-pt; busy=(dt-(ni-pi)-(nio-pio)); dio=nio-pio
+        if(dt>0){printf "%d %d", busy*100/dt, dio*100/dt} else{print "0 0"}
+    }')"
+else
+    cpu=0; iow=0
+fi
+echo "$cu $cn $cs $ci $cio $cirq $csirq" > /tmp/sysmon-cpu-prev
+push_hist cpu "$cpu"
+push_hist iow "$iow"
+
+# --- Memory ---
+read -r memtotal memavail < <(awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{print t,a}' /proc/meminfo)
+mem=$(( (memtotal-memavail)*100/memtotal ))
+push_hist mem "$mem"
+
+# --- Network ---
+iface=$(awk '$2=="00000000"{print $1; exit}' /proc/net/route)
+drx=0; dtx=0; net_pct=0
+if [ -n "$iface" ]; then
+    read -r rx tx < <(awk -v i="$iface:" '$1==i{print $2, $10}' /proc/net/dev)
+    prev_net=$(cat /tmp/sysmon-net-prev 2>/dev/null)
+    if [ -n "$prev_net" ]; then
+        read -r prx ptx <<< "$prev_net"
+        drx=$(( (rx-prx)/2 ))
+        dtx=$(( (tx-ptx)/2 ))
+        net_pct=$(( (drx+dtx) / 104858 ))
+        (( net_pct > 100 )) && net_pct=100
+    fi
+    echo "$rx $tx" > /tmp/sysmon-net-prev
+fi
+push_hist net "$net_pct"
+
+# --- Panel ---
+echo "<txt>🧠 $(spark cpu) 💾 $(spark mem) 💿 $(spark iow) 🌐 $(spark net)</txt>"
+
+# --- Tooltip ---
+used_mb=$(( (memtotal-memavail)/1024 ))
+total_mb=$(( memtotal/1024 ))
 read -r swaptotal swapfree < <(awk '/SwapTotal/{t=$2} /SwapFree/{f=$2} END{print t,f}' /proc/meminfo)
-swapused=$(( (swaptotal - swapfree) / 1024 ))
-swtotal=$(( swaptotal / 1024 ))
-
 loadavg=$(cut -d' ' -f1-3 /proc/loadavg)
-nproc=$(nproc)
-uptime=$(uptime -p | sed 's/up //')
+hr() { local b=$1; if ((b>1073741824)); then echo "$((b/1073741824))G"; elif ((b>1048576)); then echo "$((b/1048576))M"; elif ((b>1024)); then echo "$((b/1024))K"; else echo "${b}B"; fi; }
+swap_used=$(( (swaptotal-swapfree)/1024 ))
+swap_total=$(( swaptotal/1024 ))
+# --- Per-core CPU (snapshot) ---
+cores_tip=$(awk '/^cpu[0-9]/{
+    u=$2+$3+$4; io=$6; t=$2+$3+$4+$5+$6+$7+$8
+    if(t>0) printf "  %2d: %3d%%", NR-2, u*100/t
+    if(NR%4==1) printf "\n"
+}' /proc/stat)
 
-tip="CPU:   ${cpu}%  (load: ${loadavg} / ${nproc} cores)
-IO:    ${iow}% wait
-Mem:   ${used}/${mtotal} MB (${mem}%)
-Swap:  ${swapused}/${swtotal} MB
-Up:    ${uptime}"
-echo "<tool>$tip</tool>"
+echo "<tool>CPU:  ${cpu}%  (load: ${loadavg} / $(nproc) cores)
+${cores_tip}
+Mem:  ${mem}% (${used_mb}/${total_mb} MB)
+IO:   ${iow}% iowait (CPU blocked on disk)
+Net:  ↓$(hr $drx)/s ↑$(hr $dtx)/s
+Swap: ${swap_used}/${swap_total} MB
+Up:   $(uptime -p | sed 's/up //')</tool>"
