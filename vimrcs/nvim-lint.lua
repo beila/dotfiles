@@ -11,6 +11,7 @@ require('lint').linters_by_ft = {
     nix = { 'statix', 'deadnix' },
     sql = { 'sqlfluff' },
     text = { 'vale' },
+    vim = { 'vint' },
 }
 
 vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost' }, {
