@@ -31,9 +31,9 @@
   # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim)
   # nix             nixd                       —                       statix+deadnix nixfmt
   # python          basedpyright               debugpy(m)              ruff          ruff
-  # rust            rust_analyzer (mason)      codelldb               —             rustfmt
-  # sql             sqlls (mason)              —                      sqlfluff      sql-formatter
-  # toml            taplo (mason)              —                      —             (taplo LSP)
+  # rust            rust_analyzer              codelldb(m)            clippy        rustfmt
+  # sql             sqls                       —                      sqlfluff      sqlfluff
+  # toml            taplo                      —                      (taplo LSP)   (taplo LSP)
   # text            —                          —                      vale          —
   # vimscript       vimls (mason)              —                      —             —
   # systemd         —                          —                      —             —
@@ -41,7 +41,7 @@
   # nix-installed tools are set up in vimrcs/my-*.lua
   # Mason-only DAPs (not in nixpkgs): bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
   # Linters run via nvim-lint plugin (vimrcs/nvim-lint.lua)
-  # Remaining languages (rust, sql, toml, text, vimscript, systemd) still need migration
+  # Remaining languages (text, vimscript, systemd) still need migration
 
   home.packages = with pkgs; [
     bash                  # needed by Mason installer (exit code 127 without it)
@@ -88,5 +88,11 @@
     nixfmt                # official formatter for Nix — setup in my-nix.lua
     basedpyright          # LSP for Python — setup in my-python.lua
     ruff                  # linter+formatter for Python — setup in my-python.lua
+    rust-analyzer         # LSP for Rust — setup in my-rust.lua
+    clippy                # linter for Rust — used by rust-analyzer in my-rust.lua
+    rustfmt               # formatter for Rust — used by rust-analyzer in my-rust.lua
+    sqls                  # LSP for SQL — setup in my-sql.lua
+    sqlfluff              # linter+formatter for SQL — linter in nvim-lint.lua
+    taplo                 # LSP+linter+formatter for TOML — setup in my-toml.lua
   ];
 }
