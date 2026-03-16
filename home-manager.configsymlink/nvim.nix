@@ -39,7 +39,6 @@ in
   # toml            taplo                      —                      (taplo LSP)   (taplo LSP)
   # text            —                          —                      vale          —
   # vimscript       vimls(vim-language-server)  —                      vint(vim-vint) —
-  # systemd         systemd-language-server    —                      —             —
   #
   # nix-installed tools are set up in vimrcs/my-*.lua
   # Mason-only DAPs (not in nixpkgs): bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
