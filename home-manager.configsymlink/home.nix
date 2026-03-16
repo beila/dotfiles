@@ -53,7 +53,6 @@ in
         pkgs.plocate
         pkgs.ripgrep
         pkgs.scrot
-        pkgs.shellcheck
         pkgs.uv  # edge-tts runner for say-ko
         pkgs.alsa-utils  # aplay for say/say-ko
         pkgs.wl-clipboard
@@ -64,7 +63,6 @@ in
         pkgs.zsh
 
         pkgs.awscli2
-        pkgs.clang-tools  # includes clangd
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
