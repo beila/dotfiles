@@ -1,6 +1,5 @@
 -- Per-server lspconfig setup
--- Nix-installed servers (not managed by mason-lspconfig handler)
-require('lspconfig').awk_ls.setup({})
+-- Nix-installed servers: see my-*.lua files
 
 -- Mason-installed servers with custom config (override mason-lspconfig defaults)
 require('lspconfig').lua_ls.setup({
