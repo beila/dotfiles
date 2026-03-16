@@ -1,14 +1,4 @@
--- LSP keymaps and per-server config (mason setup is in mason.lua)
-
-require('lspconfig').lua_ls.setup({
-    settings = {
-        Lua = {
-            diagnostics = {
-                globals = { 'vim' }
-            }
-        }
-    }
-})
+-- LSP keymaps (applied to all servers via LspAttach)
 
 vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(ev)

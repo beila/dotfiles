@@ -1,38 +1,10 @@
--- Mason: LSP servers, DAPs, linters, formatters (all in one place)
---
--- Coverage:
--- Language        LSP                        DAP                    Linter        Formatter
--- awk             awk_ls                     —                      —             —
--- bash/zsh        bashls                     bash-debug-adapter     shellcheck    shfmt
--- c/c++           clangd                     codelldb               cppcheck      clang-format
--- cmake           cmake                      —                      —             cmake-format
--- docker          dockerls + compose         —                      hadolint      —
--- glsl/opengl     glsl_analyzer              —                      —             clang-format
--- haskell         hls                        haskell-debug-adapter  —             fourmolu
--- html/jinja      html                       —                      —             prettier
--- json            jsonls                     —                      jsonlint      prettier
--- js/jsx/ts       ts_ls                      js-debug-adapter       eslint_d      prettier
--- jq              jqls                       —                      —             jq
--- just            —                          —                      —             —
--- kotlin          kotlin_language_server     kotlin-debug-adapter   ktlint        ktlint
--- makefile        —                          —                      checkmake     —
--- markdown        marksman                   —                      markdownlint  prettier
--- nim             nimls                      —                      —             —
--- nix             nil_ls                     —                      statix        nixpkgs-fmt
--- python          pyright                    debugpy                ruff          ruff
--- rust            rust_analyzer              codelldb               —             rustfmt
--- sql             sqlls                      —                      sqlfluff      sql-formatter
--- toml            taplo                      —                      —             (taplo LSP)
--- text            —                          —                      vale          —
--- vimscript       vimls                      —                      —             —
--- lua             lua_ls                     —                      luacheck      stylua
--- systemd         —                          —                      —             —
+-- Mason: auto-install LSP servers, DAPs, linters, formatters
+-- Coverage table and nix-installed tools are documented in nvim.nix
 
 require('mason').setup({})
 
 require('mason-lspconfig').setup({
     ensure_installed = {
-        "awk_ls",          -- awk
         "bashls",          -- bash/zsh
         "clangd",          -- c/c++
         "cmake",           -- cmake
