@@ -31,6 +31,7 @@
 1. there's no gap between ghostty vertically
 1. zellij session should outlive ghostty
 1. run tts when asking for permission in kiro
+1. change neovide font back
 
 ## Architecture Overview
 
