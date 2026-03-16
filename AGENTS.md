@@ -28,6 +28,7 @@
 1. add local settings file into a non-public VCS
 1. can't type hangul in zellij/ghostty
 1. fix lockscreen-related error message
+1. there's no gap between ghostty vertically
 
 ## Architecture Overview
 
