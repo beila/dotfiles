@@ -41,7 +41,7 @@
   # nix-installed tools are set up in vimrcs/my-*.lua
   # Mason-only DAPs (not in nixpkgs): bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
   # Linters run via nvim-lint plugin (vimrcs/nvim-lint.lua)
-  # Remaining languages (text, vimscript, systemd) still need migration
+  # Remaining languages (vimscript, systemd) still need migration
 
   home.packages = with pkgs; [
     bash                  # needed by Mason installer (exit code 127 without it)
@@ -94,5 +94,6 @@
     sqls                  # LSP for SQL — setup in my-sql.lua
     sqlfluff              # linter+formatter for SQL — linter in nvim-lint.lua
     taplo                 # LSP+linter+formatter for TOML — setup in my-toml.lua
+    vale                  # linter for text — linter in nvim-lint.lua
   ];
 }
