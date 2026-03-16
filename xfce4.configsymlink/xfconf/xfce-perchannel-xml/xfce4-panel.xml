@@ -20,13 +20,12 @@
         <value type="int" value="6"/>
         <value type="int" value="7"/>
         <value type="int" value="13"/>
-        <value type="int" value="14"/>
-        <value type="int" value="2"/>
         <value type="int" value="20"/>
         <value type="int" value="15"/>
         <value type="int" value="12"/>
         <value type="int" value="19"/>
         <value type="int" value="11"/>
+        <value type="int" value="22"/>
         <value type="int" value="8"/>
       </property>
       <property name="span-monitors" type="bool" value="false"/>
@@ -54,7 +53,6 @@
         <value type="string" value="chrome_status_icon_1"/>
       </property>
       <property name="known-legacy-items" type="array">
-        <value type="string" value="xfce4-power-manager"/>
         <value type="string" value="notifications"/>
         <value type="string" value="gnome-flashback"/>
       </property>
@@ -86,7 +84,6 @@
     <property name="plugin-21" type="string" value="directorymenu">
       <property name="base-directory" type="string" value="/home/ANT.AMAZON.COM/hojin"/>
     </property>
-    <property name="plugin-2" type="string" value="power-manager-plugin"/>
     <property name="plugin-11" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
     </property>
@@ -166,9 +163,6 @@
         <value type="double" value="1"/>
       </property>
     </property>
-    <property name="plugin-14" type="string" value="separator">
-      <property name="style" type="uint" value="0"/>
-    </property>
     <property name="plugin-15" type="string" value="genmon">
       <property name="location" type="empty">
         <property name="name" type="string" value="London, UK"/>
@@ -207,6 +201,14 @@
       <property name="use-label" type="bool" value="false"/>
       <property name="text" type="string" value="(genmon)"/>
       <property name="update-period" type="int" value="600000"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+      <property name="font" type="string" value="Ubuntu 11"/>
+    </property>
+    <property name="plugin-22" type="string" value="genmon">
+      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/battery-genmon"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="text" type="string" value="(genmon)"/>
+      <property name="update-period" type="int" value="30000"/>
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Ubuntu 11"/>
     </property>

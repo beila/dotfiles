@@ -9,7 +9,7 @@
 
 ## TODO List
 
-1. ~~**Battery indicator**~~ — xfce4-power-manager plugin (nix)
+1. ~~**Battery indicator**~~ — genmon plugin (`battery-genmon` script), replaced xfce4-power-manager
 2. ~~**Git commit message generator**~~ — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
 3. ~~**jj periodic tasks**~~ — auto-fetch, background operations
    - `sync_all` runs every 10min via systemd timer (randomized delay, low priority, flock)
@@ -22,7 +22,6 @@
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 10. ~~kill tmux server and remove zsh integration~~
 1. ~~zoom notification on all workspace~~
-1. change vim insert mode key bindings with jj to jjj
 1. fix sync_all creating "```commit" or "```markdown" description
 1. make say_done run in background
 1. add local settings file into a non-public VCS
