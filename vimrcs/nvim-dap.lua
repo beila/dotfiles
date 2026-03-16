@@ -1,3 +1,7 @@
+-- DAP adapters and shared keymaps
+-- Per-language DAP configs: codelldb (c/c++/rust) below, bash in my-zsh.lua
+-- codelldb installed via Mason in mason.lua
+
 -- https://github.com/mfussenegger/nvim-dap/wiki/C-C---Rust-(via--codelldb)#user-content-1110-and-later
 
 local dap = require('dap')
