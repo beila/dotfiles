@@ -18,7 +18,8 @@
   # docker          dockerls+compose           —                       hadolint      —
   # glsl/opengl     glsl_analyzer              —                       —             clang-format(clang-tools)
   # haskell         hls(haskell-language-server) haskell-debug-adapter(m) hlint       fourmolu
-  # html/jinja      html (mason)               —                      —             prettier
+  # html            html(vscode-langservers-extracted) —              —             prettier
+  # jinja           jinja_lsp(jinja-lsp)       —                       djlint        djlint
   # json            jsonls (mason)             —                      jsonlint      prettier
   # js/jsx/ts       ts_ls (mason)              js-debug-adapter       eslint_d      prettier
   # jq              jqls (mason)               —                      —             jq
@@ -57,5 +58,9 @@
     haskell-language-server # LSP for Haskell — setup in my-haskell.lua
     fourmolu              # formatter for Haskell — used by HLS in my-haskell.lua
     hlint                 # linter for Haskell — used by HLS in my-haskell.lua
+    vscode-langservers-extracted # html/css/json/eslint LSPs — setup in my-html.lua, my-json.lua
+    prettier              # formatter for html/json/js/ts/md — setup in my-html.lua
+    jinja-lsp             # LSP for Jinja — setup in my-jinja.lua
+    djlint                # linter+formatter for Jinja/Nunjucks — setup in my-jinja.lua
   ];
 }
