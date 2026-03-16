@@ -147,7 +147,7 @@
       <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/sysmon-genmon"/>
       <property name="use-label" type="bool" value="false"/>
       <property name="text" type="string" value="(genmon)"/>
-      <property name="update-period" type="int" value="2000"/>
+      <property name="update-period" type="int" value="38000"/>
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Ubuntu 11"/>
     </property>
