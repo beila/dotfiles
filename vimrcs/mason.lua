@@ -1,12 +1,11 @@
 -- Mason: auto-install LSP servers, DAPs, linters, formatters
 -- Coverage table and nix-installed tools are documented in nvim.nix
+-- Nix-installed tools with custom config: see my-*.lua and lsp-servers.lua
 
 require('mason').setup({})
 
 require('mason-lspconfig').setup({
     ensure_installed = {
-        "bashls",          -- bash/zsh
-        "clangd",          -- c/c++
         "cmake",           -- cmake
         "dockerls",        -- docker
         "docker_compose_language_service", -- docker-compose
@@ -40,16 +39,14 @@ require('mason-lspconfig').setup({
 require("mason-tool-installer").setup({
     ensure_installed = {
         -- DAP
-        "bash-debug-adapter",    -- bash
-        "codelldb",              -- c/c++/rust
+        "bash-debug-adapter",    -- bash (DAP config in my-zsh.lua)
+        "codelldb",              -- c/c++/rust (DAP config in nvim-dap.lua)
         "debugpy",               -- python
         "haskell-debug-adapter", -- haskell
         "js-debug-adapter",      -- javascript/typescript
         "kotlin-debug-adapter",  -- kotlin
 
         -- Linters
-        "shellcheck",      -- bash/zsh
-        "cppcheck",        -- c/c++
         "hadolint",        -- docker
         "eslint_d",        -- javascript/jsx/typescript
         "jsonlint",        -- json
@@ -63,8 +60,6 @@ require("mason-tool-installer").setup({
         "vale",            -- text/markdown prose
 
         -- Formatters
-        "shfmt",           -- bash/zsh
-        "clang-format",    -- c/c++/glsl
         "cmake-format",    -- cmake
         "fourmolu",        -- haskell
         "prettier",        -- html/json/jsx/js/ts/markdown/jinja/nunjucks
