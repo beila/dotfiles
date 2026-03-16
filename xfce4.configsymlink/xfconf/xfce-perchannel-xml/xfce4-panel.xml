@@ -19,7 +19,6 @@
         <value type="int" value="3"/>
         <value type="int" value="6"/>
         <value type="int" value="7"/>
-        <value type="int" value="23"/>
         <value type="int" value="20"/>
         <value type="int" value="22"/>
         <value type="int" value="2"/>
@@ -142,14 +141,6 @@
     </property>
     <property name="plugin-2" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
-    </property>
-    <property name="plugin-23" type="string" value="genmon">
-      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/sysmon-genmon"/>
-      <property name="use-label" type="bool" value="false"/>
-      <property name="text" type="string" value="(genmon)"/>
-      <property name="update-period" type="int" value="38000"/>
-      <property name="enable-single-row" type="bool" value="true"/>
-      <property name="font" type="string" value="Ubuntu 11"/>
     </property>
   </property>
 </channel>
