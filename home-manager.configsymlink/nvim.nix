@@ -17,7 +17,7 @@
   # cmake           neocmake(neocmakelsp)      —                       cmake-lint    cmake-format
   # docker          dockerls+compose           —                       hadolint      —
   # glsl/opengl     glsl_analyzer              —                       —             clang-format(clang-tools)
-  # haskell         hls(haskell-language-server) haskell-debug-adapter(m) hlint       fourmolu
+  # haskell         hls(haskell-language-server) —                     hlint         fourmolu
   # html            html(vscode-langservers-extracted) —              —             prettier
   # jinja           jinja_lsp(jinja-lsp)       —                       djlint        djlint
   # java            jdtls(jdt-language-server) java-debug-adapter(m)   checkstyle    google-java-format
@@ -26,7 +26,7 @@
   # just            just-lsp                   —                       —             just --fmt(just,home.nix)
   # kotlin          kotlin_language_server     kotlin-debug-adapter(m) ktlint       ktlint
   # lua             lua_ls(lua-language-server) —                       selene        stylua
-  # makefile        autotools_ls(autotools-language-server) —          checkmake     —
+  # makefile        —                          —                       checkmake(nvim-lint) —
   # markdown        marksman                   —                       markdownlint-cli2 prettier
   # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim)
   # nix             nixd                       —                       statix+deadnix nixfmt
@@ -38,8 +38,10 @@
   # vimscript       vimls (mason)              —                      —             —
   # systemd         —                          —                      —             —
   #
-  # nix-installed tools are set up in vimrcs/my-*.lua and vimrcs/lsp-servers.lua
-  # Mason-installed tools are set up in vimrcs/mason.lua
+  # nix-installed tools are set up in vimrcs/my-*.lua
+  # Mason-only DAPs (not in nixpkgs): bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
+  # Linters run via nvim-lint plugin (vimrcs/nvim-lint.lua)
+  # Remaining languages (rust, sql, toml, text, vimscript, systemd) still need migration
 
   home.packages = with pkgs; [
     bash                  # needed by Mason installer (exit code 127 without it)
@@ -75,8 +77,7 @@
     lua-language-server   # LSP for Lua — setup in my-lua.lua
     selene                # linter for Lua — setup in my-lua.lua
     stylua                # formatter for Lua — setup in my-lua.lua
-    checkmake             # linter for Makefile — setup in my-makefile.lua
-    # autotools-language-server — broken in nixpkgs, not in mason; revisit on flake update
+    checkmake             # linter for Makefile — via nvim-lint
     marksman              # LSP for Markdown — setup in my-markdown.lua
     markdownlint-cli2     # linter for Markdown — setup in my-markdown.lua
     nimlangserver         # LSP for Nim — setup in my-nim.lua

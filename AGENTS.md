@@ -40,7 +40,7 @@
   - `home.nix` — packages, unfree predicate (albert)
   - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop), random-lockscreen systemd timer (daily wallpaper)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
-  - `nvim.nix` — neovim (default editor, vi/vim aliases), cargo, biome, python3, taplo, uv
+  - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
   - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs + keyd service setup
@@ -72,6 +72,22 @@
 - TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)
   - Default rate: +50%, override with `$EDGE_TTS_RATE`
   - Override voice with `$EDGE_TTS_VOICE` (available: ko-KR-SunHiNeural, ko-KR-InJoonNeural, ko-KR-HyunsuMultilingualNeural)
+
+### Neovim Dev Tooling
+- Config: `~/.dotfiles/vim.symlink/` (symlinked to ~/.vim/, also ~/.config/nvim via init.lua)
+- Plugin management: git submodules in `pack/bundles/start/` and `pack/bundles/opt/`
+- Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
+- Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
+  - my-zsh.lua (bash/zsh), my-cpp.lua (c/c++), my-cmake.lua, my-docker.lua, my-glsl.lua
+  - my-haskell.lua, my-html.lua, my-jinja.lua, my-json.lua, my-js.lua (js/ts)
+  - my-just.lua, my-kotlin.lua, my-java.lua, my-lua.lua, my-markdown.lua
+  - my-nim.lua, my-nix.lua, my-python.lua, my-awk.lua
+- Shared config: `vimrcs/lsp.lua` (keymaps), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps)
+- Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint, statix, deadnix) on save
+- Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs
+  - Coverage table in `nvim.nix` documents all tools per language with install location
+  - Mason-only: bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
+  - `bash` package in nvim.nix required by Mason installer
 
 ### Key Remapping Stack
 - **keyd** (`~/.dotfiles/keyd/`, system daemon, four files):
