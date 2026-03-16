@@ -2,7 +2,7 @@
 # System monitor genmon script — sparkline graphs with color
 # Shows: CPU, MEM, IO wait, Network in panel with Pango markup
 HIST=/tmp/sysmon-history
-LEN=8  # 8 samples × 38s ≈ 5 minutes
+LEN=8  # 8 samples × 23s ≈ 3 minutes
 
 color_bar() {
     local pct=$1 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
@@ -67,8 +67,8 @@ if [ -n "$iface" ]; then
     prev_net=$(cat /tmp/sysmon-net-prev 2>/dev/null)
     if [ -n "$prev_net" ]; then
         read -r prx ptx <<< "$prev_net"
-        drx=$(( (rx-prx)/38 ))
-        dtx=$(( (tx-ptx)/38 ))
+        drx=$(( (rx-prx)/23 ))
+        dtx=$(( (tx-ptx)/23 ))
         net_pct=$(( (drx+dtx) / 104858 ))
         (( net_pct > 100 )) && net_pct=100
     fi
@@ -87,31 +87,41 @@ loadavg=$(cut -d' ' -f1-3 /proc/loadavg)
 hr() { local b=$1; if ((b>1073741824)); then echo "$((b/1073741824))G"; elif ((b>1048576)); then echo "$((b/1048576))M"; elif ((b>1024)); then echo "$((b/1024))K"; else echo "${b}B"; fi; }
 swap_used=$(( (swaptotal-swapfree)/1024 ))
 swap_total=$(( swaptotal/1024 ))
-cores_tip=$(awk '/^cpu[0-9]/{
-    u=$2+$3+$4; t=$2+$3+$4+$5+$6+$7+$8
-    cores[NR-2]=int(u*100/t)
-} END {
-    n=0; start=0
-    while(start<length(cores)) {
-        end=start+3; if(end>=length(cores)) end=length(cores)-1
-        printf "%2d-%2d:", start, end
-        for(i=start;i<=end;i++) printf " %3d%%", cores[i]
-        printf "\n"; start=end+1
-    }
-}' /proc/stat)
+prev_cores=/tmp/sysmon-cores-prev
+cur_cores=/tmp/sysmon-cores-cur
+awk '/^cpu[0-9]+/' /proc/stat > "$cur_cores"
+if [ -f "$prev_cores" ]; then
+    cores_tip=$(paste "$prev_cores" "$cur_cores" | awk 'NF>=20{
+        pt=$2+$3+$4+$5+$6+$7+$8; pu=$2+$3+$4
+        nt=$13+$14+$15+$16+$17+$18+$19; nu=$13+$14+$15
+        dt=nt-pt; du=nu-pu
+        pct=dt>0 ? int(du*100/dt) : 0
+        c[NR-1]=pct
+    } END {
+        s=0
+        while(s<length(c)) {
+            e=s+3; if(e>=length(c)) e=length(c)-1
+            printf "%2d-%2d:", s, e
+            for(i=s;i<=e;i++) printf " %3d%%", c[i]
+            printf "\n"; s=e+1
+        }
+    }')
+else
+    cores_tip="(waiting for first sample)"
+fi
+cp "$cur_cores" "$prev_cores"
 
 ps_data=$(ps -eo pcpu,pmem,stat,comm --no-headers 2>/dev/null)
 top_cpu=$(echo "$ps_data" | sort -k1 -rn | head -1 | awk '{printf "%s (%d%%)", $4, $1}')
 top_mem=$(echo "$ps_data" | sort -k2 -rn | head -1 | awk '{printf "%s (%d%%)", $4, $2}')
 top_io=$(echo "$ps_data" | awk '$3~/D/{print $4}' | sort | uniq -c | sort -rn | head -1 | awk '{print $2}')
-top_net=$(ss -tnp 2>/dev/null | awk '/pid=/{p=substr($0,index($0,"pid=")+4); sub(/[^0-9].*/,"",p); c[p]++} END{max=0; for(p in c) if(c[p]>max){max=c[p];mp=p} if(mp){cmd="cat /proc/"mp"/comm"; cmd|getline n; close(cmd); printf "%s (%d conns)",n,max}}')
 
-printf -v tip "%-38s  ← %s\n%s\n%-38s  ← %s\n%-38s  ← %s\n%-38s  ← %s\nSwap: %s/%s MB\nUp:   %s" \
+printf -v tip "%-38s  ← %s\n%s\n%-38s  ← %s\n%-38s  ← %s\n%s\nSwap: %s/%s MB\nUp:   %s" \
     "CPU:  ${cpu}%  (load: ${loadavg})" "$top_cpu" \
     "$cores_tip" \
     "Mem:  ${mem}% (${used_mb}/${total_mb} MB)" "$top_mem" \
     "IO:   ${iow}% iowait" "${top_io:-—}" \
-    "Net:  ↓$(hr $drx)/s ↑$(hr $dtx)/s" "${top_net:-—}" \
+    "Net:  ↓$(hr $drx)/s ↑$(hr $dtx)/s" \
     "$swap_used" "$swap_total" \
     "$(uptime -p | sed 's/up //')"
 echo "<tool>$tip</tool>"
