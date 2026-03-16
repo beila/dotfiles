@@ -9,8 +9,8 @@ require 'nvim-treesitter.configs'.setup {
         "perl", "proto", "python", "rst", "rust", "sql", "ssh_config", "toml",
         "typescript", "udev", "vim", "vimdoc", "xml", "yaml",
         -- injected/inline (not auto-installed)
-        "angular", "asm", "coffeescript", "comment", "fish", "glimmer", "graphql",
-        "haskell_persistent", "jinja_inline", "jsdoc", "latex", "luadoc", "luap",
+        "angular", "asm", "comment", "fish", "glimmer", "graphql",
+        "haskell_persistent", "jinja_inline", "jsdoc", "luadoc", "luap",
         "markdown_inline", "nim_format_string", "pod", "printf", "promql", "query",
         "re2c", "readline", "regex", "ruby", "slint", "styled",
     },
