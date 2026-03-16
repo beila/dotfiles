@@ -23,7 +23,8 @@
   # json            jsonls(vscode-langservers-extracted) —            (jsonls)      prettier
   # js/jsx/ts       ts_ls(typescript-language-server) vscode-js-debug  biome         prettier
   # just            just-lsp                   —                       —             just --fmt(just,home.nix)
-  # kotlin          kotlin_language_server     kotlin-debug-adapter   ktlint        ktlint
+  # kotlin          kotlin_language_server     kotlin-debug-adapter(m) ktlint       ktlint
+  # lua             lua_ls (mason)             —                      luacheck      stylua
   # makefile        —                          —                      checkmake     —
   # markdown        marksman (mason)           —                      markdownlint  prettier
   # nim             nimls (mason)              —                      —             —
@@ -34,13 +35,13 @@
   # toml            taplo (mason)              —                      —             (taplo LSP)
   # text            —                          —                      vale          —
   # vimscript       vimls (mason)              —                      —             —
-  # lua             lua_ls (mason)             —                      luacheck      stylua
   # systemd         —                          —                      —             —
   #
   # nix-installed tools are set up in vimrcs/my-*.lua and vimrcs/lsp-servers.lua
   # Mason-installed tools are set up in vimrcs/mason.lua
 
   home.packages = with pkgs; [
+    bash                  # needed by Mason installer (exit code 127 without it)
     awk-language-server
     bash-language-server  # LSP for bash/zsh — setup in vimrcs/my-zsh.lua
     shfmt                 # formatter for bash/zsh — used by bashls in my-zsh.lua
@@ -65,5 +66,7 @@
     vscode-js-debug       # DAP for JS/TS — setup in my-js.lua
     biome                 # linter for JS/TS — setup in my-js.lua
     just-lsp              # LSP for justfiles — setup in my-just.lua
+    kotlin-language-server # LSP for Kotlin — setup in my-kotlin.lua
+    ktlint                # linter+formatter for Kotlin — setup in my-kotlin.lua
   ];
 }
