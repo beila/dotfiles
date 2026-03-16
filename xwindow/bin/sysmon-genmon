@@ -1,0 +1,33 @@
+#!/bin/bash
+# System monitor genmon script for xfce4-panel
+# Shows: CPU%, MEM%, IO wait in panel; details in tooltip
+
+cpu=$(awk '/^cpu /{u=$2+$4; t=$2+$3+$4+$5+$6+$7+$8; printf "%.0f", u*100/t}' /proc/stat)
+iow=$(awk '/^cpu /{t=$2+$3+$4+$5+$6+$7+$8; printf "%.0f", $6*100/t}' /proc/stat)
+read -r total avail < <(awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{print t, a}' /proc/meminfo)
+mem=$(( (total - avail) * 100 / total ))
+
+echo "<txt>C${cpu}% M${mem}% I${iow}%</txt>"
+
+# tooltip
+read -r memtotal memavail memfree buffers cached < <(awk '
+    /MemTotal/{t=$2} /MemAvailable/{a=$2} /MemFree/{f=$2}
+    /^Buffers/{b=$2} /^Cached/{c=$2}
+    END{print t, a, f, b, c}' /proc/meminfo)
+used=$(( (memtotal - memavail) / 1024 ))
+mtotal=$(( memtotal / 1024 ))
+
+read -r swaptotal swapfree < <(awk '/SwapTotal/{t=$2} /SwapFree/{f=$2} END{print t,f}' /proc/meminfo)
+swapused=$(( (swaptotal - swapfree) / 1024 ))
+swtotal=$(( swaptotal / 1024 ))
+
+loadavg=$(cut -d' ' -f1-3 /proc/loadavg)
+nproc=$(nproc)
+uptime=$(uptime -p | sed 's/up //')
+
+tip="CPU:   ${cpu}%  (load: ${loadavg} / ${nproc} cores)
+IO:    ${iow}% wait
+Mem:   ${used}/${mtotal} MB (${mem}%)
+Swap:  ${swapused}/${swtotal} MB
+Up:    ${uptime}"
+echo "<tool>$tip</tool>"
