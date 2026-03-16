@@ -1,5 +1,5 @@
 -- DAP adapters and shared keymaps
--- Per-language DAP configs: codelldb (c/c++/rust) below, bash in my-zsh.lua
+-- Per-language DAP configs: codelldb (c/c++) below, rust in my-rust.lua, bash in my-zsh.lua
 -- codelldb installed via Mason in mason.lua
 
 -- https://github.com/mfussenegger/nvim-dap/wiki/C-C---Rust-(via--codelldb)#user-content-1110-and-later
@@ -30,7 +30,6 @@ dap.configurations.cpp = {
 }
 
 dap.configurations.c = dap.configurations.cpp
-dap.configurations.rust = dap.configurations.cpp
 
 -- https://github.com/mfussenegger/nvim-dap/blob/7aade9e99bef5f0735cf966e715b3ce45515d786/doc/dap.txt#L497
 

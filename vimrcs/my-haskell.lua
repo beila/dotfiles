@@ -1,8 +1,7 @@
--- Haskell: LSP, DAP, linter, formatter
+-- Haskell: LSP, linter, formatter
 -- Tools installed via nix in nvim.nix:
 --   haskell-language-server, fourmolu, hlint
--- Tools installed via Mason in mason.lua:
---   haskell-debug-adapter (not in nixpkgs)
+-- DAP: haskell-debug-adapter — not in nixpkgs, broken in mason
 
 -- LSP: hls (uses fourmolu for formatting, hlint for hints)
 require('lspconfig').hls.setup({
