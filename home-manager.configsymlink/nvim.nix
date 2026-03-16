@@ -52,8 +52,8 @@ in
     fourmolu                           # haskell     formatter  my-haskell.lua (via HLS)
 
     # html
-    vscode-langservers-extracted       # html/json   LSP        my-html.lua, my-json.lua (html, jsonls)
-    prettier                           # html/md/js  formatter  my-html.lua
+    vscode-langservers-extracted       # html/json   LSP        my-html.lua, my-json.lua, my-css.lua (html, jsonls, cssls)
+    prettier                           # html/md/js  formatter  my-html.lua, my-css.lua, my-yaml.lua
 
     # java
     jdt-language-server                # java        LSP        my-java.lua (jdtls)
@@ -124,5 +124,11 @@ in
     # vimscript
     vim-language-server                # vimscript   LSP        my-vim.lua (vimls)
     _vim-vint                          # vimscript   linter     nvim-lint.lua (vint, tests disabled)
+
+    # xml
+    lemminx                            # xml         LSP+all    my-xml.lua
+
+    # yaml
+    yaml-language-server               # yaml        LSP        my-yaml.lua (yamlls)
   ];
 }
