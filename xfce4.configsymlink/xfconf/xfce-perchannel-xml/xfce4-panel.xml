@@ -19,7 +19,7 @@
         <value type="int" value="3"/>
         <value type="int" value="6"/>
         <value type="int" value="7"/>
-        <value type="int" value="13"/>
+        <value type="int" value="23"/>
         <value type="int" value="20"/>
         <value type="int" value="22"/>
         <value type="int" value="2"/>
@@ -91,79 +91,6 @@
     <property name="plugin-12" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
     </property>
-    <property name="plugin-13" type="string" value="cpugraph">
-      <property name="update-interval" type="int" value="2"/>
-      <property name="time-scale" type="int" value="1"/>
-      <property name="size" type="int" value="16"/>
-      <property name="mode" type="int" value="1"/>
-      <property name="color-mode" type="int" value="2"/>
-      <property name="frame" type="int" value="0"/>
-      <property name="border" type="int" value="1"/>
-      <property name="bars" type="int" value="1"/>
-      <property name="per-core" type="int" value="0"/>
-      <property name="tracked-core" type="int" value="0"/>
-      <property name="in-terminal" type="int" value="1"/>
-      <property name="startup-notification" type="int" value="0"/>
-      <property name="load-threshold" type="int" value="0"/>
-      <property name="smt-stats" type="int" value="0"/>
-      <property name="smt-issues" type="int" value="0"/>
-      <property name="per-core-spacing" type="int" value="1"/>
-      <property name="command" type="string" value=""/>
-      <property name="background" type="array">
-        <value type="double" value="1"/>
-        <value type="double" value="1"/>
-        <value type="double" value="1"/>
-        <value type="double" value="0"/>
-      </property>
-      <property name="foreground-1" type="array">
-        <value type="double" value="0"/>
-        <value type="double" value="1"/>
-        <value type="double" value="0"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="foreground-2" type="array">
-        <value type="double" value="1"/>
-        <value type="double" value="0"/>
-        <value type="double" value="0"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="foreground-3" type="array">
-        <value type="double" value="0"/>
-        <value type="double" value="0"/>
-        <value type="double" value="1"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="smt-issues-color" type="array">
-        <value type="double" value="0.90000000000000002"/>
-        <value type="double" value="0"/>
-        <value type="double" value="0"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="foreground-system" type="array">
-        <value type="double" value="0.90000000000000002"/>
-        <value type="double" value="0.10000000000000001"/>
-        <value type="double" value="0.10000000000000001"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="foreground-user" type="array">
-        <value type="double" value="0.10000000000000001"/>
-        <value type="double" value="0.40000000000000002"/>
-        <value type="double" value="0.90000000000000002"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="foreground-nice" type="array">
-        <value type="double" value="0.90000000000000002"/>
-        <value type="double" value="0.80000000000000004"/>
-        <value type="double" value="0.20000000000000001"/>
-        <value type="double" value="1"/>
-      </property>
-      <property name="foreground-iowait" type="array">
-        <value type="double" value="0.20000000000000001"/>
-        <value type="double" value="0.90000000000000002"/>
-        <value type="double" value="0.40000000000000002"/>
-        <value type="double" value="1"/>
-      </property>
-    </property>
     <property name="plugin-15" type="string" value="genmon">
       <property name="location" type="empty">
         <property name="name" type="string" value="London, UK"/>
@@ -215,6 +142,14 @@
     </property>
     <property name="plugin-2" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
+    </property>
+    <property name="plugin-23" type="string" value="genmon">
+      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/sysmon-genmon"/>
+      <property name="use-label" type="bool" value="false"/>
+      <property name="text" type="string" value="(genmon)"/>
+      <property name="update-period" type="int" value="2000"/>
+      <property name="enable-single-row" type="bool" value="true"/>
+      <property name="font" type="string" value="Ubuntu 11"/>
     </property>
   </property>
 </channel>
