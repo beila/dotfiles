@@ -25,5 +25,6 @@ require("mason-tool-installer").setup({
         "haskell-debug-adapter", -- haskell (not in nixpkgs)
         "kotlin-debug-adapter",  -- kotlin (not in nixpkgs, DAP config in my-kotlin.lua)
         "java-debug-adapter",    -- java (not in nixpkgs, DAP config in my-java.lua)
+        "debugpy",               -- python (not in nixpkgs, DAP config in my-python.lua)
     },
 })
