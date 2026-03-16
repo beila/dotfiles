@@ -32,6 +32,10 @@
 1. zellij session should outlive ghostty
 1. run tts when asking for permission in kiro
 1. change neovide font back
+1. install nvim plugins with homa manager and remove submodules (check if it's updated automatically)
+1. control tab in vim cycles
+1. keybindings for session/tab/pane changes in zellij
+1. different zellij settings for each scratchpad
 
 ## Architecture Overview
 
