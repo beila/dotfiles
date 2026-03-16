@@ -9,6 +9,8 @@ require('lint').linters_by_ft = {
     make = { 'checkmake' },
     markdown = { 'markdownlint' },
     nix = { 'statix', 'deadnix' },
+    sql = { 'sqlfluff' },
+    text = { 'vale' },
 }
 
 vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufReadPost' }, {

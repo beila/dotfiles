@@ -1,0 +1,4 @@
+-- Text: linter
+-- Tools installed via nix in nvim.nix: vale
+-- No LSP, DAP, or formatter for plain text
+-- vale linting configured in nvim-lint.lua
