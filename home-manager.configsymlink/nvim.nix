@@ -28,8 +28,8 @@
   # lua             lua_ls(lua-language-server) —                       selene        stylua
   # makefile        autotools_ls(autotools-language-server) —          checkmake     —
   # markdown        marksman                   —                       markdownlint-cli2 prettier
-  # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim,not installed)
-  # nix             nil_ls (mason)             —                      statix        nixpkgs-fmt
+  # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim)
+  # nix             nixd                       —                       statix+deadnix nixfmt
   # python          pyright (mason)            debugpy                ruff          ruff
   # rust            rust_analyzer (mason)      codelldb               —             rustfmt
   # sql             sqlls (mason)              —                      sqlfluff      sql-formatter
@@ -80,5 +80,10 @@
     marksman              # LSP for Markdown — setup in my-markdown.lua
     markdownlint-cli2     # linter for Markdown — setup in my-markdown.lua
     nimlangserver         # LSP for Nim — setup in my-nim.lua
+    nim                   # compiler + nimpretty formatter — setup in my-nim.lua
+    nixd                  # LSP for Nix — setup in my-nix.lua
+    statix                # linter for Nix — setup in my-nix.lua
+    deadnix               # dead code finder for Nix — setup in my-nix.lua
+    nixfmt                # official formatter for Nix — setup in my-nix.lua
   ];
 }
