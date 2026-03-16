@@ -11,9 +11,9 @@
   # Dev tool coverage for neovim (installed via nix or Mason)
   #
   # Language        LSP                        DAP                    Linter        Formatter
-  # awk             awk_ls (nix)               —                      —             —
-  # bash/zsh        bashls (nix)               bash-debug-adapter     shellcheck    shfmt
-  # c/c++           clangd (nix)               codelldb               cppcheck      clang-format
+  # awk             awk_ls                     —                       —             —
+  # bash/zsh        bashls                     bash-debug-adapter(m)   shellcheck    shfmt
+  # c/c++           clangd(clang-tools)        codelldb(m)             cppcheck      clang-format(clang-tools)
   # cmake           cmake (mason)              —                      —             cmake-format
   # docker          dockerls + compose (mason) —                      hadolint      —
   # glsl/opengl     glsl_analyzer (mason)      —                      —             clang-format
