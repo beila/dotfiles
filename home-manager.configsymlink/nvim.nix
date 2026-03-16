@@ -20,10 +20,9 @@
   # haskell         hls(haskell-language-server) haskell-debug-adapter(m) hlint       fourmolu
   # html            html(vscode-langservers-extracted) —              —             prettier
   # jinja           jinja_lsp(jinja-lsp)       —                       djlint        djlint
-  # json            jsonls (mason)             —                      jsonlint      prettier
-  # js/jsx/ts       ts_ls (mason)              js-debug-adapter       eslint_d      prettier
-  # jq              jqls (mason)               —                      —             jq
-  # just            —                          —                      —             —
+  # json            jsonls(vscode-langservers-extracted) —            (jsonls)      prettier
+  # js/jsx/ts       ts_ls(typescript-language-server) vscode-js-debug  biome         prettier
+  # just            just-lsp                   —                       —             just --fmt(just,home.nix)
   # kotlin          kotlin_language_server     kotlin-debug-adapter   ktlint        ktlint
   # makefile        —                          —                      checkmake     —
   # markdown        marksman (mason)           —                      markdownlint  prettier
@@ -62,5 +61,9 @@
     prettier              # formatter for html/json/js/ts/md — setup in my-html.lua
     jinja-lsp             # LSP for Jinja — setup in my-jinja.lua
     djlint                # linter+formatter for Jinja/Nunjucks — setup in my-jinja.lua
+    typescript-language-server # LSP for JS/TS — setup in my-js.lua
+    vscode-js-debug       # DAP for JS/TS — setup in my-js.lua
+    biome                 # linter for JS/TS — setup in my-js.lua
+    just-lsp              # LSP for justfiles — setup in my-just.lua
   ];
 }
