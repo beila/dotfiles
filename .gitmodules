@@ -176,3 +176,6 @@
 [submodule "pack/bundles/start/mason-tool-installer.nvim"]
 	path = pack/bundles/start/mason-tool-installer.nvim
 	url = https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim.git
+[submodule "pack/bundles/start/nvim-lint"]
+	path = pack/bundles/start/nvim-lint
+	url = https://github.com/mfussenegger/nvim-lint.git
