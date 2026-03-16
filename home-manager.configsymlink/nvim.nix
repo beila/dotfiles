@@ -30,7 +30,7 @@
   # markdown        marksman                   —                       markdownlint-cli2 prettier
   # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim)
   # nix             nixd                       —                       statix+deadnix nixfmt
-  # python          pyright (mason)            debugpy                ruff          ruff
+  # python          basedpyright               debugpy(m)              ruff          ruff
   # rust            rust_analyzer (mason)      codelldb               —             rustfmt
   # sql             sqlls (mason)              —                      sqlfluff      sql-formatter
   # toml            taplo (mason)              —                      —             (taplo LSP)
@@ -75,8 +75,8 @@
     lua-language-server   # LSP for Lua — setup in my-lua.lua
     selene                # linter for Lua — setup in my-lua.lua
     stylua                # formatter for Lua — setup in my-lua.lua
-    autotools-language-server # LSP for Makefile — setup in my-makefile.lua
     checkmake             # linter for Makefile — setup in my-makefile.lua
+    # autotools-language-server — broken in nixpkgs, not in mason; revisit on flake update
     marksman              # LSP for Markdown — setup in my-markdown.lua
     markdownlint-cli2     # linter for Markdown — setup in my-markdown.lua
     nimlangserver         # LSP for Nim — setup in my-nim.lua
@@ -85,5 +85,7 @@
     statix                # linter for Nix — setup in my-nix.lua
     deadnix               # dead code finder for Nix — setup in my-nix.lua
     nixfmt                # official formatter for Nix — setup in my-nix.lua
+    basedpyright          # LSP for Python — setup in my-python.lua
+    ruff                  # linter+formatter for Python — setup in my-python.lua
   ];
 }
