@@ -22,5 +22,6 @@ require("mason-tool-installer").setup({
         -- DAP
         "bash-debug-adapter",    -- bash (DAP config in my-zsh.lua)
         "codelldb",              -- c/c++/rust (DAP config in nvim-dap.lua)
+        "haskell-debug-adapter", -- haskell (not in nixpkgs)
     },
 })
