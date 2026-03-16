@@ -20,14 +20,15 @@
   # haskell         hls(haskell-language-server) haskell-debug-adapter(m) hlint       fourmolu
   # html            html(vscode-langservers-extracted) —              —             prettier
   # jinja           jinja_lsp(jinja-lsp)       —                       djlint        djlint
+  # java            jdtls(jdt-language-server) java-debug-adapter(m)   checkstyle    google-java-format
   # json            jsonls(vscode-langservers-extracted) —            (jsonls)      prettier
   # js/jsx/ts       ts_ls(typescript-language-server) vscode-js-debug  biome         prettier
   # just            just-lsp                   —                       —             just --fmt(just,home.nix)
   # kotlin          kotlin_language_server     kotlin-debug-adapter(m) ktlint       ktlint
-  # lua             lua_ls (mason)             —                      luacheck      stylua
-  # makefile        —                          —                      checkmake     —
-  # markdown        marksman (mason)           —                      markdownlint  prettier
-  # nim             nimls (mason)              —                      —             —
+  # lua             lua_ls(lua-language-server) —                       selene        stylua
+  # makefile        autotools_ls(autotools-language-server) —          checkmake     —
+  # markdown        marksman                   —                       markdownlint-cli2 prettier
+  # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim,not installed)
   # nix             nil_ls (mason)             —                      statix        nixpkgs-fmt
   # python          pyright (mason)            debugpy                ruff          ruff
   # rust            rust_analyzer (mason)      codelldb               —             rustfmt
@@ -68,5 +69,16 @@
     just-lsp              # LSP for justfiles — setup in my-just.lua
     kotlin-language-server # LSP for Kotlin — setup in my-kotlin.lua
     ktlint                # linter+formatter for Kotlin — setup in my-kotlin.lua
+    jdt-language-server   # LSP for Java — setup in my-java.lua
+    google-java-format    # formatter for Java — setup in my-java.lua
+    checkstyle            # linter for Java — setup in my-java.lua
+    lua-language-server   # LSP for Lua — setup in my-lua.lua
+    selene                # linter for Lua — setup in my-lua.lua
+    stylua                # formatter for Lua — setup in my-lua.lua
+    autotools-language-server # LSP for Makefile — setup in my-makefile.lua
+    checkmake             # linter for Makefile — setup in my-makefile.lua
+    marksman              # LSP for Markdown — setup in my-markdown.lua
+    markdownlint-cli2     # linter for Markdown — setup in my-markdown.lua
+    nimlangserver         # LSP for Nim — setup in my-nim.lua
   ];
 }
