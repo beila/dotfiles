@@ -1,7 +1,7 @@
 { pkgs, ... }:
 
 let
-  vim-vint = pkgs.vim-vint.overrideAttrs (_: { doCheck = false; doInstallCheck = false; });
+  _vim-vint = pkgs.vim-vint.overrideAttrs (_: { doCheck = false; doInstallCheck = false; });
 in
 {
   programs.neovim = {
@@ -11,94 +11,118 @@ in
     vimAlias = true;
   };
 
-  # Dev tool coverage for neovim (installed via nix or Mason)
-  #
-  # Language        LSP                        DAP                    Linter        Formatter
-  # awk             awk_ls                     —                       —             —
-  # bash/zsh        bashls                     bash-debug-adapter(m)   shellcheck    shfmt
-  # c/c++           clangd(clang-tools)        codelldb(m)             cppcheck      clang-format(clang-tools)
-  # cmake           neocmake(neocmakelsp)      —                       cmake-lint    cmake-format
-  # docker          dockerls+compose           —                       hadolint      —
-  # glsl/opengl     glsl_analyzer              —                       —             clang-format(clang-tools)
-  # haskell         hls(haskell-language-server) —                     hlint         fourmolu
-  # html            html(vscode-langservers-extracted) —              —             prettier
-  # jinja           jinja_lsp(jinja-lsp)       —                       djlint        djlint
-  # java            jdtls(jdt-language-server) java-debug-adapter(m)   checkstyle    google-java-format
-  # json            jsonls(vscode-langservers-extracted) —            (jsonls)      prettier
-  # js/jsx/ts       ts_ls(typescript-language-server) vscode-js-debug  biome         prettier
-  # just            just-lsp                   —                       —             just --fmt(just,home.nix)
-  # kotlin          kotlin_language_server     kotlin-debug-adapter(m) ktlint       ktlint
-  # lua             lua_ls(lua-language-server) —                       selene        stylua
-  # makefile        —                          —                       checkmake(nvim-lint) —
-  # markdown        marksman                   —                       markdownlint-cli2 prettier
-  # nim             nim_langserver(nimlangserver) —                    —             nimpretty(nim)
-  # nix             nixd                       —                       statix+deadnix nixfmt
-  # python          basedpyright               debugpy(m)              ruff          ruff
-  # rust            rust_analyzer              codelldb(m)            clippy        rustfmt
-  # sql             sqls                       —                      sqlfluff      sqlfluff
-  # toml            taplo                      —                      (taplo LSP)   (taplo LSP)
-  # text            —                          —                      vale          —
-  # vimscript       vimls(vim-language-server)  —                      vint(vim-vint) —
-  #
-  # nix-installed tools are set up in vimrcs/my-*.lua
-  # Mason-only DAPs (not in nixpkgs): bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
+  # Dev tools for neovim — nix-installed unless noted
+  # Mason-installed tools are listed as comments alongside their language group
   # Linters run via nvim-lint plugin (vimrcs/nvim-lint.lua)
-  # All languages migrated to vimrcs/my-*.lua
+  # All languages have setup in vimrcs/my-*.lua
 
   home.packages = with pkgs; [
-    bash                  # needed by Mason installer (exit code 127 without it)
-    awk-language-server
-    bash-language-server  # LSP for bash/zsh — setup in vimrcs/my-zsh.lua
-    shfmt                 # formatter for bash/zsh — used by bashls in my-zsh.lua
-    cppcheck              # linter for c/c++ — setup in my-cpp.lua
-    clang-tools           # clangd + clang-format for c/c++ — setup in my-cpp.lua
-    shellcheck            # linter for bash/zsh — used by bashls in my-zsh.lua
-    neocmakelsp           # LSP for cmake — setup in my-cmake.lua
-    cmake-format          # formatter for cmake — setup in my-cmake.lua
-    cmake-lint            # linter for cmake — setup in my-cmake.lua
-    dockerfile-language-server-nodejs  # LSP for Dockerfile — setup in my-docker.lua
-    docker-compose-language-service    # LSP for docker-compose — setup in my-docker.lua
-    hadolint              # linter for Dockerfile — setup in my-docker.lua
-    glsl_analyzer         # LSP for GLSL/OpenGL — setup in my-glsl.lua
-    haskell-language-server # LSP for Haskell — setup in my-haskell.lua
-    fourmolu              # formatter for Haskell — used by HLS in my-haskell.lua
-    hlint                 # linter for Haskell — used by HLS in my-haskell.lua
-    vscode-langservers-extracted # html/css/json/eslint LSPs — setup in my-html.lua, my-json.lua
-    prettier              # formatter for html/json/js/ts/md — setup in my-html.lua
-    jinja-lsp             # LSP for Jinja — setup in my-jinja.lua
-    djlint                # linter+formatter for Jinja/Nunjucks — setup in my-jinja.lua
-    typescript-language-server # LSP for JS/TS — setup in my-js.lua
-    vscode-js-debug       # DAP for JS/TS — setup in my-js.lua
-    biome                 # linter for JS/TS — setup in my-js.lua
-    just-lsp              # LSP for justfiles — setup in my-just.lua
-    kotlin-language-server # LSP for Kotlin — setup in my-kotlin.lua
-    ktlint                # linter+formatter for Kotlin — setup in my-kotlin.lua
-    jdt-language-server   # LSP for Java — setup in my-java.lua
-    google-java-format    # formatter for Java — setup in my-java.lua
-    checkstyle            # linter for Java — setup in my-java.lua
-    lua-language-server   # LSP for Lua — setup in my-lua.lua
-    selene                # linter for Lua — setup in my-lua.lua
-    stylua                # formatter for Lua — setup in my-lua.lua
-    checkmake             # linter for Makefile — via nvim-lint
-    marksman              # LSP for Markdown — setup in my-markdown.lua
-    markdownlint-cli2     # linter for Markdown — setup in my-markdown.lua
-    nimlangserver         # LSP for Nim — setup in my-nim.lua
-    nim                   # compiler + nimpretty formatter — setup in my-nim.lua
-    nixd                  # LSP for Nix — setup in my-nix.lua
-    statix                # linter for Nix — setup in my-nix.lua
-    deadnix               # dead code finder for Nix — setup in my-nix.lua
-    nixfmt                # official formatter for Nix — setup in my-nix.lua
-    basedpyright          # LSP for Python — setup in my-python.lua
-    ruff                  # linter+formatter for Python — setup in my-python.lua
-    rust-analyzer         # LSP for Rust — setup in my-rust.lua
-    clippy                # linter for Rust — used by rust-analyzer in my-rust.lua
-    rustfmt               # formatter for Rust — used by rust-analyzer in my-rust.lua
-    sqls                  # LSP for SQL — setup in my-sql.lua
-    sqlfluff              # linter+formatter for SQL — linter in nvim-lint.lua
-    taplo                 # LSP+linter+formatter for TOML — setup in my-toml.lua
-    vale                  # linter for text — linter in nvim-lint.lua
-    vim-language-server   # LSP for Vimscript — setup in my-vim.lua
-  ] ++ [
-    vim-vint              # linter for Vimscript (vint, tests disabled) — linter in nvim-lint.lua
+    bash                               # mason       —          needed by Mason installer
+
+    # awk
+    awk-language-server                # awk         LSP        my-awk.lua (awk_ls)
+
+    # bash/zsh
+    bash-language-server               # bash/zsh    LSP        my-zsh.lua (bashls)
+    # bash-debug-adapter               # bash/zsh    DAP        my-zsh.lua (mason)
+    shellcheck                         # bash/zsh    linter     my-zsh.lua (via bashls)
+    shfmt                              # bash/zsh    formatter  my-zsh.lua (via bashls)
+
+    # c/c++
+    clang-tools                        # c/c++       LSP+fmt    my-cpp.lua (clangd + clang-format)
+    # codelldb                         # c/c++/rust  DAP        nvim-dap.lua, my-rust.lua (mason)
+    cppcheck                           # c/c++       linter     my-cpp.lua
+
+    # cmake
+    neocmakelsp                        # cmake       LSP        my-cmake.lua (neocmake)
+    cmake-lint                         # cmake       linter     my-cmake.lua
+    cmake-format                       # cmake       formatter  my-cmake.lua
+
+    # docker
+    dockerfile-language-server-nodejs  # docker      LSP        my-docker.lua (dockerls)
+    docker-compose-language-service    # docker      LSP        my-docker.lua (docker_compose_language_service)
+    hadolint                           # docker      linter     my-docker.lua
+
+    # glsl
+    glsl_analyzer                      # glsl        LSP        my-glsl.lua
+
+    # haskell
+    haskell-language-server            # haskell     LSP        my-haskell.lua (hls)
+    hlint                              # haskell     linter     my-haskell.lua (via HLS)
+    fourmolu                           # haskell     formatter  my-haskell.lua (via HLS)
+
+    # html
+    vscode-langservers-extracted       # html/json   LSP        my-html.lua, my-json.lua (html, jsonls)
+    prettier                           # html/md/js  formatter  my-html.lua
+
+    # java
+    jdt-language-server                # java        LSP        my-java.lua (jdtls)
+    # java-debug-adapter               # java        DAP        my-java.lua (mason)
+    checkstyle                         # java        linter     nvim-lint.lua
+    google-java-format                 # java        formatter  my-java.lua
+
+    # jinja
+    jinja-lsp                          # jinja       LSP        my-jinja.lua (jinja_lsp)
+    djlint                             # jinja       lint+fmt   my-jinja.lua
+
+    # js/ts
+    typescript-language-server         # js/ts       LSP        my-js.lua (ts_ls)
+    vscode-js-debug                    # js/ts       DAP        my-js.lua
+    biome                              # js/ts       linter     my-js.lua
+
+    # just
+    just-lsp                           # just        LSP        my-just.lua
+
+    # kotlin
+    kotlin-language-server             # kotlin      LSP        my-kotlin.lua (kotlin_language_server)
+    # kotlin-debug-adapter             # kotlin      DAP        my-kotlin.lua (mason)
+    ktlint                             # kotlin      lint+fmt   my-kotlin.lua
+
+    # lua
+    lua-language-server                # lua         LSP        my-lua.lua (lua_ls)
+    selene                             # lua         linter     my-lua.lua
+    stylua                             # lua         formatter  my-lua.lua
+
+    # makefile
+    checkmake                          # makefile    linter     nvim-lint.lua
+
+    # markdown
+    marksman                           # markdown    LSP        my-markdown.lua
+    markdownlint-cli2                  # markdown    linter     nvim-lint.lua
+
+    # nim
+    nimlangserver                      # nim         LSP        my-nim.lua (nim_langserver)
+    nim                                # nim         formatter  my-nim.lua (nimpretty)
+
+    # nix
+    nixd                               # nix         LSP        my-nix.lua
+    statix                             # nix         linter     nvim-lint.lua
+    deadnix                            # nix         linter     nvim-lint.lua
+    nixfmt                             # nix         formatter  my-nix.lua
+
+    # python
+    basedpyright                       # python      LSP        my-python.lua
+    # debugpy                          # python      DAP        my-python.lua (mason)
+    ruff                               # python      lint+fmt   my-python.lua
+
+    # rust
+    rust-analyzer                      # rust        LSP        my-rust.lua (rust_analyzer)
+    # codelldb                         # rust        DAP        my-rust.lua (mason, shared with c/c++)
+    clippy                             # rust        linter     my-rust.lua (via rust-analyzer)
+    rustfmt                            # rust        formatter  my-rust.lua (via rust-analyzer)
+
+    # sql
+    sqls                               # sql         LSP        my-sql.lua
+    sqlfluff                           # sql         lint+fmt   nvim-lint.lua
+
+    # text
+    vale                               # text        linter     nvim-lint.lua
+
+    # toml
+    taplo                              # toml        LSP+all    my-toml.lua
+
+    # vimscript
+    vim-language-server                # vimscript   LSP        my-vim.lua (vimls)
+    _vim-vint                          # vimscript   linter     nvim-lint.lua (vint, tests disabled)
   ];
 }
