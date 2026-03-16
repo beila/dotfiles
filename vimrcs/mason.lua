@@ -1,6 +1,6 @@
--- mason.setup() is in lsp-zero.lua (loads first alphabetically)
+-- Mason: LSP servers, DAPs, linters, formatters (all in one place)
 --
--- Coverage table (LSPs in lsp-zero.lua, rest here):
+-- Coverage:
 -- Language        LSP                        DAP                    Linter        Formatter
 -- awk             awk_ls                     —                      —             —
 -- bash/zsh        bashls                     bash-debug-adapter     shellcheck    shfmt
@@ -27,6 +27,43 @@
 -- vimscript       vimls                      —                      —             —
 -- lua             lua_ls                     —                      luacheck      stylua
 -- systemd         —                          —                      —             —
+
+require('mason').setup({})
+
+require('mason-lspconfig').setup({
+    ensure_installed = {
+        "awk_ls",          -- awk
+        "bashls",          -- bash/zsh
+        "clangd",          -- c/c++
+        "cmake",           -- cmake
+        "dockerls",        -- docker
+        "docker_compose_language_service", -- docker-compose
+        "glsl_analyzer",   -- glsl/opengl
+        "hls",             -- haskell
+        "html",            -- html/jinja/nunjucks
+        "jsonls",          -- json
+        "ts_ls",           -- javascript/jsx/typescript
+        "jqls",            -- jq
+        "kotlin_language_server", -- kotlin
+        "marksman",        -- markdown
+        "nimls",           -- nim
+        "nil_ls",          -- nix
+        "pyright",         -- python
+        "rust_analyzer",   -- rust
+        "sqlls",           -- sql
+        "taplo",           -- toml
+        "vimls",           -- vimscript
+        "lua_ls",          -- lua
+    },
+    handlers = {
+        function(server_name)
+            local server = require('lspconfig')[server_name]
+            if server.setup then
+                server.setup({})
+            end
+        end,
+    },
+})
 
 require("mason-tool-installer").setup({
     ensure_installed = {

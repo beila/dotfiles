@@ -1,40 +1,4 @@
--- Mason must be set up before mason-lspconfig and mason-tool-installer.
--- mason.lua (loaded after this file alphabetically) depends on this.
-require('mason').setup({})
-require('mason-lspconfig').setup({
-    ensure_installed = {
-        "awk_ls",          -- awk
-        "bashls",          -- bash/zsh
-        "clangd",          -- c/c++
-        "cmake",           -- cmake
-        "dockerls",        -- docker
-        "docker_compose_language_service", -- docker-compose
-        "glsl_analyzer",   -- glsl/opengl
-        "hls",             -- haskell
-        "html",            -- html/jinja/nunjucks
-        "jsonls",          -- json
-        "ts_ls",           -- javascript/jsx/typescript
-        "jqls",            -- jq
-        "kotlin_language_server", -- kotlin
-        "marksman",        -- markdown
-        "nimls",           -- nim
-        "nil_ls",          -- nix
-        "pyright",         -- python
-        "rust_analyzer",   -- rust
-        "sqlls",           -- sql
-        "taplo",           -- toml
-        "vimls",           -- vimscript
-        "lua_ls",          -- lua
-    },
-    handlers = {
-        function(server_name)
-            local server = require('lspconfig')[server_name]
-            if server.setup then
-                server.setup({})
-            end
-        end,
-    },
-})
+-- LSP keymaps and per-server config (mason setup is in mason.lua)
 
 require('lspconfig').lua_ls.setup({
     settings = {
