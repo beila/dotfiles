@@ -1,5 +1,8 @@
 { pkgs, ... }:
 
+let
+  vim-vint = pkgs.vim-vint.overrideAttrs (_: { doCheck = false; doInstallCheck = false; });
+in
 {
   programs.neovim = {
     enable = true;
@@ -35,13 +38,13 @@
   # sql             sqls                       —                      sqlfluff      sqlfluff
   # toml            taplo                      —                      (taplo LSP)   (taplo LSP)
   # text            —                          —                      vale          —
-  # vimscript       vimls (mason)              —                      —             —
-  # systemd         —                          —                      —             —
+  # vimscript       vimls(vim-language-server)  —                      vint(vim-vint) —
+  # systemd         systemd-language-server    —                      —             —
   #
   # nix-installed tools are set up in vimrcs/my-*.lua
   # Mason-only DAPs (not in nixpkgs): bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
   # Linters run via nvim-lint plugin (vimrcs/nvim-lint.lua)
-  # Remaining languages (vimscript, systemd) still need migration
+  # All languages migrated to vimrcs/my-*.lua
 
   home.packages = with pkgs; [
     bash                  # needed by Mason installer (exit code 127 without it)
@@ -95,5 +98,8 @@
     sqlfluff              # linter+formatter for SQL — linter in nvim-lint.lua
     taplo                 # LSP+linter+formatter for TOML — setup in my-toml.lua
     vale                  # linter for text — linter in nvim-lint.lua
+    vim-language-server   # LSP for Vimscript — setup in my-vim.lua
+  ] ++ [
+    vim-vint              # linter for Vimscript (vint, tests disabled) — linter in nvim-lint.lua
   ];
 }
