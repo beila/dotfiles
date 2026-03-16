@@ -36,6 +36,7 @@
 1. keybindings for session/tab/pane changes in zellij
 1. different zellij settings for each scratchpad
 1. add a script to add a new git-worktree/jj-workspace
+1. use kiro first for commit message generation
 
 ## Architecture Overview
 
