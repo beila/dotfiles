@@ -29,6 +29,8 @@
 1. can't type hangul in zellij/ghostty
 1. fix lockscreen-related error message
 1. there's no gap between ghostty vertically
+1. zellij session should outlive ghostty
+1. run tts when asking for permission in kiro
 
 ## Architecture Overview
 
