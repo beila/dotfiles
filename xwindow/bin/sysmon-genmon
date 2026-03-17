@@ -111,17 +111,12 @@ else
 fi
 cp "$cur_cores" "$prev_cores"
 
-ps_data=$(ps -eo pcpu,pmem,stat,comm --no-headers 2>/dev/null)
-top_cpu=$(echo "$ps_data" | sort -k1 -rn | head -1 | awk '{printf "%s (%d%%)", $4, $1}')
-top_mem=$(echo "$ps_data" | sort -k2 -rn | head -1 | awk '{printf "%s (%d%%)", $4, $2}')
-top_io=$(echo "$ps_data" | awk '$3~/D/{print $4}' | sort | uniq -c | sort -rn | head -1 | awk '{print $2}')
-
-printf -v tip "%-38s  ← %s\n%s\n%-38s  ← %s\n%-38s  ← %s\n%s\nSwap: %s/%s MB\nUp:   %s" \
-    "CPU:  ${cpu}%  (load: ${loadavg})" "$top_cpu" \
+printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nSwap: %s/%s MB\nUp:   %s" \
+    "$cpu" "$loadavg" \
     "$cores_tip" \
-    "Mem:  ${mem}% (${used_mb}/${total_mb} MB)" "$top_mem" \
-    "IO:   ${iow}% iowait" "${top_io:-—}" \
-    "Net:  ↓$(hr $drx)/s ↑$(hr $dtx)/s" \
+    "$mem" "$used_mb" "$total_mb" \
+    "$iow" \
+    "$(hr $drx)" "$(hr $dtx)" \
     "$swap_used" "$swap_total" \
     "$(uptime -p | sed 's/up //')"
 echo "<tool>$tip</tool>"
