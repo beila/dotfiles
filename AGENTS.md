@@ -8,6 +8,7 @@ Summary (keep in sync with the steering file):
 - Always use the fastest tool available for the job (e.g. `ripgrep` over `grep`, `fd` over `find`)
 - If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
 - TTS: at the end of every response, call the `say_ko` MCP tool with a Korean translation of a full summary of what was done or answered
+- Before any tool call that requires user permission, call `say_ko` first starting with "도구 실행합니다" followed by a brief description of what's about to be done
 - After making changes that affect architecture, conventions, or behavior described in `AGENTS.md` or `README.md`, update those docs to reflect the new state
 - Never run `sudo` commands directly. Instead, copy the command to the clipboard (`xclip -selection clipboard`) and ask the user to run it. Use full paths for binaries not in root's PATH (e.g. `$(which keyd)`)
 - These instructions persist for the entire session. If the agent violates any rule, it must stop and correct immediately
