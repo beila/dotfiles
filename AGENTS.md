@@ -29,23 +29,20 @@ Summary (keep in sync with the steering file):
 10. ~~kill tmux server and remove zsh integration~~
 1. ~~zoom notification on all workspace~~
 1. ~~fix sync_all creating "```commit" or "```markdown" description~~
-1. make say_done run in background
-1. add local settings file into a non-public VCS
-1. can't type hangul in zellij/ghostty
-1. fix lockscreen-related error message
-1. there's no gap between ghostty vertically
 1. zellij session should outlive ghostty
+1. there's no gap between ghostty vertically
+1. fix lockscreen-related error message
+1. can't type hangul in zellij/ghostty
+1. add local settings file into a non-public VCS
 1. ~~run tts when asking for permission in kiro~~
 1. change neovide font back
-1. install nvim plugins with homa manager and remove submodules (check if it's updated automatically)
-1. control tab in vim cycles
+1. install nvim plugins with home manager and remove submodules (check if it's updated automatically)
 1. keybindings for session/tab/pane changes in zellij
-1. different zellij settings for each scratchpad
+1. different zellij sessions for each scratchpad
 1. add a script to add a new git-worktree/jj-workspace
 1. ~~use kiro first for commit message generation~~
 1. ollama server started on demand
 1. how do I get notified with sync_all error
-1. scratchpads don't hide
 
 ## Architecture Overview
 
