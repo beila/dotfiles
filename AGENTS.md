@@ -41,7 +41,7 @@ Summary (keep in sync with the steering file):
 1. keybindings for session/tab/pane changes in zellij
 1. different zellij settings for each scratchpad
 1. add a script to add a new git-worktree/jj-workspace
-1. use kiro first for commit message generation
+1. ~~use kiro first for commit message generation~~
 
 ## Architecture Overview
 
@@ -74,7 +74,7 @@ Summary (keep in sync with the steering file):
   - `sync_dotfiles` jj path: skips empty changes, describes with AI commit message, pushes current change to hj
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
-- Commit message generator: `~/.dotfiles/bin/commit-msg` — ollama + qwen2.5-coder:3b, jj-first/git-fallback
+- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run
