@@ -36,7 +36,7 @@ Summary (keep in sync with the steering file):
 1. add local settings file into a non-public VCS
 1. ~~run tts when asking for permission in kiro~~
 1. change neovide font back
-1. install nvim plugins with home manager and remove submodules (check if it's updated automatically)
+1. ~~install nvim plugins with home manager and remove submodules~~ (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)
 1. keybindings for session/tab/pane changes in zellij
 1. different zellij sessions for each scratchpad
 1. add a script to add a new git-worktree/jj-workspace
@@ -88,15 +88,16 @@ Summary (keep in sync with the steering file):
 
 ### Neovim Dev Tooling
 - Config: `~/.dotfiles/vim.symlink/` (symlinked to ~/.vim/, also ~/.config/nvim via init.lua)
-- Plugin management: git submodules in `pack/bundles/start/` and `pack/bundles/opt/`; some plugins (nvim-lint) installed via home-manager `programs.neovim.plugins`
+- Plugin management: most plugins installed via home-manager `programs.neovim.plugins`; remaining submodules in `pack/bundles/start/` (cscope_maps, jsonc, nvim-treesitter, SrcExpl, tabline.vim, tasklist, tree-sitter-cmake, tree-sitter-just, vim-log-highlighting, vim-scimark)
 - Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
 - Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
-  - my-zsh.lua (bash/zsh), my-cpp.lua (c/c++), my-cmake.lua, my-docker.lua, my-glsl.lua
-  - my-haskell.lua, my-html.lua, my-jinja.lua, my-json.lua, my-js.lua (js/ts)
-  - my-just.lua, my-kotlin.lua, my-java.lua, my-lua.lua, my-markdown.lua
-  - my-nim.lua, my-nix.lua, my-python.lua, my-awk.lua
-- Shared config: `vimrcs/lsp.lua` (keymaps), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps)
-- Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint, statix, deadnix) on save
+  - my-awk.lua, my-cmake.lua, my-cpp.lua, my-css.lua, my-docker.lua, my-glsl.lua
+  - my-haskell.lua, my-html.lua, my-java.lua, my-jinja.lua, my-js.lua (js/ts)
+  - my-json.lua, my-just.lua, my-kotlin.lua, my-lua.lua, my-markdown.lua
+  - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua, my-sql.lua
+  - my-text.lua, my-toml.lua, my-vim.lua, my-xml.lua, my-yaml.lua, my-zsh.lua
+- Shared config: `vimrcs/lsp-zero.lua` (LSP keymaps + format), `vimrcs/lsp.lua` (keymaps), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)
+- Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs
   - Coverage table in `nvim.nix` documents all tools per language with install location
   - Mason-only: bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy
