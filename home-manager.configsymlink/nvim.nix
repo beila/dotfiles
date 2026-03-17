@@ -10,7 +10,41 @@ in
     viAlias = true;
     vimAlias = true;
     plugins = with pkgs.vimPlugins; [
+      fugitive
+      github-nvim-theme
+      lsp-zero-nvim
+      lush-nvim
+      mason-lspconfig-nvim
+      mason-nvim
+      neomru
+      nerdcommenter
+      nvim-dap
+      nvim-dap-python
+      nvim-dap-ui
+      nvim-dap-vscode-js
       nvim-lint
+      nvim-lspconfig
+      nvim-nio
+      nvim-tree-lua
+      nvim-web-devicons
+      plantuml-syntax
+      rust-tools-nvim
+      Tagbar
+      typescript-vim
+      undotree
+      vim-airline
+      vim-airline-themes
+      vim-argumentative
+      vim-dirdiff
+      vim-fubitive
+      vim-gitgutter
+      vim-indent-guides
+      vim-jinja
+      vim-just
+      vim-matchup
+      vimproc
+      vim-rhubarb
+      YankRing-vim
     ];
   };
 
