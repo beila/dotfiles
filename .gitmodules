@@ -38,9 +38,6 @@
 	url = https://github.com/nathanaelkane/vim-indent-guides.git
 	branch = master
 	ignore = all
-[submodule "bundle/cscope_maps"]
-	path = pack/bundles/start/cscope_maps
-	url = https://github.com/chazy/cscope_maps.git
 	branch = master
 	ignore = all
 [submodule "bundle/vim-gitgutter"]
