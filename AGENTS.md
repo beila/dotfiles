@@ -45,6 +45,7 @@ Summary (keep in sync with the steering file):
 1. ~~use kiro first for commit message generation~~
 1. ollama server started on demand
 1. how do I get notified with sync_all error
+1. scratchpads don't hide
 
 ## Architecture Overview
 
