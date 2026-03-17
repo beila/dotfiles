@@ -21,9 +21,10 @@ if jj root &>/dev/null 2>&1; then
     fi
 
     # Requirements:
-    # 1. All local bookmarks force-pushed with hostname prefix (MACHINE_NAME/bookmark)
-    # 2. The tracked bookmark on @- safely merged forward and pushed (no force)
-    # Both must run even when the current change is empty (nothing to commit).
+    # 1. Commit current change with AI-generated message (skip if empty)
+    # 2. All local bookmarks force-pushed with hostname prefix (MACHINE_NAME/bookmark)
+    # 3. The tracked bookmark on @- safely merged forward and pushed (no force)
+    # 2 and 3 must run even when the current change is empty (nothing to commit).
     if jj git remote list 2>/dev/null | grep -q '^hj '; then
         GIT_DIR=$(jj git root 2>/dev/null)
         HJ_URL=$(git --git-dir="$GIT_DIR" remote get-url hj 2>/dev/null)
