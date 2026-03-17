@@ -42,6 +42,8 @@ Summary (keep in sync with the steering file):
 1. different zellij settings for each scratchpad
 1. add a script to add a new git-worktree/jj-workspace
 1. ~~use kiro first for commit message generation~~
+1. ollama server started on demand
+1. how do I get notified with sync_all error
 
 ## Architecture Overview
 
