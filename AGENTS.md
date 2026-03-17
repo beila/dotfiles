@@ -23,7 +23,7 @@ Summary (keep in sync with the steering file):
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
 8. **universal Copy/paste key** — I need copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 13. ~~**Auto-merge to main on sync**~~ — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
-14. ~~**jj empty changes**~~ — sync_dotfiles skips when current change is empty
+14. ~~**jj empty changes**~~ — sync_dotfiles skips commit/describe when current change is empty, but still pushes bookmarks
 15. ~~**Ghostty unnecessary resizing**~~ — scratchpadToggle no longer refloats when just focusing a visible scratchpad
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 10. ~~kill tmux server and remove zsh integration~~
@@ -35,7 +35,7 @@ Summary (keep in sync with the steering file):
 1. fix lockscreen-related error message
 1. there's no gap between ghostty vertically
 1. zellij session should outlive ghostty
-1. run tts when asking for permission in kiro
+1. ~~run tts when asking for permission in kiro~~
 1. change neovide font back
 1. install nvim plugins with homa manager and remove submodules (check if it's updated automatically)
 1. control tab in vim cycles
@@ -75,9 +75,10 @@ Summary (keep in sync with the steering file):
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - Sync scripts: `~/.dotfiles/script/sync_all` (all repos), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
-  - `sync_dotfiles` jj path: skips empty changes, describes with AI commit message, pushes current change to hj
+  - `sync_dotfiles` jj path: skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
+  - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
@@ -90,7 +91,7 @@ Summary (keep in sync with the steering file):
 
 ### Neovim Dev Tooling
 - Config: `~/.dotfiles/vim.symlink/` (symlinked to ~/.vim/, also ~/.config/nvim via init.lua)
-- Plugin management: git submodules in `pack/bundles/start/` and `pack/bundles/opt/`
+- Plugin management: git submodules in `pack/bundles/start/` and `pack/bundles/opt/`; some plugins (nvim-lint) installed via home-manager `programs.neovim.plugins`
 - Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
 - Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
   - my-zsh.lua (bash/zsh), my-cpp.lua (c/c++), my-cmake.lua, my-docker.lua, my-glsl.lua
