@@ -16,6 +16,7 @@ in
       lush-nvim
       mason-lspconfig-nvim
       mason-nvim
+      mason-tool-installer-nvim
       neomru
       nerdcommenter
       nvim-dap
