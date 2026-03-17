@@ -1,9 +1,7 @@
 #!/bin/bash
-# Generate a commit message from the current jj/git diff using a local LLM
+# Generate a commit message from the current jj/git diff using kiro-cli (preferred) or ollama (fallback)
 # Usage: commit-msg [revision]
-# Requires: ollama with qwen2.5-coder:3b
 
-MODEL="qwen2.5-coder:3b"
 REV="${1:-@}"
 
 if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
@@ -20,9 +18,24 @@ fi
 # Truncate large diffs to avoid overwhelming the model
 diff=$(echo "$diff" | head -200)
 
-PROMPT="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."
+PROMPT="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else.
 
+$diff"
+
+# Try kiro-cli first (uses cloud model, better quality)
+if command -v kiro-cli &>/dev/null; then
+    msg=$(timeout 30 kiro-cli chat --no-interactive --trust-tools='' --wrap never --agent default "$PROMPT" 2>/dev/null \
+        | sed 's/\x1b\[[0-9;]*m//g' \
+        | sed 's/^> //')
+    if [ -n "$msg" ]; then
+        echo "$msg"
+        exit 0
+    fi
+fi
+
+# Fallback: ollama local LLM
+MODEL="qwen2.5-coder:3b"
 curl -sf --max-time 300 http://localhost:11434/api/generate \
-    -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT" --arg diff "$diff" \
-        '{model: $model, prompt: ($diff + "\n\n" + $prompt), stream: false}')" \
+    -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT" \
+        '{model: $model, prompt: $prompt, stream: false}')" \
     | jq -r '.response' | head -1
