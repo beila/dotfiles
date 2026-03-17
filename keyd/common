@@ -31,3 +31,7 @@ rightcontrol = overloadt2(control, apostrophe, 150)
 pause = volumeup
 scrolllock = volumedown
 sysrq = mute
+
+[alt]
+pause = brightnessup
+scrolllock = brightnessdown

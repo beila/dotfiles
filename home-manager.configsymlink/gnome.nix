@@ -34,6 +34,19 @@
     };
   };
 
+  # gnome-flashback provides org.gnome.Mutter.DisplayConfig DBus interface,
+  # which GNOME Settings "Displays" panel needs. The stock unit has
+  # StartLimitBurst=3/15s, so a power outage or repeated crash permanently
+  # kills it until next login. This drop-in removes the restart limit.
+  xdg.configFile."systemd/user/gnome-flashback.service.d/override.conf".text = ''
+    [Unit]
+    StartLimitIntervalSec=0
+
+    [Service]
+    Restart=always
+    RestartSec=2s
+  '';
+
   # Change lock screen wallpaper daily
   systemd.user.services.random-lockscreen = {
     Unit.Description = "Set random lock screen wallpaper";

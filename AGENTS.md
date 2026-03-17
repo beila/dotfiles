@@ -6,6 +6,7 @@
 - If the preferred tool is not installed, ask whether to install it (via home-manager in `home.nix`) or run it ad-hoc with `nix run nixpkgs#<pkg>`
 - TTS: at the end of every response, call the `say_ko` MCP tool with a Korean translation of a full summary of what was done or answered
 - After making changes that affect architecture, conventions, or behavior described in `AGENTS.md` or `README.md`, update those docs to reflect the new state
+- Never run `sudo` commands directly. Instead, copy the command to the clipboard and ask the user to run it
 
 ## TODO List
 
