@@ -9,6 +9,9 @@ in
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+    plugins = with pkgs.vimPlugins; [
+      nvim-lint
+    ];
   };
 
   # Dev tools for neovim — nix-installed unless noted
