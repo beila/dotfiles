@@ -16,7 +16,10 @@ if jj root &>/dev/null 2>&1; then
     CHANGE_ID=$(jj log -r @ --no-graph -T 'change_id' 2>/dev/null)
     jj new
     MSG=$("$1/bin/commit-msg" "$CHANGE_ID" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
-    jj describe "$CHANGE_ID" -m "$MSG"
+    # Strip markdown fences that LLMs sometimes wrap around output
+    MSG=$(echo "$MSG" | sed '/^```/d' | head -1)
+    [ -z "$MSG" ] && MSG="Change from ${MACHINE_NAME}"
+    jj describe "$CHANGE_ID" -m "${MACHINE_NAME}: $MSG"
 
     # Push bookmarks and @ to remote 'hj' with hostname prefix
     if jj git remote list 2>/dev/null | grep -q '^hj '; then
@@ -53,6 +56,8 @@ else
 
     $GIT add --verbose --all .
     MSG=$("$1/bin/commit-msg" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
+    MSG=$(echo "$MSG" | sed '/^```/d' | head -1)
+    [ -z "$MSG" ] && MSG="Change from ${MACHINE_NAME}"
     $GIT commit --verbose --no-allow-empty -m "$MSG"
     $GIT pull --ff --verbose --no-edit
 

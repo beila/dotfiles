@@ -27,7 +27,7 @@ Summary (keep in sync with the steering file):
 10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
 10. ~~kill tmux server and remove zsh integration~~
 1. ~~zoom notification on all workspace~~
-1. fix sync_all creating "```commit" or "```markdown" description
+1. ~~fix sync_all creating "```commit" or "```markdown" description~~
 1. make say_done run in background
 1. add local settings file into a non-public VCS
 1. can't type hangul in zellij/ghostty
