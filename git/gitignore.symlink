@@ -12,3 +12,4 @@ CMakeUserPresets.json
 .gdb_history
 .cache/
 .jj
+__cmake_systeminformation
