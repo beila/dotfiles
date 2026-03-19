@@ -52,18 +52,22 @@ scratchpadToggle name = withWindowSet $ \ws -> do
     case W.peek ws of
         Just w -> do
             sp <- isSP w
+            spawn ("echo 'PEEK w=" ++ show w ++ " sp=" ++ show sp ++ " name=" ++ name ++ "' >> /tmp/xmonad-sp.log")
             if sp
-                then windows $ W.shiftWin "NSP" w
+                then spawn "echo HIDE >> /tmp/xmonad-sp.log" >> windows (W.shiftWin "NSP" w)
                 else do
                     let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
                     spWindows <- filterM isSP allVisible
                     case spWindows of
                         (s:_) -> do
+                            spawn "echo FOCUS >> /tmp/xmonad-sp.log"
                             windows $ W.focusWindow s
                         []    -> do
+                            spawn "echo SHOW >> /tmp/xmonad-sp.log"
                             namedScratchpadAction myScratchpads name
                             refloatScratchpad isFirst isSP
         Nothing -> do
+            spawn "echo SHOW-EMPTY >> /tmp/xmonad-sp.log"
             namedScratchpadAction myScratchpads name
             refloatScratchpad isFirst isSP
 
