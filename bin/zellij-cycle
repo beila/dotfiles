@@ -19,7 +19,7 @@ next_session() {
             return
         fi
     done
-    echo "$cur"
+    echo "${sessions[0]}"
 }
 
 while [ -t 0 ]; do
@@ -27,4 +27,5 @@ while [ -t 0 ]; do
     # zellij exited (detached) — cycle to next session
     [ -t 0 ] || break
     SESSION=$(next_session "$SESSION")
+    clear
 done
