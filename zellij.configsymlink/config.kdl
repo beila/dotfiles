@@ -11,13 +11,8 @@ keybinds clear-defaults=true {
         bind "Alt b" { SwitchToMode "tmux"; }
         bind "Alt g" { SwitchToMode "locked"; }
         bind "Alt q" { Quit; }
-        // Sessions: Alt-tab cycles
-        bind "Alt tab" {
-            LaunchOrFocusPlugin "session-manager" {
-                floating true
-                move_to_focused_tab true
-            }
-        }
+        // Sessions: Alt-tab cycles (detach triggers zellij-cycle wrapper to reattach next)
+        bind "Alt tab" { Detach; }
         // Tabs: Alt-h/l or Ctrl-tab
         bind "Alt h" { GoToPreviousTab; }
         bind "Alt l" { GoToNextTab; }
