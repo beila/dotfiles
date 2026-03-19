@@ -27,16 +27,14 @@ keybinds clear-defaults=true {
         bind "Ctrl j" { MoveFocus "down"; }
         bind "Ctrl k" { MoveFocus "up"; }
         bind "Ctrl l" { MoveFocus "right"; }
+        // Move tabs: Alt-Shift-h/l
+        bind "Alt H" { MoveTab "left"; }
+        bind "Alt L" { MoveTab "right"; }
         // Move panes: Ctrl-Shift-h/j/k/l
-        bind "Alt Shift tab" { MoveTab "right"; }
         bind "Ctrl H" { MovePane "left"; }
         bind "Ctrl J" { MovePane "down"; }
         bind "Ctrl K" { MovePane "up"; }
         bind "Ctrl L" { MovePane "right"; }
-        bind "Alt H" { MovePane "left"; }
-        bind "Alt J" { MovePane "down"; }
-        bind "Alt K" { MovePane "up"; }
-        bind "Alt L" { MovePane "right"; }
     }
     pane {
         bind "Alt left" { MoveFocus "left"; }
