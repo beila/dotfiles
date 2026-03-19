@@ -53,7 +53,7 @@ scratchpadToggle name = withWindowSet $ \ws -> do
         Just w -> do
             sp <- isSP w
             if sp
-                then namedScratchpadAction myScratchpads name
+                then windows $ W.shiftWin "NSP" w
                 else do
                     let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
                     spWindows <- filterM isSP allVisible
