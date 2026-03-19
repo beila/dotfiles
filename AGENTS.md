@@ -145,9 +145,9 @@ Summary (keep in sync with the steering file):
 
 ### Scratchpad System
 - Two independent ghostty instances (scratchpad1, scratchpad2)
-- Custom `scratchpadToggle`: focused→hide, visible unfocused→focus+reposition, hidden→show+reposition
+- `scratchpadToggle`: focused→hide to NSP, visible on another screen→focus, hidden (NSP or any non-visible workspace)→bring to current workspace+float+focus
 - `adaptiveFloat` manage hook: landscape→side-by-side halves, portrait→stacked halves, 2% margins
-- `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show/focus
+- `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show
 - Identified by x11-instance-name (scratchpad1/scratchpad2)
 
 ### Zoom Notification
