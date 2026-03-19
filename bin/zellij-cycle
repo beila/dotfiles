@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Zellij session cycler — wraps zellij attach in a loop.
+# On detach (Alt-tab), reattaches to the next active session.
+# Exits when the terminal is gone (ghostty killed).
+# Usage: zellij-cycle <default-session-name>
+set -euo pipefail
+
+SESSION="${1:-main}"
+
+next_session() {
+    local cur="$1"
+    local sessions
+    sessions=($(zellij ls -n 2>/dev/null | grep -v EXITED | awk '{print $1}'))
+    local n=${#sessions[@]}
+    [ "$n" -le 1 ] && echo "$cur" && return
+    for i in "${!sessions[@]}"; do
+        if [ "${sessions[$i]}" = "$cur" ]; then
+            echo "${sessions[$(( (i + 1) % n ))]}"
+            return
+        fi
+    done
+    echo "$cur"
+}
+
+while [ -t 0 ]; do
+    zellij attach --create "$SESSION" 2>/dev/null || true
+    # zellij exited (detached) — cycle to next session
+    [ -t 0 ] || break
+    SESSION=$(next_session "$SESSION")
+done
