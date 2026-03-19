@@ -41,36 +41,33 @@ adaptiveFloat isFirst = do
                     else W.RationalRect 0.01 0.505 0.98 0.475
     doRectFloat rect
 
--- Custom scratchpad toggle:
--- focused → hide, visible but unfocused → focus+reposition, hidden → show+reposition
+-- Scratchpad toggle (each scratchpad independent):
+-- 1. Focused on current screen → hide (move to NSP)
+-- 2. Visible on another screen → just focus it
+-- 3. Hidden (NSP or any non-visible workspace) → move to current workspace, float, and focus
 scratchpadToggle name = withWindowSet $ \ws -> do
     let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
                     (NS _ _ q _:_) -> q
                     _              -> return False
     let isSP w = runQuery query w
     let isFirst = name == "ghostty1"
-    case W.peek ws of
-        Just w -> do
-            sp <- isSP w
-            spawn ("echo 'PEEK w=" ++ show w ++ " sp=" ++ show sp ++ " name=" ++ name ++ "' >> /tmp/xmonad-sp.log")
-            if sp
-                then do
-                    spawn "echo HIDE >> /tmp/xmonad-sp.log"
-                    windows $ W.shift "NSP"
-                else do
-                    let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
-                    spWindows <- filterM isSP allVisible
-                    case spWindows of
-                        (s:_) -> do
-                            spawn "echo FOCUS >> /tmp/xmonad-sp.log"
-                            windows $ W.focusWindow s
-                        []    -> do
-                            spawn "echo SHOW >> /tmp/xmonad-sp.log"
-                            namedScratchpadAction myScratchpads name
-                            refloatScratchpad isFirst isSP
-        Nothing -> do
-            spawn "echo SHOW-EMPTY >> /tmp/xmonad-sp.log"
-            namedScratchpadAction myScratchpads name
+    let allWins = W.allWindows ws
+    spWins <- filterM isSP allWins
+    case spWins of
+        [] -> namedScratchpadAction myScratchpads name  -- not spawned yet
+        (s:_) -> do
+            isFocused <- case W.peek ws of
+                Just w  -> isSP w
+                Nothing -> return False
+            let visibleWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
+            let isVisible = s `elem` visibleWins
+            if isFocused
+                then namedScratchpadAction myScratchpads name  -- hide
+                else if isVisible
+                    then windows $ W.focusWindow s  -- on another screen, just focus
+                    else do  -- hidden: bring to current workspace and float
+                        namedScratchpadAction myScratchpads name
+                        refloatScratchpad isFirst isSP
             refloatScratchpad isFirst isSP
 
 -- Find the scratchpad window and refloat it
