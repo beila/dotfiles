@@ -54,7 +54,9 @@ scratchpadToggle name = withWindowSet $ \ws -> do
             sp <- isSP w
             spawn ("echo 'PEEK w=" ++ show w ++ " sp=" ++ show sp ++ " name=" ++ name ++ "' >> /tmp/xmonad-sp.log")
             if sp
-                then spawn "echo HIDE >> /tmp/xmonad-sp.log" >> windows (W.shiftWin "NSP" w)
+                then do
+                    spawn "echo HIDE >> /tmp/xmonad-sp.log"
+                    windows $ W.shift "NSP"
                 else do
                     let allVisible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
                     spWindows <- filterM isSP allVisible
