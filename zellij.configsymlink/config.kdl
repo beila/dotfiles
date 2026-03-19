@@ -11,12 +11,28 @@ keybinds clear-defaults=true {
         bind "Alt b" { SwitchToMode "tmux"; }
         bind "Alt g" { SwitchToMode "locked"; }
         bind "Alt q" { Quit; }
-        bind "Alt tab" { GoToNextTab; }
-        bind "Alt h" { MoveFocus "left"; }
-        bind "Alt j" { MoveFocus "down"; }
-        bind "Alt k" { MoveFocus "up"; }
-        bind "Alt l" { MoveFocus "right"; }
+        // Sessions: Alt-tab cycles
+        bind "Alt tab" {
+            LaunchOrFocusPlugin "session-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+        }
+        // Tabs: Alt-h/l or Ctrl-tab
+        bind "Alt h" { GoToPreviousTab; }
+        bind "Alt l" { GoToNextTab; }
+        bind "Ctrl tab" { GoToNextTab; }
+        // Panes: Ctrl-h/j/k/l
+        bind "Ctrl h" { MoveFocus "left"; }
+        bind "Ctrl j" { MoveFocus "down"; }
+        bind "Ctrl k" { MoveFocus "up"; }
+        bind "Ctrl l" { MoveFocus "right"; }
+        // Move panes: Ctrl-Shift-h/j/k/l
         bind "Alt Shift tab" { MoveTab "right"; }
+        bind "Ctrl H" { MovePane "left"; }
+        bind "Ctrl J" { MovePane "down"; }
+        bind "Ctrl K" { MovePane "up"; }
+        bind "Ctrl L" { MovePane "right"; }
         bind "Alt H" { MovePane "left"; }
         bind "Alt J" { MovePane "down"; }
         bind "Alt K" { MovePane "up"; }
