@@ -20,10 +20,10 @@ import XMonad.Util.EZConfig(additionalKeys)
 -- Scratchpads: two independent floating ghostty terminals
 -- End key toggles scratchpad1, PgDn toggles scratchpad2
 -- Positioning handled by adaptiveFloat based on screen orientation
-myScratchpads = [ NS "ghostty1" "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e zellij attach --create scratch1"
+myScratchpads = [ NS "ghostty1" "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e zellij-cycle scratch1"
                      (appName =? "scratchpad1")
                      (adaptiveFloat True)
-                , NS "ghostty2" "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e zellij attach --create scratch2"
+                , NS "ghostty2" "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e zellij-cycle scratch2"
                      (appName =? "scratchpad2")
                      (adaptiveFloat False) ]
 
