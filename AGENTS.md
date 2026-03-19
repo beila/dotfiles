@@ -29,7 +29,7 @@ Summary (keep in sync with the steering file):
 10. ~~kill tmux server and remove zsh integration~~
 1. ~~zoom notification on all workspace~~
 1. ~~fix sync_all creating "```commit" or "```markdown" description~~
-1. zellij session should outlive ghostty
+1. ~~zellij session should outlive ghostty~~
 1. there's no gap between ghostty vertically
 1. fix lockscreen-related error message
 1. can't type hangul in zellij/ghostty
@@ -37,8 +37,8 @@ Summary (keep in sync with the steering file):
 1. ~~run tts when asking for permission in kiro~~
 1. change neovide font back
 1. install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)
-1. keybindings for session/tab/pane changes in zellij
-1. different zellij sessions for each scratchpad
+1. ~~keybindings for session/tab/pane changes in zellij~~
+1. ~~different zellij sessions for each scratchpad~~
 1. add a script to add a new git-worktree/jj-workspace
 1. ~~use kiro first for commit message generation~~
 1. ollama server started on demand
@@ -66,6 +66,8 @@ Summary (keep in sync with the steering file):
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
+  - Normal mode keybindings: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-h/l→prev/next tab, Ctrl-tab→next tab, Ctrl-h/j/k/l→move focus between panes
+  - Move keybindings: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
@@ -77,6 +79,7 @@ Summary (keep in sync with the steering file):
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback
+- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps zellij attach in a loop; on detach cycles to next active session; shows session name between switches
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run
@@ -144,7 +147,8 @@ Summary (keep in sync with the steering file):
 - Uses brightnessctl (nix), 5% steps ≤20%, 10% above
 
 ### Scratchpad System
-- Two independent ghostty instances (scratchpad1, scratchpad2)
+- Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with its own default session (scratch1, scratch2)
+- `zellij-cycle` wrapper: loops attach→detach, cycling to next active session on Alt-tab (Detach); shows next session name between switches
 - `scratchpadToggle`: focused→hide to NSP, visible on another screen→focus, hidden (NSP or any non-visible workspace)→bring to current workspace+float+focus
 - `adaptiveFloat` manage hook: landscape→side-by-side halves, portrait→stacked halves, 2% margins
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show
