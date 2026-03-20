@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 # Zellij session cycler — wraps zellij attach in a loop.
 # On detach (Alt-tab), reattaches to the next active session.
+# If a session was picked via zellij-pick-session, switches to that instead.
 # Exits when the terminal is gone (ghostty killed).
 # Usage: zellij-cycle <default-session-name>
 set -euo pipefail
 
 SESSION="${1:-main}"
+PICK_FILE="/tmp/zellij-cycle-pick.$$"
+export CYCLE_PICK_FILE="$PICK_FILE"
+
+cleanup() { rm -f "$PICK_FILE"; }
+trap cleanup EXIT
 
 next_session() {
     local cur="$1"
@@ -24,8 +30,13 @@ next_session() {
 
 while [ -t 0 ]; do
     zellij attach --create "$SESSION" 2>/dev/null || true
-    # zellij exited (detached) — cycle to next session
+    # zellij exited (detached) — check for picked session, else cycle
     [ -t 0 ] || break
-    SESSION=$(next_session "$SESSION")
+    if [ -f "$PICK_FILE" ]; then
+        SESSION=$(cat "$PICK_FILE")
+        rm -f "$PICK_FILE"
+    else
+        SESSION=$(next_session "$SESSION")
+    fi
     clear
 done
