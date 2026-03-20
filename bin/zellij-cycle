@@ -7,10 +7,15 @@
 set -euo pipefail
 
 SESSION="${1:-main}"
-PICK_PREFIX="/tmp/zellij-cycle-pick."
+PICK_FILE="/tmp/zellij-cycle-pick.$$"
+PID_FILE="/tmp/zellij-cycle-attach.$$"
+CONFIG_FILE="/tmp/zellij-cycle-config.$$"
 
-cleanup() { rm -f "${PICK_PREFIX}"*; }
+cleanup() { rm -f "$PICK_FILE" "$PID_FILE" "$CONFIG_FILE"; }
 trap cleanup EXIT
+
+sed "s|CYCLE_PICK_FILE|$PICK_FILE|g;s|CYCLE_PID_FILE|$PID_FILE|g" \
+    ~/.config/zellij/config.kdl > "$CONFIG_FILE"
 
 next_session() {
     local cur="$1"
@@ -28,12 +33,14 @@ next_session() {
 }
 
 while [ -t 0 ]; do
-    zellij attach --create "$SESSION" 2>/dev/null || true
+    zellij attach --create --config "$CONFIG_FILE" "$SESSION" 2>/dev/null &
+    echo $! > "$PID_FILE"
+    wait $! 2>/dev/null || true
+    rm -f "$PID_FILE"
     [ -t 0 ] || break
-    pf="${PICK_PREFIX}${SESSION}"
-    if [ -f "$pf" ]; then
-        SESSION=$(cat "$pf")
-        rm -f "$pf"
+    if [ -f "$PICK_FILE" ]; then
+        SESSION=$(cat "$PICK_FILE")
+        rm -f "$PICK_FILE"
     else
         SESSION=$(next_session "$SESSION")
     fi
