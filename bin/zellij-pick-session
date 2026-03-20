@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# Pick a zellij session via fzf, write choice, kill attach to trigger switch.
+# Pick a zellij session via fzf, then run a callback with the chosen name.
 # Alt-s cycles through entries. Enter confirms. Esc cancels.
-# Usage: zellij-pick-session <pick-file> <pid-file>
+# Usage: zellij-pick-session <on-select-command>
+# The callback can use $1 for the chosen session name.
 set -euo pipefail
 
-PICK_FILE="${1:-}"
-PID_FILE="${2:-}"
-
-if [ -z "$PICK_FILE" ] || [ "$PICK_FILE" = "CYCLE_PICK_FILE" ]; then
-    echo "Not running inside zellij-cycle" >&2
+CALLBACK="${1:-}"
+if [ -z "$CALLBACK" ] || [ "$CALLBACK" = "CYCLE_SWITCH_CMD" ]; then
+    echo "Usage: zellij-pick-session <on-select-command>" >&2
     exit 1
 fi
 
 pick=$(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}' \
     | fzf --cycle --prompt="session> " --bind="alt-s:down") || exit 0
-echo "$pick" > "$PICK_FILE"
-kill "$(cat "$PID_FILE")" 2>/dev/null
+set -- "$pick"  # set $1 to the chosen session name for the callback
+eval "$CALLBACK"
