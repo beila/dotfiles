@@ -32,7 +32,7 @@ _gf_get_file() {
 
 _gf() {
   if is_in_jj_repo; then
-    jj --quiet diff --stat --color=always 2>/dev/null |
+    jj --quiet diff --name-only --color=always 2>/dev/null |
       fzf_down -m --ansi \
         --preview 'file=$(awk "{print \$1}" <<< {}); jj --quiet diff --color=always -- "$file"' |
       awk '{print $1}'
