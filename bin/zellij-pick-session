@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# Pick a zellij session via fzf, write choice to pick file, then detach.
+# Pick a zellij session via fzf, write choice, kill attach to trigger switch.
 # Alt-s cycles through entries. Enter confirms. Esc cancels.
-# Intended to run inside a zellij pane (launched by zellij-cycle).
+# Usage: zellij-pick-session <pick-file> <pid-file>
 set -euo pipefail
+
+PICK_FILE="${1:-}"
+PID_FILE="${2:-}"
+
+if [ -z "$PICK_FILE" ] || [ "$PICK_FILE" = "CYCLE_PICK_FILE" ]; then
+    echo "Not running inside zellij-cycle" >&2
+    exit 1
+fi
 
 pick=$(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}' \
     | fzf --cycle --prompt="session> " --bind="alt-s:down") || exit 0
-echo "$pick" > "/tmp/zellij-cycle-pick.${ZELLIJ_SESSION_NAME}"
-zellij action detach
+echo "$pick" > "$PICK_FILE"
+kill "$(cat "$PID_FILE")" 2>/dev/null
