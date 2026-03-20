@@ -14,10 +14,9 @@ fi
 pick=$(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}' \
     | fzf --cycle --prompt="session> " --bind="alt-s:down") || exit 0
 
-run_detached() {
-    sleep 0.5
-    set -- $pick
-    eval "$CALLBACK"
-}
-run_detached & disown
+# Write callback to a temp script and run it in a new session so it
+# survives pane closure
+tmp=$(mktemp /tmp/zellij-pick-cb.XXXXXX)
+echo "sleep 0.1; set -- $pick; $CALLBACK; rm -f $tmp" > "$tmp"
+setsid bash "$tmp" </dev/null &>/dev/null &
 zellij action close-pane 2>/dev/null || true
