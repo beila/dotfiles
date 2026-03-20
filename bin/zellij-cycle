@@ -8,15 +8,17 @@ set -euo pipefail
 
 SESSION="${1:-main}"
 PICK_FILE="/tmp/zellij-cycle-pick.$$"
-ATTACH_PID_FILE="/tmp/zellij-cycle-attach-pid.$$"
+CYCLE_PID_FILE="/tmp/zellij-cycle-pid.$$"
 CONFIG_FILE="/tmp/zellij-cycle-config.$$"
 
-cleanup() { rm -f "$PICK_FILE" "$ATTACH_PID_FILE" "$CONFIG_FILE"; }
+cleanup() { rm -f "$PICK_FILE" "$CYCLE_PID_FILE" "$CONFIG_FILE"; }
 trap cleanup EXIT
 
+echo $$ > "$CYCLE_PID_FILE"
+
 # Generate per-instance config: replace CYCLE_SWITCH_CMD with a callback
-# that writes the chosen session to PICK_FILE and kills the attach process.
-SWITCH_CMD="echo \\\"\\\$1\\\" > $PICK_FILE && kill \\\$(cat $ATTACH_PID_FILE)"
+# that writes the chosen session ($*) to PICK_FILE and kills the attach child.
+SWITCH_CMD="'echo \$* > $PICK_FILE \\&\\& pkill -P \\\$(cat $CYCLE_PID_FILE)'"
 sed "s|CYCLE_SWITCH_CMD|$SWITCH_CMD|g" ~/.config/zellij/config.kdl > "$CONFIG_FILE"
 
 next_session() {
@@ -35,10 +37,7 @@ next_session() {
 }
 
 while [ -t 0 ]; do
-    zellij attach --create --config "$CONFIG_FILE" "$SESSION" 2>/dev/null &
-    echo $! > "$ATTACH_PID_FILE"
-    wait $! 2>/dev/null || true
-    rm -f "$ATTACH_PID_FILE"
+    zellij attach --create --config "$CONFIG_FILE" "$SESSION" 2>/dev/null || true
     [ -t 0 ] || break
     if [ -f "$PICK_FILE" ]; then
         SESSION=$(cat "$PICK_FILE")
