@@ -2,7 +2,7 @@
 # Pick a zellij session via fzf, then run a callback with the chosen name.
 # Alt-s cycles through entries. Enter confirms. Esc cancels.
 # Usage: zellij-pick-session <on-select-command>
-# The callback can use $1 for the chosen session name.
+# The callback can use $* for the chosen session name.
 set -euo pipefail
 
 CALLBACK="${1:-}"
@@ -13,5 +13,5 @@ fi
 
 pick=$(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}' \
     | fzf --cycle --prompt="session> " --bind="alt-s:down") || exit 0
-set -- "$pick"  # set $1 to the chosen session name for the callback
+set -- $pick  # set positional params for the callback ($*)
 eval "$CALLBACK"
