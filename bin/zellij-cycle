@@ -37,7 +37,7 @@ next_session() {
 }
 
 while [ -t 0 ]; do
-    zellij attach --create --config "$CONFIG_FILE" "$SESSION" 2>/dev/null || true
+    zellij --config "$CONFIG_FILE" attach --create "$SESSION" 2>/dev/null || true
     [ -t 0 ] || break
     if [ -f "$PICK_FILE" ]; then
         SESSION=$(cat "$PICK_FILE")
