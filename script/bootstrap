@@ -203,11 +203,11 @@ setup_pbcopy_from_ssh () {
 }
 
 setup_gitconfig
-git submodule update --init --remote
-git submodule foreach "git submodule update --init --recursive"
-for sm in $($DOTFILES_ROOT/zsh/functions/gSl); do
-    git config submodule.$sm.active false
-done
+#git submodule update --init --remote
+#git submodule foreach "git submodule update --init --recursive"
+#for sm in $($DOTFILES_ROOT/zsh/functions/gSl); do
+    #git config submodule.$sm.active false
+#done
 
 install_dotfiles
 #setup_dotfiles_sync    # replaced with systemd servie set up by home manager
