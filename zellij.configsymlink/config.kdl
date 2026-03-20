@@ -14,7 +14,7 @@ keybinds clear-defaults=true {
         bind "Alt o" { SwitchToMode "session"; }
         bind "Alt p" { SwitchToMode "pane"; }
         bind "Alt q" { Quit; }
-        bind "Alt s" { Run "zsh" "-ic" "zellij run -f -c -- zellij-pick-session CYCLE_SWITCH_CMD; zellij action close-pane"; }
+        bind "Alt s" { Run "zsh" "-ic" "zellij-pick-session CYCLE_SWITCH_CMD"; }
         bind "Alt t" { SwitchToMode "tab"; }
         bind "Alt v" { EditScrollback; }
         bind "Ctrl tab" { GoToNextTab; }

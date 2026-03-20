@@ -44,6 +44,8 @@ Summary (keep in sync with the steering file):
 1. ollama server started on demand
 1. how do I get notified with sync_all error
 1. add split feature to _gf
+1. zellij session picker: show current session differently and make it not choosable
+1. zellij session picker: make it floating
 
 ## Architecture Overview
 
@@ -67,7 +69,7 @@ Summary (keep in sync with the steering file):
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-  - Normal mode keybindings: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-s→floating fzf session picker (cycles with Alt-s, current session marked, not selectable), Alt-h/l→prev/next tab, Ctrl-tab→next tab, Ctrl-h/j/k/l→move focus between panes
+  - Normal mode keybindings: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-s→fzf session picker, Alt-h/l→prev/next tab, Ctrl-tab→next tab, Ctrl-h/j/k/l→move focus between panes
   - Move keybindings: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
@@ -81,7 +83,7 @@ Summary (keep in sync with the steering file):
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps zellij attach in a loop; on detach cycles to next active session; generates per-instance config with session picker callback; supports session names with spaces
-- Zellij session picker: `~/.dotfiles/bin/zellij-pick-session` — fzf-based session picker with Alt-s cycling; accepts generic callback ($*); current session shown with `*` marker and not selectable
+- Zellij session picker: `~/.dotfiles/bin/zellij-pick-session` — fzf-based session picker with Alt-s cycling; accepts generic callback ($*); closes own pane and runs callback detached via setsid
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run
@@ -150,7 +152,7 @@ Summary (keep in sync with the steering file):
 
 ### Scratchpad System
 - Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with its own default session (scratch1, scratch2)
-- `zellij-cycle` wrapper: loops attach→detach, cycling to next active session on Alt-tab (Detach); Alt-s opens floating fzf picker; generates per-instance zellij config (sed CYCLE_SWITCH_CMD) with callback that writes pick file and pkills attach; picker runs detached via setsid to survive pane closure
+- `zellij-cycle` wrapper: loops attach→detach, cycling to next active session on Alt-tab (Detach); Alt-s opens fzf session picker in a tiled pane; generates per-instance zellij config (sed CYCLE_SWITCH_CMD) with callback that writes pick file and pkills attach; picker runs detached via setsid to survive pane closure
 - `scratchpadToggle`: focused→hide to NSP, visible on another screen→focus, hidden (NSP or any non-visible workspace)→bring to current workspace+float+focus
 - `adaptiveFloat` manage hook: landscape→side-by-side halves, portrait→stacked halves, 2% margins
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show
