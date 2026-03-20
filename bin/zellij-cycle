@@ -10,7 +10,7 @@ SESSION="${1:-main}"
 next_session() {
     local cur="$1"
     local sessions
-    sessions=($(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \[" '{print $1}'))
+    mapfile -t sessions < <(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}')
     local n=${#sessions[@]}
     [ "$n" -le 1 ] && echo "$cur" && return
     for i in "${!sessions[@]}"; do
