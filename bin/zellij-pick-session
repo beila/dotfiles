@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Pick a zellij session via fzf, then run a callback with the chosen name.
 # Alt-s cycles through entries. Enter confirms. Esc cancels.
-# Current session is shown with a marker but not selectable.
 # Usage: zellij-pick-session <on-select-command>
 # The callback can use $* for the chosen session name.
 set -euo pipefail
@@ -12,12 +11,8 @@ if [ -z "$CALLBACK" ] || [ "$CALLBACK" = "CYCLE_SWITCH_CMD" ]; then
     exit 1
 fi
 
-cur="${ZELLIJ_SESSION_NAME:-}"
 pick=$(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}' \
-    | awk -v cur="$cur" '{if ($0 == cur) print "* " $0; else print "  " $0}' \
-    | fzf --cycle --prompt="session> " --bind="alt-s:down" --ansi \
-    | grep -v '^\*' | sed 's/^  //') || exit 0
-[ -z "$pick" ] && exit 0
+    | fzf --cycle --prompt="session> " --bind="alt-s:down") || exit 0
 
 # Write callback to a temp script and run it in a new session so it
 # survives pane closure
