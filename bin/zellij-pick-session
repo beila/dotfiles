@@ -13,6 +13,11 @@ fi
 
 pick=$(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}' \
     | fzf --cycle --prompt="session> " --bind="alt-s:down") || exit 0
-set -- $pick  # set positional params for the callback ($*)
-( sleep 0.2; eval "$CALLBACK" ) & disown
+
+run_detached() {
+    sleep 0.5
+    set -- $pick
+    eval "$CALLBACK"
+}
+run_detached & disown
 zellij action close-pane 2>/dev/null || true
