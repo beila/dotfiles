@@ -33,14 +33,14 @@ while true; do
       case "$tool" in
         say)
           ~/.dotfiles/bin/say "$text" &>/dev/null &
-          send_msg "{\"jsonrpc\":\"2.0\",\"id\":$id,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Spoke: $text\"}]}}"
+          send_msg "$(jq -nc --argjson id "$id" --arg text "Spoke: $text" '{"jsonrpc":"2.0","id":$id,"result":{"content":[{"type":"text","text":$text}]}}')"
           ;;
         say_ko)
           ~/.dotfiles/bin/say-ko "$text" &>/dev/null &
-          send_msg "{\"jsonrpc\":\"2.0\",\"id\":$id,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Spoke: $text\"}]}}"
+          send_msg "$(jq -nc --argjson id "$id" --arg text "Spoke: $text" '{"jsonrpc":"2.0","id":$id,"result":{"content":[{"type":"text","text":$text}]}}')"
           ;;
         *)
-          send_msg "{\"jsonrpc\":\"2.0\",\"id\":$id,\"error\":{\"code\":-32601,\"message\":\"Unknown tool: $tool\"}}"
+          send_msg "$(jq -nc --argjson id "$id" --arg msg "Unknown tool: $tool" '{"jsonrpc":"2.0","id":$id,"error":{"code":-32601,"message":$msg}}')"
           ;;
       esac
       ;;
