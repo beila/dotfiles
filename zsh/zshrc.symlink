@@ -28,11 +28,8 @@ do
   source $file
 done
 
-# TODO this one stops me from logging in:
-# .dotfiles/vim.sync/bundle/vimshell/autoload/unite/sources/vimshell_zsh_complete/complete.zsh
-#
 # load everything but the path and completion files
-for file in ${${${config_files:#*/path.zsh}:#*/completion.zsh}:#*/vimshell/*}
+for file in ${${config_files:#*/path.zsh}:#*/completion.zsh}
 do
   #echo "sourcing: $file"
   source $file
