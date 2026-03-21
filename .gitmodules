@@ -1,11 +1,6 @@
 [submodule "pack/bundles/start/vim-scimark"]
 	path = pack/bundles/start/vim-scimark
 	url = https://github.com/mipmip/vim-scimark.git
-[submodule "bundle/tasklist"]
-	path = pack/bundles/start/tasklist
-	url = https://github.com/vim-scripts/TaskList.vim.git
-	branch = master
-	ignore = all
 [submodule "pack/bundles/start/tree-sitter-just"]
 	path = pack/bundles/start/tree-sitter-just
 	url = https://github.com/IndianBoy42/tree-sitter-just.git
