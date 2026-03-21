@@ -1,8 +1,3 @@
-[submodule "bundle/SrcExpl"]
-	path = pack/bundles/start/SrcExpl
-	url = https://github.com/vim-scripts/SrcExpl
-	branch = master
-	ignore = all
 [submodule "bundle/jsonc"]
 	path = pack/bundles/start/jsonc
 	url = https://github.com/neoclide/jsonc.vim
