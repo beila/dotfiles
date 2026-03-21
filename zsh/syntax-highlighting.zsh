@@ -1,12 +1,5 @@
-# Syntax highlighting — replaces zprezto 'syntax-highlighting' module
-# Wraps zsh-syntax-highlighting plugin (installed via nix)
+# Syntax highlighting — fast-syntax-highlighting (installed via nix)
+# Replaces zsh-syntax-highlighting with richer highlighting:
+# variables, numbers, paths, heredocs, per-command chromas (git, docker, etc.)
 
-source ~/.nix-profile/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh || return
-
-ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern line root)
-
-ZSH_HIGHLIGHT_STYLES[builtin]='bg=blue'
-ZSH_HIGHLIGHT_STYLES[command]='bg=blue'
-ZSH_HIGHLIGHT_STYLES[function]='bg=blue'
-
-ZSH_HIGHLIGHT_PATTERNS['rm*-rf*']='fg=white,bold,bg=red'
+source ~/.nix-profile/share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh || return
