@@ -8,11 +8,6 @@
 	url = https://github.com/vim-scripts/TaskList.vim.git
 	branch = master
 	ignore = all
-[submodule "bundle/nerdtree"]
-	path = pack/bundles/opt/nerdtree
-	url = https://github.com/vim-scripts/The-NERD-tree.git
-	branch = master
-	ignore = all
 [submodule "bundle/nerdcommenter"]
 	path = pack/bundles/start/nerdcommenter
 	url = https://github.com/scrooloose/nerdcommenter.git
