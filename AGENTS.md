@@ -36,7 +36,8 @@ Summary (keep in sync with the steering file):
 1. add local settings file into a non-public VCS
 1. ~~run tts when asking for permission in kiro~~
 1. change neovide font back
-1. install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)
+1. ~~install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)~~
+1. review each nvim plugin and cleanup/modernise
 1. ~~keybindings for session/tab/pane changes in zellij~~
 1. ~~different zellij sessions for each scratchpad~~
 1. add a script to add a new git-worktree/jj-workspace
