@@ -13,9 +13,9 @@ if [[ "$TERM" == 'dumb' ]]; then
 fi
 
 # Add zsh-completions to $fpath (installed via nix).
-# Also add nix's own completions (for the `nix` command).
-nix_share="${commands[nix]:h:h}/share/zsh/site-functions"
-fpath=(~/.nix-profile/share/zsh/site-functions ${nix_share:+$nix_share} $fpath)
+# Also add nix's own completions (for the `nix` command) from its store path.
+local _nix_zsh="$(readlink -f "$(whence -p nix)")"; _nix_zsh="${_nix_zsh%/bin/nix}/share/zsh/site-functions"
+fpath=(~/.nix-profile/share/zsh/site-functions ${_nix_zsh:+$_nix_zsh} $fpath)
 
 #
 # Options
