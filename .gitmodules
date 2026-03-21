@@ -92,9 +92,6 @@
 [submodule "bundle/vim-jinja"]
 	path = pack/bundles/start/vim-jinja
 	url = https://github.com/lepture/vim-jinja.git
-[submodule "bundle/ale"]
-	path = pack/bundles/opt/ale
-	url = https://github.com/dense-analysis/ale.git
 [submodule "bundle/jsonc"]
 	path = pack/bundles/start/jsonc
 	url = https://github.com/neoclide/jsonc.vim
