@@ -1,5 +1,10 @@
-# Editor — replaces zprezto 'editor' module
-# Vi mode, dot expansion, essential key bindings
+# Based on zprezto modules/editor/init.zsh
+#
+# Sets key bindings.
+#
+# Original authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
 
 [[ "$TERM" == 'dumb' ]] && return
 
