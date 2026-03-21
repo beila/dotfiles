@@ -45,10 +45,12 @@ autoload -Uz add-zsh-hook
 
 # Apple Terminal: set proxy icon (CWD) instead of custom titles
 if [[ "$TERM_PROGRAM" == 'Apple_Terminal' ]] && ! [[ -n "$STY" || -n "$TMUX" || -n "$DVTM" ]]; then
-  add-zsh-hook precmd  function { printf '\e]7;%s\a' "file://${HOST}${PWD// /%20}" }
-  add-zsh-hook preexec function {
+  function _terminal-set-proxy-icon { printf '\e]7;%s\a' "file://${HOST}${PWD// /%20}" }
+  function _terminal-unset-proxy-icon {
     [[ "${2[(w)1]:t}" == (screen|tmux|dvtm|ssh|mosh) ]] && print '\e]7;\a'
   }
+  add-zsh-hook precmd _terminal-set-proxy-icon
+  add-zsh-hook preexec _terminal-unset-proxy-icon
   return
 fi
 
