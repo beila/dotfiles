@@ -62,6 +62,8 @@ in
         pkgs.zsh-completions
         pkgs.nix-zsh-completions
         pkgs.zsh-powerlevel10k
+        pkgs.zsh-syntax-highlighting
+        pkgs.zsh-autosuggestions
 
         pkgs.awscli2
 
