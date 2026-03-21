@@ -10,7 +10,7 @@ _cmd_timer_precmd() {
         local duration=$(( $(date +%s) - _cmd_start ))
         unset _cmd_start
         if [[ $duration -gt 10 ]]; then
-            say_done
+            say_done &
         fi
     fi
 }

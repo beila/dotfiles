@@ -1,5 +1,6 @@
-# :A = resolve symlink to absolute path, :h = dirname (applied twice to go up two levels)
-export DOTFILES_ROOT="${0:A:h:h}"
+# Resolve ~/.zshenv symlink to find dotfiles root
+# ${(%):-%N} = this file's path (works in sourced files and zsh -c), :A = resolve symlink, :h:h = up two dirs
+export DOTFILES_ROOT="${${(%):-%N}:A:h:h}"
 
 # all of our zsh files
 typeset -U config_files
