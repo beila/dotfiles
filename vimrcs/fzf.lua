@@ -1,5 +1,3 @@
-vim.cmd("packadd fzf-lua")
-
 local fzf_lua = require("fzf-lua")
 
 fzf_lua.setup_fzfvim_cmds()
