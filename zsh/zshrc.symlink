@@ -20,33 +20,23 @@ export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 # all of our zsh files
 typeset -U config_files
 config_files=(${DOTFILES_ROOT}/**/*.zsh)
-zprezto_config_file=zprezto.symlink/init.zsh
-config_files=(${config_files:#*${zprezto_config_file}})
 
 # load the path files
-for file in ${${(M)config_files:#*/path.zsh}:#*/zprezto.symlink/modules/*}
+for file in ${(M)config_files:#*/path.zsh}
 do
   #echo "sourcing path from: $file"
   source $file
 done
 
-# https://youtrack.jetbrains.com/articles/IDEA-A-19/Shell-Environment-Loading
-if [ -z "$INTELLIJ_ENVIRONMENT_READER" ]; then
-  #echo "sourcing: ${DOTFILES_ROOT}/$zprezto_config_file"
-  source ${DOTFILES_ROOT}/$zprezto_config_file
-fi
-
 # TODO this one stops me from logging in:
 # .dotfiles/vim.sync/bundle/vimshell/autoload/unite/sources/vimshell_zsh_complete/complete.zsh
 #
 # load everything but the path and completion files
-for file in ${${${${config_files:#*/path.zsh}:#*/completion.zsh}:#*/vimshell/*}:#*/zprezto.symlink/modules/*}
+for file in ${${${config_files:#*/path.zsh}:#*/completion.zsh}:#*/vimshell/*}
 do
   #echo "sourcing: $file"
   source $file
 done
-
-#source ${DOTFILES_ROOT}/zprezto.symlink/contrib/fzf-tab/fzf-tab.plugin.zsh
 
 # initialize autocomplete here, otherwise functions won't be loaded
 autoload -U compinit
