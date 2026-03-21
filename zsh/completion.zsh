@@ -12,8 +12,10 @@ if [[ "$TERM" == 'dumb' ]]; then
   return 1
 fi
 
-# Add zsh-completions to $fpath.
-fpath=("$DOTFILES_ROOT/zprezto.symlink/modules/completion/external/src" $fpath)
+# Add zsh-completions to $fpath (installed via nix).
+# Also add nix's own completions (for the `nix` command).
+nix_share="${commands[nix]:h:h}/share/zsh/site-functions"
+fpath=(~/.nix-profile/share/zsh/site-functions ${nix_share:+$nix_share} $fpath)
 
 #
 # Options
@@ -155,3 +157,7 @@ zstyle ':completion:*:ssh:*' group-order users hosts-domain hosts-host users hos
 zstyle ':completion:*:(ssh|scp|rsync):*:hosts-host' ignored-patterns '*(.|:)*' loopback ip6-loopback localhost ip6-localhost broadcasthost
 zstyle ':completion:*:(ssh|scp|rsync):*:hosts-domain' ignored-patterns '<->.<->.<->.<->' '^[-[:alnum:]]##(.[-[:alnum:]]##)##' '*@*'
 zstyle ':completion:*:(ssh|scp|rsync):*:hosts-ipaddr' ignored-patterns '^(<->.<->.<->.<->|(|::)([[:xdigit:].]##:(#c,2))##(|%*))' '127.0.0.<->' '255.255.255.255' '::1' 'fe80::*'
+
+# AWS CLI: uses bash-style completion via aws_completer
+autoload -Uz bashcompinit && bashcompinit
+complete -C aws_completer aws
