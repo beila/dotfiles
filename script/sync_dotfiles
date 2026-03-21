@@ -36,7 +36,9 @@ if jj root &>/dev/null 2>&1; then
             jj git fetch --all-remotes 2>/dev/null || true
             tracking=$(jj bookmark list --all -T 'if(name == "'"$CURRENT_BM"'", remote ++ "\n")' 2>/dev/null | head -1)
             if [ -n "$tracking" ]; then
-                jj bookmark set "$CURRENT_BM" -r "all:$CURRENT_BM | ${CURRENT_BM}@${tracking}" 2>/dev/null || true
+                jj bookmark set "$CURRENT_BM" -r "all:$CURRENT_BM | ${CURRENT_BM}@${tracking} | $PUSH_REV" 2>/dev/null || true
+            else
+                jj bookmark set "$CURRENT_BM" -r "$PUSH_REV" 2>/dev/null || true
             fi
             jj git push --remote hj --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
         fi
