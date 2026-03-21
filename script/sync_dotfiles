@@ -22,32 +22,36 @@ if jj root &>/dev/null 2>&1; then
 
     # Requirements:
     # 1. Commit current change with AI-generated message (skip if empty)
-    # 2. All local bookmarks force-pushed with hostname prefix (MACHINE_NAME/bookmark)
-    # 3. The tracked bookmark on @- safely merged forward and pushed (no force)
-    # 2 and 3 must run even when the current change is empty (nothing to commit).
+    # 2. Force-push all local bookmarks with hostname prefix (MACHINE_NAME/bookmark)
+    #    — pushed FIRST so working copy is preserved even if merge creates conflict
+    # 3. Fetch remote, merge tracked bookmark forward, push (no force)
+    #    — if no remote changes, master and taygeta/master end up at the same commit
     if jj git remote list 2>/dev/null | grep -q '^hj '; then
         GIT_DIR=$(jj git root 2>/dev/null)
         HJ_URL=$(git --git-dir="$GIT_DIR" remote get-url hj 2>/dev/null)
         PUSH_REV=${CHANGE_ID:-$(jj log -r '@-' --no-graph -T 'change_id' 2>/dev/null)}
-
-        # Fetch and merge tracked bookmark to its tracking branch, then push (no force)
         CURRENT_BM=$(jj bookmark list -r "..$PUSH_REV" -T 'name ++ "\n"' 2>/dev/null | head -1)
-        if [ -n "$CURRENT_BM" ]; then
-            jj git fetch --all-remotes 2>/dev/null || true
-            tracking=$(jj bookmark list --all -T 'if(name == "'"$CURRENT_BM"'", remote ++ "\n")' 2>/dev/null | head -1)
-            if [ -n "$tracking" ]; then
-                jj bookmark set "$CURRENT_BM" -r "all:$CURRENT_BM | ${CURRENT_BM}@${tracking} | $PUSH_REV" 2>/dev/null || true
-            else
-                jj bookmark set "$CURRENT_BM" -r "$PUSH_REV" 2>/dev/null || true
-            fi
-            jj git push --remote hj --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
-        fi
 
-        # Force-push all bookmarks with hostname prefix via raw git
+        # Step 1: advance bookmark to latest commit and force-push hostname-prefixed refs
+        if [ -n "$CURRENT_BM" ]; then
+            jj bookmark set "$CURRENT_BM" -r "$PUSH_REV" 2>/dev/null || true
+        fi
         for bm in $(jj bookmark list -T 'name ++ "\n"' 2>/dev/null | sort -u); do
             REF=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
             git --git-dir="$GIT_DIR" push "$HJ_URL" --force "$REF:refs/heads/${MACHINE_NAME}/${bm}" 2>/dev/null || true
         done
+
+        # Step 2: fetch remote, merge tracked bookmark forward, push
+        if [ -n "$CURRENT_BM" ]; then
+            jj git fetch --all-remotes 2>/dev/null || true
+            tracking=$(jj bookmark list --all -T 'if(name == "'"$CURRENT_BM"'", remote ++ "\n")' 2>/dev/null | head -1)
+            if [ -n "$tracking" ]; then
+                jj bookmark set "$CURRENT_BM" -r "all:$CURRENT_BM | ${CURRENT_BM}@${tracking}" 2>/dev/null || true
+            fi
+            jj git push --remote hj --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
+        fi
+
+        # Step 3: sync jj's view of remote refs after raw git pushes
         jj git import 2>/dev/null || true
     fi
 else
