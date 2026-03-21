@@ -159,5 +159,16 @@ in
     Install.WantedBy = [ "timers.target" ];
   };
 
+  systemd.user.services.battery-notify = {
+    Unit.Description = "Battery low notification";
+    Service.ExecStart = "%h/.dotfiles/script/battery-notify";
+    Service.Type = "oneshot";
+  };
+  systemd.user.timers.battery-notify = {
+    Unit.Description = "Check battery level every minute";
+    Timer.OnCalendar = "*:0/1";
+    Install.WantedBy = [ "timers.target" ];
+  };
+
   targets.genericLinux.enable = true;
 }
