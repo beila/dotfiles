@@ -11,6 +11,9 @@ in
     vimAlias = true;
     plugins = with pkgs.vimPlugins; [
       fugitive
+      fzf-lua
+      { plugin = fzf-vim; optional = true; }
+      { plugin = fzfWrapper; optional = true; }
       github-nvim-theme
       lsp-zero-nvim
       lush-nvim
