@@ -48,13 +48,14 @@ Summary (keep in sync with the steering file):
 1. zellij session picker: kills current pane, when the session is open in two zellij
 1. zellij session picker: show current session differently and make it not choosable
 1. zellij session picker: make it floating
+1. replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto
 
 ## Architecture Overview
 
 ### Dotfiles Repo: ~/.dotfiles
 - Home Manager config: `~/.dotfiles/home-manager.configsymlink/`
   - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
-  - `home.nix` — packages, unfree predicate (albert)
+  - `home.nix` — packages, unfree predicate (albert), battery-notify systemd timer (1min check, notify at 20%/10%)
   - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop), random-lockscreen systemd timer (daily wallpaper), gnome-flashback systemd drop-ins (xmonad session target requires gnome-flashback.target + service restart override)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
   - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps); coverage table documents all tools per language
@@ -105,7 +106,8 @@ Summary (keep in sync with the steering file):
   - my-haskell.lua, my-html.lua, my-java.lua, my-jinja.lua, my-js.lua (js/ts)
   - my-json.lua, my-just.lua, my-kotlin.lua, my-lua.lua, my-markdown.lua
   - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua, my-sql.lua
-  - my-text.lua, my-toml.lua, my-vim.lua, my-xml.lua, my-yaml.lua, my-zsh.lua
+  - my-text.lua, my-toml.lua, my-vim.lua, my-xml.lua, my-yaml.lua
+  - my-bash.lua (bash/sh only — zsh excluded, no zsh LSP available)
 - Shared config: `vimrcs/lsp-zero.lua` (LSP keymaps + format), `vimrcs/lsp.lua` (keymaps), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)
 - Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs

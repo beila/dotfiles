@@ -59,6 +59,7 @@ in
         pkgs.zellij
         pkgs.zoxide
         pkgs.zsh
+        pkgs.zsh-powerlevel10k
 
         pkgs.awscli2
 
