@@ -1,18 +1,9 @@
-# Always auto-attach to zellij
-if [[ -z "$ZELLIJ" ]] && hash zellij 2>/dev/null; then
-    zellij attach --create main
-    exit $?
-fi
-
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   #source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
-
-# shortcut to this dotfiles path is $DOTFILES_ROOT
-export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 
 # should be initialised otherwise default values are not used
 #MANPATH=${MANPATH:-$(manpath)}
@@ -21,12 +12,7 @@ export DOTFILES_ROOT=`(cd $(dirname $(readlink $HOME/.zshrc)); cd ..; pwd)`
 typeset -U config_files
 config_files=(${DOTFILES_ROOT}/**/*.zsh)
 
-# load the path files
-for file in ${(M)config_files:#*/path.zsh}
-do
-  #echo "sourcing path from: $file"
-  source $file
-done
+# path.zsh are sourced from .zshenv
 
 # load everything but the path and completion files
 for file in ${${config_files:#*/path.zsh}:#*/completion.zsh}
