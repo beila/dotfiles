@@ -49,6 +49,7 @@ Summary (keep in sync with the steering file):
 1. zellij session picker: show current session differently and make it not choosable
 1. zellij session picker: make it floating
 1. replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto
+1. use fzf for zsh tab completion
 
 ## Architecture Overview
 
@@ -89,6 +90,15 @@ Summary (keep in sync with the steering file):
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij --config <generated> attach --create` in a loop; on detach cycles to next active session; generates per-instance config via sed (CYCLE_SWITCH_CMD→callback with pick file + pkill); supports session names with spaces (mapfile); temp files: `/tmp/zellij-cycle-{pick,pid,config}.$$`
 - Zellij session picker: `~/.dotfiles/bin/zellij-pick-session` — fzf-based session picker with Alt-s cycling; accepts generic callback ($*); closes own pane and runs callback detached via setsid
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
+- Battery notify: `~/.dotfiles/script/battery-notify` — systemd timer every 1min, notifies at ≤20% (normal) and ≤10% (critical), once per threshold, resets on charge
+- zsh config: migrating from zprezto to standalone files in `~/.dotfiles/zsh/`
+  - `zshenv.symlink` — sets `$DOTFILES_ROOT` via `%N` (works in all contexts), sources `*/path.zsh` (excludes zprezto internals)
+  - `zshrc.symlink` — sources `**/*.zsh` (excludes path.zsh, completion.zsh, zprezto internals)
+  - `environment.zsh` — replaces zprezto environment module (smart URLs, setopt, jobs, colored man pages)
+  - `terminal.zsh` — replaces zprezto terminal module (window/tab/pane titles via precmd/preexec, Apple Terminal support)
+  - `editor.zsh` — replaces zprezto editor module (vi mode, dot expansion, key bindings, vim-surround, text objects)
+  - `p10k.zsh` — loads powerlevel10k (installed via nix `zsh-powerlevel10k`) + user config
+  - Remaining modules still via zprezto: history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run
   - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`)
