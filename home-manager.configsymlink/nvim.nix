@@ -31,6 +31,7 @@ in
       nvim-lspconfig
       nvim-nio
       nvim-tree-lua
+      nvim-treesitter
       nvim-web-devicons
       plantuml-syntax
       rust-tools-nvim
