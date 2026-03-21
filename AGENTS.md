@@ -44,6 +44,7 @@ Summary (keep in sync with the steering file):
 1. ~~use kiro first for commit message generation~~
 1. ollama server started on demand
 1. how do I get notified with sync_all error
+1. notify user when sync_dotfiles merge has conflicts
 1. add split feature to _gf
 1. zellij session picker: kills current pane, when the session is open in two zellij
 1. zellij session picker: show current session differently and make it not choosable
