@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Battery low notification — triggered by systemd timer
+# Notifies at 20% and 10% (only while discharging, once per threshold)
+
+set -euo pipefail
+
+STATE_FILE="/tmp/battery-notify-last"
+BAT="/sys/class/power_supply/BAT0"
+
+status=$(<"$BAT/status")
+capacity=$(<"$BAT/capacity")
+
+[[ "$status" == "Discharging" ]] || { rm -f "$STATE_FILE"; exit 0; }
+
+last=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+
+if (( capacity <= 10 )) && [[ "$last" != "10" ]]; then
+  notify-send -u critical "Battery Critical" "${capacity}% remaining"
+  echo 10 > "$STATE_FILE"
+elif (( capacity <= 20 )) && [[ "$last" != "20" && "$last" != "10" ]]; then
+  notify-send -u normal "Battery Low" "${capacity}% remaining"
+  echo 20 > "$STATE_FILE"
+fi
