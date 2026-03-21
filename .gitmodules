@@ -1,12 +1,6 @@
 [submodule "pack/bundles/start/vim-scimark"]
 	path = pack/bundles/start/vim-scimark
 	url = https://github.com/mipmip/vim-scimark.git
-[submodule "pack/bundles/start/tree-sitter-just"]
-	path = pack/bundles/start/tree-sitter-just
-	url = https://github.com/IndianBoy42/tree-sitter-just.git
-[submodule "pack/bundles/start/tree-sitter-cmake"]
-	path = pack/bundles/start/tree-sitter-cmake
-	url = https://github.com/uyha/tree-sitter-cmake.git
 [submodule "bundle/vim-log-highlighting"]
 	path = pack/bundles/start/vim-log-highlighting
 	url = https://github.com/MTDL9/vim-log-highlighting.git
