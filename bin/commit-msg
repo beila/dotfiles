@@ -39,6 +39,8 @@ if command -v kiro-cli &>/dev/null; then
 
 $diff" 2>/dev/null \
         | sed 's/\x1b\[[0-9;]*m//g' \
+        | sed 's/\x1b\[[?][0-9]*[a-zA-Z]//g' \
+        | sed 's/.*\r//' \
         | sed 's/^> //')
     if [ -n "$msg" ]; then
         echo "$msg"
