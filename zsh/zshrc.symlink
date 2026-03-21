@@ -15,7 +15,7 @@ config_files=(${DOTFILES_ROOT}/**/*.zsh)
 # path.zsh are sourced from .zshenv
 
 # load everything but the path and completion files
-for file in ${${config_files:#*/path.zsh}:#*/completion.zsh}
+for file in ${${${config_files:#*/path.zsh}:#*/completion.zsh}:#*/zprezto.symlink/modules/*}
 do
   #echo "sourcing: $file"
   source $file
