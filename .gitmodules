@@ -93,9 +93,6 @@
 [submodule "bundle/vim-matchup"]
 	path = pack/bundles/start/vim-matchup
 	url = https://github.com/andymass/vim-matchup.git
-[submodule "bundle/vimspector"]
-	path = pack/bundles/opt/vimspector
-	url = https://github.com/puremourning/vimspector.git
 [submodule "pack/bundles/opt/mason.nvim"]
 	path = pack/bundles/start/mason.nvim
 	url = https://github.com/williamboman/mason.nvim
