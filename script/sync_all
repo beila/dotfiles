@@ -9,7 +9,7 @@ exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_all already running, skipping"; exit 0; }
 
 TARGETS="$DOTFILES_ROOT $HOME/hjdocs $HOME/hjdocs/public-docs $HOME/pp/insuk-www"
-TARGETS="$TARGETS $DOTFILES_ROOT/vim.symlink $DOTFILES_ROOT/zprezto.symlink"
+TARGETS="$TARGETS $DOTFILES_ROOT/zprezto.symlink"
 TARGETS="$TARGETS $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i"
 TARGETS="$TARGETS $HOME/devc/hjdocs $HOME/devc/hjdocs/public-docs $HOME/devc/i $HOME/devc/i/devc1"
 TARGETS="$TARGETS $HOME/devm/hjdocs $HOME/devm/hjdocs/public-docs $HOME/devm/i"
