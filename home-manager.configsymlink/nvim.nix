@@ -23,6 +23,8 @@ in
       mason-tool-installer-nvim
       neomru
       nerdcommenter
+      nvim-cmp
+      cmp-nvim-lsp
       nvim-dap
       nvim-dap-python
       nvim-dap-ui
