@@ -59,6 +59,7 @@ Summary (keep in sync with the steering file):
 1. ~~replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto~~
 1. use fzf for zsh tab completion
 1. ~~autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)~~
+1. finish reviewing kickstart-modular.nvim files (options.lua, lsp-setup.lua, telescope-setup.lua, custom/) and remove kickstart-modular.nvim
 
 ## Architecture Overview
 
@@ -128,6 +129,7 @@ Summary (keep in sync with the steering file):
 - Config: `~/.dotfiles/vim.symlink/` (symlinked to ~/.vim/, also ~/.config/nvim via init.lua)
 - Plugin management: most plugins installed via home-manager `programs.neovim.plugins`; remaining submodules in `pack/bundles/start/` (cscope_maps, jsonc, nvim-treesitter, SrcExpl, tabline.vim, tasklist, tree-sitter-cmake, tree-sitter-just, vim-log-highlighting, vim-scimark)
 - Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
+- Project-local config: `myvimrc` sources `.nvim.lua` from cwd or ancestors on `BufEnter` (via `vim.schedule` after lcd), per-buffer dedup
 - Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
   - my-awk.lua, my-cmake.lua, my-cpp.lua, my-css.lua, my-docker.lua, my-glsl.lua
   - my-haskell.lua, my-html.lua, my-java.lua, my-jinja.lua, my-js.lua (js/ts)
@@ -135,7 +137,20 @@ Summary (keep in sync with the steering file):
   - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua, my-sql.lua
   - my-text.lua, my-toml.lua, my-vim.lua, my-xml.lua, my-yaml.lua
   - my-bash.lua (bash/sh only — zsh excluded, no zsh LSP available)
-- Shared config: `vimrcs/lsp-zero.lua` (LSP keymaps + format), `vimrcs/lsp.lua` (keymaps), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)
+- Shared config: `vimrcs/lsp.lua` (keymaps incl. `<leader>e` floating diagnostic), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)
+- Autoformat: `vimrcs/my-autoformat.lua` (format on autosave via CursorHold/BufLeave/FocusLost, checks `vim.b.autoformat_fts`); per-project `.nvim.lua` sets `vim.b.autoformat_fts` and buffer-local `BufWritePre` for explicit `:w`
+  - Example: `~/dev/i/.nvim.lua` — autoformat for cpp, c, typescript, javascript
+- Completion: `vimrcs/nvim-cmp.lua` — nvim-cmp with cmp-nvim-lsp source, no snippets (based on kickstart)
+- DAP UI: `vimrcs/nvim-dap-ui.lua` — auto-open/close debug UI, F7 toggle
+- Git gutter: `vimrcs/gitsigns.lua` — gitsigns.nvim with jj support (diffs against `@-` via `change_base`), `]c`/`[c` hunk nav, `<leader>hp` preview, `<leader>hr` reset, `<leader>hb` blame (no staging — safe for jj)
+- LSP enhancements: `vimrcs/lsp_signature.lua` — inlay hints (neovim ≥ 0.10) + auto signature help (lsp_signature.nvim)
+- LSP progress: `vimrcs/fidget.lua` — fidget.nvim notifications
+- Keybind discovery: `vimrcs/which-key.lua` — which-key.nvim popup
+- Treesitter textobjects: configured in `vimrcs/nvim-treesitter.lua` — `vaf`/`vif` function, `vac`/`vic` class, `vaa`/`via` parameter, `]f`/`[f` function nav, `]a`/`[a` parameter nav
+- Indent detection: vim-sleuth (auto-detects tabstop/shiftwidth, no config)
+- Yank highlight: `init.lua` — brief highlight on yank (from kickstart)
+- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files, `<leader>F` all files (incl. gitignored), `<C-g><C-f>` jj/git changed files, ctrl-n/p preview scroll
+- Font: `gvimrc` — JetBrains Mono Thin:h11 (neovide guifont)
 - Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs
   - Coverage table in `nvim.nix` documents all tools per language with install location
