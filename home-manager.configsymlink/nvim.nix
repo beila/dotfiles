@@ -35,6 +35,7 @@ in
       nvim-nio
       nvim-tree-lua
       nvim-treesitter
+      nvim-treesitter-textobjects
       nvim-web-devicons
       plantuml-syntax
       rust-tools-nvim
@@ -46,6 +47,7 @@ in
       vim-argumentative
       vim-dirdiff
       vim-fubitive
+      fidget-nvim
       gitsigns-nvim
       vim-indent-guides
       vim-jinja
