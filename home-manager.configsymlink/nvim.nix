@@ -47,6 +47,8 @@ in
       vim-argumentative
       vim-dirdiff
       vim-fubitive
+      vim-sleuth
+      which-key-nvim
       fidget-nvim
       gitsigns-nvim
       vim-indent-guides
