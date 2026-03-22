@@ -37,5 +37,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
         -- Actions
         map({ "n", "v" }, "<leader>aa", function() require("fzf-lua").lsp_code_actions() end)
         map({ "n", "v" }, "<leader>af", function() vim.lsp.buf.format() end)
+        map("n", "<leader>e", vim.diagnostic.open_float)
     end,
 })
