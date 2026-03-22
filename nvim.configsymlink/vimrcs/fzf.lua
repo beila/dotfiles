@@ -10,12 +10,18 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
             fzf_lua.fzf_exec('jj file list', {
                 prompt = 'jj files> ',
                 cwd = vim.trim(root.stdout),
+                previewer = 'builtin',
                 actions = { ['default'] = fzf_lua.actions.file_edit },
             })
         else
             fzf_lua.git_files()
         end
     end,
+    {})
+
+-- All files including gitignored
+vim.keymap.set({ "n", "v", "i" }, "<leader>F",
+    function() fzf_lua.files({ cmd = 'fd --type f --hidden --no-ignore' }) end,
     {})
 
 vim.keymap.set({ "n", "v", "i" }, "<leader>z",
