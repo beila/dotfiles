@@ -200,3 +200,31 @@ set nofixendofline
 command! -bang -complete=file -nargs=+ Rename saveas<bang> <args> | call delete(expand('#'))`
 
 set noautoread
+
+" Load project-local .nvim.lua from cwd or ancestors (works with :lcd)
+if has('nvim')
+lua << EOF
+  local _sourced = {}
+  vim.api.nvim_create_autocmd('BufEnter', {
+    group = vim.api.nvim_create_augroup('project_exrc', { clear = true }),
+    callback = function()
+      vim.schedule(function()
+        local dir = vim.fn.getcwd()
+        while dir ~= '/' do
+          local f = dir .. '/.nvim.lua'
+          if vim.fn.filereadable(f) == 1 then
+            local bufnr = vim.api.nvim_get_current_buf()
+            local key = f .. ':' .. bufnr
+            if not _sourced[key] then
+              _sourced[key] = true
+              vim.cmd.source(f)
+            end
+            return
+          end
+          dir = vim.fn.fnamemodify(dir, ':h')
+        end
+      end)
+    end,
+  })
+EOF
+endif
