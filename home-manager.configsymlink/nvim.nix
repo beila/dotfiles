@@ -25,6 +25,7 @@ in
       nerdcommenter
       nvim-cmp
       cmp-nvim-lsp
+      lsp_signature-nvim
       nvim-dap
       nvim-dap-python
       nvim-dap-ui
