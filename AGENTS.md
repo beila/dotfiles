@@ -58,6 +58,7 @@ Summary (keep in sync with the steering file):
 1. zellij session picker: make it floating
 1. ~~replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto~~
 1. use fzf for zsh tab completion
+1. autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)
 
 ## Architecture Overview
 
