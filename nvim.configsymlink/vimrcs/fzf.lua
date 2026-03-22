@@ -2,12 +2,44 @@ local fzf_lua = require("fzf-lua")
 
 fzf_lua.setup_fzfvim_cmds()
 
+-- <leader>f: jj/git tracked files, <leader>F: all files (set in fzf.vimrc)
+vim.keymap.set({ "n", "v", "i" }, "<leader>f",
+    function()
+        local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
+        if root.code == 0 then
+            fzf_lua.fzf_exec('jj file list', {
+                prompt = 'jj files> ',
+                cwd = vim.trim(root.stdout),
+                actions = { ['default'] = fzf_lua.actions.file_edit },
+            })
+        else
+            fzf_lua.git_files()
+        end
+    end,
+    {})
+
 vim.keymap.set({ "n", "v", "i" }, "<leader>z",
     function() fzf_lua.builtin() end,
     {})
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-f>",
-    function() fzf_lua.git_status() end,
+    function()
+        -- jj-first, git-fallback
+        local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
+        if root.code == 0 then
+            fzf_lua.fzf_exec('jj --quiet diff --name-only', {
+                prompt = 'jj changed> ',
+                cwd = vim.trim(root.stdout),
+                previewer = false,
+                preview = 'jj --quiet diff --color=always -- {1}',
+                actions = {
+                    ['default'] = fzf_lua.actions.file_edit,
+                },
+            })
+        else
+            fzf_lua.git_status()
+        end
+    end,
     {})
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-b>",
@@ -70,7 +102,9 @@ fzf_lua.setup({
            ]]
         fzf = {
             --[1] = true,
-            ["ctrl-a"] = "select-all"
+            ["ctrl-a"] = "select-all",
+            ["ctrl-n"] = "preview-half-page-down",
+            ["ctrl-p"] = "preview-half-page-up",
         }
     },
     fzf_opts = { ['--layout'] = 'reverse-list' },
