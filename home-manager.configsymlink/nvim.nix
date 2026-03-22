@@ -46,7 +46,7 @@ in
       vim-argumentative
       vim-dirdiff
       vim-fubitive
-      vim-gitgutter
+      gitsigns-nvim
       vim-indent-guides
       vim-jinja
       vim-just
