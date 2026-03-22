@@ -51,6 +51,7 @@ Summary (keep in sync with the steering file):
    - `CHANGE_ID` is captured before `jj new`, so it points to the immutable commit, not the new mutable one. `jj describe` then says "Nothing changed".
    - The `jj git push`/`jj git import` may also rebase `@`, collapsing the empty intermediate and leaving `@` directly on master again.
    - Need to understand: why does `@` end up on master (immutable) between runs? The previous run's `jj new` should leave `@` on a fresh mutable change above master.
+1. make sync_dotfiles more readable
 1. add split feature to _gf
 1. zellij session picker: kills current pane, when the session is open in two zellij
 1. zellij session picker: show current session differently and make it not choosable
