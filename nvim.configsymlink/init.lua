@@ -11,6 +11,12 @@ vim.keymap.set({"n", "v"}, "<leader>P", [["+P]])
 vim.keymap.set({"n", "v"}, "<leader>y", [["+y]])
 vim.keymap.set({"n", "v"}, "<leader>Y", [["+Y]])
 
+-- Brief highlight on yank (from kickstart.nvim)
+vim.api.nvim_create_autocmd('TextYankPost', {
+  group = vim.api.nvim_create_augroup('YankHighlight', { clear = true }),
+  callback = function() vim.highlight.on_yank() end,
+})
+
 -- https://neovide.dev/configuration.html#ime
 --[[
    [local function set_ime(args)
