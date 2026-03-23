@@ -15,51 +15,51 @@ Summary (keep in sync with the steering file):
 
 ## TODO List
 
-1. ~~**Battery indicator**~~ — genmon plugin (`battery-genmon` script), replaced xfce4-power-manager
-2. ~~**Git commit message generator**~~ — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
-3. ~~**jj periodic tasks**~~ — auto-fetch, background operations
+- [x] **Battery indicator** — genmon plugin (`battery-genmon` script), replaced xfce4-power-manager
+- [x] **Git commit message generator** — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
+- [x] **jj periodic tasks** — auto-fetch, background operations
    - `sync_all` runs every 10min via systemd timer (randomized delay, low priority, flock)
    - `jj_snapshot_all` snapshots all jj repos found via plocate
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
-8. **universal Copy/paste key** — I need copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
-13. ~~**Auto-merge to main on sync**~~ — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
-14. ~~**jj empty changes**~~ — sync_dotfiles skips commit/describe when current change is empty, but still pushes bookmarks
-15. ~~**Ghostty unnecessary resizing**~~ — scratchpadToggle no longer refloats when just focusing a visible scratchpad
-10. ~~**Fix open-in-container**~~ — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
-10. ~~kill tmux server and remove zsh integration~~
-1. ~~zoom notification on all workspace~~
-1. ~~fix sync_all creating "```commit" or "```markdown" description~~
-1. ~~zellij session should outlive ghostty~~
-1. there's no gap between ghostty vertically
-1. fix lockscreen-related error message
-1. can't type hangul in zellij/ghostty
-1. add local settings file into a non-public VCS
-1. ~~run tts when asking for permission in kiro~~
-1. ~~change neovide font back~~
-1. ~~install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)~~
-1. review each nvim plugin and cleanup/modernise
-1. ~~keybindings for session/tab/pane changes in zellij~~
-1. ~~different zellij sessions for each scratchpad~~
-1. add a script to add a new git-worktree/jj-workspace
-1. ~~use kiro first for commit message generation~~
-1. ollama server started on demand
-1. how do I get notified with sync_all error
-1. notify user when sync_dotfiles merge has conflicts
-1. fix sync_dotfiles leaving orphan empty change after each run
+- [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
+- [x] **Auto-merge to main on sync** — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
+- [x] **jj empty changes** — sync_dotfiles skips commit/describe when current change is empty, but still pushes bookmarks
+- [x] **Ghostty unnecessary resizing** — scratchpadToggle no longer refloats when just focusing a visible scratchpad
+- [x] **Fix open-in-container** — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
+- [x] kill tmux server and remove zsh integration
+- [x] zoom notification on all workspace
+- [x] fix sync_all creating "```commit" or "```markdown" description
+- [x] zellij session should outlive ghostty
+- [ ] there's no gap between ghostty vertically
+- [ ] fix lockscreen-related error message
+- [ ] can't type hangul in zellij/ghostty
+- [ ] add local settings file into a non-public VCS
+- [x] run tts when asking for permission in kiro
+- [x] change neovide font back
+- [x] install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)
+- [ ] review each nvim plugin and cleanup/modernise
+- [x] keybindings for session/tab/pane changes in zellij
+- [x] different zellij sessions for each scratchpad
+- [ ] add a script to add a new git-worktree/jj-workspace
+- [x] use kiro first for commit message generation
+- [ ] ollama server started on demand
+- [ ] how do I get notified with sync_all error
+- [ ] notify user when sync_dotfiles merge has conflicts
+- [ ] fix sync_dotfiles leaving orphan empty change after each run
    - After sync, `@` ends up on an immutable commit (master). Next run, jj creates an extra empty change (`pmxrolzz`) because it can't snapshot into an immutable `@`.
    - `jj new` on immutable `@` creates two empty commits instead of one.
    - `CHANGE_ID` is captured before `jj new`, so it points to the immutable commit, not the new mutable one. `jj describe` then says "Nothing changed".
    - The `jj git push`/`jj git import` may also rebase `@`, collapsing the empty intermediate and leaving `@` directly on master again.
    - Need to understand: why does `@` end up on master (immutable) between runs? The previous run's `jj new` should leave `@` on a fresh mutable change above master.
-1. make sync_dotfiles more readable
-1. add split feature to _gf
-1. zellij session picker: kills current pane, when the session is open in two zellij
-1. zellij session picker: show current session differently and make it not choosable
-1. zellij session picker: make it floating
-1. ~~replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto~~
-1. use fzf for zsh tab completion
-1. ~~autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)~~
-1. finish reviewing kickstart-modular.nvim files (options.lua, lsp-setup.lua, telescope-setup.lua, custom/) and remove kickstart-modular.nvim
+- [ ] make sync_dotfiles more readable
+- [ ] add split feature to _gf
+- [ ] zellij session picker: kills current pane, when the session is open in two zellij
+- [ ] zellij session picker: show current session differently and make it not choosable
+- [ ] zellij session picker: make it floating
+- [x] replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto
+- [ ] use fzf for zsh tab completion
+- [x] autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)
+- [ ] finish reviewing kickstart-modular.nvim files (options.lua, lsp-setup.lua, telescope-setup.lua, custom/) and remove kickstart-modular.nvim
 
 ## Architecture Overview
 
