@@ -11,7 +11,7 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
                 prompt = 'jj files> ',
                 cwd = vim.trim(root.stdout),
                 previewer = 'builtin',
-                actions = { ['default'] = fzf_lua.actions.file_edit },
+                actions = fzf_lua.defaults.actions.files,
             })
         else
             fzf_lua.git_files()
@@ -38,9 +38,7 @@ vim.keymap.set({ "n", "v", "i" }, "<C-g><C-f>",
                 cwd = vim.trim(root.stdout),
                 previewer = false,
                 preview = 'jj --quiet diff --color=always -- {1}',
-                actions = {
-                    ['default'] = fzf_lua.actions.file_edit,
-                },
+                actions = fzf_lua.defaults.actions.files,
             })
         else
             fzf_lua.git_status()
