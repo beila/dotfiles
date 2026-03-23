@@ -14,6 +14,7 @@ import XMonad.Actions.CopyWindow
 import XMonad.Hooks.InsertPosition
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.SetWMName
+import XMonad.Hooks.Rescreen
 import XMonad.Layout.PerWorkspace
 import XMonad.Util.EZConfig(additionalKeys)
 
@@ -62,13 +63,14 @@ scratchpadToggle name = withWindowSet $ \ws -> do
             let visibleWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
             let isVisible = s `elem` visibleWins
             if isFocused
-                then namedScratchpadAction myScratchpads name  -- hide
-                else if isVisible
-                    then windows $ W.focusWindow s  -- on another screen, just focus
-                    else do  -- hidden: bring to current workspace and float
-                        namedScratchpadAction myScratchpads name
-                        refloatScratchpad isFirst isSP
-            refloatScratchpad isFirst isSP
+                then namedScratchpadAction myScratchpads name  -- hide (no refloat!)
+                else do
+                    if isVisible
+                        then windows $ W.focusWindow s  -- on another screen, just focus
+                        else namedScratchpadAction myScratchpads name  -- bring from hidden
+                    -- Refloat for both visible and hidden cases to adapt to screen orientation.
+                    -- Do NOT refloat on hide — it would bring the scratchpad back.
+                    refloatScratchpad isFirst isSP
 
 -- Find the scratchpad window and refloat it
 refloatScratchpad :: Bool -> (Window -> X Bool) -> X ()
@@ -137,8 +139,17 @@ myManageHook = composeAll
 
 -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
 {-main = xmonad =<< xmobar myConfig-}
-main = xmonad $ ewmhFullscreen myConfig
+main = xmonad $ ewmhFullscreen $ rescreenHook rescreenCfg myConfig
 {-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
+
+-- After monitor hotplug, swap NSP off any visible screen
+rescreenCfg = def { afterRescreenHook = fixNSP }
+fixNSP = withWindowSet $ \ws -> do
+    let visibleTags = map (W.tag . W.workspace) (W.current ws : W.visible ws)
+    when ("NSP" `elem` visibleTags) $
+        case filter ((/= "NSP") . W.tag) (W.hidden ws) of
+            (w:_) -> windows $ W.greedyView (W.tag w)
+            []    -> return ()
 
 myConfig = gnomeConfig
     { terminal = "gnome-terminal"
