@@ -2,16 +2,28 @@ local fzf_lua = require("fzf-lua")
 
 fzf_lua.setup_fzfvim_cmds()
 
+local script_dir = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':h')
+
 -- <leader>f: jj/git tracked files, <leader>F: all files (set in fzf.vimrc)
 vim.keymap.set({ "n", "v", "i" }, "<leader>f",
     function()
         local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
         if root.code == 0 then
-            fzf_lua.fzf_exec('{ jj file list; git submodule foreach --quiet \'git ls-files | sed "s|^|$displaypath/|"\'; }', {
+            local cmd_jj = 'jj file list'
+            local cmd_all = script_dir .. '/jj-file-list-all'
+            fzf_lua.fzf_exec(cmd_jj, {
                 prompt = 'jj files> ',
                 cwd = vim.trim(root.stdout),
                 preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
                 actions = fzf_lua.defaults.actions.files,
+                fzf_opts = {
+                    ['--header'] = 'ctrl-x: toggle submodules',
+                    ['--bind'] = {
+                        'ctrl-x:transform:[ "$FZF_PROMPT" = "jj files> " ] '
+                            .. '&& echo "reload(' .. cmd_all .. ')+change-prompt(jj+sub files> )" '
+                            .. '|| echo "reload(' .. cmd_jj .. ')+change-prompt(jj files> )"',
+                    },
+                },
             })
         else
             fzf_lua.git_files()
