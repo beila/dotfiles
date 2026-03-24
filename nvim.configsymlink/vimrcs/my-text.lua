@@ -9,7 +9,7 @@ vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
 })
 
 vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "text", "markdown" },
+    pattern = { "text", "markdown", "rst", "org", "asciidoc", "tex", "mail", "gitcommit" },
     callback = function(ev)
         vim.b[ev.buf].limelight = true
         vim.cmd("Limelight")
