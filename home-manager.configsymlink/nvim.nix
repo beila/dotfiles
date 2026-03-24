@@ -51,6 +51,7 @@ in
       which-key-nvim
       fidget-nvim
       gitsigns-nvim
+      limelight-vim
       vim-indent-guides
       vim-jinja
       vim-just

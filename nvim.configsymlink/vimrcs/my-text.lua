@@ -7,3 +7,23 @@ vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
     pattern = "log-*.txt",
     command = "setlocal filetype=log",
 })
+
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = { "text", "markdown" },
+    callback = function(ev)
+        vim.b[ev.buf].limelight = true
+        vim.cmd("Limelight")
+    end,
+})
+
+vim.api.nvim_create_autocmd("BufEnter", {
+    callback = function(ev)
+        if vim.b[ev.buf].limelight then vim.cmd("Limelight") end
+    end,
+})
+
+vim.api.nvim_create_autocmd("BufLeave", {
+    callback = function(ev)
+        if vim.b[ev.buf].limelight then vim.cmd("Limelight!") end
+    end,
+})
