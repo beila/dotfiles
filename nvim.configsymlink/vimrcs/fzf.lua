@@ -11,19 +11,22 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
         if root.code == 0 then
             local cmd_jj = 'jj file list'
             local cmd_all = script_dir .. '/jj-file-list-all'
+            local show_sub = false
+            local function toggle_sub(_, opts)
+                show_sub = not show_sub
+                local o = { resume = true }
+                o.cmd = show_sub and cmd_all or cmd_jj
+                o.prompt = show_sub and 'jj+sub files> ' or 'jj files> '
+                opts.__call_fn(vim.tbl_extend('keep', o, opts.__call_opts))
+            end
             fzf_lua.fzf_exec(cmd_jj, {
                 prompt = 'jj files> ',
                 cwd = vim.trim(root.stdout),
                 preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
-                actions = fzf_lua.defaults.actions.files,
-                fzf_opts = {
-                    ['--header'] = 'ctrl-x: toggle submodules',
-                    ['--bind'] = {
-                        'ctrl-x:transform:[ "$FZF_PROMPT" = "jj files> " ] '
-                            .. '&& echo "reload(' .. cmd_all .. ')+change-prompt(jj+sub files> )" '
-                            .. '|| echo "reload(' .. cmd_jj .. ')+change-prompt(jj files> )"',
-                    },
-                },
+                actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
+                    ['ctrl-g'] = toggle_sub,
+                }),
+                fzf_opts = { ['--header'] = 'ctrl-g: toggle submodules' },
             })
         else
             fzf_lua.git_files()
