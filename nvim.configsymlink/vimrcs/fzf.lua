@@ -7,10 +7,10 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
     function()
         local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
         if root.code == 0 then
-            fzf_lua.fzf_exec('jj file list', {
+            fzf_lua.fzf_exec('{ jj file list; git submodule foreach --quiet \'git ls-files | sed "s|^|$displaypath/|"\'; }', {
                 prompt = 'jj files> ',
                 cwd = vim.trim(root.stdout),
-                previewer = 'builtin',
+                preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
                 actions = fzf_lua.defaults.actions.files,
             })
         else
