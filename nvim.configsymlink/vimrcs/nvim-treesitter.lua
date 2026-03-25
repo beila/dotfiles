@@ -3,7 +3,8 @@ vim.opt.runtimepath:append(parser_dir)
 
 require 'nvim-treesitter.configs'.setup {
     parser_install_dir = parser_dir,
-    ensure_installed = {
+    ensure_installed = {},
+    --[[ ensure_installed = {
         -- languages
         "awk", "bash", "c", "cmake", "cpp", "css", "csv", "diff", "dockerfile",
         "dot", "doxygen", "git_config", "git_rebase", "gitattributes", "gitcommit",
@@ -17,16 +18,16 @@ require 'nvim-treesitter.configs'.setup {
         "haskell_persistent", "jinja_inline", "jsdoc", "luadoc", "luap",
         "markdown_inline", "nim_format_string", "pod", "printf", "promql", "query",
         "re2c", "readline", "regex", "ruby", "slint", "styled",
-    },
+    }, ]]
     auto_install = false,
     highlight = { enable = true, },
     indent = { enable = true, },
     incremental_selection = {
         enable = true,
         keymaps = {
-            init_selection = '<c-e>',
-            node_incremental = '<c-e>',
-            node_decremental = '<c-r>',
+            init_selection = false,
+            node_incremental = false,
+            node_decremental = false,
         },
     },
     textobjects = {
@@ -65,3 +66,8 @@ require 'nvim-treesitter.configs'.setup {
         },
     },
 }
+
+vim.keymap.set('n', '<C-w>', require('nvim-treesitter.incremental_selection').init_selection)
+vim.keymap.set('v', '<C-w>', require('nvim-treesitter.incremental_selection').node_incremental)
+vim.keymap.set('v', '<C-e>', require('nvim-treesitter.incremental_selection').node_decremental)
+vim.keymap.set('v', '<C-d>', require('nvim-treesitter.incremental_selection').scope_incremental)
