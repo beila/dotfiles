@@ -20,8 +20,7 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
                     query = query,
                     preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
                     fzf_opts = {
-                        ['--header'] = 'ctrl-g: toggle submodules | '
-                            .. (show_sub and 'submodules: ON' or 'submodules: OFF'),
+                        ['--header'] = (show_sub and '☑' or '☐') .. ' submodules (ctrl-g)',
                     },
                 }
                 opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
