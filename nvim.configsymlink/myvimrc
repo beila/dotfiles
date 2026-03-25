@@ -1,6 +1,5 @@
 let mapleader = " "
-map <Space> <Leader>
-map <Backspace> <Leader>
+map <BS> <Leader>
 
 runtime! vimrcs/*.vimrc
 
