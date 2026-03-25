@@ -71,3 +71,7 @@ vim.keymap.set('n', '<C-w>', require('nvim-treesitter.incremental_selection').in
 vim.keymap.set('v', '<C-w>', require('nvim-treesitter.incremental_selection').node_incremental)
 vim.keymap.set('v', '<C-e>', require('nvim-treesitter.incremental_selection').node_decremental)
 vim.keymap.set('v', '<C-d>', require('nvim-treesitter.incremental_selection').scope_incremental)
+
+local ts_swap = require('nvim-treesitter.textobjects.swap')
+vim.keymap.set('n', '<leader>a', function() ts_swap.swap_next('@parameter.inner') end)
+vim.keymap.set('n', '<leader>A', function() ts_swap.swap_previous('@parameter.inner') end)
