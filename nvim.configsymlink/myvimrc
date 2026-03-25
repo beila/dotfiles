@@ -66,6 +66,7 @@ set hlsearch
 nnoremap <leader><Backspace> :noh<cr>
 
 set wrap
+set breakindent
 "set textwidth=100
 set formatoptions=qcron1
 "set colorcolumn=100
