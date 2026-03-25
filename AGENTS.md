@@ -121,7 +121,7 @@ Summary (keep in sync with the steering file):
   - Nix zsh packages: zsh-completions, nix-zsh-completions, zsh-powerlevel10k, zsh-fast-syntax-highlighting, zsh-autosuggestions
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification) — Wayland/X11 aware
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run
-  - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`)
+  - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`); runs in subshell `(say_done &)` to suppress background PID output
   - Override voice with `$PIPER_MODEL`
 - TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)
   - Default rate: +50%, override with `$EDGE_TTS_RATE`
@@ -151,7 +151,9 @@ Summary (keep in sync with the steering file):
 - Treesitter textobjects: configured in `vimrcs/nvim-treesitter.lua` — `vaf`/`vif` function, `vac`/`vic` class, `vaa`/`via` parameter, `]f`/`[f` function nav, `]a`/`[a` parameter nav
 - Indent detection: vim-sleuth (auto-detects tabstop/shiftwidth, no config)
 - Yank highlight: `init.lua` — brief highlight on yank (from kickstart)
-- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files, `<leader>F` all files (incl. gitignored), `<C-g><C-f>` jj/git changed files, ctrl-n/p preview scroll
+- Limelight: `my-text.lua` — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit; per-buffer (BufEnter/BufLeave toggle)
+- Table mode: `my-markdown.lua` — `silent! TableModeEnable` on markdown FileType (suppresses echo noise)
+- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, query preserved across toggle, `vimrcs/jj-file-list-all` helper script), `<leader>F` all files (incl. gitignored), `<C-g><C-f>` jj/git changed files, ctrl-n/p preview scroll
 - Font: `gvimrc` — JetBrains Mono Thin:h11 (neovide guifont)
 - Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs
@@ -218,6 +220,8 @@ Summary (keep in sync with the steering file):
 - User is on LDAP (can't chsh), $SHELL is bash, zsh started via exec from .bashrc
 - AltGr on laptop keyboard doesn't map to Right Alt (needs keyd per-device config)
 - gnome-flashback "Notifications" tray icon doesn't respond to clicks (no GNOME Shell notification panel)
+- fzf-lua: `fzf_opts['--bind']` is overwritten by `create_fzf_binds` in core.lua — custom fzf binds must go through `actions` table (Lua actions) or `keymap.fzf`, not `fzf_opts`
+- fzf-lua: `ctrl-o` doesn't reach fzf (neovim terminal mode intercepts it for normal-mode-one-command); `ctrl-g` is fzf's default abort but can be overridden via fzf-lua Lua actions
 
 ### Monitors
 - Primary: varies (currently 1920x1200, 3440x1440, 1440x2560 portrait)
