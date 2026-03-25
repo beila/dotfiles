@@ -60,6 +60,8 @@ Summary (keep in sync with the steering file):
 - [ ] use fzf for zsh tab completion
 - [x] autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)
 - [ ] finish reviewing kickstart-modular.nvim files (options.lua, lsp-setup.lua, telescope-setup.lua, custom/) and remove kickstart-modular.nvim
+- [ ] is it worth installing tpope/vim-markdown to get the latest change
+- [ ] which-key blocks using single key such as ctrl-g or }
 
 ## Architecture Overview
 
