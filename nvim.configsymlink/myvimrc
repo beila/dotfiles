@@ -1,4 +1,4 @@
-let mapleader = "'"
+let mapleader = " "
 map <Space> <Leader>
 map <Backspace> <Leader>
 
