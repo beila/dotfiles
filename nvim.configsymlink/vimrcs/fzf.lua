@@ -13,17 +13,22 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
             local cmd_all = script_dir .. '/jj-file-list-all'
             local jj_cwd = vim.trim(root.stdout)
             local show_sub = false
-            local function make_opts()
+            local function make_opts(query)
                 local opts = {
                     prompt = show_sub and 'jj+sub files> ' or 'jj files> ',
                     cwd = jj_cwd,
+                    query = query,
                     preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
-                    fzf_opts = { ['--header'] = 'ctrl-g: toggle submodules' },
+                    fzf_opts = {
+                        ['--header'] = 'ctrl-g: toggle submodules | '
+                            .. (show_sub and 'submodules: ON' or 'submodules: OFF'),
+                    },
                 }
                 opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
-                    ['ctrl-g'] = { fn = function()
+                    ['ctrl-g'] = { fn = function(_, opts)
                         show_sub = not show_sub
-                        fzf_lua.fzf_exec(show_sub and cmd_all or cmd_jj, make_opts())
+                        local q = opts.last_query
+                        fzf_lua.fzf_exec(show_sub and cmd_all or cmd_jj, make_opts(q))
                     end, exec_silent = true },
                 })
                 return opts
