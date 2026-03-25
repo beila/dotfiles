@@ -62,7 +62,8 @@ Summary (keep in sync with the steering file):
 - [ ] finish reviewing kickstart-modular.nvim files (options.lua, lsp-setup.lua, telescope-setup.lua, custom/) and remove kickstart-modular.nvim
 - [ ] is it worth installing tpope/vim-markdown to get the latest change
 - [ ] which-key blocks using single key such as ctrl-g or }
-- [ ] airline tabar changes a lot when opening nerdtree
+- [ ] airline tabar changes a lot when opening nvimtree
+- [ ] in jj files dialog, ctrl-g for ignored files, some other key for submodule
 
 ## Architecture Overview
 
