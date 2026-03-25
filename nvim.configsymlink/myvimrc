@@ -1,4 +1,5 @@
 let mapleader = " "
+nnoremap <Space> <Nop>
 map <BS> <Leader>
 
 runtime! vimrcs/*.vimrc
