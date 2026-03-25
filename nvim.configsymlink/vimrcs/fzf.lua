@@ -13,22 +13,22 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
             local cmd_all = script_dir .. '/jj-file-list-all'
             local jj_cwd = vim.trim(root.stdout)
             local show_sub = false
-            local base_opts
-            local function toggle_sub()
-                show_sub = not show_sub
-                base_opts.prompt = show_sub and 'jj+sub files> ' or 'jj files> '
-                fzf_lua.fzf_exec(show_sub and cmd_all or cmd_jj, base_opts)
+            local function make_opts()
+                local opts = {
+                    prompt = show_sub and 'jj+sub files> ' or 'jj files> ',
+                    cwd = jj_cwd,
+                    preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
+                    fzf_opts = { ['--header'] = 'ctrl-g: toggle submodules' },
+                }
+                opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
+                    ['ctrl-g'] = { fn = function()
+                        show_sub = not show_sub
+                        fzf_lua.fzf_exec(show_sub and cmd_all or cmd_jj, make_opts())
+                    end, exec_silent = true },
+                })
+                return opts
             end
-            base_opts = {
-                prompt = 'jj files> ',
-                cwd = jj_cwd,
-                preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
-                actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
-                    ['ctrl-g'] = { fn = function() toggle_sub() end, exec_silent = true },
-                }),
-                fzf_opts = { ['--header'] = 'ctrl-g: toggle submodules' },
-            }
-            fzf_lua.fzf_exec(cmd_jj, base_opts)
+            fzf_lua.fzf_exec(cmd_jj, make_opts())
         else
             fzf_lua.git_files()
         end
