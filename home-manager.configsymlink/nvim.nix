@@ -48,7 +48,6 @@ in
       vim-dirdiff
       vim-fubitive
       vim-sleuth
-      which-key-nvim
       fidget-nvim
       gitsigns-nvim
       limelight-vim
