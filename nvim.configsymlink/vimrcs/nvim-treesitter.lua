@@ -18,15 +18,15 @@ require 'nvim-treesitter.configs'.setup {
         "markdown_inline", "nim_format_string", "pod", "printf", "promql", "query",
         "re2c", "readline", "regex", "ruby", "slint", "styled",
     },
-    auto_install = true,
+    auto_install = false,
     highlight = { enable = true, },
     indent = { enable = true, },
     incremental_selection = {
         enable = true,
         keymaps = {
-            init_selection = '<c-space>',
-            node_incremental = '<c-space>',
-            node_decremental = '<M-space>',
+            init_selection = '<c-e>',
+            node_incremental = '<c-e>',
+            node_decremental = '<c-r>',
         },
     },
     textobjects = {
