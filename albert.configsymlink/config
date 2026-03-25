@@ -1,4 +1,5 @@
 [General]
+hotkey=Meta+Ctrl+Alt+Shift+Space
 showTray=true
 telemetry=false
 
@@ -15,7 +16,7 @@ enabled=true
 enabled=true
 
 [clipboard]
-enabled=true
+enabled=false
 
 [datetime]
 enabled=true

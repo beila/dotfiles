@@ -21,6 +21,14 @@ require 'nvim-treesitter.configs'.setup {
     auto_install = true,
     highlight = { enable = true, },
     indent = { enable = true, },
+    incremental_selection = {
+        enable = true,
+        keymaps = {
+            init_selection = '<c-space>',
+            node_incremental = '<c-space>',
+            node_decremental = '<M-space>',
+        },
+    },
     textobjects = {
         select = {
             enable = true,
@@ -44,6 +52,15 @@ require 'nvim-treesitter.configs'.setup {
             goto_previous_start = {
                 ['[f'] = '@function.outer',
                 ['[a'] = '@parameter.outer',
+            },
+        },
+        swap = {
+            enable = true,
+            swap_next = {
+                ['<leader>a'] = '@parameter.inner',
+            },
+            swap_previous = {
+                ['<leader>A'] = '@parameter.inner',
             },
         },
     },
