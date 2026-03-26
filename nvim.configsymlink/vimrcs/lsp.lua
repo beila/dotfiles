@@ -1,6 +1,16 @@
 -- Show diagnostics as virtual lines below the source
 vim.diagnostic.config { virtual_lines = false, virtual_text = true }
 
+-- Softer colors for diagnostic virtual text (follows colorscheme)
+vim.api.nvim_create_autocmd('ColorScheme', {
+  callback = function()
+    vim.api.nvim_set_hl(0, 'DiagnosticVirtualTextError', { link = 'Comment' })
+    vim.api.nvim_set_hl(0, 'DiagnosticVirtualTextWarn', { link = 'Comment' })
+    vim.api.nvim_set_hl(0, 'DiagnosticVirtualTextInfo', { link = 'Comment' })
+    vim.api.nvim_set_hl(0, 'DiagnosticVirtualTextHint', { link = 'Comment' })
+  end,
+})
+
 -- LSP keymaps (applied to all servers via LspAttach)
 
 vim.api.nvim_create_autocmd("LspAttach", {

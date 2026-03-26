@@ -74,13 +74,6 @@ Summary (keep in sync with the steering file):
 - [ ] in jj files dialog, ctrl-g for ignored files, some other key for submodule
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
-  keymaps.lua — new:
-  - <Esc> clears search highlights (replaces hlsearch = false)
-  - vim.diagnostic.config with rounded floats, severity sort, jump = { float = true }
-  - <Esc><Esc> exits terminal mode
-  - <C-h/j/k/l> window nav (you already have this)
-  - Updated vim.hl.on_yank() API (yours uses old vim.highlight.on_yank())
-
   New plugins (not in your copy):
   - **blink-cmp** — newer completion engine (replaces nvim-cmp)
   - **conform.lua** — formatter (replaces autoformat)
