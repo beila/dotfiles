@@ -18,12 +18,16 @@ vim.api.nvim_create_autocmd("FileType", {
 
 vim.api.nvim_create_autocmd("BufEnter", {
     callback = function(ev)
-        if vim.b[ev.buf].limelight then vim.cmd("Limelight") end
+        if vim.b[ev.buf].limelight then
+            vim.cmd("Limelight")
+        else
+            vim.cmd("silent! Limelight!")
+        end
     end,
 })
 
 vim.api.nvim_create_autocmd("BufLeave", {
-    callback = function(ev)
-        if vim.b[ev.buf].limelight then vim.cmd("Limelight!") end
+    callback = function()
+        vim.cmd("silent! Limelight!")
     end,
 })
