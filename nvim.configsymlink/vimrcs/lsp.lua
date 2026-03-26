@@ -1,5 +1,5 @@
 -- Show diagnostics as virtual lines below the source
-vim.diagnostic.config { virtual_lines = true, virtual_text = false }
+vim.diagnostic.config { virtual_lines = false, virtual_text = true }
 
 -- LSP keymaps (applied to all servers via LspAttach)
 
