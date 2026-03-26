@@ -1,3 +1,6 @@
+-- Show diagnostics as virtual lines below the source
+vim.diagnostic.config { virtual_lines = true, virtual_text = false }
+
 -- LSP keymaps (applied to all servers via LspAttach)
 
 vim.api.nvim_create_autocmd("LspAttach", {

@@ -74,17 +74,6 @@ Summary (keep in sync with the steering file):
 - [ ] in jj files dialog, ctrl-g for ignored files, some other key for submodule
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
-  - options.lua — new options you don't have:
-  - showmode = false — hide mode text (redundant with statusline)
-  - Deferred clipboard = 'unnamedplus' — faster startup
-  - splitright = true / splitbelow = true — new splits open right/below
-  - list = true with listchars = { tab = '» ', trail = '·', nbsp = '␣' } — show whitespace
-  - inccommand = 'split' — live preview of :s substitutions in a split
-  - cursorline = true — highlight current line
-  - scrolloff = 10 — keep 10 lines visible above/below cursor
-  - confirm = true — ask to save instead of failing on :q
-  - Removed: hlsearch = false, completeopt, termguicolors, guifont
-
   keymaps.lua — new:
   - <Esc> clears search highlights (replaces hlsearch = false)
   - vim.diagnostic.config with rounded floats, severity sort, jump = { float = true }
