@@ -9,6 +9,8 @@ require('mason-lspconfig').setup({
     },
     handlers = {
         function(server_name)
+            -- Skip servers with custom config in my-*.lua
+            if server_name == 'lua_ls' then return end
             local server = require('lspconfig')[server_name]
             if server.setup then
                 server.setup({})
