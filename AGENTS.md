@@ -64,6 +64,10 @@ Summary (keep in sync with the steering file):
   - telescope-setup.lua reviewed: missing `oldfiles`, `buffer fuzzy find`, `grep current word`, `live grep`, `diagnostics`, `quickfix`, `git buffer commits` (partially covered by lsp_finder)
   - treesitter-setup.lua reviewed: added incremental selection + parameter swap; skipped move-to-end and class nav
   - telescope-multi-select.lua reviewed: fzf-lua handles multi-select natively, nothing to add
+  - latest kickstart options.lua has new: `showmode=false`, deferred clipboard, `splitright`/`splitbelow`, `listchars`, `inccommand=split`, `cursorline`, `scrolloff=10`, `confirm`
+  - latest kickstart keymaps.lua has new: `<Esc>` clears hlsearch, `vim.diagnostic.config`, `<Esc><Esc>` exits terminal mode
+- [ ] check out nvim-autopairs (auto-close brackets/quotes)
+- [ ] check out todo-comments.nvim (highlight and search TODO/FIXME/HACK/NOTE comments)
 - [ ] is it worth installing tpope/vim-markdown to get the latest change
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
@@ -155,7 +159,7 @@ Summary (keep in sync with the steering file):
 - LSP progress: `vimrcs/fidget.lua` — fidget.nvim notifications
 - Keybind discovery: which-key.nvim removed (auto-triggers interfered with `}`, `{`, `<C-g>` prefixes)
 - Treesitter textobjects: configured in `vimrcs/nvim-treesitter.lua` — `vaf`/`vif` function, `vac`/`vic` class, `vaa`/`via` parameter, `]f`/`[f` function nav, `]a`/`[a` parameter nav, `<leader>a`/`<leader>A` swap parameter next/prev (manual global keymaps)
-- Treesitter incremental selection: `<C-w>` init/expand node, `<C-e>` shrink node, `<C-d>` expand scope (manual global keymaps; `<C-w>` overrides window prefix — window splits use `<cmd>wincmd` directly in myvimrc)
+- Treesitter incremental selection: `<C-e>` init/expand node, `<C-d>` shrink node (manual global keymaps)
 - Indent detection: vim-sleuth (auto-detects tabstop/shiftwidth, no config)
 - Yank highlight: `init.lua` — brief highlight on yank (from kickstart)
 - Limelight: `my-text.lua` — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit; per-buffer (BufEnter/BufLeave toggle)
@@ -229,8 +233,6 @@ Summary (keep in sync with the steering file):
 - gnome-flashback "Notifications" tray icon doesn't respond to clicks (no GNOME Shell notification panel)
 - fzf-lua: `fzf_opts['--bind']` is overwritten by `create_fzf_binds` in core.lua — custom fzf binds must go through `actions` table (Lua actions) or `keymap.fzf`, not `fzf_opts`
 - fzf-lua: `ctrl-o` doesn't reach fzf (neovim terminal mode intercepts it for normal-mode-one-command); `ctrl-g` is fzf's default abort but can be overridden via fzf-lua Lua actions
-- `<C-w>` is mapped to treesitter incremental selection init — window splits in myvimrc use `<cmd>wincmd` directly instead of `<c-w>` prefix
-- Leader key is `'` (apostrophe), with `<Space>` and `<Backspace>` mapped to `<Leader>`; `'` conflicts with vim marks prefix
 - nvim-treesitter `ensure_installed` + `auto_install` can fail trying to write to nix store (read-only); `auto_install = false` and `ensure_installed = {}` as workaround; treesitter module buffer-local keymaps may not attach — manual global keymaps used for incremental selection and swap
 
 ### Monitors
