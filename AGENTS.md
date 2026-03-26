@@ -75,11 +75,6 @@ Summary (keep in sync with the steering file):
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
   New plugins (not in your copy):
-  - **blink-cmp** — newer completion engine (replaces nvim-cmp)
-  - **conform.lua** — formatter (replaces autoformat)
-  - **autopairs** — auto-close brackets/quotes ❌ you don't have
-  - **todo-comments** — highlight TODO/FIXME/NOTE ❌ you don't have
-  - **gitsigns** — you already have
   - **indent_line** — you have vim-indent-guides
   - **lint** — you have nvim-lint
   - **lspconfig** — you have lsp.lua

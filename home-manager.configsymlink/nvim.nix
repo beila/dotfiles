@@ -24,6 +24,7 @@ in
       neomru
       nerdcommenter
       blink-cmp
+      todo-comments-nvim
       lsp_signature-nvim
       nvim-dap
       nvim-dap-python
@@ -50,7 +51,7 @@ in
       fidget-nvim
       gitsigns-nvim
       limelight-vim
-      vim-indent-guides
+      indent-blankline-nvim
       vim-jinja
       vim-just
       vim-matchup
