@@ -23,8 +23,7 @@ in
       mason-tool-installer-nvim
       neomru
       nerdcommenter
-      nvim-cmp
-      cmp-nvim-lsp
+      blink-cmp
       lsp_signature-nvim
       nvim-dap
       nvim-dap-python
