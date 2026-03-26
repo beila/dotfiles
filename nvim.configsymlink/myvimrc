@@ -109,7 +109,7 @@ augroup myautocommands
 
     "autocmd FileType python setlocal foldmethod=indent
 
-    autocmd VimResized * tabdo wincmd = | tabnext #   " equalize all tabs, return to current
+    autocmd VimResized * let t=tabpagenr() | tabdo wincmd = | exe 'tabn' t
 augroup END
 
 if has("gui_running")

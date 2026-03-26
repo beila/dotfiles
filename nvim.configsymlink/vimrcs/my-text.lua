@@ -10,7 +10,7 @@ vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
 
 local limelight_fts = { text=1, markdown=1, rst=1, org=1, asciidoc=1, tex=1, mail=1, gitcommit=1 }
 
-vim.api.nvim_create_autocmd({"BufEnter", "FileType"}, {
+vim.api.nvim_create_autocmd("BufEnter", {
     callback = function()
         if limelight_fts[vim.bo.filetype] then
             vim.cmd("silent! Limelight")
