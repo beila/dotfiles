@@ -72,6 +72,42 @@ Summary (keep in sync with the steering file):
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
 - [ ] in jj files dialog, ctrl-g for ignored files, some other key for submodule
+- [ ] replace absolute path from xfce settings
+- [ ] kickstart updates
+  - options.lua — new options you don't have:
+  - showmode = false — hide mode text (redundant with statusline)
+  - Deferred clipboard = 'unnamedplus' — faster startup
+  - splitright = true / splitbelow = true — new splits open right/below
+  - list = true with listchars = { tab = '» ', trail = '·', nbsp = '␣' } — show whitespace
+  - inccommand = 'split' — live preview of :s substitutions in a split
+  - cursorline = true — highlight current line
+  - scrolloff = 10 — keep 10 lines visible above/below cursor
+  - confirm = true — ask to save instead of failing on :q
+  - Removed: hlsearch = false, completeopt, termguicolors, guifont
+
+  keymaps.lua — new:
+  - <Esc> clears search highlights (replaces hlsearch = false)
+  - vim.diagnostic.config with rounded floats, severity sort, jump = { float = true }
+  - <Esc><Esc> exits terminal mode
+  - <C-h/j/k/l> window nav (you already have this)
+  - Updated vim.hl.on_yank() API (yours uses old vim.highlight.on_yank())
+
+  New plugins (not in your copy):
+  - **blink-cmp** — newer completion engine (replaces nvim-cmp)
+  - **conform.lua** — formatter (replaces autoformat)
+  - **autopairs** — auto-close brackets/quotes ❌ you don't have
+  - **todo-comments** — highlight TODO/FIXME/NOTE ❌ you don't have
+  - **gitsigns** — you already have
+  - **indent_line** — you have vim-indent-guides
+  - **lint** — you have nvim-lint
+  - **lspconfig** — you have lsp.lua
+  - **mini.lua** — statusline/surround/etc (you have alternatives)
+  - **neo-tree** — you have nvim-tree
+  - **telescope** — you use fzf-lua
+  - **tokyonight** — you use github-nvim-theme
+  - **treesitter** — you have nvim-treesitter.lua
+  - **which-key** — just removed
+  - **health** — kickstart health check
 
 ## Architecture Overview
 
