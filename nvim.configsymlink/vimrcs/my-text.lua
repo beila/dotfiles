@@ -8,26 +8,14 @@ vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
     command = "setlocal filetype=log",
 })
 
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = { "text", "markdown", "rst", "org", "asciidoc", "tex", "mail", "gitcommit" },
-    callback = function(ev)
-        vim.b[ev.buf].limelight = true
-        vim.cmd("Limelight")
-    end,
-})
+local limelight_fts = { text=1, markdown=1, rst=1, org=1, asciidoc=1, tex=1, mail=1, gitcommit=1 }
 
-vim.api.nvim_create_autocmd("BufEnter", {
-    callback = function(ev)
-        if vim.b[ev.buf].limelight then
-            vim.cmd("Limelight")
+vim.api.nvim_create_autocmd({"BufEnter", "FileType"}, {
+    callback = function()
+        if limelight_fts[vim.bo.filetype] then
+            vim.cmd("silent! Limelight")
         else
             vim.cmd("silent! Limelight!")
         end
-    end,
-})
-
-vim.api.nvim_create_autocmd("BufLeave", {
-    callback = function()
-        vim.cmd("silent! Limelight!")
     end,
 })
