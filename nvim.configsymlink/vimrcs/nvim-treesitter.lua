@@ -67,10 +67,9 @@ require 'nvim-treesitter.configs'.setup {
     },
 }
 
-vim.keymap.set('n', '<C-w>', require('nvim-treesitter.incremental_selection').init_selection)
-vim.keymap.set('v', '<C-w>', require('nvim-treesitter.incremental_selection').node_incremental)
-vim.keymap.set('v', '<C-e>', require('nvim-treesitter.incremental_selection').node_decremental)
-vim.keymap.set('v', '<C-d>', require('nvim-treesitter.incremental_selection').scope_incremental)
+vim.keymap.set('n', '<C-e>', require('nvim-treesitter.incremental_selection').init_selection)
+vim.keymap.set('v', '<C-e>', require('nvim-treesitter.incremental_selection').node_incremental)
+vim.keymap.set('v', '<C-d>', require('nvim-treesitter.incremental_selection').node_decremental)
 
 local ts_swap = require('nvim-treesitter.textobjects.swap')
 vim.keymap.set('n', '<leader>a', function() ts_swap.swap_next('@parameter.inner') end)
