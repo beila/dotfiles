@@ -79,9 +79,9 @@ Summary (keep in sync with the steering file):
   - **neo-tree** — you have nvim-tree
   - **telescope** — you use fzf-lua
   - **tokyonight** — you use github-nvim-theme
-  - **treesitter** — you have nvim-treesitter.lua
-  - **which-key** — just removed
   - **health** — kickstart health check
+- [ ] make battery notification sticky
+- [ ] make copilot key work as super
 
 ## Architecture Overview
 
