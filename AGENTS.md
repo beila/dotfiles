@@ -75,9 +75,6 @@ Summary (keep in sync with the steering file):
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
   New plugins (not in your copy):
-  - **indent_line** — you have vim-indent-guides
-  - **lint** — you have nvim-lint
-  - **lspconfig** — you have lsp.lua
   - **mini.lua** — statusline/surround/etc (you have alternatives)
   - **neo-tree** — you have nvim-tree
   - **telescope** — you use fzf-lua
