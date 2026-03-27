@@ -81,8 +81,10 @@ watch *command:
     done
 
 [no-cd]
-workspace target source=".":
+workspace $target $source=".":
     #!/usr/bin/env zsh
     set -euo pipefail
 
-    
+    [ -d "${source}" ] || { echo "${source} does not exist" 1>2; exit 1 }
+
+    git -C "${source}" worktree add "${name}" "${target}"
