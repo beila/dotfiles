@@ -9,6 +9,8 @@ cd "$1" || {
 }
 
 if jj root &>/dev/null 2>&1; then
+    jj workspace update-stale 2>/dev/null || true
+
     # Commit current change if non-empty
     if ! jj log -r @ --no-graph -T 'if(empty, "empty")' 2>/dev/null | grep -q empty; then
         CHANGE_ID=$(jj log -r @ --no-graph -T 'change_id' 2>/dev/null)
