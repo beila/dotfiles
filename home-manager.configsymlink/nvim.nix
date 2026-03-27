@@ -79,6 +79,7 @@ in
 
   home.packages = with pkgs; [
     bash                               # mason       —          needed by Mason installer
+    python3                            # mason       —          venv support for debugpy install (system python3 lacks ensurepip)
 
     # awk
     awk-language-server                # awk         LSP        my-awk.lua (awk_ls)
