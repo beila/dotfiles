@@ -71,17 +71,18 @@ Summary (keep in sync with the steering file):
 - [ ] is it worth installing tpope/vim-markdown to get the latest change
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
-- [ ] in jj files dialog, ctrl-g for ignored files, some other key for submodule
+- [ ] in jj files dialog, ctrl-r for ignored files
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
   New plugins (not in your copy):
   - **mini.lua** — statusline/surround/etc (you have alternatives)
   - **neo-tree** — you have nvim-tree
   - **telescope** — you use fzf-lua
-  - **tokyonight** — you use github-nvim-theme
   - **health** — kickstart health check
 - [ ] make battery notification sticky
 - [ ] make copilot key work as super
+- [ ] add battery in the system monitor panel and remove dedicated one
+- [ ] treesitter auto install
 
 ## Architecture Overview
 
