@@ -84,5 +84,12 @@ watch *command:
 workspace $target $source=".":
     #!/usr/bin/env zsh
     set -euo pipefail
+    cd "${source}"
+    git worktree add "${target}"
 
-    git -C "${source}" worktree add "${name}" "${target}"
+    jj root > /dev/null || exit
+
+    gitdir="$(<"${target}"/.git)"
+    rm -rf "${target}"
+    jj workspace add "${target}"
+    echo "${gitdir}" > "${target}"/.git
