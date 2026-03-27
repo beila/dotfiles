@@ -2,7 +2,7 @@
 
 import? '~/hjdocs/public-docs/recurse-brazil/justfile'
 
-set allow-duplicate-recipes
+set allow-duplicate-recipes := true
 
 [private]
 default:
@@ -56,9 +56,9 @@ brightness val="":
     sudo sh -c "echo ${val} > /sys/class/backlight/intel_backlight/brightness"
 
 # Run the given $command and run them again whenever a file changes
-[no-cd]
 [linux]
-watch *$command:
+[no-cd]
+watch *command:
     #!/usr/bin/env zsh
     set -euo pipefail
     FILES_TO_WATCH=${FILES_TO_WATCH:-.}
@@ -79,3 +79,10 @@ watch *$command:
         )
         date
     done
+
+[no-cd]
+workspace target source=".":
+    #!/usr/bin/env zsh
+    set -euo pipefail
+
+    
