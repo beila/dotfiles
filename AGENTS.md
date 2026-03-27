@@ -83,6 +83,7 @@ Summary (keep in sync with the steering file):
 - [ ] make copilot key work as super
 - [ ] add battery in the system monitor panel and remove dedicated one
 - [ ] treesitter auto install
+- [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
 
 ## Architecture Overview
 
