@@ -56,6 +56,10 @@ set laststatus=2
 set relativenumber
 set undofile
 set history=5000
+" Persist messages to file (shared across instances, survives :q)
+" Rotates to .old when >1MB, checked on VimLeave
+set verbosefile=~/.vim-messages.log
+autocmd VimLeave * if getfsize(expand('~/.vim-messages.log')) > 1024*1024 | call rename(expand('~/.vim-messages.log'), expand('~/.vim-messages.log.old')) | endif
 
 set ignorecase
 set smartcase
