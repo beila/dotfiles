@@ -1,0 +1,15 @@
+#!/bin/bash
+# Send a notification via webhook (Google Chat, Slack, etc.)
+# Usage: notify-webhook "message text"
+# Webhook URL stored in private-dotfiles (not in public repo)
+WEBHOOK_FILE="${DOTFILES_ROOT:-$HOME/.dotfiles}/private-dotfiles/webhook-url"
+WEBHOOK_URL="$(cat "$WEBHOOK_FILE" 2>/dev/null)"
+[ -z "$WEBHOOK_URL" ] && exit 0
+msg="${1:-alert from $(hostnamectl --pretty 2>/dev/null || hostname)}"
+# Escape quotes for JSON
+msg="${msg//\\/\\\\}"
+msg="${msg//\"/\\\"}"
+msg="${msg//$'\n'/\\n}"
+curl -sf -X POST "$WEBHOOK_URL" \
+  -H 'Content-Type: application/json' \
+  -d "{\"text\": \"$msg\"}" >/dev/null
