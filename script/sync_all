@@ -13,8 +13,11 @@ TARGETS="$TARGETS $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i"
 TARGETS="$TARGETS $HOME/devc/hjdocs $HOME/devc/hjdocs/public-docs $HOME/devc/i $HOME/devc/i/devc1"
 TARGETS="$TARGETS $HOME/devm/hjdocs $HOME/devm/hjdocs/public-docs $HOME/devm/i"
 
+NOTIFY="$DOTFILES_ROOT/bin/notify-webhook"
+HOST="$(hostnamectl --pretty 2>/dev/null || hostname)"
+
 for dir in $TARGETS; do
-    [ -d "$dir" ] && "$SYNC" "$dir"
+    [ -d "$dir" ] && "$SYNC" "$dir" || "$NOTIFY" "⚠️ sync failed on $HOST: $dir"
 done
 
 # Snapshot all other jj repos (not in TARGETS)
