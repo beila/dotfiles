@@ -75,10 +75,11 @@ Summary (keep in sync with the steering file):
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
   New plugins (not in your copy):
-  - **mini.lua** — statusline/surround/etc (you have alternatives)
+  - **mini.lua** — installed mini-ai (textobjects) and considering mini.pairs/mini.splitjoin/mini.bracketed; skipped mini.statusline (have airline), mini.surround (installed nvim-surround instead)
   - **neo-tree** — you have nvim-tree
   - **telescope** — you use fzf-lua
   - **health** — kickstart health check
+- [ ] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 - [ ] make battery notification sticky
 - [ ] make copilot key work as super
 - [ ] add battery in the system monitor panel and remove dedicated one
@@ -101,7 +102,10 @@ Summary (keep in sync with the steering file):
 - keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf, thinkpad.conf — copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored)
-- fzf functions: `~/.dotfiles/fzf/functions.sh/functions.sh` — jj-first/git-fallback Ctrl-G bindings
+- fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
+  - `functions.sh/functions.sh` — jj-first/git-fallback functions (`_gf`, `_gb`, etc.)
+  - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix
+  - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
 - albert config: `~/.dotfiles/albert.configsymlink/` (symlinked to ~/.config/albert/)
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
@@ -171,6 +175,8 @@ Summary (keep in sync with the steering file):
 - LSP progress: `vimrcs/fidget.lua` — fidget.nvim notifications
 - Keybind discovery: which-key.nvim removed (auto-triggers interfered with `}`, `{`, `<C-g>` prefixes)
 - Treesitter textobjects: configured in `vimrcs/nvim-treesitter.lua` — `vaf`/`vif` function, `vac`/`vic` class, `vaa`/`via` parameter, `]f`/`[f` function nav, `]a`/`[a` parameter nav, `<leader>a`/`<leader>A` swap parameter next/prev (manual global keymaps)
+- mini.ai: `vimrcs/mini-ai.lua` — extended a/i textobjects with forward/backward seeking; builtin `f` (function call), `a` (argument), `b` (any bracket), `q` (any quote), `t` (tag), `?` (user prompt); treesitter-powered `F` (function definition), `c` (class); pattern-based `f`/`a` work better than treesitter for C++ templates
+- nvim-surround: `vimrcs/nvim-surround.lua` — `ys`/`ds`/`cs` keybindings (matches zsh vi-mode surround); no surround plugin existed in nvim before this
 - Treesitter incremental selection: `<C-e>` init/expand node, `<C-d>` shrink node (manual global keymaps)
 - Indent detection: vim-sleuth (auto-detects tabstop/shiftwidth, no config)
 - Yank highlight: `init.lua` — brief highlight on yank (from kickstart)
@@ -246,6 +252,9 @@ Summary (keep in sync with the steering file):
 - fzf-lua: `fzf_opts['--bind']` is overwritten by `create_fzf_binds` in core.lua — custom fzf binds must go through `actions` table (Lua actions) or `keymap.fzf`, not `fzf_opts`
 - fzf-lua: `ctrl-o` doesn't reach fzf (neovim terminal mode intercepts it for normal-mode-one-command); `ctrl-g` is fzf's default abort but can be overridden via fzf-lua Lua actions
 - nvim-treesitter `ensure_installed` + `auto_install` can fail trying to write to nix store (read-only); `auto_install = false` and `ensure_installed = {}` as workaround; treesitter module buffer-local keymaps may not attach — manual global keymaps used for incremental selection and swap
+- zsh vi mode: custom zle widget bindings must use `bindkey -M viins` and `bindkey -M vicmd` explicitly; plain `bindkey` only sets main (viins) — vicmd (normal mode) shows `^X` literal for unbound keys
+- zsh fzf: `source <(fzf --zsh)` must come before custom bindkeys that reference fzf widgets (fzf-cd-widget, etc.); `zshrc.symlink` globs `**/*.zsh` alphabetically — don't put static copies of fzf scripts in the glob path
+- C++ treesitter textobjects: `#make-range!` directives can silently fail; `@function.outer` misses lambdas and some edge cases; mini.ai pattern-based `f`/`a` is more reliable for C++ function calls and arguments
 
 ### Monitors
 - Primary: varies (currently 1920x1200, 3440x1440, 1440x2560 portrait)
