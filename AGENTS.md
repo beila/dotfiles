@@ -33,7 +33,7 @@ Summary (keep in sync with the steering file):
 - [ ] there's no gap between ghostty vertically
 - [ ] fix lockscreen-related error message
 - [ ] can't type hangul in zellij/ghostty
-- [ ] add local settings file into a non-public VCS
+- [x] add local settings file into a non-public VCS
 - [x] run tts when asking for permission in kiro
 - [x] change neovide font back
 - [x] install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)
@@ -45,6 +45,7 @@ Summary (keep in sync with the steering file):
 - [ ] ollama server started on demand
 - [ ] how do I get notified with sync_all error
 - [ ] notify user when sync_dotfiles merge has conflicts
+  - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram; KakaoTalk "나에게 보내기" doesn't trigger push notifications
 - [ ] fix sync_dotfiles leaving orphan empty change after each run
    - After sync, `@` ends up on an immutable commit (master). Next run, jj creates an extra empty change (`pmxrolzz`) because it can't snapshot into an immutable `@`.
    - `jj new` on immutable `@` creates two empty commits instead of one.
@@ -118,11 +119,14 @@ Summary (keep in sync with the steering file):
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - Sync scripts: `~/.dotfiles/script/sync_all` (all repos), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
+  - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
   - `sync_dotfiles` jj path: skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns
+- Notifications: `~/.dotfiles/bin/notify-webhook` — sends push notifications for script failures; currently disabled (exit 0), awaiting Telegram bot; KakaoTalk "나에게 보내기" tested but doesn't trigger push notifications; tokens in `private-dotfiles/kakao-tokens.json`
+- Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored nested jj repo (git@github.com:beila/private-dotfiles.git); cloned by `script/bootstrap`; stores machine-specific secrets (kakao tokens, webhook URLs); zsh `**/*.zsh` glob auto-sources any .zsh files within
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij --config <generated> attach --create` in a loop; on detach cycles to next active session; generates per-instance config via sed (CYCLE_SWITCH_CMD→callback with pick file + pkill); supports session names with spaces (mapfile); temp files: `/tmp/zellij-cycle-{pick,pid,config}.$$`
 - Zellij session picker: `~/.dotfiles/bin/zellij-pick-session` — fzf-based session picker with Alt-s cycling; accepts generic callback ($*); closes own pane and runs callback detached via setsid
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
@@ -253,6 +257,7 @@ Summary (keep in sync with the steering file):
 - zsh vi mode: custom zle widget bindings must use `bindkey -M viins` and `bindkey -M vicmd` explicitly; plain `bindkey` only sets main (viins) — vicmd (normal mode) shows `^X` literal for unbound keys
 - zsh fzf: `source <(fzf --zsh)` must come before custom bindkeys that reference fzf widgets (fzf-cd-widget, etc.); `zshrc.symlink` globs `**/*.zsh` alphabetically — don't put static copies of fzf scripts in the glob path
 - C++ treesitter textobjects: `#make-range!` directives can silently fail; `@function.outer` misses lambdas and some edge cases; mini.ai pattern-based `f`/`a` is more reliable for C++ function calls and arguments
+- Push notifications: Google Chat webhooks blocked by org admin; Slack app creation requires workspace admin approval; KakaoTalk "나에게 보내기" doesn't trigger push (messages to self are silent); Telegram bot or ntfy.sh are the viable options
 
 ### Monitors
 - Primary: varies (currently 1920x1200, 3440x1440, 1440x2560 portrait)
