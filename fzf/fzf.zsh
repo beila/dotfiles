@@ -52,10 +52,10 @@ export FZF_CTRL_R_OPTS='--preview "fold -w${COLUMNS} <<< $(printf \"$(printf {})
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-bindkey '^E' fzf-cd-widget
-
 local DIR=$(dirname $(readlink -f $0))
 source ${DIR}/functions.sh/functions.sh
-source ${DIR}/functions.sh/key-binding.zsh
 
 source <(fzf --zsh)
+
+source ${DIR}/functions.sh/key-binding.zsh
+bindkey '^E' fzf-cd-widget
