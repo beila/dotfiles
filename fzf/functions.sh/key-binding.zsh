@@ -13,6 +13,7 @@ join-lines() {
     eval "bindkey '^g^$c' fzf-g$c-widget"
   done
 } f b t r y h s
+bindkey '^g' undefined-key  # override list-expand so ^g waits for second key
 
 () {
   local c
