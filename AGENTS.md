@@ -75,8 +75,6 @@ Summary (keep in sync with the steering file):
 - [ ] replace absolute path from xfce settings
 - [ ] kickstart updates
   New plugins (not in your copy):
-  - **mini.lua** — installed mini-ai (textobjects) and considering mini.pairs/mini.splitjoin/mini.bracketed; skipped mini.statusline (have airline), mini.surround (installed nvim-surround instead)
-  - **neo-tree** — you have nvim-tree
   - **telescope** — you use fzf-lua
   - **health** — kickstart health check
 - [ ] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
@@ -85,6 +83,7 @@ Summary (keep in sync with the steering file):
 - [x] add battery in the system monitor panel and remove dedicated one
 - [ ] treesitter auto install
 - [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
+- [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 
 ## Architecture Overview
 
