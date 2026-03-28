@@ -53,7 +53,6 @@ in
       limelight-vim
       indent-blankline-nvim
       mini-ai
-      mini-clue
       nvim-surround
       vim-jinja
       vim-just
