@@ -73,16 +73,13 @@ Summary (keep in sync with the steering file):
 - [ ] airline tabar changes a lot when opening nvimtree
 - [ ] in jj files dialog, ctrl-r for ignored files
 - [ ] replace absolute path from xfce settings
-- [ ] kickstart updates
-  New plugins (not in your copy):
-  - **telescope** — you use fzf-lua
-  - **health** — kickstart health check
 - [ ] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 - [ ] make battery notification sticky
 - [ ] make copilot key work as super
 - [x] add battery in the system monitor panel and remove dedicated one
 - [ ] treesitter auto install
 - [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
+- [ ] fzf-lua: add workspace symbols (`lsp_workspace_symbols`) switchable from document symbols (`<F8>`) — e.g. ctrl-g toggle or `<F8><F8>`
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 
 ## Architecture Overview
