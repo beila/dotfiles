@@ -19,8 +19,6 @@
         <value type="int" value="6"/>
         <value type="int" value="20"/>
         <value type="int" value="23"/>
-        <value type="int" value="24"/>
-        <value type="int" value="22"/>
         <value type="int" value="2"/>
         <value type="int" value="15"/>
         <value type="int" value="12"/>
@@ -125,14 +123,6 @@
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="font" type="string" value="Ubuntu 11"/>
     </property>
-    <property name="plugin-22" type="string" value="genmon">
-      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/battery-genmon"/>
-      <property name="use-label" type="bool" value="false"/>
-      <property name="text" type="string" value="(genmon)"/>
-      <property name="update-period" type="int" value="30000"/>
-      <property name="enable-single-row" type="bool" value="true"/>
-      <property name="font" type="string" value="Ubuntu 11"/>
-    </property>
     <property name="plugin-2" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
     </property>
@@ -143,9 +133,6 @@
       <property name="use-label" type="bool" value="false"/>
       <property name="font" type="string" value="Ubuntu 11"/>
       <property name="text" type="string" value="(genmon)"/>
-    </property>
-    <property name="plugin-24" type="string" value="separator">
-      <property name="style" type="uint" value="0"/>
     </property>
   </property>
 </channel>

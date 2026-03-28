@@ -5,13 +5,15 @@ HIST=/tmp/sysmon-history
 LEN=8  # 8 samples × 23s ≈ 3 minutes
 
 color_bar() {
-    local pct=$1 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █)
+    local pct=$1 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █) inv=${2:-0}
     local idx=$(( pct * 7 / 100 ))
     (( idx > 7 )) && idx=7
     (( idx < 0 )) && idx=0
     local bar="${bars[$idx]}"
-    if (( pct >= 75 )); then   printf "<span color='#ff5555'>%s</span>" "$bar"
-    elif (( pct >= 50 )); then printf "<span color='#f1fa8c'>%s</span>" "$bar"
+    local hi=$pct
+    (( inv )) && hi=$(( 100 - pct ))
+    if (( hi >= 75 )); then   printf "<span color='#ff5555'>%s</span>" "$bar"
+    elif (( hi >= 50 )); then printf "<span color='#f1fa8c'>%s</span>" "$bar"
     else                       printf "<span color='#50fa7b'>%s</span>" "$bar"
     fi
 }
@@ -29,11 +31,11 @@ push_hist() {
 }
 
 spark() {
-    local vals out="" count v
+    local vals out="" count v inv=${2:-0}
     vals=$(read_hist "$1")
     count=$(echo "$vals" | wc -w)
-    for (( i=count; i<LEN; i++ )); do out+="$(color_bar 0)"; done
-    for v in $vals; do out+="$(color_bar "$v")"; done
+    for (( i=count; i<LEN; i++ )); do out+="$(color_bar 0 "$inv")"; done
+    for v in $vals; do out+="$(color_bar "$v" "$inv")"; done
     echo "$out"
 }
 
@@ -76,8 +78,20 @@ if [ -n "$iface" ]; then
 fi
 push_hist net "$net_pct"
 
+# --- Battery ---
+bat=/sys/class/power_supply/BAT0
+bat_pct=0; bat_status=""
+if [ -d "$bat" ]; then
+    bat_pct=$(cat "$bat/capacity")
+    bat_status=$(cat "$bat/status")
+fi
+push_hist bat "$bat_pct"
+
 # --- Panel ---
-echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net)</txt>"
+bat_icon="🔋"
+[ "$bat_status" = "Charging" ] && bat_icon="🔌"
+(( bat_pct < 20 )) && [ "$bat_status" != "Charging" ] && bat_icon="🪫"
+echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) ${bat_icon}$(spark bat 1)</txt>"
 
 # --- Tooltip ---
 used_mb=$(( (memtotal-memavail)/1024 ))
@@ -111,12 +125,13 @@ else
 fi
 cp "$cur_cores" "$prev_cores"
 
-printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nSwap: %s/%s MB\nUp:   %s" \
+printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
     "$cpu" "$loadavg" \
     "$cores_tip" \
     "$mem" "$used_mb" "$total_mb" \
     "$iow" \
     "$(hr $drx)" "$(hr $dtx)" \
     "$swap_used" "$swap_total" \
+    "$bat_pct" "${bat_status:-AC}" \
     "$(uptime -p | sed 's/up //')"
 echo "<tool>$tip</tool>"
