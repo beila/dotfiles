@@ -1,6 +1,9 @@
 #!/bin/bash
 # Send a KakaoTalk message to myself (나에게 보내기)
 # Usage: notify-webhook "message text"
+# DISABLED: KakaoTalk 나에게 보내기 doesn't trigger push notifications
+# TODO: replace with Telegram bot
+exit 0
 TOKENS="${DOTFILES_ROOT:-$HOME/.dotfiles}/private-dotfiles/kakao-tokens.json"
 [ ! -f "$TOKENS" ] && exit 0
 
