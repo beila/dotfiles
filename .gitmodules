@@ -1,6 +1,0 @@
-[submodule "vim.symlink"]
-	path = vim.symlink
-	url = git@github.com:beila/dotvim.git
-	branch = master
-	ignore = all
-	update = merge
