@@ -204,6 +204,23 @@ setup_pbcopy_from_ssh () {
 
 setup_gitconfig
 #git submodule update --init --remote
+
+clone_private_dotfiles () {
+  local dest="$DOTFILES_ROOT/private-dotfiles"
+  if [ ! -d "$dest" ]; then
+    info 'cloning private-dotfiles'
+    if command -v jj >/dev/null 2>&1; then
+      jj git clone git@github.com:beila/private-dotfiles.git "$dest"
+    else
+      git clone git@github.com:beila/private-dotfiles.git "$dest"
+    fi
+    success 'private-dotfiles'
+  else
+    success 'private-dotfiles already exists'
+  fi
+}
+
+clone_private_dotfiles
 #git submodule foreach "git submodule update --init --recursive"
 #for sm in $($DOTFILES_ROOT/zsh/functions/gSl); do
     #git config submodule.$sm.active false

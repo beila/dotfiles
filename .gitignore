@@ -3,3 +3,4 @@ git/gitconfig.local.symlink
 nvim.configsymlink
 zprezto.symlink
 .kiro/agents/builder.json
+private-dotfiles
