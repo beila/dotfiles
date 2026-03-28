@@ -58,4 +58,5 @@ source ${DIR}/functions.sh/functions.sh
 source <(fzf --zsh)
 
 source ${DIR}/functions.sh/key-binding.zsh
-bindkey '^E' fzf-cd-widget
+bindkey -M viins '^E' fzf-cd-widget
+bindkey -M vicmd '^E' fzf-cd-widget
