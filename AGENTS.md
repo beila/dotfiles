@@ -36,7 +36,7 @@ Summary (keep in sync with the steering file):
 - [x] add local settings file into a non-public VCS
 - [x] run tts when asking for permission in kiro
 - [x] change neovide font back
-- [x] install nvim plugins with home manager and remove submodules (36 plugins moved to nix, 10 remain as submodules not in nixpkgs)
+- [x] install nvim plugins with home manager and remove submodules (all plugins now via nix, no submodules remain)
 - [ ] review each nvim plugin and cleanup/modernise
 - [x] keybindings for session/tab/pane changes in zellij
 - [x] different zellij sessions for each scratchpad
@@ -113,7 +113,7 @@ Summary (keep in sync with the steering file):
   - Config template: `CYCLE_SWITCH_CMD` placeholder in Alt-s binding, replaced by `zellij-cycle` via sed with per-instance callback
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
-- Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in-based, shown via xfce4-genmon-plugin
+- Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — single wttr.in JSON API call, python3 parses response; shows 🌙 after sunset / before sunrise (clear→moon, cloudy→☁🌙), weather icons unchanged for rain/snow/fog; tooltip: current conditions + hourly + 3-day forecast
 - System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode (2nd arg `1`) for metrics where high=good (battery); history in `/tmp/sysmon-history`, 8 samples
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (kept as fallback; battery now also in sysmon-genmon)
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
@@ -157,7 +157,7 @@ Summary (keep in sync with the steering file):
 
 ### Neovim Dev Tooling
 - Config: `~/.dotfiles/vim.symlink/` (symlinked to ~/.vim/, also ~/.config/nvim via init.lua)
-- Plugin management: most plugins installed via home-manager `programs.neovim.plugins`; remaining submodules in `pack/bundles/start/` (cscope_maps, jsonc, nvim-treesitter, SrcExpl, tabline.vim, tree-sitter-cmake, tree-sitter-just, vim-log-highlighting, vim-scimark)
+- Plugin management: all plugins installed via home-manager `programs.neovim.plugins`; no submodules remain; `.gitmodules` removed (vim.symlink was last entry, now a symlink to nvim.configsymlink)
 - Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
 - Project-local config: `myvimrc` sources `.nvim.lua` from cwd or ancestors on `BufEnter` (via `vim.schedule` after lcd), per-buffer dedup
 - Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
@@ -170,7 +170,7 @@ Summary (keep in sync with the steering file):
 - Shared config: `vimrcs/lsp.lua` (keymaps incl. `<leader>e` floating diagnostic), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)
 - Autoformat: `vimrcs/my-autoformat.lua` (format on autosave via CursorHold/BufLeave/FocusLost, checks `vim.b.autoformat_fts`); per-project `.nvim.lua` sets `vim.b.autoformat_fts` and buffer-local `BufWritePre` for explicit `:w`
   - Example: `~/dev/i/.nvim.lua` — autoformat for cpp, c, typescript, javascript
-- Completion: `vimrcs/nvim-cmp.lua` — nvim-cmp with cmp-nvim-lsp source, no snippets (based on kickstart)
+- Completion: `vimrcs/blink-cmp.lua` — blink.cmp completion (based on kickstart)
 - DAP UI: `vimrcs/nvim-dap-ui.lua` — auto-open/close debug UI, F7 toggle
 - Git gutter: `vimrcs/gitsigns.lua` — gitsigns.nvim with jj support (diffs against `@-` via `change_base`), `]c`/`[c` hunk nav, `<leader>hp` preview, `<leader>hr` reset, `<leader>hb` blame (no staging — safe for jj)
 - LSP enhancements: `vimrcs/lsp_signature.lua` — inlay hints (neovim ≥ 0.10) + auto signature help (lsp_signature.nvim)
@@ -242,6 +242,7 @@ Summary (keep in sync with the steering file):
 
 ### Zoom Notification
 - `zoom_linux_float_message_reminder` window: floats on all workspaces without stealing focus (via `copyToAll` + `insertPosition Below Older`)
+- Known bug: with multi-monitor (3 screens), moving mouse toward the notification can trigger workspace swap (focus-follows-mouse + `copyToAll` interaction); notification appears to jump to another screen before you can click it; needs investigation when reproducible
 
 ### Known Issues / Constraints
 - keyd v2.5.0 parser fails on UTF-8 box-drawing characters in default.conf comments (works in kinesis.conf — likely a parser bug)
@@ -260,8 +261,8 @@ Summary (keep in sync with the steering file):
 - Push notifications: Google Chat webhooks blocked by org admin; Slack app creation requires workspace admin approval; KakaoTalk "나에게 보내기" doesn't trigger push (messages to self are silent); Telegram bot or ntfy.sh are the viable options
 
 ### Monitors
-- Primary: varies (currently 1920x1200, 3440x1440, 1440x2560 portrait)
-- Multi-monitor: stacked/side-by-side configurations change frequently
+- Current: 3 monitors — eDP-1 (1920x1200 laptop), DP-1 (3440x1440 ultrawide), DP-3 (1440x2560 portrait); varies by location
+- Multi-monitor: configurations change frequently; `rescreenHook` with `fixNSP` swaps NSP off visible screens after hotplug
 - xfce4-panel bottom bar: 48px, using avoidStruts (panel struts issue was worked around)
 
 ### Sound System
