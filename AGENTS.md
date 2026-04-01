@@ -68,7 +68,7 @@ Summary (keep in sync with the steering file):
   - latest kickstart options.lua has new: `showmode=false`, deferred clipboard, `splitright`/`splitbelow`, `listchars`, `inccommand=split`, `cursorline`, `scrolloff=10`, `confirm`
   - latest kickstart keymaps.lua has new: `<Esc>` clears hlsearch, `vim.diagnostic.config`, `<Esc><Esc>` exits terminal mode
 - [ ] check out nvim-autopairs (auto-close brackets/quotes)
-- [ ] check out todo-comments.nvim (highlight and search TODO/FIXME/HACK/NOTE comments)
+- [x] check out todo-comments.nvim (highlight and search TODO/FIXME/HACK/NOTE comments)
 - [ ] is it worth installing tpope/vim-markdown to get the latest change
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
@@ -156,7 +156,7 @@ Summary (keep in sync with the steering file):
   - Override voice with `$EDGE_TTS_VOICE` (available: ko-KR-SunHiNeural, ko-KR-InJoonNeural, ko-KR-HyunsuMultilingualNeural)
 
 ### Neovim Dev Tooling
-- Config: `~/.dotfiles/vim.symlink/` (symlinked to ~/.vim/, also ~/.config/nvim via init.lua)
+- Config: `~/.dotfiles/nvim.configsymlink/` (symlinked to ~/.config/nvim; also ~/.vim via vim.symlink → nvim.configsymlink)
 - Plugin management: all plugins installed via home-manager `programs.neovim.plugins`; no submodules remain; `.gitmodules` removed (vim.symlink was last entry, now a symlink to nvim.configsymlink)
 - Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
 - Project-local config: `myvimrc` sources `.nvim.lua` from cwd or ancestors on `BufEnter` (via `vim.schedule` after lcd), per-buffer dedup
