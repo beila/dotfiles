@@ -42,6 +42,7 @@ myConfig =
                 , spawn "pgrep albert || albert"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook
+        , logHook = followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
@@ -208,6 +209,15 @@ messengerRules =
         , title =? "Gmail - Mozilla Firefox"
         , className =? "Slack"
         ]
+
+-- Move matching windows to the currently focused workspace
+followToCurrentWorkspace :: Query Bool -> X ()
+followToCurrentWorkspace q = withWindowSet $ \ws -> do
+    let cur = W.tag . W.workspace . W.current $ ws
+    wins <- filterM (runQuery q) (W.allWindows ws)
+    forM_ wins $ \w -> do
+        let onCur = w `elem` concatMap (W.integrate' . W.stack) [W.workspace (W.current ws)]
+        unless onCur $ windows $ W.shiftWin cur w
 
 ------------------------------------------------------------------------
 -- Monitor hotplug
