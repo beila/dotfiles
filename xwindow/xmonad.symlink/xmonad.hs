@@ -143,48 +143,76 @@ copyToAllHook = ask >>= \w -> doF (\s -> foldr (copyWindow w . W.tag) s (W.works
 
 myManageHook =
     composeAll
-        [ -- Float
-          appName =? "Alert" --> doFloat
+        [ floatRules
+        , browserRules
+        , mailRules
+        , editorRules
+        , calendarRules
+        , meetingRules
+        , messengerRules
+        , manageHook gnomeConfig
+        , manageDocks
+        , namedScratchpadManageHook myScratchpads
+        ]
+
+floatRules =
+    composeAll
+        [ appName =? "Alert" --> doFloat
         , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
         , className =? "Tilda" --> doFloat
         , className =? "ignition" --> doFloat
         , className =? "Evolution-alarm-notify" --> doFloat
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
-        , -- Mail
-          appName =? "Mail" --> doShift "2:mail"
+        ]
+
+browserRules =
+    composeAll
+        [ className =? "firefox" --> doShift "1:browser"
+        ]
+
+mailRules =
+    composeAll
+        [ appName =? "Mail" --> doShift "2:mail"
         , className =? "thunderbird" --> doShift "2:mail"
         , className =? "evolution.real" --> doShift "2:mail"
-        , -- Editor
-          className =? "jetbrains-clion" --> doShift "3:nvim"
+        ]
+
+editorRules =
+    composeAll
+        [ className =? "jetbrains-clion" --> doShift "3:nvim"
         , className =? "jetbrains-idea" --> doShift "3:nvim"
         , className =? "neovide" --> doShift "3:nvim"
         , className =? "Gvim" --> doShift "3:nvim"
-        , -- Calendar
-          title =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "7:calendar"
+        ]
+
+calendarRules =
+    composeAll
+        [ title =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "7:calendar"
         , title =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox" --> doShift "7:calendar"
         , title =? "Google Calendar - Vivaldi" --> doShift "7:calendar"
         , title =? "Google Calendar - Mozilla Firefox" --> doShift "7:calendar"
         , title =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "7:calendar"
         , title =? "Email - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "7:calendar"
-        , -- Meeting
-          className =? "AmazonChime" --> doShift "8:meeting"
+        ]
+
+meetingRules =
+    composeAll
+        [ className =? "AmazonChime" --> doShift "8:meeting"
         , title =? "Amazon Chime — Mozilla Firefox" --> doShift "8:meeting"
-        , -- Zoom
-          className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" --> doShift "8:meeting"
+        , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" --> doShift "8:meeting"
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         , title =? "Meeting chat" --> doShift "8:meeting"
-        , -- Messenger
-          className =? "yakyak" --> doShift "9:messenger"
+        ]
+
+messengerRules =
+    composeAll
+        [ className =? "yakyak" --> doShift "9:messenger"
         , title =? "WhatsApp - Vivaldi" --> doShift "9:messenger"
         , title =? "WhatsApp - Mozilla Firefox" --> doShift "9:messenger"
         , title =? "Gmail - Mozilla Firefox" --> doShift "9:messenger"
         , className =? "Slack" --> doShift "9:messenger"
-        , className =? "firefox" --> doShift "1:browser"
-        , manageHook gnomeConfig
-        , manageDocks
-        , namedScratchpadManageHook myScratchpads
         ]
 
 ------------------------------------------------------------------------
