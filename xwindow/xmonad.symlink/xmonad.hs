@@ -100,7 +100,7 @@ scratchpadToggle name = withWindowSet $ \ws -> do
     let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
             (NS _ _ q _ : _) -> q
             _ -> return False
-    let isSP w = runQuery query w
+    let isSP = runQuery query
     let isLeftOrTop = name == "ghostty1"
     let allWins = W.allWindows ws
     spWins <- filterM isSP allWins
@@ -283,6 +283,6 @@ fullscreenStartupHook = withDisplay $ \dpy -> do
     c <- getAtom "ATOM"
     f <- getAtom "_NET_WM_STATE_FULLSCREEN"
     io $ do
-        sup <- (join . maybeToList) <$> getWindowProperty32 dpy a r
-        when (fromIntegral f `notElem` sup) $
+        sup <- join . maybeToList <$> getWindowProperty32 dpy a r
+        unless (fromIntegral f `elem` sup) $
             changeProperty32 dpy r a c propModeAppend [fromIntegral f]
