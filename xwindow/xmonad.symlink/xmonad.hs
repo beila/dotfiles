@@ -1,5 +1,5 @@
 import Control.Monad
-import qualified Data.List as L (filter, find)
+import qualified Data.List as L (filter, find, isSuffixOf)
 import qualified Data.Map as M (member)
 import Data.Maybe
 import Data.Monoid (All (..))
@@ -206,9 +206,12 @@ messengerRules =
         [ className =? "yakyak"
         , title =? "WhatsApp - Vivaldi"
         , title =? "WhatsApp - Mozilla Firefox"
-        , title =? "Gmail - Mozilla Firefox"
+        , title `endsWith` "- Gmail — Mozilla Firefox"
         , className =? "Slack"
         ]
+
+endsWith :: Query String -> String -> Query Bool
+endsWith q s = fmap (L.isSuffixOf s) q
 
 -- Move matching windows to the currently focused workspace
 followToCurrentWorkspace :: Query Bool -> X ()
