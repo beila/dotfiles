@@ -96,6 +96,12 @@ Summary (keep in sync with the steering file):
   - `xdg.nix` — firefox-container desktop entry + mimeapps
   - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs + keyd service setup
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
+  - Build: `~/.xmonad/build` uses `$XMONAD_GHC` (set by nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`
+  - HLS: `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC installed from same `haskellPackages` set in nvim.nix to keep versions in sync
+  - ManageHook split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarRules`, `meetingRules`, `messengerRules`
+  - `rescueOffscreenHook`: catches floating windows that move themselves offscreen (e.g. Zoom bug) via ConfigureEvent and snaps them back
+  - `monitorHotplugCfg` / `hideNSPWorkspace`: swaps NSP off visible screens after monitor hotplug
+  - `greedyViewNoSwap`: workspace switch variant that swaps visible screens but not hidden
 - keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf, thinkpad.conf — copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored)
@@ -263,7 +269,7 @@ Summary (keep in sync with the steering file):
 
 ### Monitors
 - Current: 3 monitors — eDP-1 (1920x1200 laptop), DP-1 (3440x1440 ultrawide), DP-3 (1440x2560 portrait); varies by location
-- Multi-monitor: configurations change frequently; `rescreenHook` with `fixNSP` swaps NSP off visible screens after hotplug
+- Multi-monitor: configurations change frequently; `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens after hotplug
 - xfce4-panel bottom bar: 48px, using avoidStruts (panel struts issue was worked around)
 
 ### Sound System

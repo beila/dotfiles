@@ -16,7 +16,6 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
-import XMonad.Layout.PerWorkspace
 import XMonad.Util.EZConfig (additionalKeys)
 import XMonad.Util.NamedScratchpad
 
@@ -141,6 +140,10 @@ refloatScratchpad isLeftOrTop isSP = withWindowSet $ \ws -> do
 copyToAllHook :: ManageHook
 copyToAllHook = ask >>= \w -> doF (\s -> foldr (copyWindow w . W.tag) s (W.workspaces s))
 
+-- Shift all matching queries to a workspace
+shiftAllTo :: WorkspaceId -> [Query Bool] -> ManageHook
+shiftAllTo ws = composeAll . map (--> doShift ws)
+
 myManageHook =
     composeAll
         [ floatRules
@@ -166,53 +169,44 @@ floatRules =
         , appName =? "gnome-panel" --> doFloat
         ]
 
-browserRules =
-    composeAll
-        [ className =? "firefox" --> doShift "1:browser"
-        ]
+browserRules = shiftAllTo "1:browser" [className =? "firefox"]
 
-mailRules =
-    composeAll
-        [ appName =? "Mail" --> doShift "2:mail"
-        , className =? "thunderbird" --> doShift "2:mail"
-        , className =? "evolution.real" --> doShift "2:mail"
-        ]
+mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real"]
 
-editorRules =
-    composeAll
-        [ className =? "jetbrains-clion" --> doShift "3:nvim"
-        , className =? "jetbrains-idea" --> doShift "3:nvim"
-        , className =? "neovide" --> doShift "3:nvim"
-        , className =? "Gvim" --> doShift "3:nvim"
-        ]
+editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 
 calendarRules =
-    composeAll
-        [ title =? "Ghim, Hojin - Outlook Web App - Vivaldi" --> doShift "7:calendar"
-        , title =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox" --> doShift "7:calendar"
-        , title =? "Google Calendar - Vivaldi" --> doShift "7:calendar"
-        , title =? "Google Calendar - Mozilla Firefox" --> doShift "7:calendar"
-        , title =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "7:calendar"
-        , title =? "Email - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "7:calendar"
+    shiftAllTo
+        "7:calendar"
+        [ title =? "Ghim, Hojin - Outlook Web App - Vivaldi"
+        , title =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox"
+        , title =? "Google Calendar - Vivaldi"
+        , title =? "Google Calendar - Mozilla Firefox"
+        , title =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox"
+        , title =? "Email - hojin@amazon.co.uk — Mozilla Firefox"
         ]
 
 meetingRules =
     composeAll
-        [ className =? "AmazonChime" --> doShift "8:meeting"
-        , title =? "Amazon Chime — Mozilla Firefox" --> doShift "8:meeting"
-        , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" --> doShift "8:meeting"
+        [ shiftAllTo
+            "8:meeting"
+            [ className =? "AmazonChime"
+            , title =? "Amazon Chime — Mozilla Firefox"
+            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder"
+            , title =? "Meeting chat"
+            ]
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
-        , title =? "Meeting chat" --> doShift "8:meeting"
         ]
 
 messengerRules =
-    composeAll
-        [ className =? "yakyak" --> doShift "9:messenger"
-        , title =? "WhatsApp - Vivaldi" --> doShift "9:messenger"
-        , title =? "WhatsApp - Mozilla Firefox" --> doShift "9:messenger"
-        , title =? "Gmail - Mozilla Firefox" --> doShift "9:messenger"
-        , className =? "Slack" --> doShift "9:messenger"
+    shiftAllTo
+        "9:messenger"
+        [ className =? "yakyak"
+        , title =? "WhatsApp - Vivaldi"
+        , title =? "WhatsApp - Mozilla Firefox"
+        , title =? "Gmail - Mozilla Firefox"
+        , className =? "Slack"
         ]
 
 ------------------------------------------------------------------------
