@@ -196,7 +196,7 @@ meetingRules =
             , title =? "Meeting chat"
             ]
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
-        , title =? "zoom_linux_float_video_window" --> doFloat
+        , title =? "zoom_linux_float_video_window" --> doFloat <> copyToAllHook
         ]
 
 messengerRules =
