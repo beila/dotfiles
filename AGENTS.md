@@ -158,7 +158,8 @@ Summary (keep in sync with the steering file):
 ### Neovim Dev Tooling
 - Config: `~/.dotfiles/nvim.configsymlink/` (symlinked to ~/.config/nvim; also ~/.vim via vim.symlink → nvim.configsymlink)
 - Plugin management: all plugins installed via home-manager `programs.neovim.plugins`; no submodules remain; `.gitmodules` removed (vim.symlink was last entry, now a symlink to nvim.configsymlink)
-- Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`
+- Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`; `set verbosefile=~/.vim-messages.log` captures `:messages` output
+- Logs: `~/.vim-messages.log` (nvim messages), `~/.local/state/nvim/lsp.log` (LSP), `~/.local/state/nvim/mason.log` (Mason)
 - Project-local config: `myvimrc` sources `.nvim.lua` from cwd or ancestors on `BufEnter` (via `vim.schedule` after lcd), per-buffer dedup
 - Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
   - my-awk.lua, my-cmake.lua, my-cpp.lua, my-css.lua, my-docker.lua, my-glsl.lua

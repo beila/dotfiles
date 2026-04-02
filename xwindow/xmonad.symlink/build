@@ -1,2 +1,2 @@
 #!/bin/bash
-ghc --make xmonad.hs -i -ilib -main-is main -fforce-recomp -o "$1"
+${XMONAD_GHC:-ghc} --make xmonad.hs -i -ilib -main-is main -fforce-recomp -o "$1"
