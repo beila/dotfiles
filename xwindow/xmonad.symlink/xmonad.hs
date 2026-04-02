@@ -94,32 +94,39 @@ copyToAllHook :: ManageHook
 copyToAllHook = ask >>= \w -> doF (\s -> foldr (copyWindow w . W.tag) s (W.workspaces s))
 
 myManageHook = composeAll
-    [ appName   =? "Alert"                                           --> doFloat
+    [ -- Float
+      appName   =? "Alert"                                           --> doFloat
     , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
     , className =? "Tilda"                                           --> doFloat
     , className =? "ignition"                                        --> doFloat
     , className =? "Evolution-alarm-notify"                          --> doFloat
     , className =? "Gnome-panel"                                     --> doFloat
     , appName   =? "gnome-panel"                                     --> doFloat
+    -- Mail
     , appName   =? "Mail"                                            --> doShift "2:mail"
     , className =? "thunderbird"                                     --> doShift "2:mail"
     , className =? "evolution.real"                                  --> doShift "2:mail"
+    -- Editor
     , className =? "jetbrains-clion"                                 --> doShift "3:nvim"
     , className =? "jetbrains-idea"                                  --> doShift "3:nvim"
     , className =? "neovide"                                         --> doShift "3:nvim"
     , className =? "Gvim"                                            --> doShift "3:nvim"
+    -- Calendar
     , title     =? "Ghim, Hojin - Outlook Web App - Vivaldi"         --> doShift "7:calendar"
     , title     =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox" --> doShift "7:calendar"
     , title     =? "Google Calendar - Vivaldi"                       --> doShift "7:calendar"
     , title     =? "Google Calendar - Mozilla Firefox"               --> doShift "7:calendar"
     , title     =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox" --> doShift "7:calendar"
     , title     =? "Email - hojin@amazon.co.uk — Mozilla Firefox"    --> doShift "7:calendar"
+    -- Meeting
     , className =? "AmazonChime"                                     --> doShift "8:meeting"
     , title     =? "Amazon Chime — Mozilla Firefox"                  --> doShift "8:meeting"
+    -- Zoom
     , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" --> doShift "8:meeting"
     , title     =? "zoom_linux_float_message_reminder"   --> doFloat <> copyToAllHook <> insertPosition Below Older
     , title     =? "zoom_linux_float_video_window"                   --> doFloat
     , title     =? "Meeting chat"                                    --> doShift "8:meeting"
+    -- Messenger
     , className =? "yakyak"                                          --> doShift "9:messenger"
     , title     =? "WhatsApp - Vivaldi"                              --> doShift "9:messenger"
     , title     =? "WhatsApp - Mozilla Firefox"                      --> doShift "9:messenger"
