@@ -111,7 +111,8 @@ in
     glsl_analyzer                      # glsl        LSP        my-glsl.lua
 
     # haskell
-    haskell-language-server            # haskell     LSP        my-haskell.lua (hls)
+    pkgs.haskellPackages.haskell-language-server  # haskell     LSP        my-haskell.lua (hls) — from haskellPackages to match GHC
+    pkgs.haskellPackages.ghc                     # haskell     compiler   must match HLS (same package set)
     hlint                              # haskell     linter     my-haskell.lua (via HLS)
     fourmolu                           # haskell     formatter  my-haskell.lua (via HLS)
 
