@@ -192,11 +192,11 @@ meetingRules =
             "8:meeting"
             [ className =? "AmazonChime"
             , title =? "Amazon Chime — Mozilla Firefox"
-            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder"
+            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window"
             , title =? "Meeting chat"
             ]
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
-        , title =? "zoom_linux_float_video_window" --> doFloat <> copyToAllHook
+        , title =? "zoom_linux_float_video_window" --> doFloat
         ]
 
 messengerRules =
