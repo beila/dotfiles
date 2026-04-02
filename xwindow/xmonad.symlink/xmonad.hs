@@ -26,7 +26,7 @@ import Graphics.X11.ExtraTypes.XF86
 -- Main
 ------------------------------------------------------------------------
 
-main = xmonad $ ewmhFullscreen $ rescreenHook rescreenCfg myConfig
+main = xmonad $ ewmhFullscreen $ rescreenHook monitorHotplugCfg myConfig
 
 myConfig = gnomeConfig
     { terminal = "gnome-terminal"
@@ -67,17 +67,17 @@ myScratchpads = [ NS "ghostty1" "ghostty --x11-instance-name=scratchpad1 --worki
 
 -- Compute half-screen rect based on screen orientation
 scratchpadRect :: Bool -> Rectangle -> W.RationalRect
-scratchpadRect isFirst (Rectangle _ _ sw sh)
-    | sw > sh   = if isFirst then W.RationalRect 0.01 0.03 0.485 0.94
+scratchpadRect isLeftOrTop (Rectangle _ _ sw sh)
+    | sw > sh   = if isLeftOrTop then W.RationalRect 0.01 0.03 0.485 0.94
                              else W.RationalRect 0.505 0.03 0.485 0.94
-    | otherwise = if isFirst then W.RationalRect 0.01 0.03 0.98 0.475
+    | otherwise = if isLeftOrTop then W.RationalRect 0.01 0.03 0.98 0.475
                              else W.RationalRect 0.01 0.505 0.98 0.475
 
 -- Float scratchpad as half the screen, adapting to orientation
 adaptiveFloat :: Bool -> ManageHook
-adaptiveFloat isFirst = do
+adaptiveFloat isLeftOrTop = do
     sc <- liftX $ withWindowSet $ return . screenRect . W.screenDetail . W.current
-    doRectFloat (scratchpadRect isFirst sc)
+    doRectFloat (scratchpadRect isLeftOrTop sc)
 
 -- Scratchpad toggle (each scratchpad independent):
 -- 1. Focused on current screen → hide (move to NSP)
@@ -88,7 +88,7 @@ scratchpadToggle name = withWindowSet $ \ws -> do
                     (NS _ _ q _:_) -> q
                     _              -> return False
     let isSP w = runQuery query w
-    let isFirst = name == "ghostty1"
+    let isLeftOrTop = name == "ghostty1"
     let allWins = W.allWindows ws
     spWins <- filterM isSP allWins
     case spWins of
@@ -107,22 +107,18 @@ scratchpadToggle name = withWindowSet $ \ws -> do
                         else namedScratchpadAction myScratchpads name  -- bring from hidden
                     -- Refloat for both visible and hidden cases to adapt to screen orientation.
                     -- Do NOT refloat on hide — it would bring the scratchpad back.
-                    refloatScratchpad isFirst isSP
+                    refloatScratchpad isLeftOrTop isSP
 
 -- Find the scratchpad window and refloat it
 refloatScratchpad :: Bool -> (Window -> X Bool) -> X ()
-refloatScratchpad isFirst isSP = withWindowSet $ \ws -> do
+refloatScratchpad isLeftOrTop isSP = withWindowSet $ \ws -> do
     let allWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
     spWins <- filterM isSP allWins
     case spWins of
-        (s:_) -> refloatAdaptive isFirst s
-        []    -> return ()
-
--- Reposition a window using scratchpadRect on the current screen
-refloatAdaptive :: Bool -> Window -> X ()
-refloatAdaptive isFirst w = do
-    sc <- withWindowSet $ return . screenRect . W.screenDetail . W.current
-    windows $ W.float w (scratchpadRect isFirst sc)
+        (s:_) -> do
+            sc <- withWindowSet $ return . screenRect . W.screenDetail . W.current
+            windows $ W.float s (scratchpadRect isLeftOrTop sc)
+        [] -> return ()
 
 ------------------------------------------------------------------------
 -- Window rules
@@ -182,8 +178,8 @@ myManageHook = composeAll
 ------------------------------------------------------------------------
 
 -- After monitor hotplug, swap NSP off any visible screen
-rescreenCfg = def { afterRescreenHook = fixNSP }
-fixNSP = withWindowSet $ \ws -> do
+monitorHotplugCfg = def { afterRescreenHook = hideNSPWorkspace }
+hideNSPWorkspace = withWindowSet $ \ws -> do
     let visibleTags = map (W.tag . W.workspace) (W.current ws : W.visible ws)
     when ("NSP" `elem` visibleTags) $
         case filter ((/= "NSP") . W.tag) (W.hidden ws) of
@@ -214,7 +210,7 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
     -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
     [ ((m .|. mod4Mask, k), windows $ f i)
     | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
-    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (myGreedyView, mod2Mask)]
+    , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (greedyViewNoSwap, mod2Mask)]
     ]
 
 ------------------------------------------------------------------------
@@ -223,8 +219,8 @@ myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lo
 
 -- TODO: make this lruView
 -- Copied from https://hackage.haskell.org/package/xmonad-0.15/docs/src/XMonad.StackSet.html#greedyView
-myGreedyView :: (Eq s, Eq i) => i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
-myGreedyView w ws
+greedyViewNoSwap :: (Eq s, Eq i) => i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
+greedyViewNoSwap w ws
      | any wTag (W.hidden ws) = W.view w ws
      | (Just s) <- L.find (wTag . W.workspace) (W.visible ws)
                             = ws { W.current = (W.current ws) { W.workspace = W.workspace s }
