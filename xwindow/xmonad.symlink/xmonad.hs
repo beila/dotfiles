@@ -42,7 +42,7 @@ myConfig =
                 , spawn "pgrep albert || albert"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook
-        , logHook = followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
