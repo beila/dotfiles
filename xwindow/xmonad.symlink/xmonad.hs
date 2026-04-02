@@ -1,7 +1,9 @@
 import Control.Monad
 import Data.Maybe
+import Data.Monoid (All(..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
 import qualified Data.List as L (find,filter)
+import qualified Data.Map as M (member)
 import qualified XMonad.StackSet as W
 import XMonad
 import XMonad.Actions.CycleWS
@@ -163,7 +165,7 @@ myConfig = gnomeConfig
         spawn "pgrep xfce4-panel || xfce4-panel",
         spawn "pgrep albert || albert"
     ]
-    , handleEventHook = handleEventHook gnomeConfig
+    , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook
     , modMask = mod4Mask
     -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
     , workspaces = myWorkspaces
@@ -213,6 +215,24 @@ myGreedyView w ws
 
    -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
 fullscreenStartupHook :: X ()
+
+-- Rescue windows that move themselves offscreen (e.g. Zoom bug)
+rescueOffscreenHook :: Event -> X All
+rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width = ew, ev_height = eh} = do
+    when (ew > 100 && eh > 100) $ do  -- ignore tiny windows (trays, etc.)
+        screens <- withWindowSet $ return . W.screens
+        let rects = map (screenRect . W.screenDetail) screens
+            totalRight  = maximum $ map (\r -> fromIntegral (rect_x r) + fromIntegral (rect_width r)) rects
+            totalBottom = maximum $ map (\r -> fromIntegral (rect_y r) + fromIntegral (rect_height r)) rects
+            x = fromIntegral ex :: Int
+            y = fromIntegral ey :: Int
+        when (x > totalRight || y > totalBottom || x < -500 || y < -500) $
+            withWindowSet $ \ws ->
+                when (M.member w (W.floating ws)) $ do
+                    let sc = screenRect . W.screenDetail . W.current $ ws
+                    windows $ W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
+    return (All True)
+rescueOffscreenHook _ = return (All True)
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
     a <- getAtom "_NET_SUPPORTED"
