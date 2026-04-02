@@ -30,19 +30,19 @@ myScratchpads = [ NS "ghostty1" "ghostty --x11-instance-name=scratchpad1 --worki
                      (appName =? "scratchpad2")
                      (adaptiveFloat False) ]
 
+-- Compute half-screen rect based on screen orientation
+scratchpadRect :: Bool -> Rectangle -> W.RationalRect
+scratchpadRect isFirst (Rectangle _ _ sw sh)
+    | sw > sh   = if isFirst then W.RationalRect 0.01 0.03 0.485 0.94
+                             else W.RationalRect 0.505 0.03 0.485 0.94
+    | otherwise = if isFirst then W.RationalRect 0.01 0.03 0.98 0.475
+                             else W.RationalRect 0.01 0.505 0.98 0.475
+
 -- Float scratchpad as half the screen, adapting to orientation
 adaptiveFloat :: Bool -> ManageHook
 adaptiveFloat isFirst = do
     sc <- liftX $ withWindowSet $ return . screenRect . W.screenDetail . W.current
-    let Rectangle _ _ sw sh = sc
-        rect = if sw > sh
-               then if isFirst
-                    then W.RationalRect 0.01 0.03 0.485 0.94
-                    else W.RationalRect 0.505 0.03 0.485 0.94
-               else if isFirst
-                    then W.RationalRect 0.01 0.03 0.98 0.475
-                    else W.RationalRect 0.01 0.505 0.98 0.475
-    doRectFloat rect
+    doRectFloat (scratchpadRect isFirst sc)
 
 -- Scratchpad toggle (each scratchpad independent):
 -- 1. Focused on current screen → hide (move to NSP)
@@ -83,19 +83,11 @@ refloatScratchpad isFirst isSP = withWindowSet $ \ws -> do
         (s:_) -> refloatAdaptive isFirst s
         []    -> return ()
 
--- Reposition a window using adaptiveFloat on the current screen
+-- Reposition a window using scratchpadRect on the current screen
 refloatAdaptive :: Bool -> Window -> X ()
 refloatAdaptive isFirst w = do
     sc <- withWindowSet $ return . screenRect . W.screenDetail . W.current
-    let Rectangle _ _ sw sh = sc
-        rect = if sw > sh
-               then if isFirst
-                    then W.RationalRect 0.01 0.03 0.485 0.94
-                    else W.RationalRect 0.505 0.03 0.485 0.94
-               else if isFirst
-                    then W.RationalRect 0.01 0.03 0.98 0.475
-                    else W.RationalRect 0.01 0.505 0.98 0.475
-    windows $ W.float w rect
+    windows $ W.float w (scratchpadRect isFirst sc)
 
 -- Copy the managed window (not the focused one) to all workspaces
 copyToAllHook :: ManageHook
@@ -139,10 +131,7 @@ myManageHook = composeAll
     , namedScratchpadManageHook myScratchpads
     ]
 
--- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#dzen_status_bars
-{-main = xmonad =<< xmobar myConfig-}
 main = xmonad $ ewmhFullscreen $ rescreenHook rescreenCfg myConfig
-{-main = xmonad =<< dzenWithFlags "-tx 500" myConfig-}
 
 -- After monitor hotplug, swap NSP off any visible screen
 rescreenCfg = def { afterRescreenHook = fixNSP }
@@ -176,7 +165,6 @@ myConfig = gnomeConfig
     } `additionalKeys` myKeys
 
 myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
-{-myWorkspaces = ["1","2","3","4","5","6","7","8","9"]-}
 
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys = [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
@@ -213,9 +201,6 @@ myGreedyView w ws
      | otherwise = ws
    where wTag = (w == ) . W.tag
 
-   -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
-fullscreenStartupHook :: X ()
-
 -- Rescue windows that move themselves offscreen (e.g. Zoom bug)
 rescueOffscreenHook :: Event -> X All
 rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width = ew, ev_height = eh} = do
@@ -228,11 +213,13 @@ rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width
             y = fromIntegral ey :: Int
         when (x > totalRight || y > totalBottom || x < -500 || y < -500) $
             withWindowSet $ \ws ->
-                when (M.member w (W.floating ws)) $ do
-                    let sc = screenRect . W.screenDetail . W.current $ ws
+                when (M.member w (W.floating ws)) $
                     windows $ W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
     return (All True)
 rescueOffscreenHook _ = return (All True)
+
+-- Advertise fullscreen support to EWMH
+fullscreenStartupHook :: X ()
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
     a <- getAtom "_NET_SUPPORTED"
