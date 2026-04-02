@@ -82,6 +82,8 @@ Summary (keep in sync with the steering file):
 - [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
 - [ ] fzf-lua: add workspace symbols (`lsp_workspace_symbols`) switchable from document symbols (`<F8>`) — e.g. ctrl-g toggle or `<F8><F8>`
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
+- [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
+- [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 
 ## Architecture Overview
 
