@@ -1,2 +1,3 @@
 #!/bin/bash
-${XMONAD_GHC:-ghc} --make xmonad.hs -i -ilib -main-is main -fforce-recomp -o "$1"
+set -euo pipefail
+${XMONAD_GHC:-ghc} --make xmonad.hs -i -ilib -main-is main -fforce-recomp -o "${1:?output path required}"
