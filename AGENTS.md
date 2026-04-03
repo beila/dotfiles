@@ -85,7 +85,8 @@ Summary (keep in sync with the steering file):
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] draw blank in sysmon when there's no prior data
-- keep jj but change jj log to show further history
+- [ ] keep jj but change jj log to show further history
+- [ ] have tts mcp to stop already ongoing speech
 
 ## Architecture Overview
 
