@@ -22,7 +22,7 @@
     "org/gnome/gnome-flashback" = {
       desktop = false;
     };
-    # Remove gnome-panel bars (replaced by xfce4-panel)
+    # Fallback: empty gnome-panel layout (primary fix is session override below)
     "org/gnome/gnome-panel/layout" = {
       toplevel-id-list = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
     };
@@ -33,6 +33,15 @@
       speed = 0.75;
     };
   };
+
+  # Override session file: remove gnome-panel, keep only essential SettingsDaemons.
+  # System default in /usr/share/gnome-session/sessions/ includes gnome-panel as
+  # RequiredComponent, which re-creates panel layout on every login.
+  xdg.dataFile."gnome-session/sessions/gnome-flashback-xmonad.session".text = ''
+    [GNOME Session]
+    Name=GNOME Flashback (XMonad)
+    RequiredComponents=xmonad;org.gnome.SettingsDaemon.Datetime;org.gnome.SettingsDaemon.Housekeeping;org.gnome.SettingsDaemon.Keyboard;org.gnome.SettingsDaemon.Power;org.gnome.SettingsDaemon.ScreensaverProxy;org.gnome.SettingsDaemon.XSettings;
+  '';
 
   # gnome-flashback provides org.gnome.Mutter.DisplayConfig DBus interface,
   # which GNOME Settings "Displays" panel needs.
