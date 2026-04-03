@@ -41,6 +41,11 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now keyd
 
+# linger: keep systemd --user alive after logout so zellij servers,
+# sync timers, and other user services survive GNOME session restarts.
+# Without this, logging out stops the user manager and kills all children.
+sudo loginctl enable-linger "$USER"
+
 # ollama: local LLM server (for commit message generation etc.)
 if ! command -v ollama &>/dev/null; then
   curl -fsSL https://ollama.com/install.sh | sh
