@@ -196,10 +196,10 @@ _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null
 _jh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(_jj_find_pos "$1" 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::')
+    local pos; pos=$(_jj_find_pos "$1" 'workspace_view()')
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
-  jj --quiet log --color=always -T 'fzf_oneline' -r 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::' 2>/dev/null | _jj_log_fzf \
+  jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
     "${pos_bind[@]}" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
@@ -238,10 +238,10 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 _jhh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(_jj_find_pos "$1" '::@' 'fzf_oneline_author')
+    local pos; pos=$(_jj_find_pos "$1" '::workspace_view()' 'fzf_oneline_author')
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
-  jj --quiet log --color=always -T 'fzf_oneline_author' -r '::@' 2>/dev/null | _jj_log_fzf \
+  jj --quiet log --color=always -T 'fzf_oneline_author' -r '::workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
     "${pos_bind[@]}" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
