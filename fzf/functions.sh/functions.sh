@@ -63,12 +63,7 @@ _dim_jj_op_ids() {
 _jf() {
   jj --quiet diff --name-only 2>/dev/null |
     fzf_down -m \
-      --prompt 'changed> ' \
-      --header '☐ all files (ctrl-f)' \
-      --preview 'jj --quiet diff --color=always -- {} 2>/dev/null || bat --style=numbers --color=always -- {} 2>/dev/null || cat {}' \
-      --bind 'ctrl-f:transform:[[ $FZF_PROMPT == changed* ]] &&
-        echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(jj file list)" ||
-        echo "change-prompt(changed> )+change-header(☐ all files (ctrl-f))+reload(jj --quiet diff --name-only)"'
+      --preview 'jj --quiet diff --color=always -- {}'
 }
 
 _git_f() {
@@ -84,6 +79,32 @@ _git_f() {
 }
 
 _gf() { if is_in_jj_repo; then _jf; elif is_in_git_repo; then _git_f; fi }
+
+# --- file browser (ctrl-f toggle between tracked and all files) ---
+
+_file_browse() {
+  local preview='bat --style=numbers --color=always -- {} 2>/dev/null || cat {}'
+  if is_in_jj_repo; then
+    jj file list 2>/dev/null |
+      fzf_down -m --prompt 'tracked> ' \
+        --header '☐ all files (ctrl-f)' \
+        --preview "$preview" \
+        --bind 'ctrl-f:transform:[[ $FZF_PROMPT == tracked* ]] &&
+          echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(fd --type f --hidden --no-ignore)" ||
+          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(jj file list)"'
+  elif is_in_git_repo; then
+    git ls-files 2>/dev/null |
+      fzf_down -m --prompt 'tracked> ' \
+        --header '☐ all files (ctrl-f)' \
+        --preview "$preview" \
+        --bind 'ctrl-f:transform:[[ $FZF_PROMPT == tracked* ]] &&
+          echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(fd --type f --hidden --no-ignore)" ||
+          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(git ls-files)"'
+  else
+    fd --type f --hidden --no-ignore 2>/dev/null |
+      fzf_down -m --prompt 'all> ' --preview "$preview"
+  fi
+}
 
 # --- bookmarks / branches ---
 

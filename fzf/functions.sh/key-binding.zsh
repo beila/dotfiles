@@ -26,3 +26,9 @@ bindkey -M vicmd '^g' undefined-key
     eval "bindkey -M vicmd '^g$c' fzf-g$c$c-widget"
   done
 } b h y
+
+# Ctrl-F: file browser with tracked/all toggle
+fzf-file-browse-widget() { local result=$(_file_browse | join-lines); zle reset-prompt; LBUFFER+=$result }
+zle -N fzf-file-browse-widget
+bindkey -M viins '^f' fzf-file-browse-widget
+bindkey -M vicmd '^f' fzf-file-browse-widget

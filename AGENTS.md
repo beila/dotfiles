@@ -77,7 +77,7 @@ Summary (keep in sync with the steering file):
 - [x] is it worth installing tpope/vim-markdown to get the latest change — no: only 3 minor commits since nvim 0.11.3 bundle, treesitter handles highlighting anyway
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
-- [ ] in jj files dialog, ctrl-r toggles between tracked/changed files and all files (including ignored); implement in both zsh (_jf) and nvim (fzf.lua `<C-g><C-f>`)
+- [x] in jj files dialog, ctrl-f toggles between changed files and all tracked files; implemented in both zsh (_jf) and nvim (fzf.lua `<C-g><C-f>`)
 - [ ] replace absolute path from xfce settings
 - [ ] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 - [ ] make battery notification sticky

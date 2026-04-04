@@ -10,24 +10,35 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
         local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
         if root.code == 0 then
             local cmd_jj = 'jj file list'
-            local cmd_all = script_dir .. '/jj-file-list-all'
+            local cmd_all_tracked = script_dir .. '/jj-file-list-all'
+            local cmd_all_files = 'fd --type f --hidden --no-ignore'
             local jj_cwd = vim.trim(root.stdout)
             local show_sub = false
+            local show_all = false
+            local function cur_cmd()
+                if show_all then return cmd_all_files end
+                return show_sub and cmd_all_tracked or cmd_jj
+            end
+            local function header()
+                return (show_sub and '☑' or '☐') .. ' submodules (ctrl-g)  '
+                    .. (show_all and '☑' or '☐') .. ' all files (ctrl-f)'
+            end
             local function make_opts(query)
                 local opts = {
-                    prompt = show_sub and 'jj+sub files> ' or 'jj files> ',
+                    prompt = show_all and 'all files> ' or (show_sub and 'jj+sub files> ' or 'jj files> '),
                     cwd = jj_cwd,
                     query = query,
                     preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
-                    fzf_opts = {
-                        ['--header'] = (show_sub and '☑' or '☐') .. ' submodules (ctrl-g)',
-                    },
+                    fzf_opts = { ['--header'] = header() },
                 }
                 opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
                     ['ctrl-g'] = { fn = function(_, opts)
                         show_sub = not show_sub
-                        local q = opts.last_query
-                        fzf_lua.fzf_exec(show_sub and cmd_all or cmd_jj, make_opts(q))
+                        fzf_lua.fzf_exec(cur_cmd(), make_opts(opts.last_query))
+                    end, exec_silent = true },
+                    ['ctrl-f'] = { fn = function(_, opts)
+                        show_all = not show_all
+                        fzf_lua.fzf_exec(cur_cmd(), make_opts(opts.last_query))
                     end, exec_silent = true },
                 })
                 return opts
@@ -50,35 +61,16 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>z",
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-f>",
     function()
-        -- jj-first, git-fallback; ctrl-f toggles between changed and all files
+        -- jj-first, git-fallback
         local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
         if root.code == 0 then
-            local cmd_changed = 'jj --quiet diff --name-only'
-            local cmd_all = 'jj file list'
-            local jj_cwd = vim.trim(root.stdout)
-            local show_all = false
-            local function make_opts(query)
-                local opts = {
-                    prompt = show_all and 'jj all> ' or 'jj changed> ',
-                    cwd = jj_cwd,
-                    query = query,
-                    previewer = false,
-                    preview = show_all
-                        and 'bat --style=numbers --color=always -- {1} 2>/dev/null || cat {1}'
-                        or 'jj --quiet diff --color=always -- {1}',
-                    fzf_opts = {
-                        ['--header'] = (show_all and '☑' or '☐') .. ' all files (ctrl-f)',
-                    },
-                }
-                opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
-                    ['ctrl-f'] = { fn = function(_, opts)
-                        show_all = not show_all
-                        fzf_lua.fzf_exec(show_all and cmd_all or cmd_changed, make_opts(opts.last_query))
-                    end, exec_silent = true },
-                })
-                return opts
-            end
-            fzf_lua.fzf_exec(cmd_changed, make_opts())
+            fzf_lua.fzf_exec('jj --quiet diff --name-only', {
+                prompt = 'jj changed> ',
+                cwd = vim.trim(root.stdout),
+                previewer = false,
+                preview = 'jj --quiet diff --color=always -- {1}',
+                actions = fzf_lua.defaults.actions.files,
+            })
         else
             fzf_lua.git_status()
         end
