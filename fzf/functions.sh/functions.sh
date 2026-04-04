@@ -110,12 +110,17 @@ _file_browse() {
 # --- bookmarks / branches ---
 
 _jb() {
+  local pos_bind=()
+  [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   # Preview uses unique_boundary() revset alias (see jj config.toml)
   # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
   # prefix them with the parent bookmark name so they become "nix@hj ..."
   jj --quiet bookmark list --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
+      --header '☐ workspaces (ctrl-b)' \
+      "${pos_bind[@]}" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
         jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
@@ -135,8 +140,13 @@ _gb() { if is_in_jj_repo; then _jb; elif is_in_git_repo; then _git_b; fi }
 # --- workspaces / worktrees ---
 
 _jbb() {
+  local pos_bind=()
+  [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   jj --quiet workspace list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
+      --header '☑ workspaces (ctrl-b)' \
+      "${pos_bind[@]}" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n}')" \
       --preview 'jj --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
@@ -189,7 +199,7 @@ _jh() {
   jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
     "${pos_bind[@]}" \
-    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) exec zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
+    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
 }
 
 _git_h() {
@@ -204,7 +214,12 @@ _gh() { if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
 # --- log all ---
 
 _jyy() {
-  jj --quiet log --color=always -T 'builtin_log_oneline' -r 'all()' 2>/dev/null | _jj_log_fzf
+  local pos_bind=()
+  [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
+  jj --quiet log --color=always -T 'builtin_log_oneline' -r 'all()' 2>/dev/null | _jj_log_fzf \
+    --header '☐ op log (ctrl-y)' \
+    "${pos_bind[@]}" \
+    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n}')"
 }
 
 _git_yy() {
@@ -226,7 +241,7 @@ _jhh() {
   jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
     "${pos_bind[@]}" \
-    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) exec zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
+    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
 }
 
 _git_hh() {
@@ -239,9 +254,14 @@ _ghh() { if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
 # --- reflog / operation log ---
 
 _jy() {
+  local pos_bind=()
+  [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   jj --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
     _dim_jj_op_ids |
     fzf_down --ansi --no-sort --reverse --multi \
+      --header '☑ op log (ctrl-y)' \
+      "${pos_bind[@]}" \
+      --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n}')" \
       --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
     grep -o "[0-9a-f]\{12,\}" | tail -1
 }
