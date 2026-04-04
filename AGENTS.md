@@ -24,6 +24,8 @@ Summary (keep in sync with the steering file):
   - jj template aliases `fzf_oneline` (no author/git-id) and `fzf_oneline_author`; revset alias `workspace_view()` for _jh; `_jh` uses `workspace_view()`, `_jhh` uses `::workspace_view()`
 - [ ] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
 - [ ] shorten relative date/time in fzf_oneline templates (e.g. "1w" instead of "1 week ago")
+- [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
+- [ ] show first name instead of email local part in fzf_oneline_author (jj templates lack string split)
 
 ### Medium impact
 - [ ] add squash feature to _gf
