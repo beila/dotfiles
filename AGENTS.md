@@ -95,7 +95,9 @@ Summary (keep in sync with the steering file):
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [x] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
   - `_jh` ↔ `_jhh`: ctrl-h toggles via fzf `become`; preserves focused revision (`_jj_find_pos` + `result:pos+unbind`); streams jj log directly to fzf (no buffering); `_jj_change_id` and `_jj_find_pos` shared helpers; `_fzf_functions_sh` captures source file path for `become` sourcing
-  - `_jy` ↔ `_jyy` skipped: op log vs commit log are too different to toggle
+  - `_jb` ↔ `_jbb`: ctrl-b toggles (bookmarks ↔ workspaces); line-number focus via `{n}`
+  - `_jy` ↔ `_jyy`: ctrl-y toggles (op log ↔ all commits); line-number focus via `{n}`
+  - `become` uses `execve(2)` internally — no `exec` needed in the command
 - [ ] shorten change id/date/time and remove git commit id in list panes of _gh, ...
 - [ ] make fzf zellij popup
 
@@ -122,7 +124,7 @@ Summary (keep in sync with the steering file):
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
-  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id` extracts change ID from fzf line (strips ANSI); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); `_jh`↔`_jhh` toggle via ctrl-h (`become` + `result:pos+unbind` for focus preservation)
+  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id` extracts change ID from fzf line (strips ANSI); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); toggles via `become`: `_jh`↔`_jhh` (ctrl-h, revision-based focus), `_jb`↔`_jbb` (ctrl-b), `_jy`↔`_jyy` (ctrl-y); line-number focus uses `result:pos(N+1)+unbind(result)` (fzf `{n}` is 0-indexed, `pos` is 1-indexed)
   - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix; `^F` bound to `_file_browse` (tracked/all files toggle)
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
