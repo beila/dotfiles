@@ -50,16 +50,35 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>z",
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-f>",
     function()
-        -- jj-first, git-fallback
+        -- jj-first, git-fallback; ctrl-f toggles between changed and all files
         local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
         if root.code == 0 then
-            fzf_lua.fzf_exec('jj --quiet diff --name-only', {
-                prompt = 'jj changed> ',
-                cwd = vim.trim(root.stdout),
-                previewer = false,
-                preview = 'jj --quiet diff --color=always -- {1}',
-                actions = fzf_lua.defaults.actions.files,
-            })
+            local cmd_changed = 'jj --quiet diff --name-only'
+            local cmd_all = 'jj file list'
+            local jj_cwd = vim.trim(root.stdout)
+            local show_all = false
+            local function make_opts(query)
+                local opts = {
+                    prompt = show_all and 'jj all> ' or 'jj changed> ',
+                    cwd = jj_cwd,
+                    query = query,
+                    previewer = false,
+                    preview = show_all
+                        and 'bat --style=numbers --color=always -- {1} 2>/dev/null || cat {1}'
+                        or 'jj --quiet diff --color=always -- {1}',
+                    fzf_opts = {
+                        ['--header'] = (show_all and '☑' or '☐') .. ' all files (ctrl-f)',
+                    },
+                }
+                opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
+                    ['ctrl-f'] = { fn = function(_, opts)
+                        show_all = not show_all
+                        fzf_lua.fzf_exec(show_all and cmd_all or cmd_changed, make_opts(opts.last_query))
+                    end, exec_silent = true },
+                })
+                return opts
+            end
+            fzf_lua.fzf_exec(cmd_changed, make_opts())
         else
             fzf_lua.git_status()
         end
