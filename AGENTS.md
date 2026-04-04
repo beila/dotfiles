@@ -15,91 +15,42 @@ Summary (keep in sync with the steering file):
 
 ## TODO List
 
-- [x] **Battery indicator** — genmon plugin (`battery-genmon` script), replaced xfce4-power-manager
-- [x] **Git commit message generator** — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
-- [x] **jj periodic tasks** — auto-fetch, background operations
-   - `sync_all` runs every 10min via `sync-repos.timer` systemd user timer (randomized delay, low priority, flock)
-   - `jj_snapshot_all` snapshots all jj repos found via plocate
-   - `commit-msg` generates AI commit messages via kiro-cli (preferred) or ollama + qwen2.5-coder:3b (on demand)
-- [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
-- [x] **Auto-merge to main on sync** — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
-- [x] **jj empty changes** — sync_dotfiles skips commit/describe when current change is empty, but still pushes bookmarks
-- [x] **Ghostty unnecessary resizing** — scratchpadToggle no longer refloats when just focusing a visible scratchpad
-- [x] **Fix open-in-container** — was using gawk-specific `gensub()` on mawk; fixed with POSIX awk + longest suffix matching
-- [x] kill tmux server and remove zsh integration
-- [x] zoom notification on all workspace
-- [x] fix sync_all creating "```commit" or "```markdown" description
-- [x] zellij session should outlive ghostty
-- [ ] there's no gap between ghostty vertically
+### High impact
 - [ ] can't type hangul in zellij/ghostty
-- [x] add local settings file into a non-public VCS
-- [x] run tts when asking for permission in kiro
-- [x] change neovide font back
-- [x] install nvim plugins with home manager and remove submodules (all plugins now via nix, no submodules remain)
-- [ ] review each nvim plugin and cleanup/modernise
-- [x] keybindings for session/tab/pane changes in zellij
-- [x] different zellij sessions for each scratchpad
-- [x] add a script to add a new git-worktree/jj-workspace
-  - `just workspace <target> [source]` in `justfile.symlink`; resolves target to absolute path before cd; colocated (git+jj): git worktree + jj workspace + restores .git pointer; jj-only: jj workspace add; git-only: git worktree add
-- [x] use kiro first for commit message generation
-- [x] ollama server started on demand
-- [ ] how do I get notified with sync_all error
-- [ ] notify user when sync_dotfiles merge has conflicts
-  - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram; KakaoTalk "나에게 보내기" doesn't trigger push notifications
-- [x] fix sync_dotfiles leaving orphan empty change after each run
-   - Root cause: concurrent `sync_dotfiles` runs (manual + timer) racing on the same repo; no per-repo locking
-   - Fix: added per-repo `flock` to `sync_dotfiles` (`/tmp/sync_dotfiles_<path>.lock`); removed global flock from `sync_all`
-- [ ] make sync_dotfiles more readable
+- [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
+- [ ] use fzf for zsh tab completion
+- [ ] make fzf zellij popup
+- [ ] shorten change id/date/time and remove git commit id in list panes of _gh, ...
+
+### Medium impact
 - [ ] add squash feature to _gf
   - fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision
-  - opens `_gh` with a header explaining the squash context, use it directly or at least minimise duplicated code
+  - opens `_gh` with a header explaining the squash context, minimise duplicated code
   - runs `jj squash --into <rev> -- <files>`
   - enter keeps current behaviour (output filenames)
 - [ ] add inserting a new empty revision in _gh
-- [x] remove --color with --name-only and the following file name separation (such as awk) in zsh/functions.sh/
-- [ ] zellij session picker: kills current pane, when the session is open in two zellij
-- [ ] zellij session picker: show current session differently and make it not choosable
-- [ ] zellij session picker: make it floating
-- [x] replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto
-- [ ] use fzf for zsh tab completion
-- [x] autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)
-- [x] finish reviewing kickstart-modular.nvim files (lsp-setup.lua, custom/) and remove kickstart-modular.nvim
-  - options.lua reviewed: added `breakindent`; skipped `clipboard`, `signcolumn`, `updatetime`, `timeoutlen`, `completeopt`
-  - telescope-setup.lua reviewed: missing `oldfiles`, `buffer fuzzy find`, `grep current word`, `live grep`, `diagnostics`, `quickfix`, `git buffer commits` (partially covered by lsp_finder)
-  - treesitter-setup.lua reviewed: added incremental selection + parameter swap; skipped move-to-end and class nav
-  - telescope-multi-select.lua reviewed: fzf-lua handles multi-select natively, nothing to add
-  - latest kickstart options.lua has new: `showmode=false`, deferred clipboard, `splitright`/`splitbelow`, `listchars`, `inccommand=split`, `cursorline`, `scrolloff=10`, `confirm`
-  - latest kickstart keymaps.lua has new: `<Esc>` clears hlsearch, `vim.diagnostic.config`, `<Esc><Esc>` exits terminal mode
-- [x] check out nvim-autopairs (auto-close brackets/quotes) — decided not to install; not needed
-- [x] check out todo-comments.nvim (highlight and search TODO/FIXME/HACK/NOTE comments)
-- [x] is it worth installing tpope/vim-markdown to get the latest change — no: only 3 minor commits since nvim 0.11.3 bundle, treesitter handles highlighting anyway
-- [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
-- [ ] airline tabar changes a lot when opening nvimtree
-- [x] in jj files dialog, ctrl-f toggles between tracked and all files; zsh: `_file_browse` bound to Ctrl-F; nvim: `<leader>f` ctrl-f toggle added alongside existing ctrl-g submodule toggle
-- [ ] replace absolute path from xfce settings
-- [x] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav) — mini.pairs not needed; splitjoin and bracketed still to review
-- [ ] make battery notification sticky
-- [ ] make copilot key work as super
-- [x] add battery in the system monitor panel and remove dedicated one
-- [ ] treesitter auto install
+- [ ] notify user when sync_dotfiles merge has conflicts
+  - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram
+- [ ] how do I get notified with sync_all error
 - [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
-- [x] fzf-lua: add workspace symbols (`lsp_workspace_symbols`) switchable from document symbols (`<F8>`) — ctrl-g toggles between document and workspace symbols, query preserved across toggle
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
+- [ ] review each nvim plugin and cleanup/modernise
+- [ ] make sync_dotfiles more readable
+- [ ] fzf/functions.sh sets list width depending on the contents
+
+### Low impact
+- [ ] zellij session picker: make it floating
+- [ ] zellij session picker: show current session differently and make it not choosable
+- [ ] zellij session picker: kills current pane, when the session is open in two zellij
+- [ ] airline tabbar changes a lot when opening nvimtree
+- [ ] there's no gap between ghostty vertically
+- [ ] make battery notification sticky
+- [ ] treesitter auto install
+- [ ] make copilot key work as super
+- [ ] replace absolute path from xfce settings
+- [ ] review remaining mini-nvim modules: mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
-- [x] sysmon battery graph shows green (not red) for padding bars when no prior data exists
-- [x] keep jj but change jj log to show further history
-- [x] have tts mcp to stop already ongoing speech
-  - `mcp-tts` kills previous TTS process group (`setsid` + `kill -PGID`) before starting new playback
-- [x] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
-- [ ] fzf/functions.sh sets list width depending on the contents
-- [x] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
-  - `_jh` ↔ `_jhh`: ctrl-h toggles via fzf `become`; preserves focused revision (`_jj_find_pos` + `result:pos+unbind`); streams jj log directly to fzf (no buffering); `_jj_change_id` and `_jj_find_pos` shared helpers; `_fzf_functions_sh` captures source file path for `become` sourcing
-  - `_jb` ↔ `_jbb`: ctrl-b toggles (bookmarks ↔ workspaces); line-number focus via `{n}`
-  - `_jy` ↔ `_jyy`: ctrl-y toggles (op log ↔ all commits); line-number focus via `{n}`
-  - `become` uses `execve(2)` internally — no `exec` needed in the command
-- [ ] shorten change id/date/time and remove git commit id in list panes of _gh, ...
-- [ ] make fzf zellij popup
 
 ## Architecture Overview
 
@@ -128,6 +79,7 @@ Summary (keep in sync with the steering file):
   - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix; `^F` bound to `_file_browse` (tracked/all files toggle)
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
+  - `keybind = ctrl+{j,k,n,p}=text:\xNN` — sends legacy control codes instead of CSI u; fixes zellij leaking kitty keyboard protocol sequences as literal text into fzf query under rapid key repeat
 - albert config: `~/.dotfiles/albert.configsymlink/` (symlinked to ~/.config/albert/)
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
@@ -282,6 +234,7 @@ Summary (keep in sync with the steering file):
 - nvim-treesitter `ensure_installed` + `auto_install` can fail trying to write to nix store (read-only); `auto_install = false` and `ensure_installed = {}` as workaround; treesitter module buffer-local keymaps may not attach — manual global keymaps used for incremental selection and swap
 - zsh vi mode: custom zle widget bindings must use `bindkey -M viins` and `bindkey -M vicmd` explicitly; plain `bindkey` only sets main (viins) — vicmd (normal mode) shows `^X` literal for unbound keys
 - zsh fzf: `source <(fzf --zsh)` must come before custom bindkeys that reference fzf widgets (fzf-cd-widget, etc.); `zshrc.symlink` globs `**/*.zsh` alphabetically — don't put static copies of fzf scripts in the glob path
+- zellij + kitty keyboard protocol: under rapid key repeat, zellij occasionally fails to parse CSI u sequences and passes raw bytes to child programs; worked around by sending legacy control codes from ghostty for ctrl-j/k/n/p
 - C++ treesitter textobjects: `#make-range!` directives can silently fail; `@function.outer` misses lambdas and some edge cases; mini.ai pattern-based `f`/`a` is more reliable for C++ function calls and arguments
 - Push notifications: Google Chat webhooks blocked by org admin; Slack app creation requires workspace admin approval; KakaoTalk "나에게 보내기" doesn't trigger push (messages to self are silent); Telegram bot or ntfy.sh are the viable options
 
