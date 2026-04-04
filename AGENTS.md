@@ -95,6 +95,7 @@ Summary (keep in sync with the steering file):
 - [x] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
 - [ ] when the zsh command line is empty, ^g runs jj
 - [ ] fzf/functions.sh sets list width depending on the contents
+- [ ] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
 
 ## Architecture Overview
 

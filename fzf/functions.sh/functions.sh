@@ -142,14 +142,16 @@ _git_t() {
 
 _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 
-# --- log ---
+# --- log upstream ---
 
 _jh() {
   jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf
 }
 
 _git_h() {
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
+  git rev-parse "@{u}" || { echo "No upstream"; return }
+  all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
   _git_log_fzf
 }
 
@@ -168,16 +170,14 @@ _git_yy() {
 
 _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 
-# --- log upstream ---
+# --- log ---
 
 _jhh() {
-  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@ & ::remote_bookmarks()' 2>/dev/null | _jj_log_fzf
+  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf
 }
 
 _git_hh() {
-  git rev-parse "@{u}" || { echo "No upstream"; return }
-  all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
+  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
   _git_log_fzf
 }
 
