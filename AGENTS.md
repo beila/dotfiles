@@ -52,7 +52,8 @@ Summary (keep in sync with the steering file):
    - The `jj git push`/`jj git import` may also rebase `@`, collapsing the empty intermediate and leaving `@` directly on master again.
    - Need to understand: why does `@` end up on master (immutable) between runs? The previous run's `jj new` should leave `@` on a fresh mutable change above master.
 - [ ] make sync_dotfiles more readable
-- [ ] add squash feature to _gf — fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision; opens `_gh` with a header explaining the squash context; runs `jj squash --into <rev> -- <files>`; enter keeps current behaviour (output filenames)
+- [ ] add squash feature to _gf
+  — fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision; opens `_gh` with a header explaining the squash context; runs `jj squash --into <rev> -- <files>`; enter keeps current behaviour (output filenames)
 - [ ] zellij session picker: kills current pane, when the session is open in two zellij
 - [ ] zellij session picker: show current session differently and make it not choosable
 - [ ] zellij session picker: make it floating
