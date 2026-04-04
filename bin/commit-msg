@@ -42,7 +42,7 @@ $diff" 2>/dev/null \
         | sed 's/\x1b\[[?][0-9]*[a-zA-Z]//g' \
         | sed 's/.*\r//' \
         | sed 's/^> //')
-    if [ -n "$msg" ]; then
+    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press.*cancel|log.?in|▰'; then
         echo "$msg"
         exit 0
     fi
