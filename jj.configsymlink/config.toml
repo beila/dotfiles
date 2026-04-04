@@ -14,3 +14,31 @@ merge-args = ["-f", "-d", "$output", "-M",
     "-c", "wincmd J", "-c", "set modifiable",
     "-c", "set write"]
 merge-tool-edits-conflict-markers = true
+
+[revset-aliases]
+# Show commits unique to a revision x relative to a set of marker revisions
+# (bookmarks, tags, etc), plus the boundary revs where unique history ends.
+#
+# Goal: when previewing a bookmark or tag, show only the commits that were
+# introduced by that bookmark/tag — not the shared history that already
+# existed in ancestor bookmarks/tags. Each branch in the graph terminates
+# at a boundary rev (the first shared commit), giving clear visual context
+# of where the unique work starts and ends.
+#
+# unique(x, markers):
+#   The range from ancestor markers to x. Finds all markers that are
+#   strict ancestors of x, then returns commits reachable from x but not
+#   from those markers.
+#
+# unique_boundary(x, markers):
+#   unique() plus the parent commits that sit just outside the range.
+#   These boundary revs are parents of range commits that are NOT
+#   themselves in the range — i.e. the first commits of shared history.
+#   This ensures every branch in the graph ends with a visible commit
+#   instead of trailing off with "~".
+#
+# Usage:
+#   jj log -r 'unique_boundary("my-bookmark", bookmarks())'
+#   jj log -r 'unique_boundary("v1.2.0", tags())'
+'unique(x, markers)' = '((markers ~ x) & ::x-)..x'
+'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
