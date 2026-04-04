@@ -1,4 +1,4 @@
-# shellcheck shell=bash disable=SC2016
+# shellcheck shell=bash disable=SC2016,SC2296,SC2298
 # JJ / GIT heart FZF
 # ------------------
 # _j*     — jj implementations
@@ -173,16 +173,23 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 
 # --- log upstream ---
 
+# Extract jj change ID from an fzf line (strips ANSI codes)
+_jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "[a-z]\{8,\}" | head -1'
+
+# Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
+_jj_find_pos() { jj --quiet log -T 'builtin_log_oneline' ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
+
+# shellcheck disable=SC2120
 _jh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1)
-    [[ -n "$pos" ]] && pos_bind=(--sync --bind "load:pos($pos)")
+    local pos; pos=$(_jj_find_pos "$1")
+    [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
   jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
     "${pos_bind[@]}" \
-    --bind "ctrl-h:become(FZF_ID=\$(sed 's/\x1b\[[0-9;]*m//g' <<< {} | grep -o '[a-z]\{8,\}' | head -1) exec zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
+    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) exec zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
 }
 
 _git_h() {
@@ -209,16 +216,17 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 
 # --- log ---
 
+# shellcheck disable=SC2120
 _jhh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' -r '::@' 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1)
+    local pos; pos=$(_jj_find_pos "$1" '::@')
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
   jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
     "${pos_bind[@]}" \
-    --bind "ctrl-h:become(FZF_ID=\$(sed 's/\x1b\[[0-9;]*m//g' <<< {} | grep -o '[a-z]\{8,\}' | head -1) exec zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
+    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) exec zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
 }
 
 _git_hh() {
