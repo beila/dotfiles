@@ -93,6 +93,7 @@ Summary (keep in sync with the steering file):
 - [ ] keep jj but change jj log to show further history
 - [ ] have tts mcp to stop already ongoing speech
 - [ ] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
+- [ ] when the zsh command line is empty, ^g runs jj
 
 ## Architecture Overview
 
