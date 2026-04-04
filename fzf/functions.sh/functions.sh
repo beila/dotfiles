@@ -196,7 +196,7 @@ _jh() {
     local pos; pos=$(_jj_find_pos "$1")
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
-  jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
+  jj --quiet log --color=always -T 'fzf_oneline' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
     "${pos_bind[@]}" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
@@ -216,7 +216,7 @@ _gh() { if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
 _jyy() {
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --quiet log --color=always -T 'builtin_log_oneline' -r 'all()' 2>/dev/null | _jj_log_fzf \
+  jj --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
     "${pos_bind[@]}" \
     --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n}')"
@@ -238,7 +238,7 @@ _jhh() {
     local pos; pos=$(_jj_find_pos "$1" '::@')
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
-  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
+  jj --quiet log --color=always -T 'fzf_oneline_author' -r '::@' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
     "${pos_bind[@]}" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"

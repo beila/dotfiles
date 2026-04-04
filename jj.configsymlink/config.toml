@@ -42,3 +42,23 @@ merge-tool-edits-conflict-markers = true
 #   jj log -r 'unique_boundary("v1.2.0", tags())'
 'unique(x, markers)' = '((markers ~ x) & ::x-)..x'
 'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
+
+[template-aliases]
+# Compact oneline for fzf: no author, no git commit id, shortest change id
+'fzf_oneline' = '''
+if(root, format_root_commit(self),
+  label(if(current_working_copy, "working_copy"),
+    separate(" ", change_id.shortest(), commit_timestamp(self).ago(), working_copies,
+      if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
+      bookmarks, tags) ++ "\n"))
+'''
+# Same but with author (for full history where multiple authors appear)
+'fzf_oneline_author' = '''
+if(root, format_root_commit(self),
+  label(if(current_working_copy, "working_copy"),
+    separate(" ", change_id.shortest(), format_short_signature_oneline(author), commit_timestamp(self).ago(), working_copies,
+      if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
+      bookmarks, tags) ++ "\n"))
+'''

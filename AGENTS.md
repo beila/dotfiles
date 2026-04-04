@@ -37,6 +37,8 @@ Summary (keep in sync with the steering file):
 - [ ] review each nvim plugin and cleanup/modernise
 - [ ] make sync_dotfiles more readable
 - [ ] fzf/functions.sh sets list width depending on the contents
+- [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
+- [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 
 ### Low impact
 - [ ] zellij session picker: make it floating
@@ -49,8 +51,6 @@ Summary (keep in sync with the steering file):
 - [ ] make copilot key work as super
 - [ ] replace absolute path from xfce settings
 - [ ] review remaining mini-nvim modules: mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
-- [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
-- [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 
 ## Architecture Overview
 
