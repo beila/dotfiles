@@ -1,4 +1,5 @@
 {
   "chat.defaultAgent": "builder",
-  "mcp.loadedBefore": true
+  "mcp.loadedBefore": true,
+  "chat.enableNotifications": true
 }
