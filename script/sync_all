@@ -2,11 +2,6 @@
 # Sync all known dotfiles/docs repos that exist on this machine
 DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 SYNC="$DOTFILES_ROOT/script/sync_dotfiles"
-LOCKFILE="/tmp/sync_all.lock"
-
-# Skip if already running
-exec 9>"$LOCKFILE"
-flock -n 9 || { echo "sync_all already running, skipping"; exit 0; }
 
 TARGETS="$DOTFILES_ROOT $HOME/hjdocs $HOME/hjdocs/public-docs $HOME/pp/insuk-www"
 TARGETS="$TARGETS $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i"

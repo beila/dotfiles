@@ -46,12 +46,9 @@ Summary (keep in sync with the steering file):
 - [ ] how do I get notified with sync_all error
 - [ ] notify user when sync_dotfiles merge has conflicts
   - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram; KakaoTalk "나에게 보내기" doesn't trigger push notifications
-- [ ] fix sync_dotfiles leaving orphan empty change after each run
-   - After sync, `@` ends up on an immutable commit (master). Next run, jj creates an extra empty change (`pmxrolzz`) because it can't snapshot into an immutable `@`.
-   - `jj new` on immutable `@` creates two empty commits instead of one.
-   - `CHANGE_ID` is captured before `jj new`, so it points to the immutable commit, not the new mutable one. `jj describe` then says "Nothing changed".
-   - The `jj git push`/`jj git import` may also rebase `@`, collapsing the empty intermediate and leaving `@` directly on master again.
-   - Need to understand: why does `@` end up on master (immutable) between runs? The previous run's `jj new` should leave `@` on a fresh mutable change above master.
+- [x] fix sync_dotfiles leaving orphan empty change after each run
+   - Root cause: concurrent `sync_dotfiles` runs (manual + timer) racing on the same repo; no per-repo locking
+   - Fix: added per-repo `flock` to `sync_dotfiles` (`/tmp/sync_dotfiles_<path>.lock`); removed global flock from `sync_all`
 - [ ] make sync_dotfiles more readable
 - [ ] add squash feature to _gf
   - fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision
@@ -99,7 +96,7 @@ Summary (keep in sync with the steering file):
 - [x] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
   - `_jh` ↔ `_jhh`: ctrl-h toggles via fzf `become`; preserves focused revision (`_jj_find_pos` + `result:pos+unbind`); streams jj log directly to fzf (no buffering); `_jj_change_id` and `_jj_find_pos` shared helpers; `_fzf_functions_sh` captures source file path for `become` sourcing
   - `_jy` ↔ `_jyy` skipped: op log vs commit log are too different to toggle
-- [ ] shorten date/time in list panes of _gh, ...
+- [ ] shorten change id/date/time in list panes of _gh, ...
 - [ ] make fzf zellij popup
 
 ## Architecture Overview
@@ -125,7 +122,7 @@ Summary (keep in sync with the steering file):
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
-  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`
+  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id` extracts change ID from fzf line (strips ANSI); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); `_jh`↔`_jhh` toggle via ctrl-h (`become` + `result:pos+unbind` for focus preservation)
   - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix; `^F` bound to `_file_browse` (tracked/all files toggle)
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
@@ -136,7 +133,7 @@ Summary (keep in sync with the steering file):
   - Normal mode keybindings: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-s→fzf session picker (via CYCLE_SWITCH_CMD template), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
   - Move keybindings: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
   - Config template: `CYCLE_SWITCH_CMD` placeholder in Alt-s binding, replaced by `zellij-cycle` via sed with per-instance callback
-- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools)
+- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID` before starting new TTS)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — single wttr.in JSON API call, python3 parses response; shows 🌙 after sunset / before sunrise (clear→moon, cloudy→☁🌙), weather icons unchanged for rain/snow/fog; tooltip: current conditions + hourly + 3-day forecast
 - System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode (2nd arg `1`) for metrics where high=good (battery); padding bars (no prior data) always use non-inverted color to avoid false red on battery; history in `/tmp/sysmon-history`, 8 samples
@@ -145,7 +142,7 @@ Summary (keep in sync with the steering file):
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - Sync scripts: `~/.dotfiles/script/sync_all` (all repos, triggered by `sync-repos.timer`), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
   - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
-  - `sync_dotfiles` jj path: skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
+  - `sync_dotfiles` jj path: per-repo `flock` prevents concurrent runs; skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
