@@ -176,7 +176,7 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 _jh() {
   jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
-    --bind "ctrl-h:become(source $_fzf_functions_sh; _jhh)"
+    --bind "ctrl-h:become(exec zsh -c 'source $_fzf_functions_sh; _jhh')"
 }
 
 _git_h() {
@@ -206,7 +206,7 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 _jhh() {
   jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
-    --bind "ctrl-h:become(source $_fzf_functions_sh; _jh)"
+    --bind "ctrl-h:become(exec zsh -c 'source $_fzf_functions_sh; _jh')"
 }
 
 _git_hh() {
