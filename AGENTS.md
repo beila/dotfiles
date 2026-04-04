@@ -39,7 +39,8 @@ Summary (keep in sync with the steering file):
 - [ ] review each nvim plugin and cleanup/modernise
 - [x] keybindings for session/tab/pane changes in zellij
 - [x] different zellij sessions for each scratchpad
-- [ ] add a script to add a new git-worktree/jj-workspace
+- [x] add a script to add a new git-worktree/jj-workspace
+  - `just workspace <target> [source]` in `justfile.symlink`; resolves target to absolute path before cd; colocated (git+jj): git worktree + jj workspace + restores .git pointer; jj-only: jj workspace add; git-only: git worktree add
 - [x] use kiro first for commit message generation
 - [x] ollama server started on demand
 - [ ] how do I get notified with sync_all error
@@ -91,7 +92,8 @@ Summary (keep in sync with the steering file):
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [x] sysmon battery graph shows green (not red) for padding bars when no prior data exists
 - [x] keep jj but change jj log to show further history
-- [ ] have tts mcp to stop already ongoing speech
+- [x] have tts mcp to stop already ongoing speech
+  - `mcp-tts` kills previous TTS process group (`setsid` + `kill -PGID`) before starting new playback
 - [x] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
