@@ -78,7 +78,7 @@ _gf() { if is_in_jj_repo; then _jf; elif is_in_git_repo; then _git_f; fi }
 # --- bookmarks / branches ---
 
 _jb() {
-  jj --quiet bookmark list --all-remotes --color=always 2>/dev/null |
+  jj --quiet bookmark list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --preview 'jj --quiet log --color=always -r "$(awk "{print \$1}" <<< {})"' |
     awk '{print $1}'
