@@ -65,7 +65,7 @@ Summary (keep in sync with the steering file):
 - [x] replace remaining zprezto modules with standalone zsh config (history, directory, utility, completion, syntax-highlighting, git, gnu-utility, autosuggestions, osx) and remove zprezto
 - [ ] use fzf for zsh tab completion
 - [x] autoformat: move BufWritePre logic to .nvim.lua (per-project), keep update/autosave formatting in my-autoformat.lua (central)
-- [ ] finish reviewing kickstart-modular.nvim files (lsp-setup.lua, custom/) and remove kickstart-modular.nvim
+- [x] finish reviewing kickstart-modular.nvim files (lsp-setup.lua, custom/) and remove kickstart-modular.nvim
   - options.lua reviewed: added `breakindent`; skipped `clipboard`, `signcolumn`, `updatetime`, `timeoutlen`, `completeopt`
   - telescope-setup.lua reviewed: missing `oldfiles`, `buffer fuzzy find`, `grep current word`, `live grep`, `diagnostics`, `quickfix`, `git buffer commits` (partially covered by lsp_finder)
   - treesitter-setup.lua reviewed: added incremental selection + parameter swap; skipped move-to-end and class nav
@@ -96,6 +96,7 @@ Summary (keep in sync with the steering file):
 - [ ] when the zsh command line is empty, ^g runs jj
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
+- [ ] shorten date/time in _gh, ...
 
 ## Architecture Overview
 
