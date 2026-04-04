@@ -174,15 +174,14 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 # --- log upstream ---
 
 _jh() {
-  local log; log=$(jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null)
-  local pos=1
+  local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local line; line=$(echo "$log" | sed 's/\x1b\[[0-9;]*m//g' | grep -n -m1 "$1" | cut -d: -f1)
-    [[ -n "$line" ]] && pos=$line
+    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' 2>/dev/null | grep -n -m1 "$1" | cut -d: -f1)
+    [[ -n "$pos" ]] && pos_bind=(--sync --bind "load:pos($pos)")
   fi
-  echo "$log" | _jj_log_fzf \
+  jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
-    --sync --bind "load:pos($pos)" \
+    "${pos_bind[@]}" \
     --bind "ctrl-h:become(FZF_ID=\$(sed 's/\x1b\[[0-9;]*m//g' <<< {} | grep -o '[a-z]\{8,\}' | head -1) exec zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
 }
 
@@ -211,15 +210,14 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 # --- log ---
 
 _jhh() {
-  local log; log=$(jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null)
-  local pos=1
+  local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local line; line=$(echo "$log" | sed 's/\x1b\[[0-9;]*m//g' | grep -n -m1 "$1" | cut -d: -f1)
-    [[ -n "$line" ]] && pos=$line
+    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' -r '::@' 2>/dev/null | grep -n -m1 "$1" | cut -d: -f1)
+    [[ -n "$pos" ]] && pos_bind=(--sync --bind "load:pos($pos)")
   fi
-  echo "$log" | _jj_log_fzf \
+  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
-    --sync --bind "load:pos($pos)" \
+    "${pos_bind[@]}" \
     --bind "ctrl-h:become(FZF_ID=\$(sed 's/\x1b\[[0-9;]*m//g' <<< {} | grep -o '[a-z]\{8,\}' | head -1) exec zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
 }
 
