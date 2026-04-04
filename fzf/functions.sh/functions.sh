@@ -3,6 +3,7 @@
 # ------------------
 # _j*     — jj implementations
 # _git_*  — git implementations
+_fzf_functions_sh=${(%):-%x}
 # _g*     — dispatchers: jj-first, git-fallback
 
 is_in_git_repo() {
@@ -173,7 +174,9 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 # --- log upstream ---
 
 _jh() {
-  jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf
+  jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
+    --header '☐ full log (ctrl-h)' \
+    --bind "ctrl-h:become(source $_fzf_functions_sh; _jhh)"
 }
 
 _git_h() {
