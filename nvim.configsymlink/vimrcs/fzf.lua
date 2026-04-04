@@ -114,7 +114,23 @@ vim.keymap.set({ "n", "v", "i" }, "<leader><tab>",
     {})
 
 vim.keymap.set({ "n", "v", "i" }, "<F8>",
-    function() fzf_lua.lsp_document_symbols() end,
+    function()
+        local workspace = false
+        local function open(query)
+            local fn = workspace and fzf_lua.lsp_workspace_symbols or fzf_lua.lsp_document_symbols
+            fn({
+                query = query,
+                fzf_opts = { ['--header'] = (workspace and '☑' or '☐') .. ' workspace (ctrl-g)' },
+                actions = {
+                    ['ctrl-g'] = { fn = function(_, opts)
+                        workspace = not workspace
+                        open(opts.last_query)
+                    end, exec_silent = true },
+                },
+            })
+        end
+        open()
+    end,
     {})
 
 vim.keymap.set({ "n", "v", "i" }, "<C-]>",

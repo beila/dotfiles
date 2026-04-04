@@ -73,20 +73,20 @@ Summary (keep in sync with the steering file):
   - telescope-multi-select.lua reviewed: fzf-lua handles multi-select natively, nothing to add
   - latest kickstart options.lua has new: `showmode=false`, deferred clipboard, `splitright`/`splitbelow`, `listchars`, `inccommand=split`, `cursorline`, `scrolloff=10`, `confirm`
   - latest kickstart keymaps.lua has new: `<Esc>` clears hlsearch, `vim.diagnostic.config`, `<Esc><Esc>` exits terminal mode
-- [ ] check out nvim-autopairs (auto-close brackets/quotes)
+- [x] check out nvim-autopairs (auto-close brackets/quotes) — decided not to install; not needed
 - [x] check out todo-comments.nvim (highlight and search TODO/FIXME/HACK/NOTE comments)
 - [x] is it worth installing tpope/vim-markdown to get the latest change — no: only 3 minor commits since nvim 0.11.3 bundle, treesitter handles highlighting anyway
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
 - [x] in jj files dialog, ctrl-f toggles between tracked and all files; zsh: `_file_browse` bound to Ctrl-F; nvim: `<leader>f` ctrl-f toggle added alongside existing ctrl-g submodule toggle
 - [ ] replace absolute path from xfce settings
-- [ ] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
+- [x] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav) — mini.pairs not needed; splitjoin and bracketed still to review
 - [ ] make battery notification sticky
 - [ ] make copilot key work as super
 - [x] add battery in the system monitor panel and remove dedicated one
 - [ ] treesitter auto install
 - [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
-- [ ] fzf-lua: add workspace symbols (`lsp_workspace_symbols`) switchable from document symbols (`<F8>`) — e.g. ctrl-g toggle or `<F8><F8>`
+- [x] fzf-lua: add workspace symbols (`lsp_workspace_symbols`) switchable from document symbols (`<F8>`) — ctrl-g toggles between document and workspace symbols, query preserved across toggle
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
