@@ -96,7 +96,9 @@ Summary (keep in sync with the steering file):
   - `mcp-tts` kills previous TTS process group (`setsid` + `kill -PGID`) before starting new playback
 - [x] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
 - [ ] fzf/functions.sh sets list width depending on the contents
-- [ ] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
+- [x] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
+  - `_jh` ↔ `_jhh`: ctrl-h toggles via fzf `become`; preserves focused revision (`_jj_find_pos` + `result:pos+unbind`); streams jj log directly to fzf (no buffering); `_jj_change_id` and `_jj_find_pos` shared helpers; `_fzf_functions_sh` captures source file path for `become` sourcing
+  - `_jy` ↔ `_jyy` skipped: op log vs commit log are too different to toggle
 - [ ] shorten date/time in list panes of _gh, ...
 - [ ] make fzf zellij popup
 
