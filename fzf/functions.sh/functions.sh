@@ -174,9 +174,13 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 # --- log upstream ---
 
 _jh() {
-  jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
+  local log; log=$(jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null)
+  local pos=0
+  [[ -n "${1:-}" ]] && pos=$(echo "$log" | grep -n --color=never -m1 "$1" | cut -d: -f1) && pos=$((pos - 1))
+  echo "$log" | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
-    --bind "ctrl-h:become(exec zsh -c 'source $_fzf_functions_sh; _jhh')"
+    --bind "start:pos($pos)" \
+    --bind "ctrl-h:become(FZF_ID=\$(grep -o '[a-z]\{8,\}' <<< {} | head -1) exec zsh -c 'source $_fzf_functions_sh; _jhh \$FZF_ID')"
 }
 
 _git_h() {
@@ -204,9 +208,13 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 # --- log ---
 
 _jhh() {
-  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
+  local log; log=$(jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null)
+  local pos=0
+  [[ -n "${1:-}" ]] && pos=$(echo "$log" | grep -n --color=never -m1 "$1" | cut -d: -f1) && pos=$((pos - 1))
+  echo "$log" | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
-    --bind "ctrl-h:become(exec zsh -c 'source $_fzf_functions_sh; _jh')"
+    --bind "start:pos($pos)" \
+    --bind "ctrl-h:become(FZF_ID=\$(grep -o '[a-z]\{8,\}' <<< {} | head -1) exec zsh -c 'source $_fzf_functions_sh; _jh \$FZF_ID')"
 }
 
 _git_hh() {
