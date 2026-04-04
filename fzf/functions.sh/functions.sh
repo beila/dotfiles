@@ -82,11 +82,14 @@ _gf() { if is_in_jj_repo; then _jf; elif is_in_git_repo; then _git_f; fi }
 
 _jb() {
   # Preview uses unique_boundary() revset alias (see jj config.toml)
+  # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
+  # prefix them with the parent bookmark name so they become "nix@hj ..."
   jj --quiet bookmark list --color=always 2>/dev/null |
+    awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --quiet log --color=always -r "unique_boundary(\"$name\", bookmarks() | remote_bookmarks())"' |
-    awk '{gsub(/:$/,"",$1); print $1}'
+        jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+    awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
 _git_b() {
@@ -127,7 +130,7 @@ _jt() {
   jj --quiet tag list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --quiet log --color=always -r "unique_boundary(\"$name\", tags())"' |
+        jj --quiet log --color=always -r "unique_boundary($name, tags())"' |
     awk '{gsub(/:$/,"",$1); print $1}'
 }
 
