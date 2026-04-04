@@ -20,7 +20,8 @@ Summary (keep in sync with the steering file):
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [ ] use fzf for zsh tab completion
 - [ ] make fzf zellij popup
-- [ ] shorten change id/date/time and remove git commit id in list panes of _gh, ...
+- [x] shorten change id/date/time and remove git commit id in list panes of _gh, ...
+  - jj template aliases `fzf_oneline` (no author/git-id) and `fzf_oneline_author`; revset alias `workspace_view()` for _jh; `_jh` uses `workspace_view()`, `_jhh` uses `::workspace_view()`
 - [ ] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
 
 ### Medium impact
@@ -74,7 +75,7 @@ Summary (keep in sync with the steering file):
   - `greedyViewNoSwap`: workspace switch variant that swaps visible screens but not hidden
 - keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf, thinkpad.conf — copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
-- jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs)
+- jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `workspace_view()` (mutable chain + boundary + branches for fzf _jh), `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs); template aliases: `fzf_oneline` (shortest change ID, no author/git-id, relative time, bookmarks after description), `fzf_oneline_author` (same + author)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
   - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id` extracts change ID from fzf line (strips ANSI); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); toggles via `become`: `_jh`↔`_jhh` (ctrl-h, revision-based focus), `_jb`↔`_jbb` (ctrl-b), `_jy`↔`_jyy` (ctrl-y); line-number focus uses `result:pos(N+1)+unbind(result)` (fzf `{n}` is 0-indexed, `pos` is 1-indexed)
   - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix; `^F` bound to `_file_browse` (tracked/all files toggle)
@@ -97,10 +98,10 @@ Summary (keep in sync with the steering file):
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - Sync scripts: `~/.dotfiles/script/sync_all` (all repos, triggered by `sync-repos.timer`), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
   - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
-  - `sync_dotfiles` jj path: per-repo `flock` prevents concurrent runs; skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
-  - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
-  - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
-  - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
+  - `sync_dotfiles` jj path: per-repo `flock` on `jj root` (workspaces sharing a repo lock together); skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
+  - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj; tracks `bm@hj` after push
+  - Prefixed bookmarks: delete+push via raw git (`hostname/bookmark`, server doesn't support `--force`); single `ls-remote` per run, skips if unchanged; excludes already-prefixed local bookmarks; no tracking of prefixed remote bookmarks (jj requires name match)
+  - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback (started on demand, stopped after); jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns; rejects kiro-cli login/spinner output (falls back to ollama)
 - Notifications: `~/.dotfiles/bin/notify-webhook` — sends push notifications for script failures; currently disabled (exit 0), awaiting Telegram bot; KakaoTalk "나에게 보내기" tested but doesn't trigger push notifications; tokens in `private-dotfiles/kakao-tokens.json`
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored nested jj repo (git@github.com:beila/private-dotfiles.git); cloned by `script/bootstrap`; stores machine-specific secrets (kakao tokens, webhook URLs); zsh `**/*.zsh` glob auto-sources any .zsh files within
