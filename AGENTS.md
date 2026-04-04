@@ -31,7 +31,6 @@ Summary (keep in sync with the steering file):
 - [x] fix sync_all creating "```commit" or "```markdown" description
 - [x] zellij session should outlive ghostty
 - [ ] there's no gap between ghostty vertically
-- [ ] fix lockscreen-related error message
 - [ ] can't type hangul in zellij/ghostty
 - [x] add local settings file into a non-public VCS
 - [x] run tts when asking for permission in kiro
@@ -69,7 +68,7 @@ Summary (keep in sync with the steering file):
   - latest kickstart keymaps.lua has new: `<Esc>` clears hlsearch, `vim.diagnostic.config`, `<Esc><Esc>` exits terminal mode
 - [ ] check out nvim-autopairs (auto-close brackets/quotes)
 - [x] check out todo-comments.nvim (highlight and search TODO/FIXME/HACK/NOTE comments)
-- [ ] is it worth installing tpope/vim-markdown to get the latest change
+- [x] is it worth installing tpope/vim-markdown to get the latest change — no: only 3 minor commits since nvim 0.11.3 bundle, treesitter handles highlighting anyway
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
 - [ ] in jj files dialog, ctrl-r for ignored files
@@ -94,14 +93,14 @@ Summary (keep in sync with the steering file):
 - Home Manager config: `~/.dotfiles/home-manager.configsymlink/`
   - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
   - `home.nix` — packages, unfree predicate (albert), battery-notify systemd timer (1min check, notify at 20%/10%)
-  - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop), gnome-flashback-xmonad session override (removes gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings), random-lockscreen systemd timer (daily wallpaper), gnome-flashback systemd drop-ins (xmonad session target requires gnome-flashback.target + service restart override)
+  - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop, empty gnome-panel layout as fallback), random-lockscreen systemd timer (daily wallpaper), gnome-flashback systemd drop-ins (xmonad session target requires gnome-flashback.target + service restart override)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
   - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
-  - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs + keyd service setup
+  - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs (gnome-flashback-xmonad.session strips gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings) + keyd service setup + loginctl enable-linger (keeps systemd --user alive after logout so zellij/timers survive)
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
-  - Build: `~/.xmonad/build` uses `$XMONAD_GHC` (set by nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`
+  - Build: `~/.xmonad/build` uses `$XMONAD_GHC` (set by nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`; `set -euo pipefail` + `${1:?}` guard prevents creating misnamed binaries if output path is missing
   - HLS: `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC installed from same `haskellPackages` set in nvim.nix to keep versions in sync
   - ManageHook split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarRules`, `meetingRules`, `messengerRules`
   - `rescueOffscreenHook`: catches floating windows that move themselves offscreen (e.g. Zoom bug) via ConfigureEvent and snaps them back
@@ -135,7 +134,7 @@ Summary (keep in sync with the steering file):
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
-- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns
+- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns; rejects kiro-cli login/spinner output (falls back to ollama)
 - Notifications: `~/.dotfiles/bin/notify-webhook` — sends push notifications for script failures; currently disabled (exit 0), awaiting Telegram bot; KakaoTalk "나에게 보내기" tested but doesn't trigger push notifications; tokens in `private-dotfiles/kakao-tokens.json`
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored nested jj repo (git@github.com:beila/private-dotfiles.git); cloned by `script/bootstrap`; stores machine-specific secrets (kakao tokens, webhook URLs); zsh `**/*.zsh` glob auto-sources any .zsh files within
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij --config <generated> attach --create` in a loop; on detach cycles to next active session; generates per-instance config via sed (CYCLE_SWITCH_CMD→callback with pick file + pkill); supports session names with spaces (mapfile); temp files: `/tmp/zellij-cycle-{pick,pid,config}.$$`
