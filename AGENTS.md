@@ -77,7 +77,7 @@ Summary (keep in sync with the steering file):
 - [x] is it worth installing tpope/vim-markdown to get the latest change — no: only 3 minor commits since nvim 0.11.3 bundle, treesitter handles highlighting anyway
 - [x] which-key blocks using single key such as ctrl-g or } — removed which-key-nvim (auto-triggers interfere with `}`, `{`, `<C-g>`; plugin auto-calls setup even when not configured)
 - [ ] airline tabar changes a lot when opening nvimtree
-- [x] in jj files dialog, ctrl-f toggles between changed files and all tracked files; implemented in both zsh (_jf) and nvim (fzf.lua `<C-g><C-f>`)
+- [x] in jj files dialog, ctrl-f toggles between tracked and all files; zsh: `_file_browse` bound to Ctrl-F; nvim: `<leader>f` ctrl-f toggle added alongside existing ctrl-g submodule toggle
 - [ ] replace absolute path from xfce settings
 - [ ] review remaining mini-nvim modules: mini.pairs (auto-close brackets), mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 - [ ] make battery notification sticky
@@ -123,7 +123,7 @@ Summary (keep in sync with the steering file):
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
   - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`
-  - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix
+  - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix; `^F` bound to `_file_browse` (tracked/all files toggle)
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
 - albert config: `~/.dotfiles/albert.configsymlink/` (symlinked to ~/.config/albert/)
@@ -207,7 +207,7 @@ Summary (keep in sync with the steering file):
 - Yank highlight: `init.lua` — brief highlight on yank (from kickstart)
 - Limelight: `my-text.lua` — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit; per-buffer (BufEnter/BufLeave toggle)
 - Table mode: `my-markdown.lua` — `silent! TableModeEnable` on markdown FileType (suppresses echo noise)
-- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, query preserved across toggle, `vimrcs/jj-file-list-all` helper script), `<leader>F` all files (incl. gitignored), `<C-g><C-f>` jj/git changed files, ctrl-n/p preview scroll
+- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, ctrl-f toggles all files incl. gitignored, query preserved across toggle, `vimrcs/jj-file-list-all` helper script), `<leader>F` all files (incl. gitignored), `<C-g><C-f>` jj/git changed files, ctrl-n/p preview scroll
 - Font: `gvimrc` — JetBrains Mono Thin:h11 (neovide guifont)
 - Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs

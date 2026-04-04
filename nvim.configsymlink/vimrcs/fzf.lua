@@ -4,7 +4,7 @@ fzf_lua.setup_fzfvim_cmds()
 
 local script_dir = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':h')
 
--- <leader>f: jj/git tracked files, <leader>F: all files (set in fzf.vimrc)
+-- <leader>f: jj/git tracked files (ctrl-g: submodules, ctrl-f: all files), <leader>F: all files
 vim.keymap.set({ "n", "v", "i" }, "<leader>f",
     function()
         local root = vim.system({ 'jj', 'root' }, { text = true }):wait()
