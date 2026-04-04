@@ -1,5 +1,8 @@
-# GIT heart FZF
-# -------------
+# JJ / GIT heart FZF
+# ------------------
+# _j*     — jj implementations
+# _git_*  — git implementations
+# _g*     — dispatchers: jj-first, git-fallback
 
 is_in_git_repo() {
   git rev-parse HEAD > /dev/null 2>&1
@@ -78,10 +81,12 @@ _gf() { if is_in_jj_repo; then _jf; elif is_in_git_repo; then _git_f; fi }
 # --- bookmarks / branches ---
 
 _jb() {
+  # Preview uses unique_boundary() revset alias (see jj config.toml)
   jj --quiet bookmark list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
-      --preview 'jj --quiet log --color=always -r "$(awk "{print \$1}" <<< {})"' |
-    awk '{print $1}'
+      --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
+        jj --quiet log --color=always -r "unique_boundary(\"$name\", bookmarks() | remote_bookmarks())"' |
+    awk '{gsub(/:$/,"",$1); print $1}'
 }
 
 _git_b() {
@@ -100,7 +105,7 @@ _gb() { if is_in_jj_repo; then _jb; elif is_in_git_repo; then _git_b; fi }
 _jbb() {
   jj --quiet workspace list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
-      --preview 'jj --quiet log --color=always -r "$(cut -d: -f1 <<< {})"' |
+      --preview 'jj --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
 
@@ -118,10 +123,12 @@ _gbb() { if is_in_jj_repo; then _jbb; elif is_in_git_repo; then _git_bb; fi }
 # --- tags ---
 
 _jt() {
+  # Preview uses unique_boundary() revset alias (see jj config.toml)
   jj --quiet tag list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
-      --preview 'jj --quiet show --color=always "$(awk "{print \$1}" <<< {})"' |
-    awk '{print $1}'
+      --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
+        jj --quiet log --color=always -r "unique_boundary(\"$name\", tags())"' |
+    awk '{gsub(/:$/,"",$1); print $1}'
 }
 
 _git_t() {
