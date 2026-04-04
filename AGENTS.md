@@ -96,7 +96,8 @@ Summary (keep in sync with the steering file):
 - [ ] when the zsh command line is empty, ^g runs jj
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
-- [ ] shorten date/time in _gh, ...
+- [ ] shorten date/time in list panes of _gh, ...
+- [ ] make fzf zellij popup
 
 ## Architecture Overview
 
