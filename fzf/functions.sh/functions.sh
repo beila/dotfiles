@@ -3,7 +3,7 @@
 # ------------------
 # _j*     — jj implementations
 # _git_*  — git implementations
-_fzf_functions_sh=${(%):-%x}
+_fzf_functions_sh="${${(%):-%x}:a}"
 # _g*     — dispatchers: jj-first, git-fallback
 
 is_in_git_repo() {
@@ -204,7 +204,9 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 # --- log ---
 
 _jhh() {
-  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf
+  jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
+    --header '☑ full log (ctrl-h)' \
+    --bind "ctrl-h:become(source $_fzf_functions_sh; _jh)"
 }
 
 _git_hh() {
