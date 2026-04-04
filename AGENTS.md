@@ -23,6 +23,7 @@ Summary (keep in sync with the steering file):
 - [x] shorten change id/date/time and remove git commit id in list panes of _gh, ...
   - jj template aliases `fzf_oneline` (no author/git-id) and `fzf_oneline_author`; revset alias `workspace_view()` for _jh; `_jh` uses `workspace_view()`, `_jhh` uses `::workspace_view()`
 - [ ] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
+- [ ] shorten relative date/time in fzf_oneline templates (e.g. "1w" instead of "1 week ago")
 
 ### Medium impact
 - [ ] add squash feature to _gf
