@@ -34,7 +34,8 @@ spark() {
     local vals out="" count v inv=${2:-0}
     vals=$(read_hist "$1")
     count=$(echo "$vals" | wc -w)
-    for (( i=count; i<LEN; i++ )); do out+="$(color_bar 0 "$inv")"; done
+    # Padding: always non-inverted so battery doesn't show red with no data
+    for (( i=count; i<LEN; i++ )); do out+="$(color_bar 0)"; done
     for v in $vals; do out+="$(color_bar "$v" "$inv")"; done
     echo "$out"
 }
