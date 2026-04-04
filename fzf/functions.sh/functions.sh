@@ -149,7 +149,7 @@ _jh() {
 }
 
 _git_h() {
-  git rev-parse "@{u}" || { echo "No upstream"; return }
+  git rev-parse "@{u}" || { echo "No upstream"; return; }
   all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
   git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
   _git_log_fzf

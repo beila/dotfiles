@@ -48,9 +48,15 @@ $diff" 2>/dev/null \
     fi
 fi
 
-# Fallback: ollama local LLM — truncated diff
+# Fallback: ollama local LLM — start on demand, stop after
 truncated_diff=$(echo "$diff" | head -200)
 MODEL="qwen2.5-coder:3b"
+if ! curl -sf http://localhost:11434/api/tags &>/dev/null; then
+    ollama serve &>/dev/null &
+    ollama_pid=$!
+    for _ in $(seq 50); do curl -sf http://localhost:11434/api/tags &>/dev/null && break; sleep 0.1; done
+fi
+trap 'kill $ollama_pid 2>/dev/null' EXIT
 curl -sf --max-time 300 http://localhost:11434/api/generate \
     -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT_BASE
 
