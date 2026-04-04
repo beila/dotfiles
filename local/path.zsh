@@ -1,7 +1,7 @@
 dir=$HOME/.local/bin
 path=($dir ${(@)path:#$dir})
 
-LOCAL_ROOTS=($HOME/local $HOME/.local ${DOTFILES_ROOT})
+LOCAL_ROOTS=($HOME/local $HOME/.local)
 
 for local_root in $LOCAL_ROOTS
 do
