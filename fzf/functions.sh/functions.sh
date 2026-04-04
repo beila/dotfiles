@@ -176,7 +176,7 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 _jh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' 2>/dev/null | grep -n -m1 "$1" | cut -d: -f1)
+    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1)
     [[ -n "$pos" ]] && pos_bind=(--sync --bind "load:pos($pos)")
   fi
   jj --quiet log --color=always -T 'builtin_log_oneline' 2>/dev/null | _jj_log_fzf \
@@ -212,8 +212,8 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 _jhh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' -r '::@' 2>/dev/null | grep -n -m1 "$1" | cut -d: -f1)
-    [[ -n "$pos" ]] && pos_bind=(--sync --bind "load:pos($pos)")
+    local pos; pos=$(jj --quiet log -T 'builtin_log_oneline' -r '::@' 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1)
+    [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
   jj --quiet log --color=always -T 'builtin_log_oneline' -r '::@' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
