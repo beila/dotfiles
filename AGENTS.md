@@ -18,7 +18,7 @@ Summary (keep in sync with the steering file):
 - [x] **Battery indicator** — genmon plugin (`battery-genmon` script), replaced xfce4-power-manager
 - [x] **Git commit message generator** — ollama + qwen2.5-coder:3b, `~/.dotfiles/bin/commit-msg`
 - [x] **jj periodic tasks** — auto-fetch, background operations
-   - `sync_all` runs every 10min via systemd timer (randomized delay, low priority, flock)
+   - `sync_all` runs every 10min via `sync-repos.timer` systemd user timer (randomized delay, low priority, flock)
    - `jj_snapshot_all` snapshots all jj repos found via plocate
    - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
@@ -94,6 +94,7 @@ Summary (keep in sync with the steering file):
 - [ ] have tts mcp to stop already ongoing speech
 - [ ] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
 - [ ] when the zsh command line is empty, ^g runs jj
+- [ ] fzf/functions.sh sets list width depending on the contents
 
 ## Architecture Overview
 
@@ -136,7 +137,7 @@ Summary (keep in sync with the steering file):
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (kept as fallback; battery now also in sysmon-genmon)
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
-- Sync scripts: `~/.dotfiles/script/sync_all` (all repos), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
+- Sync scripts: `~/.dotfiles/script/sync_all` (all repos, triggered by `sync-repos.timer`), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
   - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
   - `sync_dotfiles` jj path: skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
