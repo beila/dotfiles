@@ -53,7 +53,12 @@ Summary (keep in sync with the steering file):
    - Need to understand: why does `@` end up on master (immutable) between runs? The previous run's `jj new` should leave `@` on a fresh mutable change above master.
 - [ ] make sync_dotfiles more readable
 - [ ] add squash feature to _gf
-  — fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision; opens `_gh` with a header explaining the squash context; runs `jj squash --into <rev> -- <files>`; enter keeps current behaviour (output filenames)
+  - fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision
+  - opens `_gh` with a header explaining the squash context, use it directly or at least minimise duplicated code
+  - runs `jj squash --into <rev> -- <files>`
+  - enter keeps current behaviour (output filenames)
+- [ ] add inserting a new empty revision in _gh
+- [ ] remove --color with --name-only and the following file name separation (such as awk) in zsh/functions.sh/
 - [ ] zellij session picker: kills current pane, when the session is open in two zellij
 - [ ] zellij session picker: show current session differently and make it not choosable
 - [ ] zellij session picker: make it floating
