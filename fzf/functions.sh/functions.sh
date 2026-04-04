@@ -48,10 +48,13 @@ _git_log_fzf() {
 # --- helpers (jj) ---
 
 # shellcheck disable=SC2120
+# Extract jj change ID: first all-lowercase word after graph chars (strips ANSI)
+_jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{2,\}" | grep -o "[a-z]\{2,\}$"'
+
 _jj_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi "$@" \
-    --preview 'grep -o "[a-z]\{8,\}" <<< {} | head -1 | xargs -I% jj --quiet show --color=always %' |
-  grep -o "[a-z]\{8,\}" | head -1
+    --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && jj --quiet show --color=always \"\$id\"" |
+  sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{2,\}' | grep -o '[a-z]\{2,\}$' | head -1
 }
 
 _dim_jj_op_ids() {
@@ -184,10 +187,10 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 # --- log upstream ---
 
 # Extract jj change ID from an fzf line (strips ANSI codes)
-_jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "[a-z]\{8,\}" | head -1'
+_jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{2,\}" | grep -o "[a-z]\{2,\}$"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
-_jj_find_pos() { jj --quiet log -T 'builtin_log_oneline' ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
+_jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
 # shellcheck disable=SC2120
 _jh() {
@@ -235,7 +238,7 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 _jhh() {
   local pos_bind=()
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(_jj_find_pos "$1" '::@')
+    local pos; pos=$(_jj_find_pos "$1" '::@' 'fzf_oneline_author')
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
   jj --quiet log --color=always -T 'fzf_oneline_author' -r '::@' 2>/dev/null | _jj_log_fzf \
