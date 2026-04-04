@@ -20,7 +20,7 @@ Summary (keep in sync with the steering file):
 - [x] **jj periodic tasks** — auto-fetch, background operations
    - `sync_all` runs every 10min via `sync-repos.timer` systemd user timer (randomized delay, low priority, flock)
    - `jj_snapshot_all` snapshots all jj repos found via plocate
-   - `commit-msg` generates AI commit messages via ollama + qwen2.5-coder:3b
+   - `commit-msg` generates AI commit messages via kiro-cli (preferred) or ollama + qwen2.5-coder:3b (on demand)
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [x] **Auto-merge to main on sync** — sync_dotfiles fetches tracking branches, merges local bookmark forward, pushes to hj (no force)
 - [x] **jj empty changes** — sync_dotfiles skips commit/describe when current change is empty, but still pushes bookmarks
@@ -41,7 +41,7 @@ Summary (keep in sync with the steering file):
 - [x] different zellij sessions for each scratchpad
 - [ ] add a script to add a new git-worktree/jj-workspace
 - [x] use kiro first for commit message generation
-- [ ] ollama server started on demand
+- [x] ollama server started on demand
 - [ ] how do I get notified with sync_all error
 - [ ] notify user when sync_dotfiles merge has conflicts
   - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram; KakaoTalk "나에게 보내기" doesn't trigger push notifications
@@ -110,7 +110,7 @@ Summary (keep in sync with the steering file):
   - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
-  - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs (gnome-flashback-xmonad.session strips gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings) + keyd service setup + loginctl enable-linger (keeps systemd --user alive after logout so zellij/timers survive)
+  - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs (gnome-flashback-xmonad.session strips gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings) + keyd service setup + loginctl enable-linger (keeps systemd --user alive after logout so zellij/timers survive) + ollama install (service disabled, started on demand by commit-msg)
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
   - Build: `~/.xmonad/build` uses `$XMONAD_GHC` (set by nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`; `set -euo pipefail` + `${1:?}` guard prevents creating misnamed binaries if output path is missing
   - HLS: `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC installed from same `haskellPackages` set in nvim.nix to keep versions in sync
@@ -146,7 +146,7 @@ Summary (keep in sync with the steering file):
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj
   - Prefixed bookmarks: force-pushed via raw git (`hostname/bookmark`) for per-device backup; other devices' prefixes untouched
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) force-push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
-- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback; jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns; rejects kiro-cli login/spinner output (falls back to ollama)
+- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback (started on demand, stopped after); jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns; rejects kiro-cli login/spinner output (falls back to ollama)
 - Notifications: `~/.dotfiles/bin/notify-webhook` — sends push notifications for script failures; currently disabled (exit 0), awaiting Telegram bot; KakaoTalk "나에게 보내기" tested but doesn't trigger push notifications; tokens in `private-dotfiles/kakao-tokens.json`
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored nested jj repo (git@github.com:beila/private-dotfiles.git); cloned by `script/bootstrap`; stores machine-specific secrets (kakao tokens, webhook URLs); zsh `**/*.zsh` glob auto-sources any .zsh files within
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij --config <generated> attach --create` in a loop; on detach cycles to next active session; generates per-instance config via sed (CYCLE_SWITCH_CMD→callback with pick file + pkill); supports session names with spaces (mapfile); temp files: `/tmp/zellij-cycle-{pick,pid,config}.$$`

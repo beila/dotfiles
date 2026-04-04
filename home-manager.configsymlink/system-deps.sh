@@ -46,8 +46,14 @@ sudo systemctl enable --now keyd
 # Without this, logging out stops the user manager and kills all children.
 sudo loginctl enable-linger "$USER"
 
-# ollama: local LLM server (for commit message generation etc.)
+# ollama: local LLM server (started on demand by commit-msg, not as a service)
 if ! command -v ollama &>/dev/null; then
   curl -fsSL https://ollama.com/install.sh | sh
+  sudo systemctl disable --now ollama 2>/dev/null
 fi
-ollama list 2>/dev/null | grep -q qwen2.5-coder:3b || ollama pull qwen2.5-coder:3b
+if ! ollama list 2>/dev/null | grep -q qwen2.5-coder:3b; then
+  ollama serve &>/dev/null & ollama_pid=$!
+  until curl -sf http://localhost:11434/api/tags &>/dev/null; do sleep 0.1; done
+  ollama pull qwen2.5-coder:3b
+  kill $ollama_pid 2>/dev/null
+fi
