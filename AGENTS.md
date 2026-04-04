@@ -21,6 +21,7 @@ Summary (keep in sync with the steering file):
 - [ ] use fzf for zsh tab completion
 - [ ] make fzf zellij popup
 - [ ] shorten change id/date/time and remove git commit id in list panes of _gh, ...
+- [ ] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
 
 ### Medium impact
 - [ ] add squash feature to _gf
