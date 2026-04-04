@@ -205,7 +205,7 @@ _gy() { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi }
 _jr() {
   jj --quiet git remote list 2>/dev/null |
     fzf_down --tac \
-      --preview 'jj --quiet log --color=always -r "remote_bookmarks(exact:$(awk "{print \$1}" <<< {}))"' |
+      --preview 'jj --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
     awk '{print $1}'
 }
 
