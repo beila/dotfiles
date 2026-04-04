@@ -1,3 +1,4 @@
+# shellcheck shell=bash disable=SC2016
 # JJ / GIT heart FZF
 # ------------------
 # _j*     — jj implementations
@@ -45,6 +46,7 @@ _git_log_fzf() {
 
 # --- helpers (jj) ---
 
+# shellcheck disable=SC2120
 _jj_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi "$@" \
     --preview 'grep -o "[a-z]\{8,\}" <<< {} | head -1 | xargs -I% jj --quiet show --color=always %' |
