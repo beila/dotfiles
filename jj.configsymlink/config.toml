@@ -16,6 +16,9 @@ merge-args = ["-f", "-d", "$output", "-M",
 merge-tool-edits-conflict-markers = true
 
 [revset-aliases]
+# Mutable working chain + boundary + all branches off it (for fzf _jh)
+'workspace_view()' = 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::'
+
 # Show commits unique to a revision x relative to a set of marker revisions
 # (bookmarks, tags, etc), plus the boundary revs where unique history ends.
 #
