@@ -44,3 +44,10 @@
 
 command = zsh -l
 gtk-titlebar = false
+
+# Send legacy control codes for keys that leak CSI u sequences under rapid
+# key repeat in zellij, causing fzf to receive them as literal query text.
+keybind = ctrl+j=text:\x0a
+keybind = ctrl+k=text:\x0b
+keybind = ctrl+n=text:\x0e
+keybind = ctrl+p=text:\x10
