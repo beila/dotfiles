@@ -63,7 +63,12 @@ _dim_jj_op_ids() {
 _jf() {
   jj --quiet diff --name-only 2>/dev/null |
     fzf_down -m \
-      --preview 'jj --quiet diff --color=always -- {}'
+      --prompt 'changed> ' \
+      --header '☐ all files (ctrl-f)' \
+      --preview 'jj --quiet diff --color=always -- {} 2>/dev/null || bat --style=numbers --color=always -- {} 2>/dev/null || cat {}' \
+      --bind 'ctrl-f:transform:[[ $FZF_PROMPT == changed* ]] &&
+        echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(jj file list)" ||
+        echo "change-prompt(changed> )+change-header(☐ all files (ctrl-f))+reload(jj --quiet diff --name-only)"'
 }
 
 _git_f() {
