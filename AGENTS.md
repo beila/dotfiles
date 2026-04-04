@@ -93,7 +93,6 @@ Summary (keep in sync with the steering file):
 - [x] keep jj but change jj log to show further history
 - [ ] have tts mcp to stop already ongoing speech
 - [x] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
-- [ ] when the zsh command line is empty, ^g runs jj
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] add a ctrl-h shortcut to switch between _gh and _ghh, ctrl-y for _gy and _gyy, ...
 - [ ] shorten date/time in list panes of _gh, ...
