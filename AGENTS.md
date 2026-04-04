@@ -58,7 +58,7 @@ Summary (keep in sync with the steering file):
   - runs `jj squash --into <rev> -- <files>`
   - enter keeps current behaviour (output filenames)
 - [ ] add inserting a new empty revision in _gh
-- [ ] remove --color with --name-only and the following file name separation (such as awk) in zsh/functions.sh/
+- [x] remove --color with --name-only and the following file name separation (such as awk) in zsh/functions.sh/
 - [ ] zellij session picker: kills current pane, when the session is open in two zellij
 - [ ] zellij session picker: show current session differently and make it not choosable
 - [ ] zellij session picker: make it floating
@@ -92,6 +92,7 @@ Summary (keep in sync with the steering file):
 - [x] sysmon battery graph shows green (not red) for padding bars when no prior data exists
 - [ ] keep jj but change jj log to show further history
 - [ ] have tts mcp to stop already ongoing speech
+- [ ] from _gf, move jj part to _jf, keep git part to a new function and add have _gf to switch between those two. Do the same for other functions too
 
 ## Architecture Overview
 
@@ -116,7 +117,7 @@ Summary (keep in sync with the steering file):
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
-  - `functions.sh/functions.sh` — jj-first/git-fallback functions (`_gf`, `_gb`, etc.)
+  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`)
   - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
