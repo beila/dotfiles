@@ -9,6 +9,10 @@ in
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+    # Appended to nix-generated init.lua (which sets lua paths + providers).
+    # nvim 0.12 only loads init.lua when it exists, ignoring init.vim/vimrc.
+    # myinit.lua sources vimrc.symlink → myvimrc → vimrcs/*.lua
+    # TODO: switch to hm-generated.lua approach (see home-manager PR #8586)
     initLua = builtins.readFile ../nvim.configsymlink/myinit.lua;
     plugins = with pkgs.vimPlugins; [
       vim-fugitive
