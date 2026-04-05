@@ -29,7 +29,7 @@
           ./xdg.nix
           ./xmonad.nix
           {
-            nixGL.packages = nixgl.packages;
+            targets.genericLinux.nixGL.packages = nixgl.packages;
           }
         ];
       };
