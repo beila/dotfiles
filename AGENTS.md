@@ -62,14 +62,26 @@ Summary (keep in sync with the steering file):
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 - [ ] review each nvim plugin and cleanup/modernise
 - [ ] migrate lspconfig `require('lspconfig').X.setup()` to `vim.lsp.config` (nvim 0.12)
-  - deprecated in nvim-lspconfig v3.0.0, prints warning on every startup
-  - affects 20+ files in `vimrcs/my-*.lua`
-  - see `:help lspconfig-nvim-0.11` for new API
+  - deprecated in nvim-lspconfig v3.0.0, prints warning on every startup (first hit: `my-awk.lua`)
+  - 27 calls across 24 files in `vimrcs/my-*.lua` (my-docker.lua, my-js.lua, my-python.lua have 2 each)
+  - servers: awk_ls, basedpyright, bashls, biome, clangd, cssls, docker_compose_language_service, dockerls, glsl_analyzer, hls, html, jdtls, jinja_lsp, jsonls, kotlin_language_server, lemminx, lua_ls, marksman, neocmake, nim_langserver, nixd, ruff, sqls, taplo, ts_ls, vimls, yamlls
+  - new API: `vim.lsp.config('server_name', { ... })` + `vim.lsp.enable('server_name')` — see `:help lspconfig-nvim-0.11`
+  - simple cases (`setup({})`) are one-liner conversions; complex cases (hls, jdtls, lua_ls with settings) need `vim.lsp.config` with settings table
+  - `my-rust.lua` uses rustaceanvim (not lspconfig) — unaffected
 - [ ] switch nix neovim module to `hm-generated.lua` approach
-  - current: `initLua` inlines myinit.lua into nix-generated `init.lua`, overwriting `nvim.configsymlink/init.lua` on every `home-manager switch`
-  - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + own `init.lua` with `require 'hm-generated'`
+  - current: `initLua` in `nvim.nix` inlines `myinit.lua` into nix-generated `init.lua`, overwriting `nvim.configsymlink/init.lua` on every `home-manager switch`; `init.lua` is gitignored; `myinit.lua` must be git-tracked (nix flake requires it, use `git add -f` since `nvim.configsymlink` is in `.gitignore`)
+  - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + restore own `init.lua` (from `myinit.lua`) with `require 'hm-generated'` at top
+  - benefit: nix stops overwriting `init.lua`, `myinit.lua` can be merged back into `init.lua`, simpler config chain
   - see home-manager news 2026-01-25 and PR #8586/#8606
+  - files: `home-manager.configsymlink/nvim.nix`, `nvim.configsymlink/myinit.lua`, `nvim.configsymlink/.gitignore`
 - [ ] make sync_dotfiles more readable
+- [ ] automate nix flake updates and catch breaking changes early
+  - flake inputs to keep updated: `nixpkgs` (nixos-unstable), `home-manager`, `nixGL`
+  - `nix flake update` bumps all inputs; `nix flake update nixpkgs` bumps one
+  - after update: `home-manager switch`, check `home-manager news` for breaking changes, test neovide + nvim startup
+  - today's upgrade broke: nvim 0.12 (treesitter API, lspconfig deprecation), neovide font (Source Code Pro missing), zellij version mismatch (old server vs new binary), nvim init.lua overwritten (new home-manager neovim module)
+  - consider: periodic `nix flake update` in `sync_all` or a separate timer, with notification on `home-manager switch` failure
+  - consider: pin nixpkgs to a known-good rev and update intentionally, rather than always tracking unstable head
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
