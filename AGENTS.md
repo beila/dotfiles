@@ -33,9 +33,11 @@ Summary (keep in sync with the steering file):
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
 - [ ] `_gy` ↔ `_gyy` toggle via `become` produces wrong output
   - after `become`, the new function's output goes through the original function's post-processing pipeline
-  - `_gy` expects hex operation IDs (`grep -o "[0-9a-f]\{12,\}"`), but `_jyy` returns change IDs (lowercase alpha)
+  - `_gy` expects hex operation IDs (`grep -o "[0-9a-f]\{12,\}"`), but `_jyy` returns change IDs (lowercase alpha via `_jj_log_fzf`)
   - pre-existing bug (not caused by fzf-zellij), also affects `_gyy` → `_gy`
   - `_gh` ↔ `_ghh` works because both use `_jj_log_fzf` with the same output format
+  - possible fix: unify output format (e.g. both return the raw fzf line, let the caller extract), or move post-processing into the `become` target so each function owns its own output pipeline
+  - files: `fzf/functions.sh/functions.sh` — `_jy()` (line ~263), `_jyy()` (line ~222)
 - [x] show first name instead of email local part in fzf_oneline_author (uses `author.name().split(" ").first()`, falls back to `email().local()` if name empty; requires jj ≥0.39)
 
 ### Medium impact
@@ -59,6 +61,14 @@ Summary (keep in sync with the steering file):
   - scope: unify existing features only, no new functionality
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 - [ ] review each nvim plugin and cleanup/modernise
+- [ ] migrate lspconfig `require('lspconfig').X.setup()` to `vim.lsp.config` (nvim 0.12)
+  - deprecated in nvim-lspconfig v3.0.0, prints warning on every startup
+  - affects 20+ files in `vimrcs/my-*.lua`
+  - see `:help lspconfig-nvim-0.11` for new API
+- [ ] switch nix neovim module to `hm-generated.lua` approach
+  - current: `initLua` inlines myinit.lua into nix-generated `init.lua`, overwriting `nvim.configsymlink/init.lua` on every `home-manager switch`
+  - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + own `init.lua` with `require 'hm-generated'`
+  - see home-manager news 2026-01-25 and PR #8586/#8606
 - [ ] make sync_dotfiles more readable
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
@@ -83,8 +93,8 @@ Summary (keep in sync with the steering file):
   - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
   - `home.nix` — packages, unfree predicate (albert), battery-notify systemd timer (1min check, notify at 20%/10%)
   - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop, empty gnome-panel layout as fallback), random-lockscreen systemd timer (daily wallpaper), gnome-flashback systemd drop-ins (xmonad session target requires gnome-flashback.target + service restart override)
-  - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
-  - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim (Rust LSP, replaces rust-tools-nvim); coverage table documents all tools per language
+  - `neovide.nix` — nixGL-wrapped neovide (GPU access on non-NixOS), font copying activation (JetBrains Mono + Nerd Font + Source Code Pro for neovide default fallback)
+  - `nvim.nix` — neovim (default editor, vi/vim aliases), `initLua` sources `myinit.lua` (nix generates `init.lua` which overwrites `nvim.configsymlink/init.lua` on every switch — `init.lua` is gitignored), dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim (Rust LSP, replaces rust-tools-nvim); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
   - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs (gnome-flashback-xmonad.session strips gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings) + keyd service setup + loginctl enable-linger (keeps systemd --user alive after logout so zellij/timers survive) + ollama install (service disabled, started on demand by commit-msg)
@@ -160,7 +170,7 @@ Summary (keep in sync with the steering file):
 ### Neovim Dev Tooling
 - Config: `~/.dotfiles/nvim.configsymlink/` (symlinked to ~/.config/nvim; also ~/.vim via vim.symlink → nvim.configsymlink)
 - Plugin management: all plugins installed via home-manager `programs.neovim.plugins`; no submodules remain; `.gitmodules` removed (vim.symlink was last entry, now a symlink to nvim.configsymlink)
-- Config loading: `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`; `set verbosefile=~/.vim-messages.log` captures `:messages` output
+- Config loading: nix generates `init.lua` (lua paths + `myinit.lua` content via `initLua`); `myinit.lua` sources `vimrc.symlink`; `vimrc.symlink` sources `myvimrc`; `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`; `set verbosefile=~/.vim-messages.log` captures `:messages` output; `init.lua` is gitignored (nix-generated, changes on every `home-manager switch`); nvim 0.12 only loads `init.lua` (not `init.vim`/vimrc) when both exist
 - Logs: `~/.vim-messages.log` (nvim messages), `~/.local/state/nvim/lsp.log` (LSP), `~/.local/state/nvim/mason.log` (Mason)
 - Project-local config: `myvimrc` sources `.nvim.lua` from cwd or ancestors on `BufEnter` (via `vim.schedule` after lcd), per-buffer dedup
 - Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
@@ -188,7 +198,7 @@ Summary (keep in sync with the steering file):
 - Limelight: `my-text.lua` — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit; per-buffer (BufEnter/BufLeave toggle)
 - Table mode: `my-markdown.lua` — `silent! TableModeEnable` on markdown FileType (suppresses echo noise)
 - fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, ctrl-f toggles all files incl. gitignored, query preserved across toggle, `vimrcs/jj-file-list-all` helper script), `<leader>F` all files (incl. gitignored), `<C-g><C-f>` jj/git changed files, ctrl-n/p preview scroll
-- Font: `gvimrc` — JetBrains Mono Thin:h11 (neovide guifont)
+- Font: `gvimrc` — JetBrains Mono Thin:h11 (neovide guifont); guarded by `has("gui_running") || exists("g:neovide")` (neovide doesn't set `gui_running`); neovide's default fallback font (Source Code Pro) must be installed or it errors on startup
 - Linting: `nvim-lint` plugin runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs
   - Coverage table in `nvim.nix` documents all tools per language with install location
@@ -258,7 +268,7 @@ Summary (keep in sync with the steering file):
 - fzf-lua: `fzf_opts['--bind']` is overwritten by `create_fzf_binds` in core.lua — custom fzf binds must go through `actions` table (Lua actions) or `keymap.fzf`, not `fzf_opts`
 - fzf-lua: `ctrl-o` doesn't reach fzf (neovim terminal mode intercepts it for normal-mode-one-command); `ctrl-g` is fzf's default abort but can be overridden via fzf-lua Lua actions
 - fzf `--bind`: `transform(...)` parenthesis form breaks when the script body contains nested parens (e.g. `reload(...)`, `change-header(...)`); use colon form `transform:` instead
-- nvim-treesitter `ensure_installed` + `auto_install` can fail trying to write to nix store (read-only); `auto_install = false` and `ensure_installed = {}` as workaround; treesitter module buffer-local keymaps may not attach — manual global keymaps used for incremental selection and swap
+- nvim-treesitter `ensure_installed` + `auto_install` can fail trying to write to nix store (read-only); `auto_install = false` and `ensure_installed = {}` as workaround; treesitter module buffer-local keymaps may not attach — manual global keymaps used for incremental selection and swap; nvim-treesitter 1.0 (nvim 0.12) removed `nvim-treesitter.configs` module — `nvim-treesitter.lua` uses pcall to support both old and new API
 - zsh vi mode: custom zle widget bindings must use `bindkey -M viins` and `bindkey -M vicmd` explicitly; plain `bindkey` only sets main (viins) — vicmd (normal mode) shows `^X` literal for unbound keys
 - zsh fzf: `source <(fzf --zsh)` must come before custom bindkeys that reference fzf widgets (fzf-cd-widget, etc.); `zshrc.symlink` globs `**/*.zsh` alphabetically — don't put static copies of fzf scripts in the glob path
 - zellij + kitty keyboard protocol: under rapid key repeat, zellij occasionally fails to parse CSI u sequences and passes raw bytes to child programs; worked around by sending legacy control codes from ghostty for ctrl-j/k/n/p
