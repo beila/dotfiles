@@ -1,5 +1,9 @@
 set runtimepath+=~/.vim " for nvim
 
+if exists("g:neovide")
+    set guifont=JetBrains\ Mono\ Thin:h11
+endif
+
 source ~/.vim/myvimrc
 "source ~/.vim/macvimrc
 source ~/.vim/ubunturc
