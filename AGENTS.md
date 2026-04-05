@@ -36,6 +36,9 @@ Summary (keep in sync with the steering file):
   - runs `jj squash --into <rev> -- <files>`
   - enter keeps current behaviour (output filenames)
 - [ ] add inserting a new empty revision in _gh
+  - ctrl-o ("open" new revision) inserts a blank revision before the selected revision (`jj new --before <rev>`)
+  - after insertion, focus moves to the newly created revision in the fzf list
+  - no description prompt — creates an empty change
 - [ ] notify user when sync_dotfiles merge has conflicts
   - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram
 - [ ] how do I get notified with sync_all error
