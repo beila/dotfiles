@@ -25,9 +25,9 @@ Summary (keep in sync with the steering file):
 - [x] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
   - when toggling via `become` (ctrl-h, ctrl-b, ctrl-y), preserve the current fzf search query in the new view
 - [x] shorten relative date/time in fzf_oneline templates (e.g. "1w" instead of "1 week ago")
-  - `short_ago(ts)` template alias: single-letter suffixes (m/h/d/w/M/y), uses `.contains()`/`.substr()` chain (jj 0.32 lacks `.replace()`); used by both `fzf_oneline` and `fzf_oneline_author`
+  - `short_ago(ts)` template alias: single-letter suffixes (m/h/d/w/M/y), uses `.contains()`/`.substr()` chain; used by both `fzf_oneline` and `fzf_oneline_author`
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
-- [ ] show first name instead of email local part in fzf_oneline_author (jj templates lack string split)
+- [ ] show first name instead of email local part in fzf_oneline_author (now possible with jj ≥0.35 `.split()` + ≥0.39 `.first()`; current jj is 0.39)
 
 ### Medium impact
 - [ ] add squash feature to _gf
@@ -70,7 +70,7 @@ Summary (keep in sync with the steering file):
   - `home.nix` — packages, unfree predicate (albert), battery-notify systemd timer (1min check, notify at 20%/10%)
   - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop, empty gnome-panel layout as fallback), random-lockscreen systemd timer (daily wallpaper), gnome-flashback systemd drop-ins (xmonad session target requires gnome-flashback.target + service restart override)
   - `neovide.nix` — nixGL-wrapped neovide, font copying activation (JetBrains Mono + Nerd Font)
-  - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps); coverage table documents all tools per language
+  - `nvim.nix` — neovim (default editor, vi/vim aliases), dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim (Rust LSP, replaces rust-tools-nvim); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
   - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs (gnome-flashback-xmonad.session strips gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings) + keyd service setup + loginctl enable-linger (keeps systemd --user alive after logout so zellij/timers survive) + ollama install (service disabled, started on demand by commit-msg)
@@ -83,7 +83,7 @@ Summary (keep in sync with the steering file):
   - `greedyViewNoSwap`: workspace switch variant that swaps visible screens but not hidden
 - keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf, thinkpad.conf — copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
-- jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `workspace_view()` (mutable chain + boundary + branches for fzf _jh), `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs); template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y via `.contains()`/`.substr()` chain — jj 0.32 lacks `.replace()`), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author)
+- jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `workspace_view()` (mutable chain + boundary + branches for fzf _jh), `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs); template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y via `.contains()`/`.substr()` chain), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
   - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id`/`_jj_extract_id` extract change ID from fzf line (strips ANSI, supports single-char IDs via `\{1,\}`); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); toggles via `become`: `_jh`↔`_jhh` (ctrl-h, revision-based focus), `_jb`↔`_jbb` (ctrl-b), `_jy`↔`_jyy` (ctrl-y); ctrl-o inserts empty revision before selected (`jj new --no-edit --before`), uses `transform:` (colon form) to show jj errors in header; fzf query preserved across toggles via `{q}`→`--query`; line-number focus uses `result:pos(N+1)+unbind(result)` (fzf `{n}` is 0-indexed, `pos` is 1-indexed)
   - `functions.sh/test_toggle_query.sh` — non-interactive test for toggle query/focus preservation, ctrl-o binding, and change ID extraction (incl. single-char IDs); mocks fzf via temp file to capture args through pipes; run with `zsh fzf/functions.sh/test_toggle_query.sh` from `~/.dotfiles` after any change to `functions.sh`; file is read-only — only `chmod u+w` when the user explicitly allows it
@@ -152,7 +152,7 @@ Summary (keep in sync with the steering file):
   - my-awk.lua, my-cmake.lua, my-cpp.lua, my-css.lua, my-docker.lua, my-glsl.lua
   - my-haskell.lua, my-html.lua, my-java.lua, my-jinja.lua, my-js.lua (js/ts)
   - my-json.lua, my-just.lua, my-kotlin.lua, my-lua.lua, my-markdown.lua
-  - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua, my-sql.lua
+  - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua (rustaceanvim, replaces lspconfig for Rust), my-sql.lua
   - my-text.lua, my-toml.lua, my-vim.lua, my-xml.lua, my-yaml.lua
   - my-bash.lua (bash/sh only — zsh excluded, no zsh LSP available)
 - Shared config: `vimrcs/lsp.lua` (keymaps incl. `<leader>e` floating diagnostic), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)

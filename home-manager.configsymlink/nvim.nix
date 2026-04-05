@@ -38,6 +38,7 @@ in
       nvim-treesitter-textobjects
       nvim-web-devicons
       plantuml-syntax
+      rustaceanvim
       Tagbar
       typescript-vim
       undotree
@@ -170,7 +171,7 @@ in
     ruff                               # python      lint+fmt   my-python.lua
 
     # rust
-    rust-analyzer                      # rust        LSP        my-rust.lua (rust_analyzer)
+    rust-analyzer                      # rust        LSP        my-rust.lua (rustaceanvim)
     # codelldb                         # rust        DAP        my-rust.lua (mason, shared with c/c++)
     clippy                             # rust        linter     my-rust.lua (via rust-analyzer)
     rustfmt                            # rust        formatter  my-rust.lua (via rust-analyzer)
