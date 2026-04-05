@@ -78,6 +78,18 @@ assert "with query: --query" "--query myquery" "$out"
 assert "with pos: result:pos(4)" "result:pos(4)" "$out"
 assert "become passes {n} {q}" "{n} {q}" "$out"
 
+echo "_jh ctrl-o (insert new revision):"
+out=$(capture _jh)
+assert "has ctrl-o binding" "ctrl-o:" "$out"
+assert "ctrl-o runs jj new --before" "jj new --before" "$out"
+assert "ctrl-o reloads after insert" "reload" "$out"
+
+echo "_jhh ctrl-o (insert new revision):"
+out=$(capture _jhh)
+assert "has ctrl-o binding" "ctrl-o:" "$out"
+assert "ctrl-o runs jj new --before" "jj new --before" "$out"
+assert "ctrl-o reloads after insert" "reload" "$out"
+
 echo
 echo "$pass passed, $fail failed"
 (( fail == 0 ))
