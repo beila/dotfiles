@@ -19,10 +19,11 @@ Summary (keep in sync with the steering file):
 - [ ] can't type hangul in zellij/ghostty
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [ ] use fzf for zsh tab completion
-- [ ] run fzf in a zellij floating pane instead of inline
-  - applies to all fzf invocations in `~/.dotfiles/fzf/` (`_gh`, `_gf`, `_gb`, etc.)
-  - problem: inline fzf scrolls up current terminal content, preventing a larger fzf window
-  - always-on when inside zellij (detect via `$ZELLIJ` env var), falls back to inline outside zellij
+- [x] run fzf in a zellij floating pane instead of inline
+  - `fzf/fzf-zellij` script (modeled after `fzf-tmux`): FIFO for streaming stdin, temp file for output, `zellij run --floating` to spawn pane, polls for EXIT-trap `done` marker, closes pane explicitly
+  - `fzf_down()` calls `fzf-zellij` unconditionally; falls back to plain fzf outside zellij
+  - `FZF_ZELLIJ=1` env var set inside floating pane prevents nested panes on `become` toggles; strips `--height`/`--min-height` so toggled fzf uses full pane
+  - `fzf/test_fzf_zellij.sh` — automated tests (run with `bash fzf/test_fzf_zellij.sh` inside zellij)
 - [x] shorten change id/date/time and remove git commit id in list panes of _gh, ...
   - jj template aliases `fzf_oneline` (no author/git-id) and `fzf_oneline_author`; revset alias `workspace_view()` for _jh; `_jh` uses `workspace_view()`, `_jhh` uses `::workspace_view()`
 - [x] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
@@ -30,6 +31,11 @@ Summary (keep in sync with the steering file):
 - [x] shorten relative date/time in fzf_oneline templates (e.g. "1w" instead of "1 week ago")
   - `short_ago(ts)` template alias: single-letter suffixes (m/h/d/w/M/y), uses `.contains()`/`.substr()` chain; used by both `fzf_oneline` and `fzf_oneline_author`
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
+- [ ] `_gy` ↔ `_gyy` toggle via `become` produces wrong output
+  - after `become`, the new function's output goes through the original function's post-processing pipeline
+  - `_gy` expects hex operation IDs (`grep -o "[0-9a-f]\{12,\}"`), but `_jyy` returns change IDs (lowercase alpha)
+  - pre-existing bug (not caused by fzf-zellij), also affects `_gyy` → `_gy`
+  - `_gh` ↔ `_ghh` works because both use `_jj_log_fzf` with the same output format
 - [x] show first name instead of email local part in fzf_oneline_author (uses `author.name().split(" ").first()`, falls back to `email().local()` if name empty; requires jj ≥0.39)
 
 ### Medium impact
@@ -93,7 +99,8 @@ Summary (keep in sync with the steering file):
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `workspace_view()` (mutable chain + boundary + branches for fzf _jh), `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs); template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y via `.contains()`/`.substr()` chain), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author first name via `.split(" ").first()`, falls back to email local part)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
-  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id`/`_jj_extract_id` extract change ID from fzf line (strips ANSI, supports single-char IDs via `\{1,\}`); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); toggles via `become`: `_jh`↔`_jhh` (ctrl-h, revision-based focus), `_jb`↔`_jbb` (ctrl-b), `_jy`↔`_jyy` (ctrl-y); ctrl-o inserts empty revision before selected (`jj new --no-edit --before`), uses `transform:` (colon form) to show jj errors in header; fzf query preserved across toggles via `{q}`→`--query`; line-number focus uses `result:pos(N+1)+unbind(result)` (fzf `{n}` is 0-indexed, `pos` is 1-indexed)
+  - `fzf-zellij` — drop-in `fzf-tmux` equivalent for zellij; runs fzf in a floating pane with FIFO stdin streaming and temp file output; polls for EXIT-trap done marker; captures pane ID and closes explicitly; `FZF_ZELLIJ=1` env var prevents nested floating panes on `become` toggles and strips `--height`/`--min-height`; falls back to plain fzf outside zellij; `--close-on-exit` is unreliable in zellij so panes are closed explicitly
+  - `test_fzf_zellij.sh` — automated tests for fzf-zellij (piped input, fallback, pipeline extraction, nested/become); run with `bash fzf/test_fzf_zellij.sh` inside a zellij session  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id`/`_jj_extract_id` extract change ID from fzf line (strips ANSI, supports single-char IDs via `\{1,\}`); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); toggles via `become`: `_jh`↔`_jhh` (ctrl-h, revision-based focus), `_jb`↔`_jbb` (ctrl-b), `_jy`↔`_jyy` (ctrl-y); ctrl-o inserts empty revision before selected (`jj new --no-edit --before`), uses `transform:` (colon form) to show jj errors in header; fzf query preserved across toggles via `{q}`→`--query`; line-number focus uses `result:pos(N+1)+unbind(result)` (fzf `{n}` is 0-indexed, `pos` is 1-indexed)
   - `functions.sh/test_toggle_query.sh` — non-interactive test for toggle query/focus preservation, ctrl-o binding, and change ID extraction (incl. single-char IDs); mocks fzf via temp file to capture args through pipes; run with `zsh fzf/functions.sh/test_toggle_query.sh` from `~/.dotfiles` after any change to `functions.sh`; file is read-only — only `chmod u+w` when the user explicitly allows it
   - `functions.sh/key-binding.zsh` — Ctrl-G sequences (`^G^F`, `^G^B`, etc.) bound in both viins and vicmd modes; `^G` rebound to undefined-key to prevent list-expand from swallowing the prefix; `^F` bound to `_file_browse` (tracked/all files toggle)
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
@@ -257,6 +264,8 @@ Summary (keep in sync with the steering file):
 - zellij + kitty keyboard protocol: under rapid key repeat, zellij occasionally fails to parse CSI u sequences and passes raw bytes to child programs; worked around by sending legacy control codes from ghostty for ctrl-j/k/n/p
 - C++ treesitter textobjects: `#make-range!` directives can silently fail; `@function.outer` misses lambdas and some edge cases; mini.ai pattern-based `f`/`a` is more reliable for C++ function calls and arguments
 - Push notifications: Google Chat webhooks blocked by org admin; Slack app creation requires workspace admin approval; KakaoTalk "나에게 보내기" doesn't trigger push (messages to self are silent); Telegram bot or ntfy.sh are the viable options
+- zellij `--close-on-exit` is unreliable — panes sometimes stay open after the command exits; `fzf-zellij` works around this by capturing the pane ID and closing explicitly via `zellij action close-pane`
+- fzf `become` toggle output mismatch: when `_gy` toggles to `_gyy` via `become`, the new function's output (change ID) goes through the original function's post-processing pipeline (hex grep), producing wrong or empty results; same issue in reverse (`_gyy` → `_gy`); `_gh` ↔ `_ghh` is unaffected because both share the same output format
 
 ### Monitors
 - Current: 3 monitors — eDP-1 (1920x1200 laptop), DP-1 (3440x1440 ultrawide), DP-3 (1440x2560 portrait); varies by location
