@@ -1,76 +1,78 @@
 local parser_dir = vim.fn.stdpath('data') .. '/treesitter'
 vim.opt.runtimepath:append(parser_dir)
 
-require 'nvim-treesitter.configs'.setup {
-    parser_install_dir = parser_dir,
-    ensure_installed = {},
-    --[[ ensure_installed = {
-        -- languages
-        "awk", "bash", "c", "cmake", "cpp", "css", "csv", "diff", "dockerfile",
-        "dot", "doxygen", "git_config", "git_rebase", "gitattributes", "gitcommit",
-        "gitignore", "glsl", "gnuplot", "groovy", "haskell", "html", "htmldjango",
-        "idl", "java", "javascript", "jinja", "json", "json5", "jsonc", "just",
-        "kotlin", "lua", "make", "markdown", "nim", "ninja", "nix", "passwd",
-        "perl", "proto", "python", "rst", "rust", "sql", "ssh_config", "toml",
-        "typescript", "udev", "vim", "vimdoc", "xml", "yaml",
-        -- injected/inline (not auto-installed)
-        "angular", "asm", "comment", "fish", "glimmer", "graphql",
-        "haskell_persistent", "jinja_inline", "jsdoc", "luadoc", "luap",
-        "markdown_inline", "nim_format_string", "pod", "printf", "promql", "query",
-        "re2c", "readline", "regex", "ruby", "slint", "styled",
-    }, ]]
-    auto_install = false,
-    highlight = { enable = true, },
-    indent = { enable = true, },
-    incremental_selection = {
-        enable = true,
-        keymaps = {
-            init_selection = false,
-            node_incremental = false,
-            node_decremental = false,
-        },
-    },
-    textobjects = {
-        select = {
+-- nvim-treesitter.configs was removed in nvim-treesitter 1.0 (nvim 0.12)
+-- Try new API first, fall back to old
+local ok, configs = pcall(require, 'nvim-treesitter.configs')
+if ok and configs.setup then
+    configs.setup {
+        parser_install_dir = parser_dir,
+        ensure_installed = {},
+        auto_install = false,
+        highlight = { enable = true, },
+        indent = { enable = true, },
+        incremental_selection = {
             enable = true,
-            lookahead = true,
             keymaps = {
-                ['af'] = '@function.outer',
-                ['if'] = '@function.inner',
-                ['ac'] = '@class.outer',
-                ['ic'] = '@class.inner',
-                ['aa'] = '@parameter.outer',
-                ['ia'] = '@parameter.inner',
+                init_selection = false,
+                node_incremental = false,
+                node_decremental = false,
             },
         },
-        move = {
-            enable = true,
-            set_jumps = true,
-            goto_next_start = {
-                [']f'] = '@function.outer',
-                [']a'] = '@parameter.outer',
+        textobjects = {
+            select = {
+                enable = true,
+                lookahead = true,
+                keymaps = {
+                    ['af'] = '@function.outer',
+                    ['if'] = '@function.inner',
+                    ['ac'] = '@class.outer',
+                    ['ic'] = '@class.inner',
+                    ['aa'] = '@parameter.outer',
+                    ['ia'] = '@parameter.inner',
+                },
             },
-            goto_previous_start = {
-                ['[f'] = '@function.outer',
-                ['[a'] = '@parameter.outer',
+            move = {
+                enable = true,
+                set_jumps = true,
+                goto_next_start = {
+                    [']f'] = '@function.outer',
+                    [']a'] = '@parameter.outer',
+                },
+                goto_previous_start = {
+                    ['[f'] = '@function.outer',
+                    ['[a'] = '@parameter.outer',
+                },
+            },
+            swap = {
+                enable = true,
+                swap_next = {
+                    ['<leader>a'] = '@parameter.inner',
+                },
+                swap_previous = {
+                    ['<leader>A'] = '@parameter.inner',
+                },
             },
         },
-        swap = {
-            enable = true,
-            swap_next = {
-                ['<leader>a'] = '@parameter.inner',
-            },
-            swap_previous = {
-                ['<leader>A'] = '@parameter.inner',
-            },
-        },
-    },
-}
+    }
+else
+    -- New nvim-treesitter: highlight/indent are built-in, just set parser dir
+    pcall(function()
+        require('nvim-treesitter.config').setup { install_dir = parser_dir }
+    end)
+end
 
-vim.keymap.set('n', '<C-e>', require('nvim-treesitter.incremental_selection').init_selection)
-vim.keymap.set('v', '<C-e>', require('nvim-treesitter.incremental_selection').node_incremental)
-vim.keymap.set('v', '<C-d>', require('nvim-treesitter.incremental_selection').node_decremental)
+-- Incremental selection keymaps
+local ok_inc, inc = pcall(require, 'nvim-treesitter.incremental_selection')
+if ok_inc then
+    vim.keymap.set('n', '<C-e>', inc.init_selection)
+    vim.keymap.set('v', '<C-e>', inc.node_incremental)
+    vim.keymap.set('v', '<C-d>', inc.node_decremental)
+end
 
-local ts_swap = require('nvim-treesitter.textobjects.swap')
-vim.keymap.set('n', '<leader>a', function() ts_swap.swap_next('@parameter.inner') end)
-vim.keymap.set('n', '<leader>A', function() ts_swap.swap_previous('@parameter.inner') end)
+-- Swap keymaps
+local ok_swap, ts_swap = pcall(require, 'nvim-treesitter.textobjects.swap')
+if ok_swap then
+    vim.keymap.set('n', '<leader>a', function() ts_swap.swap_next('@parameter.inner') end)
+    vim.keymap.set('n', '<leader>A', function() ts_swap.swap_previous('@parameter.inner') end)
+end
