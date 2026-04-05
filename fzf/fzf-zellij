@@ -40,7 +40,7 @@ fi
 args=("${args[@]}" "--no-height" "--bind=ctrl-z:ignore")
 
 tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/fzf-zellij-XXXXXX")
-trap '\rm -rf "$tmpdir"' EXIT
+# trap '\rm -rf "$tmpdir"' EXIT  # DEBUG: disabled for inspection
 
 input="$tmpdir/in"
 output="$tmpdir/out"
