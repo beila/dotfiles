@@ -50,6 +50,7 @@ _git_log_fzf() {
 
 # shellcheck disable=SC2120
 # Extract jj change ID: first all-lowercase word after graph chars (strips ANSI)
+# Uses \{1,\} not \{2,\} — fzf_oneline shortest prefix can be a single char in small repos
 _jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
 
 _jj_log_fzf() {
@@ -203,7 +204,7 @@ _jh() {
   jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h) insert (ctrl-o)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-o:execute-silent(id=\$($_jj_change_id); jj new --no-edit --before \"\$id\" --quiet)+reload(jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null)" \
+    --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --before "$id" 2>&1); then echo "reload(jj --quiet log --color=always -T '"'"'fzf_oneline'"'"' -r '"'"'workspace_view()'"'"' 2>/dev/null)+change-header(☐ full log (ctrl-h) insert (ctrl-o))"; else echo "change-header(⚠ $err)"; fi' \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 
@@ -246,7 +247,7 @@ _jhh() {
   jj --quiet log --color=always -T 'fzf_oneline_author' -r '::workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h) insert (ctrl-o)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-o:execute-silent(id=\$($_jj_change_id); jj new --no-edit --before \"\$id\" --quiet)+reload(jj --quiet log --color=always -T 'fzf_oneline_author' -r '::workspace_view()' 2>/dev/null)" \
+    --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --before "$id" 2>&1); then echo "reload(jj --quiet log --color=always -T '"'"'fzf_oneline_author'"'"' -r '"'"'::workspace_view()'"'"' 2>/dev/null)+change-header(☑ full log (ctrl-h) insert (ctrl-o))"; else echo "change-header(⚠ $err)"; fi' \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
 }
 
