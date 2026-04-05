@@ -5,6 +5,7 @@
 # _git_*  — git implementations
 _fzf_functions_sh="${${(%):-%x}:a}"
 # _g*     — dispatchers: jj-first, git-fallback
+# Test: zsh test_toggle_query.sh (run after any change)
 
 is_in_git_repo() {
   git rev-parse HEAD > /dev/null 2>&1
@@ -123,7 +124,7 @@ _jb() {
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☐ workspaces (ctrl-b)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
-      --bind "ctrl-b:become(FZF_Q={q} zsh -c 'source $_fzf_functions_sh; _jbb {n} \"\$FZF_Q\"')" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
         jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
@@ -149,7 +150,7 @@ _jbb() {
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☑ workspaces (ctrl-b)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
-      --bind "ctrl-b:become(FZF_Q={q} zsh -c 'source $_fzf_functions_sh; _jb {n} \"\$FZF_Q\"')" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
       --preview 'jj --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
@@ -202,7 +203,7 @@ _jh() {
   jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) FZF_Q={q} zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" \"\$FZF_Q\"')"
+    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 
 _git_h() {
@@ -222,7 +223,7 @@ _jyy() {
   jj --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-y:become(FZF_Q={q} zsh -c 'source $_fzf_functions_sh; _jy {n} \"\$FZF_Q\"')"
+    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')"
 }
 
 _git_yy() {
@@ -244,7 +245,7 @@ _jhh() {
   jj --quiet log --color=always -T 'fzf_oneline_author' -r '::workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) FZF_Q={q} zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" \"\$FZF_Q\"')"
+    --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
 }
 
 _git_hh() {
@@ -264,7 +265,7 @@ _jy() {
     fzf_down --ansi --no-sort --reverse --multi \
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
-      --bind "ctrl-y:become(FZF_Q={q} zsh -c 'source $_fzf_functions_sh; _jyy {n} \"\$FZF_Q\"')" \
+      --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
       --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
     grep -o "[0-9a-f]\{12,\}" | tail -1
 }
