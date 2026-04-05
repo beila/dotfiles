@@ -16,11 +16,7 @@ is_in_jj_repo() {
 }
 
 fzf_down() {
-  if [[ -n "${ZELLIJ:-}" ]]; then
-    "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-float" --border --bind ctrl-/:toggle-preview "$@"
-  else
-    fzf --height 50% --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
-  fi
+  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --height 50% --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
 }
 
 # --- helpers (git) ---
