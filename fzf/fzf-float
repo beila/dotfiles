@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# fzf-float: run fzf in a zellij floating pane
+# Usage: pipe input | fzf-float [fzf args...]
+set -euo pipefail
+
+tmpdir=$(mktemp -d /tmp/fzf-float.XXXXXX)
+trap 'rm -rf "$tmpdir"' EXIT
+
+cat > "$tmpdir/in"
+touch "$tmpdir/out"
+
+# Save args NUL-delimited so the runner can read them without quoting issues
+printf '%s\0' "$@" > "$tmpdir/args"
+
+# The runner script reads args back from the file
+cat > "$tmpdir/run.sh" << 'RUNNER'
+#!/usr/bin/env bash
+dir="$1"
+args=()
+while IFS= read -r -d '' arg; do
+  args+=("$arg")
+done < "$dir/args"
+fzf "${args[@]}" < "$dir/in" > "$dir/out"
+RUNNER
+
+zellij action new-pane --floating --close-on-exit --blocking \
+  --width 90% --height 90% \
+  -- bash "$tmpdir/run.sh" "$tmpdir" \
+  || true
+
+cat "$tmpdir/out"
