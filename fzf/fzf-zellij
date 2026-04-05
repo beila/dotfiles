@@ -53,13 +53,14 @@ touch "$output"
   echo "export FZF_ZELLIJ=1"
   echo "export FZF_DEFAULT_OPTS=$(printf %q "${FZF_DEFAULT_OPTS:-}")"
   [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
+  echo "trap 'touch $(printf %q "$tmpdir/done")' EXIT"
   echo -n "\"$fzf\""
   for a in "${args[@]}"; do printf ' %q' "$a"; done
   if [[ ! -t 0 ]]; then
     mkfifo "$tmpdir/fifo"
-    echo " < $(printf %q "$tmpdir/fifo") > $(printf %q "$output"); touch $(printf %q "$tmpdir/done")"
+    echo " < $(printf %q "$tmpdir/fifo") > $(printf %q "$output")"
   else
-    echo " > $(printf %q "$output"); touch $(printf %q "$tmpdir/done")"
+    echo " > $(printf %q "$output")"
   fi
 } > "$argsf"
 
@@ -72,14 +73,11 @@ zellij run --floating --close-on-exit \
   --width "$width" --height "$height" \
   --cwd "$PWD" \
   -- bash "$argsf" \
-  > /dev/null 2>&1
-rc=$?
-
-if [[ $rc -ne 0 ]]; then
+  > /dev/null 2>&1 || {
   "$fzf" "${args[@]}"
   exit $?
-fi
+}
 
-# Wait for fzf to finish
+# Wait for pane's bash to exit (trap EXIT touches done marker, works even after become)
 while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
 cat "$output"
