@@ -32,6 +32,19 @@ done
 
 # Outside zellij or already in a fzf-zellij pane: just run fzf directly
 if [[ -z ${ZELLIJ:-} ]] || [[ -n ${FZF_ZELLIJ:-} ]]; then
+  if [[ -n ${FZF_ZELLIJ:-} ]]; then
+    # Strip --height/--min-height since the floating pane IS the viewport
+    filtered=(); skip=""
+    for a in "${args[@]}"; do
+      if [[ -n $skip ]]; then skip=""; continue; fi
+      case "$a" in
+        --height=*|--min-height=*) ;;
+        --height|--min-height) skip=1 ;;
+        *) filtered+=("$a") ;;
+      esac
+    done
+    args=("${filtered[@]}")
+  fi
   "$fzf" "${args[@]}"
   exit $?
 fi
