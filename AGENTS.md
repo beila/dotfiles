@@ -19,7 +19,10 @@ Summary (keep in sync with the steering file):
 - [ ] can't type hangul in zellij/ghostty
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [ ] use fzf for zsh tab completion
-- [ ] make fzf zellij popup
+- [ ] run fzf in a zellij floating pane instead of inline
+  - applies to all fzf invocations in `~/.dotfiles/fzf/` (`_gh`, `_gf`, `_gb`, etc.)
+  - problem: inline fzf scrolls up current terminal content, preventing a larger fzf window
+  - always-on when inside zellij (detect via `$ZELLIJ` env var), falls back to inline outside zellij
 - [x] shorten change id/date/time and remove git commit id in list panes of _gh, ...
   - jj template aliases `fzf_oneline` (no author/git-id) and `fzf_oneline_author`; revset alias `workspace_view()` for _jh; `_jh` uses `workspace_view()`, `_jhh` uses `::workspace_view()`
 - [x] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
@@ -42,7 +45,12 @@ Summary (keep in sync with the steering file):
 - [ ] notify user when sync_dotfiles merge has conflicts
   - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram
 - [ ] how do I get notified with sync_all error
-- [ ] share code between fzf/functions.sh/functions.sh and fzf.lua
+- [ ] share fzf config between shell (`fzf/functions.sh/functions.sh`) and nvim (`fzf.lua`)
+  - fzf command-line parameters (including preview commands) are duplicated between the two
+  - improvements made in one don't automatically apply to the other
+  - goal: single source of truth for shared fzf options/previews, so both shell and nvim get the superset of features
+  - direction: whichever is simpler (e.g. shared config file, shell script that both source, or generated opts)
+  - scope: unify existing features only, no new functionality
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 - [ ] review each nvim plugin and cleanup/modernise
 - [ ] make sync_dotfiles more readable
