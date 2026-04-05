@@ -22,7 +22,7 @@ Summary (keep in sync with the steering file):
 - [ ] make fzf zellij popup
 - [x] shorten change id/date/time and remove git commit id in list panes of _gh, ...
   - jj template aliases `fzf_oneline` (no author/git-id) and `fzf_oneline_author`; revset alias `workspace_view()` for _jh; `_jh` uses `workspace_view()`, `_jhh` uses `::workspace_view()`
-- [ ] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
+- [x] pass query between _jh/_jhh, _jy/_jyy, _jb/_jbb toggles
   - when toggling via `become` (ctrl-h, ctrl-b, ctrl-y), preserve the current fzf search query in the new view
 - [x] shorten relative date/time in fzf_oneline templates (e.g. "1w" instead of "1 week ago")
   - `short_ago(ts)` template alias: single-letter suffixes (m/h/d/w/M/y), uses `.contains()`/`.substr()` chain (jj 0.32 lacks `.replace()`); used by both `fzf_oneline` and `fzf_oneline_author`
@@ -95,7 +95,7 @@ Summary (keep in sync with the steering file):
   - Normal mode keybindings: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-s→fzf session picker (via CYCLE_SWITCH_CMD template), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
   - Move keybindings: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
   - Config template: `CYCLE_SWITCH_CMD` placeholder in Alt-s binding, replaced by `zellij-cycle` via sed with per-instance callback
-- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID` before starting new TTS)
+- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID` before starting new TTS; kill wrapped in `|| true` to survive dead PGID under `set -e`), bin/test_mcp_tts.sh (non-interactive test; run with `bash bin/test_mcp_tts.sh` after any change to mcp-tts)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — single wttr.in JSON API call, python3 parses response; shows 🌙 after sunset / before sunrise (clear→moon, cloudy→☁🌙), weather icons unchanged for rain/snow/fog; tooltip: current conditions + hourly + 3-day forecast
 - System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode (2nd arg `1`) for metrics where high=good (battery); padding bars (no prior data) always use non-inverted color to avoid false red on battery; history in `/tmp/sysmon-history`, 8 samples
