@@ -47,11 +47,28 @@ merge-tool-edits-conflict-markers = true
 'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
 
 [template-aliases]
+# Short relative timestamp: "1w", "3d", "2h", "5m", "6M", "1y"
+# (jj 0.32 lacks .replace(); uses .contains()/.substr() to strip " <unit> ago")
+'short_ago(ts)' = '''
+if(ts.ago().contains("minutes"), ts.ago().substr(0, -12) ++ "m",
+if(ts.ago().contains("minute"),  ts.ago().substr(0, -11) ++ "m",
+if(ts.ago().contains("hours"),   ts.ago().substr(0, -10) ++ "h",
+if(ts.ago().contains("hour"),    ts.ago().substr(0, -9)  ++ "h",
+if(ts.ago().contains("days"),    ts.ago().substr(0, -9)  ++ "d",
+if(ts.ago().contains("day"),     ts.ago().substr(0, -8)  ++ "d",
+if(ts.ago().contains("weeks"),   ts.ago().substr(0, -10) ++ "w",
+if(ts.ago().contains("week"),    ts.ago().substr(0, -9)  ++ "w",
+if(ts.ago().contains("months"),  ts.ago().substr(0, -11) ++ "M",
+if(ts.ago().contains("month"),   ts.ago().substr(0, -10) ++ "M",
+if(ts.ago().contains("years"),   ts.ago().substr(0, -10) ++ "y",
+if(ts.ago().contains("year"),    ts.ago().substr(0, -9)  ++ "y",
+  ts.ago()))))))))))))
+'''
 # Compact oneline for fzf: no author, no git commit id, shortest change id
 'fzf_oneline' = '''
 if(root, format_root_commit(self),
   label(if(current_working_copy, "working_copy"),
-    separate(" ", change_id.shortest(), commit_timestamp(self).ago(), working_copies,
+    separate(" ", change_id.shortest(), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
       bookmarks, tags) ++ "\n"))
@@ -60,7 +77,7 @@ if(root, format_root_commit(self),
 'fzf_oneline_author' = '''
 if(root, format_root_commit(self),
   label(if(current_working_copy, "working_copy"),
-    separate(" ", change_id.shortest(), format_short_signature_oneline(author), commit_timestamp(self).ago(), working_copies,
+    separate(" ", change_id.shortest(), format_short_signature_oneline(author), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
       bookmarks, tags) ++ "\n"))
