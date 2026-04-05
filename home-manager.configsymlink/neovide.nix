@@ -22,6 +22,7 @@
     mkdir -p ~/.local/share/fonts
     cp -u ${pkgs.jetbrains-mono}/share/fonts/truetype/JetBrainsMono-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
     cp -u ${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono/JetBrainsMonoNerdFont-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
+    cp -u ${pkgs.source-code-pro}/share/fonts/opentype/SourceCodePro-*.otf ~/.local/share/fonts/ 2>/dev/null || true
     fc-cache -f 2>/dev/null || true
   '';
 }
