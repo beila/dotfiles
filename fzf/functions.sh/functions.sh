@@ -50,12 +50,12 @@ _git_log_fzf() {
 
 # shellcheck disable=SC2120
 # Extract jj change ID: first all-lowercase word after graph chars (strips ANSI)
-_jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{2,\}" | grep -o "[a-z]\{2,\}$"'
+_jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
 
 _jj_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi "$@" \
     --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && jj --quiet show --color=always \"\$id\"" |
-  sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{2,\}' | grep -o '[a-z]\{2,\}$' | head -1
+  sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{1,\}' | grep -o '[a-z]\{1,\}$' | head -1
 }
 
 _dim_jj_op_ids() {
@@ -188,7 +188,7 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 # --- log upstream ---
 
 # Extract jj change ID from an fzf line (strips ANSI codes)
-_jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{2,\}" | grep -o "[a-z]\{2,\}$"'
+_jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
 _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
@@ -203,7 +203,7 @@ _jh() {
   jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h) insert (ctrl-o)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-o:execute(id=\$($_jj_change_id); echo id=\$id; jj new --no-edit --before \"\$id\")+reload(jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null)" \
+    --bind "ctrl-o:execute-silent(id=\$($_jj_change_id); jj new --no-edit --before \"\$id\" --quiet)+reload(jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null)" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 

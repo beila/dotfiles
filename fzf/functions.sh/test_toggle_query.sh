@@ -78,6 +78,12 @@ assert "with query: --query" "--query myquery" "$out"
 assert "with pos: result:pos(4)" "result:pos(4)" "$out"
 assert "become passes {n} {q}" "{n} {q}" "$out"
 
+echo "change ID extraction:"
+extract() { echo "$1" | eval "${_jj_change_id//\{\}/\$(cat)}"; }
+assert "single char ID" "t" "$(extract '@  t 24s ago (empty)')"
+assert "multi char ID" "lkm" "$(extract '◆  lkm 2h ago desc')"
+assert "empty on no match" "" "$(extract '~')"
+
 echo "_jh ctrl-o (insert new revision):"
 out=$(capture _jh)
 assert "has ctrl-o binding" "ctrl-o:" "$out"
