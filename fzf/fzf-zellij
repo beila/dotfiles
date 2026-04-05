@@ -69,15 +69,19 @@ if [[ ! -t 0 ]]; then
   cat <&0 > "$tmpdir/fifo" &
 fi
 
-zellij run --floating --close-on-exit \
+pane_id=$(zellij run --floating \
   --width "$width" --height "$height" \
   --cwd "$PWD" \
   -- bash "$argsf" \
-  > /dev/null 2>&1 || {
+  2>/dev/null) || {
   "$fzf" "${args[@]}"
   exit $?
 }
 
 # Wait for pane's bash to exit (trap EXIT touches done marker, works even after become)
 while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
+
+# Close the pane (--close-on-exit is unreliable)
+[[ -n "$pane_id" ]] && zellij action close-pane --pane-id "$pane_id" 2>/dev/null || true
+
 cat "$output"
