@@ -40,39 +40,50 @@ fi
 args=("${args[@]}" "--no-height" "--bind=ctrl-z:ignore")
 
 tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/fzf-zellij-XXXXXX")
-# trap '\rm -rf "$tmpdir"' EXIT  # DEBUG: disabled for inspection
+trap '\rm -rf "$tmpdir"' EXIT
 
-input="$tmpdir/in"
 output="$tmpdir/out"
 argsf="$tmpdir/args"
-
-# Save stdin to temp file (if piped)
-if [[ ! -t 0 ]]; then
-  cat > "$input"
-fi
 touch "$output"
 
-# Write env + fzf command to a script
+# Build the script to run in the floating pane
 {
   echo "export TERM=$(printf %q "$TERM")"
+  echo "export PATH=$(printf %q "$PATH")"
   echo "export FZF_DEFAULT_OPTS=$(printf %q "${FZF_DEFAULT_OPTS:-}")"
   [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
   echo -n "\"$fzf\""
   for a in "${args[@]}"; do printf ' %q' "$a"; done
   if [[ ! -t 0 ]]; then
-    echo " < $(printf %q "$input") > $(printf %q "$output")"
+    mkfifo "$tmpdir/fifo"
+    echo " < $(printf %q "$tmpdir/fifo") > $(printf %q "$output"); touch $(printf %q "$tmpdir/done")"
   else
-    echo " > $(printf %q "$output")"
+    echo " > $(printf %q "$output"); touch $(printf %q "$tmpdir/done")"
   fi
 } > "$argsf"
 
-zellij run --floating --close-on-exit --block-until-exit \
+# Feed stdin into FIFO in background (streams data as it arrives)
+if [[ ! -t 0 ]]; then
+  cat <&0 > "$tmpdir/fifo" &
+fi
+
+zellij run --floating --close-on-exit \
   --width "$width" --height "$height" \
   --cwd "$PWD" \
   -- bash "$argsf" \
-  > /dev/null 2>&1 || {
+  2>> /tmp/fzf-zellij-debug.log
+rc=$?
+echo "$(date +%T.%N) zellij run exit=$rc" >> /tmp/fzf-zellij-debug.log
+
+if [[ $rc -ne 0 ]]; then
+  echo "$(date +%T.%N) fallback to plain fzf" >> /tmp/fzf-zellij-debug.log
   "$fzf" "${args[@]}"
   exit $?
-}
+fi
 
+# Wait for fzf to finish
+echo "$(date +%T.%N) waiting for done marker" >> /tmp/fzf-zellij-debug.log
+while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
+echo "$(date +%T.%N) done marker found, output=$(cat "$output")" >> /tmp/fzf-zellij-debug.log
 cat "$output"
+echo "$(date +%T.%N) cat output done, tmpdir=$tmpdir" >> /tmp/fzf-zellij-debug.log
