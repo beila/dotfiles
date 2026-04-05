@@ -9,7 +9,7 @@
     name = "Neovide";
     comment = "No Nonsense Neovim Client in Rust";
     # login shell needed so GNOME can find nix-installed neovide and nvim
-    exec = ''bash -lc "neovide %F"'';
+    exec = ''bash -lc "FONTCONFIG_FILE=/etc/fonts/fonts.conf neovide %F"'';
     icon = "neovide";
     type = "Application";
     categories = [ "Utility" "TextEditor" ];
