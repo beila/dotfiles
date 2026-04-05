@@ -3,6 +3,7 @@
   home.packages = [
     (config.lib.nixGL.wrap pkgs.neovide)
     pkgs.jetbrains-mono
+    pkgs.source-code-pro
   ];
 
   xdg.desktopEntries.neovide = {
