@@ -79,7 +79,7 @@ if(root, format_root_commit(self),
 'fzf_oneline_author' = '''
 if(root, format_root_commit(self),
   label(if(current_working_copy, "working_copy"),
-    separate(" ", change_id.shortest(), format_short_signature_oneline(author), short_ago(commit_timestamp(self)), working_copies,
+    separate(" ", change_id.shortest(), if(author.name(), author.name().split(" ").first(), author.email().local()), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
       bookmarks, tags) ++ "\n"))

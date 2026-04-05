@@ -27,7 +27,7 @@ Summary (keep in sync with the steering file):
 - [x] shorten relative date/time in fzf_oneline templates (e.g. "1w" instead of "1 week ago")
   - `short_ago(ts)` template alias: single-letter suffixes (m/h/d/w/M/y), uses `.contains()`/`.substr()` chain; used by both `fzf_oneline` and `fzf_oneline_author`
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
-- [ ] show first name instead of email local part in fzf_oneline_author (now possible with jj ≥0.35 `.split()` + ≥0.39 `.first()`; current jj is 0.39)
+- [x] show first name instead of email local part in fzf_oneline_author (uses `author.name().split(" ").first()`, falls back to `email().local()` if name empty; requires jj ≥0.39)
 
 ### Medium impact
 - [ ] add squash feature to _gf
