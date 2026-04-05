@@ -30,8 +30,8 @@ while [[ $# -gt 0 ]]; do
   [[ -n $skip ]] && args+=("$arg")
 done
 
-# Outside zellij: just run fzf directly
-if [[ -z ${ZELLIJ:-} ]]; then
+# Outside zellij or already in a fzf-zellij pane: just run fzf directly
+if [[ -z ${ZELLIJ:-} ]] || [[ -n ${FZF_ZELLIJ:-} ]]; then
   "$fzf" "${args[@]}"
   exit $?
 fi
@@ -50,6 +50,7 @@ touch "$output"
 {
   echo "export TERM=$(printf %q "$TERM")"
   echo "export PATH=$(printf %q "$PATH")"
+  echo "export FZF_ZELLIJ=1"
   echo "export FZF_DEFAULT_OPTS=$(printf %q "${FZF_DEFAULT_OPTS:-}")"
   [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
   echo -n "\"$fzf\""
@@ -71,19 +72,14 @@ zellij run --floating --close-on-exit \
   --width "$width" --height "$height" \
   --cwd "$PWD" \
   -- bash "$argsf" \
-  2>> /tmp/fzf-zellij-debug.log
+  > /dev/null 2>&1
 rc=$?
-echo "$(date +%T.%N) zellij run exit=$rc" >> /tmp/fzf-zellij-debug.log
 
 if [[ $rc -ne 0 ]]; then
-  echo "$(date +%T.%N) fallback to plain fzf" >> /tmp/fzf-zellij-debug.log
   "$fzf" "${args[@]}"
   exit $?
 fi
 
 # Wait for fzf to finish
-echo "$(date +%T.%N) waiting for done marker" >> /tmp/fzf-zellij-debug.log
 while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
-echo "$(date +%T.%N) done marker found, output=$(cat "$output")" >> /tmp/fzf-zellij-debug.log
 cat "$output"
-echo "$(date +%T.%N) cat output done, tmpdir=$tmpdir" >> /tmp/fzf-zellij-debug.log
