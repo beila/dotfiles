@@ -83,6 +83,17 @@ Summary (keep in sync with the steering file):
   - consider: periodic `nix flake update` in `sync_all` or a separate timer, with notification on `home-manager switch` failure
   - consider: pin nixpkgs to a known-good rev and update intentionally, rather than always tracking unstable head
 - [ ] fzf/functions.sh sets list width depending on the contents
+- [ ] make ctrl-/ in fzf cycle through preview layouts: horizontal → vertical → hidden
+  - currently `fzf_down` binds `ctrl-/:toggle-preview` (on/off only)
+  - fzf supports `change-preview-window` action to cycle layouts (e.g. `change-preview-window(right|down|hidden)`)
+  - applies to `fzf_down()` in `fzf/functions.sh/functions.sh` and `fzf-zellij` (which passes `--bind ctrl-/:toggle-preview`)
+- [ ] use zellij floating pane for built-in fzf zsh widgets (ctrl-e, ctrl-f, ctrl-t, alt-c)
+  - these use `fzf --zsh` generated widgets which call fzf directly, not through `fzf_down`/`fzf-zellij`
+  - option A: override the fzf binary with a shell function that delegates to `fzf-zellij` (risk: infinite recursion, `fzf-zellij` resolves real binary via `command which fzf`)
+  - option B: set `FZF_TMUX=1` and `FZF_TMUX_OPTS` — but fzf-tmux doesn't work in zellij
+  - option C: patch the generated widgets to call `fzf-zellij` instead of `fzf`
+  - bindings: ctrl-e (`fzf-cd-widget`), ctrl-f (`_file_browse`), ctrl-t (`fzf-file-widget`), alt-c (`fzf-cd-widget` default)
+  - files: `fzf/fzf.zsh` (env vars, widget sourcing), `fzf/functions.sh/key-binding.zsh` (custom bindings)
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 
