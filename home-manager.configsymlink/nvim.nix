@@ -10,10 +10,10 @@ in
     viAlias = true;
     vimAlias = true;
     plugins = with pkgs.vimPlugins; [
-      fugitive
+      vim-fugitive
       fzf-lua
       { plugin = fzf-vim; optional = true; }
-      { plugin = fzfWrapper; optional = true; }
+      { plugin = fzf-wrapper; optional = true; }
       { plugin = nerdtree; optional = true; }
       github-nvim-theme
       lsp-zero-nvim
@@ -21,7 +21,7 @@ in
       mason-lspconfig-nvim
       mason-nvim
       mason-tool-installer-nvim
-      neomru
+      neomru-vim
       nerdcommenter
       blink-cmp
       todo-comments-nvim
@@ -39,7 +39,7 @@ in
       nvim-web-devicons
       plantuml-syntax
       rustaceanvim
-      Tagbar
+      tagbar
       typescript-vim
       undotree
       vim-airline
@@ -58,7 +58,7 @@ in
       vim-just
       vim-matchup
       vim-table-mode
-      vimproc
+      vimproc-vim
       vim-rhubarb
       YankRing-vim
       { plugin = pkgs.vimUtils.buildVimPlugin {
@@ -103,7 +103,7 @@ in
     cmake-format                       # cmake       formatter  my-cmake.lua
 
     # docker
-    dockerfile-language-server-nodejs  # docker      LSP        my-docker.lua (dockerls)
+    dockerfile-language-server          # docker      LSP        my-docker.lua (dockerls)
     docker-compose-language-service    # docker      LSP        my-docker.lua (docker_compose_language_service)
     hadolint                           # docker      linter     my-docker.lua
 
