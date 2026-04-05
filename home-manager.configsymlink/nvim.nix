@@ -9,7 +9,7 @@ in
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
-    extraLuaConfig = builtins.readFile ../nvim.configsymlink/myinit.lua;
+    initLua = builtins.readFile ../nvim.configsymlink/myinit.lua;
     plugins = with pkgs.vimPlugins; [
       vim-fugitive
       fzf-lua
