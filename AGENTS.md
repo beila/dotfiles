@@ -39,6 +39,7 @@ Summary (keep in sync with the steering file):
   - possible fix: unify output format (e.g. both return the raw fzf line, let the caller extract), or move post-processing into the `become` target so each function owns its own output pipeline
   - files: `fzf/functions.sh/functions.sh` — `_jy()` (line ~263), `_jyy()` (line ~222)
 - [x] show first name instead of email local part in fzf_oneline_author (uses `author.name().split(" ").first()`, falls back to `email().local()` if name empty; requires jj ≥0.39)
+- [ ] make zellij floating point as big and more importantly as wide as appropriate while leaving slight context
 
 ### Medium impact
 - [ ] add squash feature to _gf
