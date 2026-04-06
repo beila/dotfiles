@@ -50,6 +50,12 @@ Summary (keep in sync with the steering file):
   - ctrl-o inserts a blank revision before the selected revision (`jj new --no-edit --before <rev>`), does not move `@`
   - on success: reloads the log list; on failure (e.g. immutable rev): shows jj error in fzf header via `transform:`
   - header shows hint: `insert (ctrl-o)` next to existing `ctrl-h` hint
+- [ ] change ctrl-o in `_gh`/`_ghh` to insert after instead of before
+  - current: `jj new --no-edit --before <rev>` (insert before)
+  - change to: `jj new --no-edit --after <rev>` (insert after — more common use case)
+  - remove the "insert before" shortcut (no replacement needed)
+  - files: `fzf/functions.sh/functions.sh` — `_jh()`, `_jhh()` ctrl-o bindings
+  - update header hint text and `fzf/functions.sh/test_toggle_query.sh` assertions
 - [ ] notify user when sync_dotfiles merge has conflicts
   - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram
 - [ ] how do I get notified with sync_all error
