@@ -46,6 +46,7 @@ in
         pkgs.just
         pkgs.keyd
         pkgs.mergiraf
+        pkgs.openconnect
         pkgs.pavucontrol
         pkgs.piper-tts
         pkgs.plocate
