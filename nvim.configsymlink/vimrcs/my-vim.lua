@@ -5,4 +5,5 @@
 -- vint linting configured in nvim-lint.lua
 
 -- LSP: vimls (vim-language-server)
-require('lspconfig').vimls.setup({})
+vim.lsp.config.vimls = {}
+vim.lsp.enable('vimls')
