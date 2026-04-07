@@ -4,4 +4,5 @@
 -- No DAP or standalone linter (cssls provides diagnostics)
 
 -- LSP: cssls (vscode-langservers-extracted, shared with html/json)
-require('lspconfig').cssls.setup({})
+vim.lsp.config.cssls = {}
+vim.lsp.enable('cssls')

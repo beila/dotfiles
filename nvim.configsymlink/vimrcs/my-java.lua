@@ -5,9 +5,10 @@
 --   java-debug-adapter (not in nixpkgs)
 
 -- LSP: jdtls (jdt-language-server)
-require('lspconfig').jdtls.setup({
+vim.lsp.config.jdtls = {
     cmd = { 'jdtls' },
-})
+}
+vim.lsp.enable('jdtls')
 
 -- DAP: java-debug-adapter (Mason-installed)
 local dap = require('dap')

@@ -3,10 +3,12 @@
 --   typescript-language-server, vscode-js-debug, biome, prettier
 
 -- LSP: ts_ls (typescript-language-server)
-require('lspconfig').ts_ls.setup({})
+vim.lsp.config.ts_ls = {}
+vim.lsp.enable('ts_ls')
 
 -- Linter: biome (also an LSP, provides diagnostics)
-require('lspconfig').biome.setup({})
+vim.lsp.config.biome = {}
+vim.lsp.enable('biome')
 
 -- DAP: vscode-js-debug (nix-installed)
 local dap = require('dap')

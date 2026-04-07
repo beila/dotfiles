@@ -3,7 +3,8 @@
 -- Tools installed via Mason in mason.lua: kotlin-debug-adapter (not in nixpkgs)
 
 -- LSP: kotlin_language_server
-require('lspconfig').kotlin_language_server.setup({})
+vim.lsp.config.kotlin_language_server = {}
+vim.lsp.enable('kotlin_language_server')
 
 -- DAP: kotlin-debug-adapter (Mason-installed)
 local dap = require('dap')

@@ -11,4 +11,5 @@ vim.filetype.add({
 })
 
 -- LSP: jinja_lsp
-require('lspconfig').jinja_lsp.setup({})
+vim.lsp.config.jinja_lsp = {}
+vim.lsp.enable('jinja_lsp')
