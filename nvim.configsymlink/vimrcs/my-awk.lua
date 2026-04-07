@@ -1,1 +1,2 @@
-require('lspconfig').awk_ls.setup({})
+vim.lsp.config.awk_ls = {}
+vim.lsp.enable('awk_ls')
