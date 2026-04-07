@@ -39,7 +39,7 @@ in
       nvim-lspconfig
       nvim-nio
       nvim-tree-lua
-      nvim-treesitter
+      (nvim-treesitter.withAllGrammars)
       nvim-treesitter-textobjects
       nvim-web-devicons
       plantuml-syntax
