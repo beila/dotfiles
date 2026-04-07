@@ -2,4 +2,5 @@
 -- Tools installed via nix in nvim.nix: lemminx
 
 -- LSP: lemminx (Eclipse XML LSP, provides validation + formatting)
-require('lspconfig').lemminx.setup({})
+vim.lsp.config.lemminx = {}
+vim.lsp.enable('lemminx')
