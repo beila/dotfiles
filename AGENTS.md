@@ -190,7 +190,7 @@ Summary (keep in sync with the steering file):
   - `p10k.zsh` — powerlevel10k (installed via nix `zsh-powerlevel10k`) + user config
   - Nix zsh packages: zsh-completions, nix-zsh-completions, zsh-powerlevel10k, zsh-fast-syntax-highlighting, zsh-autosuggestions
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification), `ju` (jj unique — show commits unique to a bookmark/tag with boundary revs, auto-detects bookmark vs tag markers) — Wayland/X11 aware
-- TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run
+- TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run; `~/.dotfiles/bin/path.zsh` adds `bin/` to PATH
   - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`); runs in subshell `(say_done &)` to suppress background PID output
   - Override voice with `$PIPER_MODEL`
 - TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)
