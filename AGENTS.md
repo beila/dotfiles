@@ -108,7 +108,9 @@ Summary (keep in sync with the steering file):
 - [ ] airline tabbar changes a lot when opening nvimtree
 - [ ] there's no gap between ghostty vertically
 - [ ] make battery notification sticky
-- [ ] treesitter auto install
+- [x] ~~treesitter auto install~~ (done 2026-04-07)
+  - all grammars installed via nix (`nvim-treesitter.withAllGrammars`), updated with `nix flake update`
+  - `<leader>a`/`<leader>A` swap parameters, `<C-e>` expand selection, `<C-d>` shrink selection
 - [ ] make copilot key work as super
 - [ ] replace absolute path from xfce settings
 - [ ] review remaining mini-nvim modules: mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
