@@ -2,7 +2,7 @@
 -- Tools installed via nix in nvim.nix: just-lsp
 -- Formatter: `just --fmt` (just installed in home.nix)
 
--- LSP: just-lsp (not in nvim-lspconfig, manual config)
+-- LSP: just-lsp (manual config, not in default server list)
 vim.api.nvim_create_autocmd('FileType', {
     pattern = 'just',
     callback = function()

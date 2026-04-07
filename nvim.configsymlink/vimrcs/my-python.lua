@@ -3,10 +3,12 @@
 -- Tools installed via Mason in mason.lua: debugpy (not in nixpkgs)
 
 -- LSP: basedpyright (stricter fork of pyright)
-require('lspconfig').basedpyright.setup({})
+vim.lsp.config.basedpyright = {}
+vim.lsp.enable('basedpyright')
 
 -- Linter+formatter: ruff (also an LSP, provides diagnostics + formatting)
-require('lspconfig').ruff.setup({})
+vim.lsp.config.ruff = {}
+vim.lsp.enable('ruff')
 
 -- DAP: debugpy via nvim-dap-python plugin (Mason-installed)
 require("dap-python").setup("uv")

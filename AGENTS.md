@@ -68,13 +68,10 @@ Summary (keep in sync with the steering file):
   - scope: unify existing features only, no new functionality
 - [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
 - [ ] review each nvim plugin and cleanup/modernise
-- [ ] migrate lspconfig `require('lspconfig').X.setup()` to `vim.lsp.config` (nvim 0.12)
-  - deprecated in nvim-lspconfig v3.0.0, prints warning on every startup (first hit: `my-awk.lua`)
-  - 27 calls across 24 files in `vimrcs/my-*.lua` (my-docker.lua, my-js.lua, my-python.lua have 2 each)
-  - servers: awk_ls, basedpyright, bashls, biome, clangd, cssls, docker_compose_language_service, dockerls, glsl_analyzer, hls, html, jdtls, jinja_lsp, jsonls, kotlin_language_server, lemminx, lua_ls, marksman, neocmake, nim_langserver, nixd, ruff, sqls, taplo, ts_ls, vimls, yamlls
-  - new API: `vim.lsp.config('server_name', { ... })` + `vim.lsp.enable('server_name')` — see `:help lspconfig-nvim-0.11`
-  - simple cases (`setup({})`) are one-liner conversions; complex cases (hls, jdtls, lua_ls with settings) need `vim.lsp.config` with settings table
-  - `my-rust.lua` uses rustaceanvim (not lspconfig) — unaffected
+- [x] ~~migrate lspconfig `require('lspconfig').X.setup()` to `vim.lsp.config`~~ (done 2026-04-07)
+  - all 28 servers migrated to `vim.lsp.config.NAME = { ... }` + `vim.lsp.enable('NAME')`
+  - `my-rust.lua` uses rustaceanvim (not vim.lsp.config) — unaffected
+  - mason.lua handler also migrated
 - [ ] switch nix neovim module to `hm-generated.lua` approach
   - current: `initLua` in `nvim.nix` inlines `myinit.lua` into nix-generated `init.lua`, overwriting `nvim.configsymlink/init.lua` on every `home-manager switch`; `init.lua` is gitignored; `myinit.lua` must be git-tracked (nix flake requires it, use `git add -f` since `nvim.configsymlink` is in `.gitignore`)
   - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + restore own `init.lua` (from `myinit.lua`) with `require 'hm-generated'` at top
@@ -203,11 +200,11 @@ Summary (keep in sync with the steering file):
 - Config loading: nix generates `init.lua` (lua paths + `myinit.lua` content via `initLua`); `myinit.lua` sources `vimrc.symlink`; `vimrc.symlink` sources `myvimrc`; `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`; `set verbosefile=~/.vim-messages.log` captures `:messages` output; `init.lua` is gitignored (nix-generated, changes on every `home-manager switch`); nvim 0.12 only loads `init.lua` (not `init.vim`/vimrc) when both exist
 - Logs: `~/.vim-messages.log` (nvim messages), `~/.local/state/nvim/lsp.log` (LSP), `~/.local/state/nvim/mason.log` (Mason)
 - Project-local config: `myvimrc` sources `.nvim.lua` from cwd or ancestors on `BufEnter` (via `vim.schedule` after lcd), per-buffer dedup
-- Per-language setup: `vimrcs/my-<lang>.lua` — LSP, DAP, filetype-specific config
+- Per-language setup: `vimrcs/my-<lang>.lua` — LSP via `vim.lsp.config.NAME = { ... }` + `vim.lsp.enable('NAME')`, DAP, filetype-specific config
   - my-awk.lua, my-cmake.lua, my-cpp.lua, my-css.lua, my-docker.lua, my-glsl.lua
   - my-haskell.lua, my-html.lua, my-java.lua, my-jinja.lua, my-js.lua (js/ts)
   - my-json.lua, my-just.lua, my-kotlin.lua, my-lua.lua, my-markdown.lua
-  - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua (rustaceanvim, replaces lspconfig for Rust), my-sql.lua
+  - my-nim.lua, my-nix.lua, my-python.lua, my-rust.lua (rustaceanvim, not vim.lsp.config), my-sql.lua
   - my-text.lua, my-toml.lua, my-vim.lua, my-xml.lua, my-yaml.lua
   - my-bash.lua (bash/sh only — zsh excluded, no zsh LSP available)
 - Shared config: `vimrcs/lsp.lua` (keymaps incl. `<leader>e` floating diagnostic), `vimrcs/nvim-dap.lua` (codelldb + shared DAP keymaps), `vimrcs/nvim-lint.lua` (linter-by-filetype config)

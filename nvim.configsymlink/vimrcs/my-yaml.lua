@@ -4,4 +4,5 @@
 -- No DAP or standalone linter (yamlls provides diagnostics)
 
 -- LSP: yamlls (yaml-language-server)
-require('lspconfig').yamlls.setup({})
+vim.lsp.config.yamlls = {}
+vim.lsp.enable('yamlls')
