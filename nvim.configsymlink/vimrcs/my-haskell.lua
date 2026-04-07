@@ -4,11 +4,12 @@
 -- DAP: haskell-debug-adapter — not in nixpkgs, broken in mason
 
 -- LSP: hls (uses fourmolu for formatting, hlint for hints)
-require('lspconfig').hls.setup({
+vim.lsp.config.hls = {
     filetypes = { 'haskell', 'lhaskell', 'cabal' },
     settings = {
         haskell = {
             formattingProvider = 'fourmolu',
         },
     },
-})
+}
+vim.lsp.enable('hls')

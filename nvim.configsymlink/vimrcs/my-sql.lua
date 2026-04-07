@@ -4,4 +4,5 @@
 -- sqlfluff serves as both linter (via nvim-lint) and formatter
 
 -- LSP: sqls
-require('lspconfig').sqls.setup({})
+vim.lsp.config.sqls = {}
+vim.lsp.enable('sqls')

@@ -5,7 +5,7 @@
 -- clippy runs as rust-analyzer check command (no nvim-lint needed)
 -- rustfmt runs via rust-analyzer formatting (no external call needed)
 
--- LSP: rustaceanvim manages rust-analyzer (replaces lspconfig for Rust)
+-- LSP: rustaceanvim manages rust-analyzer (not via vim.lsp.config)
 vim.g.rustaceanvim = {
   server = {
     settings = {

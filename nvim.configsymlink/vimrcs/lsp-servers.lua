@@ -1,2 +1,0 @@
--- Per-server lspconfig setup
--- Nix-installed servers: see my-*.lua files

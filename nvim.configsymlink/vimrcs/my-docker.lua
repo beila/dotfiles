@@ -3,7 +3,9 @@
 --   dockerfile-language-server-nodejs, docker-compose-language-service, hadolint
 
 -- LSP: dockerls
-require('lspconfig').dockerls.setup({})
+vim.lsp.config.dockerls = {}
+vim.lsp.enable('dockerls')
 
 -- LSP: docker-compose
-require('lspconfig').docker_compose_language_service.setup({})
+vim.lsp.config.docker_compose_language_service = {}
+vim.lsp.enable('docker_compose_language_service')

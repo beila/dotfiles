@@ -2,7 +2,8 @@
 -- Tools installed via nix in nvim.nix: neocmakelsp, cmake-format, cmake-lint
 
 -- LSP: neocmake (neocmakelsp — faster Rust-based alternative to cmake-language-server)
-require('lspconfig').neocmake.setup({})
+vim.lsp.config.neocmake = {}
+vim.lsp.enable('neocmake')
 
 -- errorformat for CMake output
 vim.opt.errorformat = table.concat({

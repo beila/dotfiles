@@ -3,7 +3,8 @@
 -- Tools installed via Mason in mason.lua: codelldb (DAP config in nvim-dap.lua)
 
 -- LSP: clangd (nix-installed via clang-tools in nvim.nix)
-require('lspconfig').clangd.setup({})
+vim.lsp.config.clangd = {}
+vim.lsp.enable('clangd')
 
 -- printf debug helper
 vim.api.nvim_create_autocmd('FileType', {

@@ -1,6 +1,5 @@
--- Mason: auto-install LSP servers, DAPs, linters, formatters
+-- Mason: auto-install DAPs (LSP servers installed via nix, configured in my-*.lua)
 -- Coverage table and nix-installed tools are documented in nvim.nix
--- Nix-installed tools with custom config: see my-*.lua and lsp-servers.lua
 
 require('mason').setup({})
 
@@ -11,10 +10,8 @@ require('mason-lspconfig').setup({
         function(server_name)
             -- Skip servers with custom config in my-*.lua
             if server_name == 'lua_ls' then return end
-            local server = require('lspconfig')[server_name]
-            if server.setup then
-                server.setup({})
-            end
+            vim.lsp.config[server_name] = {}
+            vim.lsp.enable(server_name)
         end,
     },
 })

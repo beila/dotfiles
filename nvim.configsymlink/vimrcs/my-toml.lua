@@ -4,4 +4,5 @@
 -- taplo provides LSP diagnostics (linter) and formatting in one
 
 -- LSP: taplo (includes validation + formatting)
-require('lspconfig').taplo.setup({})
+vim.lsp.config.taplo = {}
+vim.lsp.enable('taplo')
