@@ -2,46 +2,42 @@
 -- highlight/indent are built-in in nvim 0.12
 
 -- Swap parameters
-require("nvim-treesitter-textobjects").setup({
-  swap = {
-    swap_next = { ["<leader>a"] = "@parameter.inner" },
-    swap_previous = { ["<leader>A"] = "@parameter.inner" },
-  },
-})
+local swap = require("nvim-treesitter-textobjects.swap")
+vim.keymap.set("n", "<leader>a", function() swap.swap_next("@parameter.inner") end)
+vim.keymap.set("n", "<leader>A", function() swap.swap_previous("@parameter.inner") end)
 
 -- Incremental selection (expand/shrink by treesitter node)
+local sel_node = nil
+
 vim.keymap.set('n', '<C-e>', function()
-  local node = vim.treesitter.get_node()
-  if not node then return end
-  local sr, sc, er, ec = node:range()
+  sel_node = vim.treesitter.get_node()
+  if not sel_node then return end
+  local sr, sc, er, ec = sel_node:range()
   vim.api.nvim_win_set_cursor(0, { sr + 1, sc })
   vim.cmd('normal! v')
-  vim.api.nvim_win_set_cursor(0, { er + 1, ec - 1 })
+  vim.api.nvim_win_set_cursor(0, { er + 1, ec > 0 and ec - 1 or 0 })
 end)
 
 vim.keymap.set('v', '<C-e>', function()
-  local node = vim.treesitter.get_node()
-  if not node then return end
-  local parent = node:parent()
-  if not parent then return end
-  local sr, sc, er, ec = parent:range()
-  vim.cmd('normal! \27') -- exit visual
+  if sel_node then sel_node = sel_node:parent() end
+  if not sel_node then return end
+  local sr, sc, er, ec = sel_node:range()
+  vim.cmd('normal! \27')
   vim.api.nvim_win_set_cursor(0, { sr + 1, sc })
   vim.cmd('normal! v')
-  vim.api.nvim_win_set_cursor(0, { er + 1, ec - 1 })
+  vim.api.nvim_win_set_cursor(0, { er + 1, ec > 0 and ec - 1 or 0 })
 end)
 
 vim.keymap.set('v', '<C-d>', function()
-  local node = vim.treesitter.get_node()
-  if not node then return end
-  -- Find the smallest child that still contains the cursor
-  for child in node:iter_children() do
+  if not sel_node then return end
+  for child in sel_node:iter_children() do
     if child:named() then
-      local sr, sc, er, ec = child:range()
+      sel_node = child
+      local sr, sc, er, ec = sel_node:range()
       vim.cmd('normal! \27')
       vim.api.nvim_win_set_cursor(0, { sr + 1, sc })
       vim.cmd('normal! v')
-      vim.api.nvim_win_set_cursor(0, { er + 1, ec - 1 })
+      vim.api.nvim_win_set_cursor(0, { er + 1, ec > 0 and ec - 1 or 0 })
       return
     end
   end
