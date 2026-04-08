@@ -242,9 +242,9 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
-    , ((0, xF86XK_Launch1), spawn "albert toggle") -- Super tap via keyd (prog1)
-    , ((0, xF86XK_Launch2), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2)
-    , ((0, xF86XK_Launch3), scratchpadToggle "ghostty2") -- Alt_R tap via keyd (prog3)
+    , ((0, xF86XK_TouchpadToggle), spawn "albert toggle") -- Super tap via keyd (prog1 = f21)
+    , ((0, xF86XK_TouchpadOn), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2 = f22)
+    , ((0, xF86XK_TouchpadOff), scratchpadToggle "ghostty2") -- Alt_R tap via keyd (prog3 = f23)
     , ((0, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd up")
     , ((0, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd down")
     , ((0, xF86XK_AudioMute), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd toggle")
