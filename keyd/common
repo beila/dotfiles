@@ -2,10 +2,14 @@
 # Not affected by GNOME keymap resets.
 #
 # Tap actions are handled by xmonad key bindings:
-#   prog1/XF86Launch1 (Super tap)  → Albert toggle
-#   prog2/XF86Launch2 (Alt_L tap)  → ghostty scratchpad 1
-#   prog3/XF86Launch3 (Alt_R tap)  → ghostty scratchpad 2
+#   prog1/f21 → XF86TouchpadToggle (Super tap)  → Albert toggle
+#   prog2/f22 → XF86TouchpadOn     (Alt_L tap)  → ghostty scratchpad 1
+#   prog3/f23 → XF86TouchpadOff    (Alt_R tap)  → ghostty scratchpad 2
 #   Volume keys (Pause/ScrollLock/PrtSc) → volume-osd / cycle-audio
+#
+# Note: keyd v2.6.0 maps prog1/2/3 to f21/f22/f23 (evdev 191/192/193),
+# NOT to KEY_PROG1/2/3 (evdev 148/149/202). The X keysyms are
+# XF86TouchpadToggle/On/Off, not XF86Launch1/2/3.
 
 [main]
 
