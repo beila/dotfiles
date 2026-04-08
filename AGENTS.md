@@ -236,7 +236,7 @@ Summary (keep in sync with the steering file):
 
 ### Key Remapping Stack
 - **keyd** (`~/.dotfiles/keyd/`, system daemon, four files):
-  - `common` — shared bindings (included by all configs): CapsLock→Ctrl (tap→Esc), Super tap→prog1 (XF86Launch1, albert), Alt_L tap→prog2 (XF86Launch2, ghostty1), Alt_R tap→prog3 (XF86Launch3, ghostty2), Ctrl_R tap→apostrophe, Pause/ScrollLock/PrtSc→volume keys
+  - `common` — shared bindings (included by all configs): CapsLock→Ctrl (tap→Esc), Super tap→prog1 (XF86TouchpadToggle, albert), Alt_L tap→prog2 (XF86TouchpadOn, ghostty1), Alt_R tap→prog3 (XF86TouchpadOff, ghostty2), Ctrl_R tap→apostrophe, Pause/ScrollLock/PrtSc→volume keys; note: keyd v2.6.0 maps prog1/2/3 to f21/f22/f23 (evdev 191/192/193), not KEY_PROG1/2/3
   - `default.conf` — all keyboards except those with device-specific configs, includes common
   - `kinesis.conf` — Kinesis Advantage2 (`29ea:0102`), aliases for Mac-mode key swaps (LCtrl→Super, LAlt→Esc, End→LAlt, PgDn→RAlt, apostrophe→RCtrl, backslash→Tab, PgUp→backslash, RMeta→Esc, RCtrl→Super, 102nd→backslash), includes common
   - `thinkpad.conf` — ThinkPad laptop (`0001:0001:09b4e68d`), Copilot key (Meta+Shift+F23 hardware combo) → tap: Albert (prog1), hold: Super modifier, long hold: noop (timeout prevents repeated toggling), includes common
