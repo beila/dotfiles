@@ -13,9 +13,10 @@ See each file for detailed comments and layout diagrams.
 
 ## xmonad key bindings (tap actions)
 
-- prog1/XF86Launch1 (Super tap) → Albert toggle
-- prog2/XF86Launch2 (Alt_L tap) → ghostty scratchpad 1
-- prog3/XF86Launch3 (Alt_R tap) → ghostty scratchpad 2
+- prog1/f21/XF86TouchpadToggle (Super tap) → Albert toggle
+- prog2/f22/XF86TouchpadOn (Alt_L tap) → ghostty scratchpad 1
+- prog3/f23/XF86TouchpadOff (Alt_R tap) → ghostty scratchpad 2
+- Note: keyd v2.6.0 maps prog1/2/3 to f21/f22/f23 (evdev 191/192/193), not KEY_PROG1/2/3
 - VolumeUp/Down/Mute → volume-osd
 - BrightnessUp/Down → brightness-osd
 - Super+VolumeUp → cycle-audio-output
