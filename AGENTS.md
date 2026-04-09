@@ -40,6 +40,7 @@ Summary (keep in sync with the steering file):
   - files: `fzf/functions.sh/functions.sh` — `_jy()` (line ~263), `_jyy()` (line ~222)
 - [x] show first name instead of email local part in fzf_oneline_author (uses `author.name().split(" ").first()`, falls back to `email().local()` if name empty; requires jj ≥0.39)
 - [ ] make zellij floating point as big and more importantly as wide as appropriate while leaving slight context
+- [ ] stop amazon-vpn when the network changes
 
 ### Medium impact
 - [ ] add squash feature to _gf
