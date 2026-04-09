@@ -22,7 +22,7 @@ if jj root &>/dev/null 2>&1; then
         CHANGE_ID=$(jj log -r @ --no-graph -T 'change_id' 2>/dev/null)
         jj new
         # Skip describe if already has a description
-        if jj log -r "$CHANGE_ID" --no-graph -T 'if(description.is_empty(), "empty")' 2>/dev/null | grep -q empty; then
+        if jj log -r "$CHANGE_ID" --no-graph -T 'if(description, "has_desc", "empty")' 2>/dev/null | grep -q empty; then
             MSG=$("$1/bin/commit-msg" "$CHANGE_ID" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
             # Strip markdown fences that LLMs sometimes wrap around output
             MSG=$(echo "$MSG" | sed '/^```/d' | head -1)
