@@ -486,9 +486,13 @@ new-ws dir main_package *more_packages: mwinit
             target_dir="{{ dir }}/src/$p"
             main_dir="$HOME/brazil-repos/$p" 
             if [ ! -d "$main_dir" ]
+            if jj --version > /dev/null 2>&1;
                 jj git clone ssh://git.amazon.com/pkg/$p "$main_dir"
-                just workspace "$target_dir" "$main_dir"
             fi
+
+            just work_branch="$my_branch" workspace "$target_dir" "$main_dir"
+
+            git -C "$target_dir" branch --set-upstream-to=origin/mainline $my_branch || true
 
             cd "../$p"
 
@@ -514,17 +518,23 @@ workspace $target $source=".":
     target=${target:a}
     cd "${source}"
 
+    if ! jj --version > /dev/null 2>&1;
+    then
+        git worktree add "${target}" ${my_branch:+-b ${my_branch}}
+    fi
+
+    my_branch={{ work_branch }}
     if [[ -d .git || -f .git ]]; then
-        git worktree add "${target}"
+        git worktree add "${target}" ${my_branch:+-b ${my_branch}}
 
         jj root &> /dev/null || exit 0
 
         gitdir="$(<"${target}"/.git)"
         rm -rf "${target}"
-        jj workspace add "${target}"
+        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
         echo "${gitdir}" > "${target}"/.git
     else
-        jj workspace add "${target}"
+        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
     fi
 
 [no-cd]
