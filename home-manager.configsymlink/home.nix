@@ -55,6 +55,7 @@ in
         pkgs.alsa-utils  # aplay for say/say-ko
         pkgs.wl-clipboard
         pkgs.xclip
+        pkgs.xz  # liblzma needed by zstd for ollama .tar.zst extraction
         pkgs.xournalpp
         pkgs.zellij
         pkgs.zoxide
