@@ -512,6 +512,7 @@ workspace $target $source=".":
     if ! jj --version > /dev/null 2>&1;
     then
         git worktree add "${target}" ${my_branch:+-b ${my_branch}}
+        exit $?
     fi
 
     my_branch={{ work_branch }}
