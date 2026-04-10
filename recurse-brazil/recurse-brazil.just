@@ -483,11 +483,19 @@ new-ws dir main_package *more_packages: mwinit
     do
         (
             cd "../$p"
-            git fetch --all || true
-            git checkout $my_branch || 
-                git checkout -b $my_branch ||
-                true
-            git branch --set-upstream-to=origin/mainline $my_branch || true
+            if [ ! -d "$HOME/brazil-repos/$p" ]
+            fi
+
+            if jj --version > /dev/null 2>&1;
+            then
+                jj git fetch --all-remotes || true
+            else
+                git fetch --all || true
+                git checkout $my_branch || 
+                    git checkout -b $my_branch ||
+                    true
+                git branch --set-upstream-to=origin/mainline $my_branch || true
+            fi
         )
     done
 
