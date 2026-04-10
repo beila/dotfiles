@@ -11,4 +11,4 @@ cd "$(dirname "$0")"/..
 #brew bundle
 
 # find the installers and run them iteratively
-git ls-files | grep 'install.sh$' | while read -r installer ; do zsh -c "${installer}" ; done
+{ git ls-files; find private-dotfiles -name 'install.sh' 2>/dev/null; } | grep 'install.sh$' | while read -r installer ; do zsh -c "${installer}" ; done
