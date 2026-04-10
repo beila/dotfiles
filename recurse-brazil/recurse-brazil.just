@@ -454,7 +454,8 @@ work_branch := ""
 [no-cd]
 new-ws dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
-    set -xeo pipefail
+    set -eo pipefail
+    {{ zsh_verbose }}
     which brazil &> /dev/null || toolbox install brazilcli
 
     [ -d "{{ dir }}/src" ] && {
@@ -463,12 +464,12 @@ new-ws dir main_package *more_packages: mwinit
             [ -n "$(git -C "$d" status --short)" ] && exit 1
         done
         set -x
-        rm -rf "{{ dir }}"
+        #rm -rf "{{ dir }}"
     }
 
     more_packages=({{ more_packages }})
 
-    just ws create --root "{{ dir }}" --package {{ main_package }} ${other_options}
+    just ws create --force --root "{{ dir }}" --package {{ main_package }} ${other_options}
 
     (
         cd "{{ dir }}/src/{{ main_package }}"
@@ -486,6 +487,7 @@ new-ws dir main_package *more_packages: mwinit
             target_dir="{{ dir }}/src/$p"
             main_dir="$HOME/brazil-repos/$p" 
             if [ ! -d "$main_dir" ]
+            then
                 if jj --version > /dev/null 2>&1;
                 then
                     jj git clone ssh://git.amazon.com/pkg/$p "$main_dir"
@@ -494,7 +496,9 @@ new-ws dir main_package *more_packages: mwinit
                 fi
             fi
 
-            just work_branch="$my_branch" workspace "$target_dir" "$main_dir"
+            rm -rf "$target_dir"
+
+            just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch="$my_branch" workspace "$target_dir" "$main_dir"
 
             git -C "$target_dir" branch --set-upstream-to=origin/mainline $my_branch || true
         )
@@ -506,27 +510,28 @@ new-ws dir main_package *more_packages: mwinit
 workspace $target $source=".":
     #!/usr/bin/env zsh
     set -euo pipefail
+    {{ zsh_verbose }}
     target=${target:a}
     cd "${source}"
 
     if ! jj --version > /dev/null 2>&1;
     then
-        git worktree add "${target}" ${my_branch:+-b ${my_branch}}
+        git worktree add "${target}" ${my_branch:+-B${my_branch}}
         exit $?
     fi
 
     my_branch={{ work_branch }}
     if [[ -d .git || -f .git ]]; then
-        git worktree add "${target}" ${my_branch:+-b ${my_branch}}
+        git worktree add "${target}" ${my_branch:+-B${my_branch}}
 
         jj root &> /dev/null || exit 0
 
         gitdir="$(<"${target}"/.git)"
         rm -rf "${target}"
-        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
+        jj workspace add "${target}" ${my_branch:+--name} ${my_branch}
         echo "${gitdir}" > "${target}"/.git
     else
-        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
+        jj workspace add "${target}" ${my_branch:+--name} ${my_branch}
     fi
 
 [no-cd]
