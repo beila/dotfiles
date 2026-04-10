@@ -44,8 +44,8 @@ Restart=always
 [Install]
 WantedBy=multi-user.target
 EOF
-sudo systemctl daemon-reload
-sudo systemctl enable --now keyd
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now keyd
 fi
 
 # linger: keep systemd --user alive after logout so zellij servers,
