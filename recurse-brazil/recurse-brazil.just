@@ -486,26 +486,17 @@ new-ws dir main_package *more_packages: mwinit
             target_dir="{{ dir }}/src/$p"
             main_dir="$HOME/brazil-repos/$p" 
             if [ ! -d "$main_dir" ]
-            if jj --version > /dev/null 2>&1;
-                jj git clone ssh://git.amazon.com/pkg/$p "$main_dir"
+                if jj --version > /dev/null 2>&1;
+                then
+                    jj git clone ssh://git.amazon.com/pkg/$p "$main_dir"
+                else
+                    git clone ssh://git.amazon.com/pkg/$p "$main_dir"
+                fi
             fi
 
             just work_branch="$my_branch" workspace "$target_dir" "$main_dir"
 
             git -C "$target_dir" branch --set-upstream-to=origin/mainline $my_branch || true
-
-            cd "../$p"
-
-            if jj --version > /dev/null 2>&1;
-            then
-                jj git fetch --all-remotes || true
-            else
-                git fetch --all || true
-                git checkout $my_branch || 
-                    git checkout -b $my_branch ||
-                    true
-                git branch --set-upstream-to=origin/mainline $my_branch || true
-            fi
         )
     done
 
