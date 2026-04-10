@@ -470,21 +470,27 @@ new-ws dir main_package *more_packages: mwinit
 
     just ws create --root "{{ dir }}" --package {{ main_package }} ${other_options}
 
-    cd "{{ dir }}/src/{{ main_package }}"
-
-    if (( ${#more_packages[@]} != 0 ))
-    then
-        just ws use ${more_packages[@]/#/--package }
-    fi
+    (
+        cd "{{ dir }}/src/{{ main_package }}"
+        if (( ${#more_packages[@]} != 0 ))
+        then
+            just ws use ${more_packages[@]/#/--package }
+        fi
+    )
 
     my_branch={{ work_branch }}
     my_branch=${my_branch:-$(basename {{ dir }})}
     for p in {{ main_package }} ${more_packages[@]}
     do
         (
-            cd "../$p"
-            if [ ! -d "$HOME/brazil-repos/$p" ]
+            target_dir="{{ dir }}/src/$p"
+            main_dir="$HOME/brazil-repos/$p" 
+            if [ ! -d "$main_dir" ]
+                jj git clone ssh://git.amazon.com/pkg/$p "$main_dir"
+                just workspace "$target_dir" "$main_dir"
             fi
+
+            cd "../$p"
 
             if jj --version > /dev/null 2>&1;
             then
@@ -500,6 +506,26 @@ new-ws dir main_package *more_packages: mwinit
     done
 
     echo "{{ dir }}/src/{{ main_package }}"
+
+[no-cd]
+workspace $target $source=".":
+    #!/usr/bin/env zsh
+    set -euo pipefail
+    target=${target:a}
+    cd "${source}"
+
+    if [[ -d .git || -f .git ]]; then
+        git worktree add "${target}"
+
+        jj root &> /dev/null || exit 0
+
+        gitdir="$(<"${target}"/.git)"
+        rm -rf "${target}"
+        jj workspace add "${target}"
+        echo "${gitdir}" > "${target}"/.git
+    else
+        jj workspace add "${target}"
+    fi
 
 [no-cd]
 upload-diff-for-review *args: mwinit
