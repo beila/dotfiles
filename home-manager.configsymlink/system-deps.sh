@@ -11,12 +11,21 @@ if [ -z "$CURRENT" ] || echo "$CURRENT" | grep -q '\.'; then
     [ -n "$PRETTY_NAME" ] && sudo hostnamectl set-hostname --pretty "$PRETTY_NAME"
 fi
 
-sudo apt install -y \
-  input-remapper
+# Detect package manager
+if command -v apt &>/dev/null; then
+  PKG_INSTALL="sudo apt install -y"
+elif command -v dnf &>/dev/null; then
+  PKG_INSTALL="sudo dnf install -y"
+elif command -v yum &>/dev/null; then
+  PKG_INSTALL="sudo yum install -y"
+else
+  echo "No supported package manager found" >&2
+  exit 1
+fi
 
 # GNOME-specific setup (skip on headless/non-GNOME machines)
 if command -v gnome-session &>/dev/null; then
-  sudo apt install -y \
+  $PKG_INSTALL \
     gnome-screensaver \
     ibus-hangul \
     gnome-session-flashback
