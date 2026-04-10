@@ -81,7 +81,13 @@ if jj root &>/dev/null 2>&1; then
             jj bookmark track "${CURRENT_BM}@hj" 2>/dev/null || true
         fi
 
-        # Step 3: sync jj's view of remote refs after raw git pushes
+        # Step 3: rebase local mutable chain onto updated bookmark
+        if [ -n "$CURRENT_BM" ]; then
+            # Find the oldest mutable ancestor of @ that's not already on the bookmark
+            jj rebase -s 'roots(mutable() & ::@ ~ ::'"$CURRENT_BM"')' -d "$CURRENT_BM" 2>/dev/null || true
+        fi
+
+        # Step 4: sync jj's view of remote refs after raw git pushes
         jj git import 2>/dev/null || true
         # Clean up empty no-description orphan heads left by git operations forking @
         jj abandon 'heads(empty() & description(exact:"")) ~ @' 2>/dev/null || true
