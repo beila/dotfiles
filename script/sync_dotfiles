@@ -23,10 +23,10 @@ if jj root &>/dev/null 2>&1; then
         jj new
         # Skip describe if already has a description
         if jj log -r "$CHANGE_ID" --no-graph -T 'if(description, "has_desc", "empty")' 2>/dev/null | grep -q empty; then
-            MSG=$("$1/bin/commit-msg" "$CHANGE_ID" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
-            # Strip markdown fences that LLMs sometimes wrap around output
-            MSG=$(echo "$MSG" | sed '/^```/d' | head -1)
-            [ -z "$MSG" ] && MSG="Change from ${MACHINE_NAME}"
+            if ! MSG=$(VERBOSE=1 "$1/bin/commit-msg" "$CHANGE_ID"); then
+                echo "commit-msg failed" >&2
+                exit 1
+            fi
             jj describe "$CHANGE_ID" -m "$MSG"
         fi
     fi
@@ -100,7 +100,6 @@ else
 
     $GIT add --verbose --all .
     MSG=$("$1/bin/commit-msg" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
-    MSG=$(echo "$MSG" | sed '/^```/d' | head -1)
     [ -z "$MSG" ] && MSG="Change from ${MACHINE_NAME}"
     $GIT commit --verbose --no-allow-empty -m "$MSG"
     $GIT pull --ff --verbose --no-edit

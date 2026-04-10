@@ -1,6 +1,7 @@
 #!/bin/bash
 # Generate a commit message from the current jj/git diff using kiro-cli (preferred) or ollama (fallback)
 # Usage: commit-msg [revision]
+[ "${VERBOSE:-}" = 1 ] && set -x
 
 REV="${1:-@}"
 
@@ -34,14 +35,22 @@ fi
 PROMPT_BASE="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."
 
 # Try kiro-cli first (uses cloud model, better quality) — full diff
-if command -v kiro-cli &>/dev/null; then
-    msg=$(timeout 30 kiro-cli chat --no-interactive --trust-tools='' --wrap never --agent default "$PROMPT_BASE
+strip_ansi() {
+    sed 's/\x1b\[[0-9;]*m//g; s/\x1b\[[?][0-9]*[a-zA-Z]//g; s/.*\r//; s/^> //'
+}
 
-$diff" 2>/dev/null \
-        | sed 's/\x1b\[[0-9;]*m//g' \
-        | sed 's/\x1b\[[?][0-9]*[a-zA-Z]//g' \
-        | sed 's/.*\r//' \
-        | sed 's/^> //')
+# Clean LLM output to a single commit message line
+clean_msg() {
+    sed '/^```/d' | sed '/^$/d' | head -1
+}
+
+if command -v kiro-cli &>/dev/null && ! pgrep -x kiro-cli >/dev/null; then
+    KIRO_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
+    printf '%s\n\n%s' "$PROMPT_BASE" "$diff" > "$KIRO_PROMPT"
+    msg=$(timeout 30 env -u KIRO_CLI_PATH -u TOOLBOX_kiro_cli_EMF_METRICS_DIRECTORY \
+        kiro-cli chat --no-interactive --wrap never --agent default "$(cat "$KIRO_PROMPT")" 2>/dev/null \
+        | strip_ansi | clean_msg)
+    rm -f "$KIRO_PROMPT"
     if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press.*cancel|log.?in|▰'; then
         echo "$msg"
         exit 0
@@ -49,6 +58,7 @@ $diff" 2>/dev/null \
 fi
 
 # Fallback: ollama local LLM — start on demand, stop after
+# Skip if ollama can't generate within 5s (e.g. out of memory)
 truncated_diff=$(echo "$diff" | head -200)
 MODEL="qwen2.5-coder:3b"
 if ! curl -sf http://localhost:11434/api/tags &>/dev/null; then
@@ -57,9 +67,19 @@ if ! curl -sf http://localhost:11434/api/tags &>/dev/null; then
     for _ in $(seq 50); do curl -sf http://localhost:11434/api/tags &>/dev/null && break; sleep 0.1; done
 fi
 trap 'kill $ollama_pid 2>/dev/null' EXIT
-curl -sf --max-time 300 http://localhost:11434/api/generate \
-    -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT_BASE
+if curl -sf --max-time 5 http://localhost:11434/api/generate \
+    -d '{"model":"'"$MODEL"'","prompt":"hi","stream":false}' &>/dev/null; then
+    msg=$(curl -sf --max-time 30 http://localhost:11434/api/generate \
+        -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT_BASE
 
 $truncated_diff" \
-        '{model: $model, prompt: $prompt, stream: false}')" \
-    | jq -r '.response' | head -1
+            '{model: $model, prompt: $prompt, stream: false}')" \
+        | jq -r '.response' | clean_msg)
+    if [ -n "$msg" ]; then
+        echo "$msg"
+        exit 0
+    fi
+fi
+
+# Final fallback: file list summary
+echo "Change $(echo "$diff" | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||' | paste -sd, -)"

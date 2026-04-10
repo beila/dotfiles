@@ -11,5 +11,5 @@ tags
 CMakeUserPresets.json
 .gdb_history
 .cache/
-.jj
+.jj/
 __cmake_systeminformation
