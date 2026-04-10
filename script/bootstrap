@@ -230,7 +230,7 @@ install_dotfiles
 #setup_dotfiles_sync    # replaced with systemd servie set up by home manager
 setup_pbcopy_from_ssh
 
-#bash -x $DOTFILES_ROOT/script/install
+bash -x $DOTFILES_ROOT/script/install
 
 echo ''
 echo '  All installed!'

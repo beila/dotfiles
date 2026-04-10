@@ -20,13 +20,15 @@ cd ~/.dotfiles
 script/bootstrap
 ```
 
-`script/bootstrap` symlinks config files, clones private-dotfiles, and runs Home Manager.
+`script/bootstrap` symlinks config files, clones private-dotfiles, runs `install.sh` scripts, and runs Home Manager.
 
-System-level deps (keyd, ibus-hangul, gnome-session-flashback) require:
+System-level deps (keyd, gnome session, ollama) require:
 
 ```sh
-sudo script/system-deps.sh
+sudo home-manager.configsymlink/system-deps.sh
 ```
+
+Detects package manager (dnf/yum/apt-get) and skips GNOME/keyd on headless machines.
 
 ## Key components
 

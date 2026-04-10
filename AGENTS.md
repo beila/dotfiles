@@ -41,7 +41,6 @@ Summary (keep in sync with the steering file):
 - [x] show first name instead of email local part in fzf_oneline_author (uses `author.name().split(" ").first()`, falls back to `email().local()` if name empty; requires jj ≥0.39)
 - [ ] make zellij floating point as big and more importantly as wide as appropriate while leaving slight context
 - [ ] stop amazon-vpn when the network changes
-- [ ] set up systemd service in cloud desktop and remove crontab
 
 ### Medium impact
 - [ ] add squash feature to _gf
@@ -75,7 +74,7 @@ Summary (keep in sync with the steering file):
   - `my-rust.lua` uses rustaceanvim (not vim.lsp.config) — unaffected
   - mason.lua handler also migrated
 - [ ] switch nix neovim module to `hm-generated.lua` approach
-  - current: `initLua` in `nvim.nix` inlines `myinit.lua` into nix-generated `init.lua`, overwriting `nvim.configsymlink/init.lua` on every `home-manager switch`; `init.lua` is gitignored; `myinit.lua` must be git-tracked (nix flake requires it, use `git add -f` since `nvim.configsymlink` is in `.gitignore`)
+  - current: `initLua` in `nvim.nix` inlines `myinit.lua` into nix-generated `init.lua`, overwriting `nvim.configsymlink/init.lua` on every `home-manager switch`; `init.lua` is gitignored (in `nvim.configsymlink/.gitignore`); `myinit.lua` is tracked (nix flake requires it); `nvim.configsymlink` is no longer in root `.gitignore`
   - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + restore own `init.lua` (from `myinit.lua`) with `require 'hm-generated'` at top
   - benefit: nix stops overwriting `init.lua`, `myinit.lua` can be merged back into `init.lua`, simpler config chain
   - see home-manager news 2026-01-25 and PR #8586/#8606
@@ -121,14 +120,14 @@ Summary (keep in sync with the steering file):
 
 ### Dotfiles Repo: ~/.dotfiles
 - Home Manager config: `~/.dotfiles/home-manager.configsymlink/`
-  - `flake.nix` — modules: gnome.nix, home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
+  - `flake.nix` — modules: gnome.nix (conditional on `/usr/bin/dconf`), home.nix, neovide.nix, nvim.nix, xdg.nix, xmonad.nix
   - `home.nix` — packages, unfree predicate (albert), battery-notify systemd timer (1min check, notify at 20%/10%)
   - `gnome.nix` — dconf settings (key repeat, mouse speed, cursor size 64, Korean input Sebeolsik 390, disable gnome-panel/desktop, empty gnome-panel layout as fallback), random-lockscreen systemd timer (daily wallpaper), gnome-flashback systemd drop-ins (xmonad session target requires gnome-flashback.target + service restart override)
   - `neovide.nix` — nixGL-wrapped neovide (GPU access on non-NixOS), font copying activation (JetBrains Mono + Nerd Font + Source Code Pro for neovide default fallback)
   - `nvim.nix` — neovim (default editor, vi/vim aliases), `initLua` sources `myinit.lua` (nix generates `init.lua` which overwrites `nvim.configsymlink/init.lua` on every switch — `init.lua` is gitignored), dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim (Rust LSP, replaces rust-tools-nvim); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
-  - `system-deps.sh` — apt packages (ibus-hangul, gnome-session-flashback) + session file installs (gnome-flashback-xmonad.session strips gnome-panel, keeps essential SettingsDaemons: Datetime, Housekeeping, Keyboard, Power, ScreensaverProxy, XSettings) + keyd service setup + loginctl enable-linger (keeps systemd --user alive after logout so zellij/timers survive) + ollama install (service disabled, started on demand by commit-msg)
+  - `system-deps.sh` — detects package manager (dnf/yum preferred over apt-get for Amazon Linux); GNOME packages + session files guarded behind `gnome-session` check; keyd service guarded behind `/dev/input` check; loginctl enable-linger; ollama install guarded behind `$DISPLAY`/`$WAYLAND_DISPLAY` check (desktop only)
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
   - Build: `~/.xmonad/build` uses `$XMONAD_GHC` (set by nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`; `set -euo pipefail` + `${1:?}` guard prevents creating misnamed binaries if output path is missing
   - HLS: `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC installed from same `haskellPackages` set in nvim.nix to keep versions in sync
@@ -138,7 +137,7 @@ Summary (keep in sync with the steering file):
   - `greedyViewNoSwap`: workspace switch variant that swaps visible screens but not hidden
 - keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf, thinkpad.conf — copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
-- jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), local email in conf.d/local.toml (gitignored), revset aliases: `workspace_view()` (mutable chain + boundary + branches for fzf _jh), `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs); template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y via `.contains()`/`.substr()` chain), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author first name via `.split(" ").first()`, falls back to email local part)
+- jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), user email in `private-dotfiles/jj/user.toml` (symlinked to `conf.d/user.toml` by `private-dotfiles/jj/install.sh`), `repos/` gitignored (machine-specific, auto-generated by jj); revset aliases: `workspace_view()` (mutable chain + boundary + branches for fzf _jh), `unique(x, markers)` (commits not in ancestor markers), `unique_boundary(x, markers)` (unique + boundary revs); template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y via `.contains()`/`.substr()` chain), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author first name via `.split(" ").first()`, falls back to email local part)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars (FZF_ALT_C_COMMAND, FZF_CTRL_T_COMMAND, etc.), sources `fzf --zsh` dynamically (no static key-bindings.zsh), then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
   - `fzf-zellij` — drop-in `fzf-tmux` equivalent for zellij; runs fzf in a floating pane with FIFO stdin streaming and temp file output; polls for EXIT-trap done marker; captures pane ID and closes explicitly; `FZF_ZELLIJ=1` env var prevents nested floating panes on `become` toggles and strips `--height`/`--min-height`; falls back to plain fzf outside zellij; `--close-on-exit` is unreliable in zellij so panes are closed explicitly
   - `test_fzf_zellij.sh` — automated tests for fzf-zellij (piped input, fallback, pipeline extraction, nested/become); run with `bash fzf/test_fzf_zellij.sh` inside a zellij session  - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git) implementation (e.g. `_gf`→`_jf`/`_git_f`); `_jb`/`_jt` previews use `unique_boundary()` revset alias to show commits unique to the selected bookmark/tag with boundary revs; `_jb` preprocesses indented remote tracking lines (`@hj`) by prefixing parent bookmark name; `_gh` shows upstream log (jj default / git upstream), `_ghh` shows full ancestor log (jj `::@` / git full log); `_jr` preview uses `remote_bookmarks(remote=NAME)`; `_fzf_functions_sh` captures source file path for `become` sourcing; `_jj_change_id`/`_jj_extract_id` extract change ID from fzf line (strips ANSI, supports single-char IDs via `\{1,\}`); `_jj_find_pos` finds line number of a change ID in jj log output (head -500 for SIGPIPE early exit); toggles via `become`: `_jh`↔`_jhh` (ctrl-h, revision-based focus), `_jb`↔`_jbb` (ctrl-b), `_jy`↔`_jyy` (ctrl-y); ctrl-o inserts empty revision before selected (`jj new --no-edit --before`), uses `transform:` (colon form) to show jj errors in header; fzf query preserved across toggles via `{q}`→`--query`; line-number focus uses `result:pos(N+1)+unbind(result)` (fzf `{n}` is 0-indexed, `pos` is 1-indexed)
@@ -154,7 +153,7 @@ Summary (keep in sync with the steering file):
   - Normal mode keybindings: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-s→fzf session picker (via CYCLE_SWITCH_CMD template), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
   - Move keybindings: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
   - Config template: `CYCLE_SWITCH_CMD` placeholder in Alt-s binding, replaced by `zellij-cycle` via sed with per-instance callback
-- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID` before starting new TTS; kill wrapped in `|| true` to survive dead PGID under `set -e`), bin/test_mcp_tts.sh (non-interactive test; run with `bash bin/test_mcp_tts.sh` after any change to mcp-tts)
+- kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), agents/no-mcp.json (no MCP servers, used by commit-msg to avoid orphaned processes), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID` before starting new TTS; kill wrapped in `|| true` to survive dead PGID under `set -e`), bin/test_mcp_tts.sh (non-interactive test; run with `bash bin/test_mcp_tts.sh` after any change to mcp-tts)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — single wttr.in JSON API call, python3 parses response; shows 🌙 after sunset / before sunrise (clear→moon, cloudy→☁🌙), weather icons unchanged for rain/snow/fog; tooltip: current conditions + hourly + 3-day forecast
 - System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode (2nd arg `1`) for metrics where high=good (battery); padding bars (no prior data) always use non-inverted color to avoid false red on battery; history in `/tmp/sysmon-history`, 8 samples
@@ -163,13 +162,13 @@ Summary (keep in sync with the steering file):
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
 - Sync scripts: `~/.dotfiles/script/sync_all` (all repos, triggered by `sync-repos.timer`), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
   - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
-  - `sync_dotfiles` jj path: per-repo `flock` on `jj root` (workspaces sharing a repo lock together); skips empty changes (commit/describe only), describes with AI commit message, always pushes bookmarks
+  - `sync_dotfiles` jj path: per-repo `flock` on `jj root` (workspaces sharing a repo lock together); skips empty changes (commit/describe only), describes with AI commit message (via `commit-msg` with `VERBOSE=1`), always pushes bookmarks; rebases local mutable chain onto updated bookmark after merge; uses `if(description, ...)` for empty description check (not `is_empty()` — doesn't exist in jj)
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj; tracks `bm@hj` after push
   - Prefixed bookmarks: delete+push via raw git (`hostname/bookmark`, server doesn't support `--force`); single `ls-remote` per run, skips if unchanged; excludes already-prefixed local bookmarks; no tracking of prefixed remote bookmarks (jj requires name match)
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
-- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (cloud model, `--agent default`), ollama + qwen2.5-coder:3b fallback (started on demand, stopped after); jj-first/git-fallback; strips ANSI codes, cursor sequences, and spinner carriage returns; rejects kiro-cli login/spinner output (falls back to ollama)
+- Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (`--agent no-mcp`, stdin piping, 30s timeout), ollama + qwen2.5-coder:3b fallback (5s health check, started on demand), file-list final fallback; jj-first/git-fallback; `strip_ansi` removes ANSI/CSI/OSC escape sequences; `clean_msg` strips markdown fences and takes first line; `VERBOSE=1` enables detailed `log()` output to stderr (exit code, raw/cleaned output per backend)
 - Notifications: `~/.dotfiles/bin/notify-webhook` — sends push notifications for script failures; currently disabled (exit 0), awaiting Telegram bot; KakaoTalk "나에게 보내기" tested but doesn't trigger push notifications; tokens in `private-dotfiles/kakao-tokens.json`
-- Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored nested jj repo (git@github.com:beila/private-dotfiles.git); cloned by `script/bootstrap`; stores machine-specific secrets (kakao tokens, webhook URLs); zsh `**/*.zsh` glob auto-sources any .zsh files within
+- Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored nested jj repo (git@github.com:beila/private-dotfiles.git); cloned by `script/bootstrap`; stores machine-specific secrets (kakao tokens, webhook URLs); zsh `**/*.zsh` glob auto-sources any .zsh files within; `install.sh` files run by `script/install` (called by bootstrap); `ssh.filesymlink/` provides SSH host aliases via `~/.ssh/config.d/`; `jj/install.sh` symlinks `user.toml` into `~/.config/jj/conf.d/`
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij --config <generated> attach --create` in a loop; on detach cycles to next active session; generates per-instance config via sed (CYCLE_SWITCH_CMD→callback with pick file + pkill); supports session names with spaces (mapfile); temp files: `/tmp/zellij-cycle-{pick,pid,config}.$$`
 - Zellij session picker: `~/.dotfiles/bin/zellij-pick-session` — fzf-based session picker with Alt-s cycling; accepts generic callback ($*); closes own pane and runs callback detached via setsid
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
@@ -192,7 +191,7 @@ Summary (keep in sync with the steering file):
   - Nix zsh packages: zsh-completions, nix-zsh-completions, zsh-powerlevel10k, zsh-fast-syntax-highlighting, zsh-autosuggestions
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification), `ju` (jj unique — show commits unique to a bookmark/tag with boundary revs, auto-detects bookmark vs tag markers) — Wayland/X11 aware
 - TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model on first run; `~/.dotfiles/bin/path.zsh` adds `bin/` to PATH
-  - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`); runs in subshell `(say_done &)` to suppress background PID output
+  - `say_done` calls `say` to announce when commands >10s finish (via `add-zsh-hook` in `zsh/config.zsh`); only on desktop machines (`$DISPLAY`/`$WAYLAND_DISPLAY`); runs in subshell `(say_done &)` to suppress background PID output
   - Override voice with `$PIPER_MODEL`
 - TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)
   - Default rate: +50%, override with `$EDGE_TTS_RATE`
@@ -307,6 +306,10 @@ Summary (keep in sync with the steering file):
 - Push notifications: Google Chat webhooks blocked by org admin; Slack app creation requires workspace admin approval; KakaoTalk "나에게 보내기" doesn't trigger push (messages to self are silent); Telegram bot or ntfy.sh are the viable options
 - zellij `--close-on-exit` is unreliable — panes sometimes stay open after the command exits; `fzf-zellij` works around this by capturing the pane ID and closing explicitly via `zellij action close-pane`
 - fzf `become` toggle output mismatch: when `_gy` toggles to `_gyy` via `become`, the new function's output (change ID) goes through the original function's post-processing pipeline (hex grep), producing wrong or empty results; same issue in reverse (`_gyy` → `_gy`); `_gh` ↔ `_ghh` is unaffected because both share the same output format
+- jj template `description.is_empty()` doesn't exist — use `if(description, ...)` instead (empty string is falsy); `sync_dotfiles` uses this for empty description check
+- kiro-cli can't receive prompts as command-line arguments (hangs on large/complex input) — use stdin piping instead (`< file`)
+- kiro-cli `--agent default` spawns MCP servers that become orphaned when kiro-cli exits — use `--agent no-mcp` for non-interactive/scripted use
+- Cloud desktop (Amazon Linux): `apt` in PATH is JDK's Annotation Processing Tool, not Debian apt; `system-deps.sh` checks dnf/yum before apt-get; linuxbrew `dbus-run-session` has broken config — `gnome.nix` conditionally skipped when `/usr/bin/dconf` absent
 
 ### Monitors
 - Current: 3 monitors — eDP-1 (1920x1200 laptop), DP-1 (3440x1440 ultrawide), DP-3 (1440x2560 portrait); varies by location
