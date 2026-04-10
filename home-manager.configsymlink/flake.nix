@@ -22,7 +22,6 @@
         inherit pkgs;
 
         modules = [
-          ./gnome.nix
           ./home.nix
           ./neovide.nix
           ./nvim.nix
@@ -31,7 +30,7 @@
           {
             targets.genericLinux.nixGL.packages = nixgl.packages;
           }
-        ];
+        ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else []);
       };
     };
 }
