@@ -12,20 +12,26 @@ if [ -z "$CURRENT" ] || echo "$CURRENT" | grep -q '\.'; then
 fi
 
 sudo apt install -y \
-  gnome-screensaver \
-  ibus-hangul \
-  input-remapper \
-  gnome-session-flashback
+  input-remapper
 
-# GNOME + XMonad session
-sudo cp "$SCRIPT_DIR/../xwindow/gnome-xmonad.desktop" /usr/share/xsessions/
-sudo cp "$SCRIPT_DIR/../xwindow/gnome-flashback-xmonad.session" /usr/share/gnome-session/sessions/
-sudo cp "$SCRIPT_DIR/../xwindow/xmonad.desktop" /usr/share/applications/
+# GNOME-specific setup (skip on headless/non-GNOME machines)
+if command -v gnome-session &>/dev/null; then
+  sudo apt install -y \
+    gnome-screensaver \
+    ibus-hangul \
+    gnome-session-flashback
 
-# keyd: system-level key remapping (replaces xmodmap)
-sudo mkdir -p /etc/keyd
-sudo cp "$SCRIPT_DIR/../keyd/"*.conf /etc/keyd/
-sudo tee /etc/systemd/system/keyd.service > /dev/null <<EOF
+  # GNOME + XMonad session
+  sudo cp "$SCRIPT_DIR/../xwindow/gnome-xmonad.desktop" /usr/share/xsessions/
+  sudo cp "$SCRIPT_DIR/../xwindow/gnome-flashback-xmonad.session" /usr/share/gnome-session/sessions/
+  sudo cp "$SCRIPT_DIR/../xwindow/xmonad.desktop" /usr/share/applications/
+fi
+
+# keyd: system-level key remapping (skip on headless machines)
+if [ -d /dev/input ]; then
+  sudo mkdir -p /etc/keyd
+  sudo cp "$SCRIPT_DIR/../keyd/"*.conf /etc/keyd/
+  sudo tee /etc/systemd/system/keyd.service > /dev/null <<EOF
 [Unit]
 Description=key remapping daemon
 After=local-fs.target
@@ -40,6 +46,7 @@ WantedBy=multi-user.target
 EOF
 sudo systemctl daemon-reload
 sudo systemctl enable --now keyd
+fi
 
 # linger: keep systemd --user alive after logout so zellij servers,
 # sync timers, and other user services survive GNOME session restarts.
