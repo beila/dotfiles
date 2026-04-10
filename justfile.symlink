@@ -87,15 +87,21 @@ workspace $target $source=".":
     target=${target:a}
     cd "${source}"
 
+    if ! jj --version > /dev/null 2>&1;
+    then
+        git worktree add "${target}" ${my_branch:+-b ${my_branch}}
+    fi
+
+    my_branch={{ work_branch }}
     if [[ -d .git || -f .git ]]; then
-        git worktree add "${target}"
+        git worktree add "${target}" ${my_branch:+-b ${my_branch}}
 
         jj root &> /dev/null || exit 0
 
         gitdir="$(<"${target}"/.git)"
         rm -rf "${target}"
-        jj workspace add "${target}"
+        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
         echo "${gitdir}" > "${target}"/.git
     else
-        jj workspace add "${target}"
+        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
     fi
