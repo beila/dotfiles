@@ -91,14 +91,19 @@
     "private": {
       "flake": false,
       "locked": {
-        "path": "../private-dotfiles",
-        "type": "path"
+        "lastModified": 1776166334,
+        "narHash": "sha256-JXY5mYk2fTgG8jxZBDj4sD/RGsMmjNs13nqD9lSYvyc=",
+        "ref": "main",
+        "rev": "bf79d8e9af28304032261ee75a79b9e2eaab7e7f",
+        "revCount": 3,
+        "type": "git",
+        "url": "file:///home/ANT.AMAZON.COM/hojin/.dotfiles/private-dotfiles"
       },
       "original": {
-        "path": "../private-dotfiles",
-        "type": "path"
-      },
-      "parent": []
+        "owner": "beila",
+        "repo": "private-dotfiles",
+        "type": "github"
+      }
     },
     "root": {
       "inputs": {
