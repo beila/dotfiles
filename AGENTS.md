@@ -16,6 +16,7 @@ Summary (keep in sync with the steering file):
 ## TODO List
 
 ### High impact
+- [ ] check `home-manager news` — neovim withRuby/withPython3 defaults changed (stateVersion < 26.05)
 - [ ] can't type hangul in zellij/ghostty
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [ ] use fzf for zsh tab completion
