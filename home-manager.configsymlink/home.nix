@@ -1,18 +1,6 @@
 { config, pkgs, ... }:
 
-let
-  local =
-    if builtins.pathExists ./local.nix then import ./local.nix
-    else builtins.throw "local.nix not found. Copy local-template.nix to local.nix and fill in your values.";
-in
 {
-  # Home Manager needs a bit of information about you and the paths it should
-  # manage.
-
-  # I like https://github.com/cwndrws/dotfiles/blob/master/home.nix#L10 for simplicity
-  home.username = local.username;
-  home.homeDirectory = local.homeDirectory;
-
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
   # introduces backwards incompatible changes.
