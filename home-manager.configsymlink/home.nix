@@ -1,7 +1,9 @@
 { config, pkgs, ... }:
 
 let
-  local = import ./local.nix;
+  local =
+    if builtins.pathExists ./local.nix then import ./local.nix
+    else builtins.throw "local.nix not found. Copy local-template.nix to local.nix and fill in your values.";
 in
 {
   # Home Manager needs a bit of information about you and the paths it should
