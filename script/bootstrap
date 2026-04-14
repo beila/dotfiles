@@ -221,6 +221,17 @@ clone_private_dotfiles () {
 }
 
 clone_private_dotfiles
+
+# flake.nix uses github:beila/private-dotfiles as default input URL.
+# Override to local clone so changes apply without pushing.
+lock_private_dotfiles_input () {
+  info 'locking private-dotfiles flake input to local path'
+  nix flake update private --flake "$DOTFILES_ROOT/home-manager.configsymlink" \
+    --override-input private "git+file://$DOTFILES_ROOT/private-dotfiles"
+  success 'private-dotfiles flake input locked'
+}
+
+lock_private_dotfiles_input
 #git submodule foreach "git submodule update --init --recursive"
 #for sm in $($DOTFILES_ROOT/zsh/functions/gSl); do
     #git config submodule.$sm.active false
