@@ -88,11 +88,24 @@
         "type": "github"
       }
     },
+    "private": {
+      "flake": false,
+      "locked": {
+        "path": "../private-dotfiles",
+        "type": "path"
+      },
+      "original": {
+        "path": "../private-dotfiles",
+        "type": "path"
+      },
+      "parent": []
+    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
         "nixgl": "nixgl",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs_2",
+        "private": "private"
       }
     },
     "systems": {

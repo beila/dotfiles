@@ -2,21 +2,26 @@
   description = "Home Manager configuration of hojin";
 
   inputs = {
-    # Specify the source of Home Manager and Nixpkgs.
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixgl.url = "github:nix-community/nixGL";
+    private = {
+      url = "git+file:../private-dotfiles";
+      flake = false;
+    };
   };
 
   outputs =
-    { nixpkgs, home-manager, nixgl, ... }:
+    { nixpkgs, home-manager, nixgl, private, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      privateDir = ./. + "/../private-dotfiles";
+      local =
+        if builtins.pathExists ./local.nix then import ./local.nix
+        else builtins.throw "local.nix not found. Copy local-template.nix to local.nix and fill in your values.";
       nixFilesFrom = dir:
         if builtins.pathExists dir then
           builtins.filter (f: f != null)
@@ -38,7 +43,7 @@
             targets.genericLinux.nixGL.packages = nixgl.packages;
           }
         ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else [])
-          ++ nixFilesFrom privateDir;
+          ++ nixFilesFrom private;
       };
     };
 }
