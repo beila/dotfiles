@@ -25,20 +25,18 @@
             (map (name: if builtins.match ".*\\.nix" name != null then dir + "/${name}" else null)
               (builtins.attrNames (builtins.readDir dir)))
         else [];
+      hostsDir = private + "/hosts";
       mkHost = extraModules: home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
-        modules = extraModules ++ [
-          ./home.nix
-          ./neovide.nix
-          ./nvim.nix
-          ./xdg.nix
-          ./xmonad.nix
-          { targets.genericLinux.nixGL.packages = nixgl.packages; }
-        ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else []);
+        modules = extraModules
+          ++ [ ./home.nix ./neovide.nix ./nvim.nix ./xdg.nix ./xmonad.nix
+               { targets.genericLinux.nixGL.packages = nixgl.packages; } ]
+          ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else [])
+          ++ nixFilesFrom private;
       };
     in
     {
       homeConfigurations = builtins.foldl' (a: b: a // b) {}
-        (map (f: import f { inherit mkHost; }) (nixFilesFrom private));
+        (map (f: import f { inherit mkHost; }) (nixFilesFrom hostsDir));
     };
 }
