@@ -37,7 +37,7 @@
             targets.genericLinux.nixGL.packages = nixgl.packages;
           }
         ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else [])
-          ++ nixFilesFrom ../private-dotfiles;
+          ++ nixFilesFrom (dotfilesRoot + "/private-dotfiles");
       };
     };
 }
