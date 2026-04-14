@@ -16,6 +16,12 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      nixFilesFrom = dir:
+        if builtins.pathExists dir then
+          builtins.filter (f: f != null)
+            (map (name: if builtins.match ".*\\.nix" name != null then dir + "/${name}" else null)
+              (builtins.attrNames (builtins.readDir dir)))
+        else [];
     in
     {
       homeConfigurations."hojin" = home-manager.lib.homeManagerConfiguration {
@@ -30,7 +36,8 @@
           {
             targets.genericLinux.nixGL.packages = nixgl.packages;
           }
-        ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else []);
+        ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else [])
+          ++ nixFilesFrom ../private-dotfiles;
       };
     };
 }
