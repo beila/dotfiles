@@ -16,6 +16,7 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      privateDir = ./. + "/../private-dotfiles";
       nixFilesFrom = dir:
         if builtins.pathExists dir then
           builtins.filter (f: f != null)
@@ -37,7 +38,7 @@
             targets.genericLinux.nixGL.packages = nixgl.packages;
           }
         ] ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else [])
-          ++ nixFilesFrom (dotfilesRoot + "/private-dotfiles");
+          ++ nixFilesFrom privateDir;
       };
     };
 }
