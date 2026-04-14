@@ -9,7 +9,7 @@
     };
     nixgl.url = "github:nix-community/nixGL";
     private = {
-      url = "git+file:../private-dotfiles";
+      url = "github:beila/private-dotfiles";
       flake = false;
     };
   };
