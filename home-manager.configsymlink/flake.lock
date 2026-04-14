@@ -91,11 +91,11 @@
     "private": {
       "flake": false,
       "locked": {
-        "lastModified": 1776172846,
-        "narHash": "sha256-NB855/hcEc+fq6QHou2pFnLlwp/k4wEVkmlwtIcNjdY=",
+        "lastModified": 1776173317,
+        "narHash": "sha256-dBMwoYlNNCWrVJdfuDB1DZyg9bB8xzhPqa1qx9UsTe8=",
         "ref": "main",
-        "rev": "4bd356f501463eeac2a349f371f44f4f0bf5cade",
-        "revCount": 13,
+        "rev": "9268d7c04a332f3d9e7657e4470c9e2ff9c7dda1",
+        "revCount": 15,
         "type": "git",
         "url": "file:///home/ANT.AMAZON.COM/hojin/.dotfiles/private-dotfiles"
       },
