@@ -206,14 +206,9 @@ c *command: mwinit
     #!/usr/bin/env bash
     set -euo pipefail
     if command -v zellij &>/dev/null; then
-        port=8082
-        ssh c 'zellij web --status --timeout 1 &>/dev/null || zellij web -d'
-        ssh -f -N -L "$port":127.0.0.1:"$port" c -o ExitOnForwardFailure=yes 2>/dev/null || true
-        if [ -z "{{ command }}" ]; then
-            zellij attach "https://127.0.0.1:$port/c" --insecure
-        else
+        if [ -n "{{ command }}" ]; then
             session="c: {{ command }}"
-            ssh c "zellij attach -b -c '$session'"
+            ssh c "zellij attach -b -c '$session'" 2>/dev/null || true
             ssh c "ZELLIJ_SESSION_NAME='$session' zellij run -- bash -c '
                 {{ command }}
                 rc=\$?
@@ -223,6 +218,9 @@ c *command: mwinit
                 fi
                 exit \$rc
             '"
+            ssh -t c "zellij attach '$session'"
+        else
+            ssh -t c 'zellij attach -c c'
         fi
     else
         ssh {{ if command == "" { "" } else { "-t" } }} c "{{ command }}"

@@ -442,7 +442,8 @@ mwinit *command:
             head -1)
     [ "0$expiration" -gt $(date +%s) ] && mwinit_command=
 
-    exec zsh -ic "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
+    tty_flag=; [[ -t 0 && -n "{{ command }}" ]] && tty_flag=i
+    exec zsh -${tty_flag}c "set -x; { $mwinit_command } && { {{ command }} }"   # brace it in case it's empty
 
 [no-cd]
 mwinitf *command:
