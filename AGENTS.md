@@ -60,7 +60,7 @@ Summary (keep in sync with the steering file):
   - remove the "insert before" shortcut (no replacement needed)
   - files: `fzf/functions.sh/functions.sh` — `_jh()`, `_jhh()` ctrl-o bindings
   - update header hint text and `fzf/functions.sh/test_toggle_query.sh` assertions
-- [ ] notify user when sync_dotfiles merge has conflicts
+- [ ] notify user when sync_repo merge has conflicts
   - Plan: set up Telegram bot for push notifications (ntfy is simpler but Telegram supports two-way); update notify-webhook to use Telegram
 - [ ] how do I get notified with sync_all error
 - [ ] share fzf config between shell (`fzf/functions.sh/functions.sh`) and nvim (`fzf.lua`)
@@ -81,7 +81,7 @@ Summary (keep in sync with the steering file):
   - benefit: nix stops overwriting `init.lua`, `myinit.lua` can be merged back into `init.lua`, simpler config chain
   - see home-manager news 2026-01-25 and PR #8586/#8606
   - files: `home-manager.configsymlink/nvim.nix`, `nvim.configsymlink/myinit.lua`, `nvim.configsymlink/.gitignore`
-- [ ] make sync_dotfiles more readable
+- [ ] make sync_repo more readable
 - [ ] automate nix flake updates and catch breaking changes early
   - flake inputs to keep updated: `nixpkgs` (nixos-unstable), `home-manager`, `nixGL`
   - `nix flake update` bumps all inputs; `nix flake update nixpkgs` bumps one
@@ -162,9 +162,9 @@ Summary (keep in sync with the steering file):
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (kept as fallback; battery now also in sysmon-genmon)
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
-- Sync scripts: `~/.dotfiles/script/sync_all` (all repos, triggered by `sync-repos.timer`), `sync_dotfiles` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
+- Sync scripts: `~/.dotfiles/script/sync_all` (all repos, triggered by `sync-repos.timer`), `sync_repo` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
   - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
-  - `sync_dotfiles` jj path: per-repo `flock` on `jj root` (workspaces sharing a repo lock together); skips empty changes (commit/describe only), describes with AI commit message (via `commit-msg` with `VERBOSE=1`), always pushes bookmarks; rebases local mutable chain onto updated bookmark after merge; uses `if(description, ...)` for empty description check (not `is_empty()` — doesn't exist in jj)
+  - `sync_repo` jj path: per-repo `flock` on `jj root` (workspaces sharing a repo lock together); skips empty changes (commit/describe only), describes with AI commit message (via `commit-msg` with `VERBOSE=1`), always pushes bookmarks; rebases local mutable chain onto updated bookmark after merge; uses `if(description, ...)` for empty description check (not `is_empty()` — doesn't exist in jj)
   - Auto-merge: fetches tracking branches, merges local bookmark forward via jj (no force), pushes to hj; tracks `bm@hj` after push
   - Prefixed bookmarks: delete+push via raw git (`hostname/bookmark`, server doesn't support `--force`); single `ls-remote` per run, skips if unchanged; excludes already-prefixed local bookmarks; no tracking of prefixed remote bookmarks (jj requires name match)
   - Requirements documented as comments in script: (1) commit with AI message if non-empty, (2) push all bookmarks with hostname prefix, (3) safely merge and push tracked bookmark
@@ -308,7 +308,7 @@ Summary (keep in sync with the steering file):
 - Push notifications: Google Chat webhooks blocked by org admin; Slack app creation requires workspace admin approval; KakaoTalk "나에게 보내기" doesn't trigger push (messages to self are silent); Telegram bot or ntfy.sh are the viable options
 - zellij `--close-on-exit` is unreliable — panes sometimes stay open after the command exits; `fzf-zellij` works around this by capturing the pane ID and closing explicitly via `zellij action close-pane`
 - fzf `become` toggle output mismatch: when `_gy` toggles to `_gyy` via `become`, the new function's output (change ID) goes through the original function's post-processing pipeline (hex grep), producing wrong or empty results; same issue in reverse (`_gyy` → `_gy`); `_gh` ↔ `_ghh` is unaffected because both share the same output format
-- jj template `description.is_empty()` doesn't exist — use `if(description, ...)` instead (empty string is falsy); `sync_dotfiles` uses this for empty description check
+- jj template `description.is_empty()` doesn't exist — use `if(description, ...)` instead (empty string is falsy); `sync_repo` uses this for empty description check
 - kiro-cli can't receive prompts as command-line arguments (hangs on large/complex input) — use stdin piping instead (`< file`)
 - kiro-cli `--agent default` spawns MCP servers that become orphaned when kiro-cli exits — use `--agent no-mcp` for non-interactive/scripted use
 - Cloud desktop (Amazon Linux): `apt` in PATH is JDK's Annotation Processing Tool, not Debian apt; `system-deps.sh` checks dnf/yum before apt-get; linuxbrew `dbus-run-session` has broken config — `gnome.nix` conditionally skipped when `/usr/bin/dconf` absent

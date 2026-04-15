@@ -41,7 +41,7 @@ Detects package manager (dnf/yum/apt-get) and skips GNOME/keyd on headless machi
 - **zellij** — `zellij.configsymlink/`, session cycling via `bin/zellij-cycle`
 - **ghostty** — `ghostty.configsymlink/`
 - **jj** — `jj.configsymlink/`, revset aliases, colocated with git
-- **sync** — `script/sync_all` (timer), `script/sync_dotfiles` (per-repo, flock, AI commit messages)
+- **sync** — `script/sync_all` (timer), `script/sync_repo` (per-repo, flock, AI commit messages)
 
 ## Docs
 

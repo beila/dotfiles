@@ -183,7 +183,7 @@ setup_dotfiles_sync () {
     do
       if [ -d "$SYNC_TARGET" ]
       then
-        echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_dotfiles $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
+        echo "$(( RANDOM % 10 ))-59/10 * * * * GIT_EXECUTABLE=$GIT_EXECUTABLE_FINDING GIT_SUBREPO=${GIT_SUBREPO} $DOTFILES_ROOT/script/sync_repo $SYNC_TARGET 2>&1 | grep -i -C1000 conflict"
       fi
      done
 
