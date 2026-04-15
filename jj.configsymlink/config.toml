@@ -84,3 +84,6 @@ if(root, format_root_commit(self),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
       bookmarks, tags) ++ "\n"))
 '''
+
+[git]
+push-new-bookmarks = true
