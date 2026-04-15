@@ -43,6 +43,7 @@ Summary (keep in sync with the steering file):
 - [ ] make zellij floating point as big and more importantly as wide as appropriate while leaving slight context
 - [ ] stop amazon-vpn when the network changes
 - [ ] use --impure for private-dotfiles instead of having to add commit and override the lock file every time
+- [ ] run systemd for user from nix
 
 ### Medium impact
 - [ ] add squash feature to _gf
