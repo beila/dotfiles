@@ -81,6 +81,8 @@
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
+    # ~/.terminfo must exist at process startup (ncurses checks it before any shell rc),
+    # so TERMINFO_DIRS in zshenv/hm-session-vars.sh is too late for zsh's $terminfo[]
     ".terminfo".source = "${pkgs.ghostty.terminfo}/share/terminfo";
   };
 
