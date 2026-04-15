@@ -212,7 +212,16 @@ c *command: mwinit
         if [ -z "{{ command }}" ]; then
             zellij attach "https://127.0.0.1:$port/c" --insecure
         else
-            ssh -t c "zellij -s c run -- {{ command }}"
+            ssh -t c "zellij attach -c 'c: {{ command }}' -- bash -c '
+                {{ command }}
+                rc=\\\$?
+                if [ \\\$(zellij action list-clients 2>/dev/null | wc -l) -le 1 ]; then
+                    echo -e \"\\n[exit \\\$rc] Press Enter to close\"
+                    while [ \\\$(zellij action list-clients 2>/dev/null | wc -l) -le 1 ]; do sleep 1; done
+                    read -r
+                fi
+                exit \\\$rc
+            '"
         fi
     else
         ssh {{ if command == "" { "" } else { "-t" } }} c "{{ command }}"
