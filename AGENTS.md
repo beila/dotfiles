@@ -149,6 +149,7 @@ Summary (keep in sync with the steering file):
   - All custom bindings must use `bindkey -M viins` and `bindkey -M vicmd` (vi mode — plain `bindkey` only sets viins/main)
 - ghostty config: `~/.dotfiles/ghostty.configsymlink/` (symlinked to ~/.config/ghostty/)
   - `keybind = ctrl+{j,k,n,p}=text:\xNN` — sends legacy control codes instead of CSI u; fixes zellij leaking kitty keyboard protocol sequences as literal text into fzf query under rapid key repeat
+  - terminfo: `pkgs.ghostty.terminfo` installed via home.nix; `~/.terminfo` symlinked to the nix store terminfo dir so ncurses finds `xterm-ghostty` at process startup (before any shell rc file runs); required for SSH into machines running ghostty as `$TERM`
 - albert config: `~/.dotfiles/albert.configsymlink/` (symlinked to ~/.config/albert/)
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
