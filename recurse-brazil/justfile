@@ -203,7 +203,20 @@ native_roku:
 
 # Log in or run command on $(whoami)-1c-1d10d9ca.eu-west-1.amazon.com
 c *command: mwinit
-    ssh {{ if command == "" { "" } else { "-t" } }} c "{{ command }}"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if command -v zellij &>/dev/null; then
+        port=8082
+        ssh c 'zellij web --status --timeout 1 &>/dev/null || zellij web -d'
+        ssh -f -N -L "$port":127.0.0.1:"$port" c -o ExitOnForwardFailure=yes 2>/dev/null || true
+        if [ -z "{{ command }}" ]; then
+            zellij attach "https://127.0.0.1:$port/c" --insecure
+        else
+            ssh -t c "zellij -s c run -- {{ command }}"
+        fi
+    else
+        ssh {{ if command == "" { "" } else { "-t" } }} c "{{ command }}"
+    fi
 
 [no-cd]
 cp src dst=".": mwinit
