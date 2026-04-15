@@ -37,6 +37,7 @@
         pkgs.just
         pkgs.keyd
         pkgs.mergiraf
+        pkgs.ollama
         pkgs.pavucontrol
         pkgs.piper-tts
         pkgs.plocate
