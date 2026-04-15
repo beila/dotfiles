@@ -90,7 +90,7 @@ push_hist bat "$bat_pct"
 
 # --- Panel ---
 bat_icon="🔋"
-[ "$bat_status" = "Charging" ] && bat_icon="🔌"
+[ "$(cat /sys/class/power_supply/AC/online 2>/dev/null)" = "1" ] && bat_icon="🔌"
 (( bat_pct < 20 )) && [ "$bat_status" != "Charging" ] && bat_icon="🪫"
 echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) ${bat_icon}$(spark bat 1)</txt>"
 
