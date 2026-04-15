@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -x
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
 GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 MACHINE_NAME=$(hostnamectl --pretty 2>/dev/null | grep -v '\.')
@@ -10,9 +12,9 @@ cd "$1" || {
 
 # Per-repo lock to prevent concurrent syncs (use jj/git root so workspaces sharing a repo lock together)
 LOCK_PATH=$(jj root 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null || echo "$1")
-LOCKFILE="/tmp/sync_dotfiles_$(echo "$LOCK_PATH" | tr / _).lock"
+LOCKFILE="/tmp/sync_repo_$(echo "$LOCK_PATH" | tr / _).lock"
 exec 9>"$LOCKFILE"
-flock -n 9 || { echo "sync_dotfiles already running for $LOCK_PATH, skipping"; exit 0; }
+flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
 
 if jj root &>/dev/null 2>&1; then
     jj workspace update-stale 2>/dev/null || true
@@ -23,7 +25,7 @@ if jj root &>/dev/null 2>&1; then
         jj new
         # Skip describe if already has a description
         if jj log -r "$CHANGE_ID" --no-graph -T 'if(description, "has_desc", "empty")' 2>/dev/null | grep -q empty; then
-            if ! MSG=$(VERBOSE=1 "$1/bin/commit-msg" "$CHANGE_ID"); then
+            if ! MSG=$(VERBOSE=1 "$DOTFILES_ROOT/bin/commit-msg" "$CHANGE_ID"); then
                 echo "commit-msg failed" >&2
                 exit 1
             fi
@@ -99,7 +101,7 @@ else
         test \$WILL_PUSH && $GIT push || true"
 
     $GIT add --verbose --all .
-    MSG=$("$1/bin/commit-msg" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
+    MSG=$("$DOTFILES_ROOT/bin/commit-msg" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
     [ -z "$MSG" ] && MSG="Change from ${MACHINE_NAME}"
     $GIT commit --verbose --no-allow-empty -m "$MSG"
     $GIT pull --ff --verbose --no-edit
