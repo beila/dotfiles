@@ -47,7 +47,7 @@ myConfig =
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep albert || albert"
                 ]
-        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook
+        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
         , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
@@ -202,7 +202,7 @@ meetingRules =
             , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting"
             , title =? "Meeting chat"
             ]
-        , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
+        , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink) <> stripFullscreenProp
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         ]
@@ -219,6 +219,22 @@ messengerRules =
 
 endsWith :: Query String -> String -> Query Bool
 endsWith q s = fmap (L.isSuffixOf s) q
+
+-- Remove _NET_WM_STATE_FULLSCREEN from the window's _NET_WM_STATE property.
+-- Used for Zoom Meeting window which is created with fullscreen state pre-set,
+-- causing xmonad (and Zoom itself) to treat it as fullscreen.
+stripFullscreenProp :: ManageHook
+stripFullscreenProp = do
+    w <- ask
+    liftX $ withDisplay $ \dpy -> do
+        wmState <- getAtom "_NET_WM_STATE"
+        fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
+        atom <- getAtom "ATOM"
+        io $ do
+            cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
+            let newState = filter (/= fromIntegral fs) cur
+            changeProperty32 dpy w wmState atom propModeReplace newState
+    idHook
 
 -- Move matching windows to the currently focused workspace
 followToCurrentWorkspace :: Query Bool -> X ()
@@ -312,6 +328,26 @@ rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width
                         W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
     return (All True)
 rescueOffscreenHook _ = return (All True)
+
+-- Watch _NET_WM_STATE changes on Zoom Meeting windows and strip
+-- _NET_WM_STATE_FULLSCREEN (and sink). Zoom sets fullscreen state both at
+-- window creation time and via ClientMessage; this hook handles both.
+stripZoomFullscreenHook :: Event -> X All
+stripZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
+    wmState <- getAtom "_NET_WM_STATE"
+    when (a == wmState) $ do
+        isZoomMeeting <- runQuery (className =? "zoom" <&&> title =? "Meeting") w
+        when isZoomMeeting $ do
+            fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
+            atom <- getAtom "ATOM"
+            withDisplay $ \dpy -> io $ do
+                cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
+                let newState = filter (/= fromIntegral fs) cur
+                when (newState /= cur) $
+                    changeProperty32 dpy w wmState atom propModeReplace newState
+            windows $ W.sink w
+    return (All True)
+stripZoomFullscreenHook _ = return (All True)
 
 ------------------------------------------------------------------------
 -- EWMH fullscreen support
