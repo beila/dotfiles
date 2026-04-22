@@ -26,12 +26,12 @@
               (builtins.attrNames (builtins.readDir dir)))
         else [];
       hostsDir = private + "/hosts";
-      mkHost = extraModules: home-manager.lib.homeManagerConfiguration {
+      mkHost = { gnome ? false, extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = extraModules
           ++ [ ./home.nix ./neovide.nix ./nvim.nix ./xdg.nix ./xmonad.nix
                { targets.genericLinux.nixGL.packages = nixgl.packages; } ]
-          ++ (if builtins.pathExists /usr/bin/dconf then [ ./gnome.nix ] else [])
+          ++ (if gnome then [ ./gnome.nix ] else [])
           ++ nixFilesFrom private;
       };
     in
