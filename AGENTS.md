@@ -164,8 +164,8 @@ Summary (keep in sync with the steering file):
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (kept as fallback; battery now also in sysmon-genmon)
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Keyboard hotplug: keyd handles remapping at evdev level (no hotplug workaround needed)
-- Sync scripts: `~/.dotfiles/script/sync_all` (all jj/git repos via plocate, triggered by `sync-repos.timer`), `sync_repo` (single repo), `jj_snapshot_all` (snapshot all jj repos via plocate)
-  - `sync_all` iterates every `.jj`/`.git` marker under `$HOME` from plocate, filters noise paths (`.cache`, `.cargo`, `.nix-profile`, `node_modules`); sync_repo itself exits early on repos without an `hj` remote so broad iteration is cheap
+- Sync scripts: `~/.dotfiles/script/sync_all` (all jj/git repos via plocate, triggered by `sync-repos.timer`), `sync_repo` (single repo)
+  - `sync_all` iterates every `.jj`/`.git` marker under `$HOME` from plocate, filters noise paths (`.cache`, `.cargo`, `.nix-profile`, `node_modules`); sync_repo itself exits early on repos without an `hj` remote (jj repos get a `jj status` snapshot on the way out) so broad iteration is cheap
   - `sync_all` calls `notify-webhook` on failure (currently disabled — awaiting Telegram bot setup)
   - `sync_repo` jj path: per-repo `flock` on `jj root` (workspaces sharing a repo lock together); exits early if no `hj` remote; single `jj log -r @` call snapshots `change_id|empty|merge|has_desc|parent_change_id` atomically (races-safe); runs `jj new` on non-empty OR empty-merge `@` (so `CHANGE_ID`/`PUSH_REV` always resolves to a single rev); skips describe for empty merges and already-described changes; describes with AI commit message (via `commit-msg` with `VERBOSE=1`); uses `if(description, ...)` for empty description check (not `is_empty()` — doesn't exist in jj)
   - Workspace name: matched by current `@` commit_id against `jj workspace list` (op log is shared across workspaces, so `jj op log` returns the last-active workspace not the current one)
