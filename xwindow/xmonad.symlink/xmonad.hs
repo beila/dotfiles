@@ -174,6 +174,7 @@ floatRules =
         , className =? "Evolution-alarm-notify" --> doFloat
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
+        , className =? "copyq" --> doFloat
         ]
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
