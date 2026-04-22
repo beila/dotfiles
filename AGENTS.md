@@ -21,6 +21,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] stop amazon-vpn when the network changes
 - [ ] use --impure for private-dotfiles instead of having to add commit and override the lock file every time
 - [ ] run systemd for user from nix
+- [ ] use https://github.com/neurosnap/zmx in just c instead of zellij
 
 ### Medium impact
 - [ ] add squash feature to _gf
