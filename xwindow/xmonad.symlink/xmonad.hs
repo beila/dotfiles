@@ -153,7 +153,8 @@ shiftAllTo ws = composeAll . map (--> doShift ws)
 
 myManageHook =
     composeAll
-        [ floatRules
+        [ debugManageHook
+        , floatRules
         , browserRules
         , mailRules
         , editorRules
@@ -233,6 +234,7 @@ stripFullscreenProp = do
         io $ do
             cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
             let newState = filter (/= fromIntegral fs) cur
+            appendFile "/tmp/xmonad-debug.log" ("MH stripFullscreenProp w=" ++ show w ++ " cur=" ++ show cur ++ " new=" ++ show newState ++ "\n")
             changeProperty32 dpy w wmState atom propModeReplace newState
     idHook
 
@@ -336,13 +338,16 @@ stripZoomFullscreenHook :: Event -> X All
 stripZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
     wmState <- getAtom "_NET_WM_STATE"
     when (a == wmState) $ do
-        isZoomMeeting <- runQuery (className =? "zoom" <&&> title =? "Meeting") w
-        when isZoomMeeting $ do
+        cls <- runQuery className w
+        tit <- runQuery title w
+        io $ appendFile "/tmp/xmonad-debug.log" ("prop w=" ++ show w ++ " class=" ++ show cls ++ " title=" ++ show tit ++ "\n")
+        when (cls == "zoom" && tit == "Meeting") $ do
             fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
             atom <- getAtom "ATOM"
             withDisplay $ \dpy -> io $ do
                 cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
                 let newState = filter (/= fromIntegral fs) cur
+                appendFile "/tmp/xmonad-debug.log" ("  strip cur=" ++ show cur ++ " new=" ++ show newState ++ "\n")
                 when (newState /= cur) $
                     changeProperty32 dpy w wmState atom propModeReplace newState
             windows $ W.sink w
