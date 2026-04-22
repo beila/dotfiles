@@ -57,3 +57,6 @@ export AWS_EC2_METADATA_DISABLED=true
 
 # https://unix.stackexchange.com/a/595628
 export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
+
+# Added by AIM CLI
+export PATH="$HOME/.aim/mcp-servers:$PATH"
