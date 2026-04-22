@@ -21,19 +21,24 @@ if jj root &>/dev/null 2>&1; then
 
     # Commit current change if non-empty, OR jj new if @ is an empty merge (so Step 0 has a
     # stable single-rev CHANGE_ID to push instead of the merge @ itself).
-    IS_EMPTY=$(jj log -r @ --no-graph -T 'if(empty, "empty")' 2>/dev/null)
-    IS_MERGE=$(jj log -r @ --no-graph -T 'if(parents.len() > 1, "merge")' 2>/dev/null)
-    if [ -z "$IS_EMPTY" ] || [ -n "$IS_MERGE" ]; then
-        CHANGE_ID=$(jj log -r @ --no-graph -T 'change_id' 2>/dev/null)
+    # Single jj call snapshots @ atomically (change_id|empty|merge) — avoids races with concurrent jj.
+    AT_INFO=$(jj log -r @ --no-graph -T 'change_id ++ "|" ++ if(empty, "1", "0") ++ "|" ++ if(parents.len() > 1, "1", "0")' 2>/dev/null)
+    CHANGE_ID=${AT_INFO%%|*}
+    REST=${AT_INFO#*|}
+    IS_EMPTY=${REST%%|*}
+    IS_MERGE=${REST#*|}
+    if [ "$IS_EMPTY" = "0" ] || [ "$IS_MERGE" = "1" ]; then
         jj new
-        # Skip describe if already has a description, or if @- was an empty merge (no content to describe)
-        if [ -z "$IS_EMPTY" ] && jj log -r "$CHANGE_ID" --no-graph -T 'if(description, "has_desc", "empty")' 2>/dev/null | grep -q empty; then
+        # Skip describe if @- was empty (nothing to commit-msg), or already has a description
+        if [ "$IS_EMPTY" = "0" ] && jj log -r "$CHANGE_ID" --no-graph -T 'if(description, "has_desc", "empty")' 2>/dev/null | grep -q empty; then
             if ! MSG=$(VERBOSE=1 "$DOTFILES_ROOT/bin/commit-msg" "$CHANGE_ID"); then
                 echo "commit-msg failed" >&2
                 exit 1
             fi
             jj describe "$CHANGE_ID" -m "$MSG"
         fi
+    else
+        CHANGE_ID=
     fi
 
     # Requirements:
