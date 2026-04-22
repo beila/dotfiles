@@ -25,7 +25,6 @@
         <value type="int" value="19"/>
         <value type="int" value="11"/>
         <value type="int" value="8"/>
-        <value type="int" value="4"/>
       </property>
       <property name="span-monitors" type="bool" value="false"/>
     </property>
@@ -42,6 +41,7 @@
     <property name="plugin-6" type="string" value="systray">
       <property name="square-icons" type="bool" value="true"/>
       <property name="known-items" type="array">
+        <value type="string" value="CopyQ_copyq"/>
         <value type="string" value="albert"/>
         <value type="string" value="zoom"/>
         <value type="string" value="nm-applet"/>
@@ -135,6 +135,5 @@
       <property name="font" type="string" value="Ubuntu 11"/>
       <property name="text" type="string" value="(genmon)"/>
     </property>
-    <property name="plugin-4" type="string" value="actions"/>
   </property>
 </channel>
