@@ -326,10 +326,15 @@ blockZoomFullscreenHook ClientMessageEvent{ev_window = w, ev_message_type = mt, 
                 else return (All True)
         else return (All True)
 blockZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
+    isZoomMeeting <- runQuery (className =? "zoom" <&&> title =? "Meeting") w
+    when isZoomMeeting $ do
+        atomName <- withDisplay $ \d -> io $ getAtomName d a
+        io $ appendFile "/tmp/xmonad-debug.log" ("prop zoom " ++ show w ++ " atom=" ++ show atomName ++ "\n")
     nwmState <- getAtom "_NET_WM_STATE"
     when (a == nwmState) $ do
-        isZoomMeeting <- runQuery (className =? "zoom" <&&> title =? "Meeting") w
-        when isZoomMeeting $ windows $ W.sink w
+        when isZoomMeeting $ do
+            io $ appendFile "/tmp/xmonad-debug.log" ("sink zoom meeting " ++ show w ++ "\n")
+            windows $ W.sink w
     return (All True)
 blockZoomFullscreenHook _ = return (All True)
 
