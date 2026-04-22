@@ -59,6 +59,7 @@
         pkgs.zsh-autosuggestions
 
         pkgs.awscli2
+        pkgs.copyq  # clipboard history manager (Super+V picker)
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
@@ -147,6 +148,19 @@
       OnCalendar = "*:0/3";
     };
     Install.WantedBy = [ "timers.target" ];
+  };
+
+  # CopyQ clipboard manager daemon (persistent history at ~/.config/copyq/)
+  systemd.user.services.copyq = {
+    Unit = {
+      Description = "CopyQ clipboard manager";
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.copyq}/bin/copyq";
+      Restart = "on-failure";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   systemd.user.services.battery-notify = {

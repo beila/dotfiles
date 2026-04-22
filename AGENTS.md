@@ -158,6 +158,7 @@ Summary (keep in sync with the steering file):
   - Config template: `CYCLE_SWITCH_CMD` placeholder in Alt-s binding, replaced by `zellij-cycle` via sed with per-instance callback
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), agents/no-mcp.json (no MCP servers, used by commit-msg to avoid orphaned processes), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID` before starting new TTS; kill wrapped in `|| true` to survive dead PGID under `set -e`), bin/test_mcp_tts.sh (non-interactive test; run with `bash bin/test_mcp_tts.sh` after any change to mcp-tts)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
+- Clipboard history: `copyq` (nix) — systemd user service autostarts daemon, history persists in `~/.config/copyq/*.dat`; xmonad Super+V runs `copyq toggle` to show picker
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — single wttr.in JSON API call, python3 parses response; shows 🌙 after sunset / before sunrise (clear→moon, cloudy→☁🌙), weather icons unchanged for rain/snow/fog; tooltip: current conditions + hourly + 3-day forecast
 - System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode (2nd arg `1`) for metrics where high=good (battery); padding bars (no prior data) always use non-inverted color to avoid false red on battery; history in `/tmp/sysmon-history`, 8 samples
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (kept as fallback; battery now also in sysmon-genmon)
@@ -263,6 +264,7 @@ Summary (keep in sync with the steering file):
 - Super+` → next screen
 - Super+= → next screen
 - Super+0 → next empty workspace
+- Super+V → `copyq toggle` (clipboard history picker)
 
 ### Audio OSD System
 - Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
