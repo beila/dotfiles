@@ -21,16 +21,15 @@ if jj root &>/dev/null 2>&1; then
 
     # Commit current change if non-empty, OR jj new if @ is an empty merge (so Step 0 has a
     # stable single-rev CHANGE_ID to push instead of the merge @ itself).
-    # Single jj call snapshots @ atomically (change_id|empty|merge) — avoids races with concurrent jj.
-    AT_INFO=$(jj log -r @ --no-graph -T 'change_id ++ "|" ++ if(empty, "1", "0") ++ "|" ++ if(parents.len() > 1, "1", "0")' 2>/dev/null)
-    CHANGE_ID=${AT_INFO%%|*}
-    REST=${AT_INFO#*|}
-    IS_EMPTY=${REST%%|*}
-    IS_MERGE=${REST#*|}
+    # Single jj call snapshots @ atomically (change_id|empty|merge|has_desc|parent_change_id) —
+    # avoids races with concurrent jj. PARENT_CHANGE_ID is a single change_id for non-merge, ignored
+    # for merge (not used in the merge path).
+    AT_INFO=$(jj log -r @ --no-graph -T 'change_id ++ "|" ++ if(empty, "1", "0") ++ "|" ++ if(parents.len() > 1, "1", "0") ++ "|" ++ if(description, "1", "0") ++ "|" ++ parents.map(|p| p.change_id()).join(",")' 2>/dev/null)
+    IFS='|' read -r CHANGE_ID IS_EMPTY IS_MERGE HAS_DESC PARENT_CHANGE_ID <<<"$AT_INFO"
     if [ "$IS_EMPTY" = "0" ] || [ "$IS_MERGE" = "1" ]; then
         jj new
-        # Skip describe if @- was empty (nothing to commit-msg), or already has a description
-        if [ "$IS_EMPTY" = "0" ] && jj log -r "$CHANGE_ID" --no-graph -T 'if(description, "has_desc", "empty")' 2>/dev/null | grep -q empty; then
+        # Skip describe if @- was empty (nothing to commit-msg) or already has a description
+        if [ "$IS_EMPTY" = "0" ] && [ "$HAS_DESC" = "0" ]; then
             if ! MSG=$(VERBOSE=1 "$DOTFILES_ROOT/bin/commit-msg" "$CHANGE_ID"); then
                 echo "commit-msg failed" >&2
                 exit 1
@@ -51,7 +50,7 @@ if jj root &>/dev/null 2>&1; then
     if jj git remote list 2>/dev/null | grep -q '^hj '; then
         GIT_DIR=$(jj git root 2>/dev/null)
         HJ_URL=$(git --git-dir="$GIT_DIR" remote get-url hj 2>/dev/null)
-        PUSH_REV=${CHANGE_ID:-$(jj log -r '@-' --no-graph -T 'change_id' 2>/dev/null)}
+        PUSH_REV=${CHANGE_ID:-$PARENT_CHANGE_ID}
         CURRENT_BM=$(jj bookmark list -r "..$PUSH_REV" -T 'name ++ "\n"' 2>/dev/null | head -1)
 
         # Step 0: force-push workspace-named bookmark (hostname/workspace) to hj and delete locally.
