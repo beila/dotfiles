@@ -203,7 +203,7 @@ meetingRules =
             , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting"
             , title =? "Meeting chat"
             ]
-        , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink) <> stripFullscreenProp
+        , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         ]
@@ -220,6 +220,15 @@ messengerRules =
 
 endsWith :: Query String -> String -> Query Bool
 endsWith q s = fmap (L.isSuffixOf s) q
+
+-- Log every managed window's class/title for debugging
+debugManageHook :: ManageHook
+debugManageHook = do
+    w <- ask
+    c <- className
+    t <- title
+    io $ appendFile "/tmp/xmonad-debug.log" ("ManageHook w=" ++ show w ++ " class=" ++ show c ++ " title=" ++ show t ++ "\n")
+    idHook
 
 -- Remove _NET_WM_STATE_FULLSCREEN from the window's _NET_WM_STATE property.
 -- Used for Zoom Meeting window which is created with fullscreen state pre-set,
@@ -337,10 +346,12 @@ rescueOffscreenHook _ = return (All True)
 stripZoomFullscreenHook :: Event -> X All
 stripZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
     wmState <- getAtom "_NET_WM_STATE"
-    when (a == wmState) $ do
+    netName <- getAtom "_NET_WM_NAME"
+    let wmName = wM_NAME
+    when (a == wmState || a == netName || a == wmName) $ do
         cls <- runQuery className w
         tit <- runQuery title w
-        io $ appendFile "/tmp/xmonad-debug.log" ("prop w=" ++ show w ++ " class=" ++ show cls ++ " title=" ++ show tit ++ "\n")
+        io $ appendFile "/tmp/xmonad-debug.log" ("prop w=" ++ show w ++ " atom=" ++ show a ++ " class=" ++ show cls ++ " title=" ++ show tit ++ "\n")
         when (cls == "zoom" && tit == "Meeting") $ do
             fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
             atom <- getAtom "ATOM"
