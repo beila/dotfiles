@@ -249,6 +249,7 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
 -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen%27s_Configuration#Customizing_xmonad
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
+    , ((mod4Mask, xK_v), spawn "copyq toggle") -- clipboard history picker
     , ((0, xF86XK_TouchpadToggle), spawn "albert toggle") -- Super tap via keyd (prog1 = f21)
     , ((0, xF86XK_TouchpadOn), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2 = f22)
     , ((0, xF86XK_TouchpadOff), scratchpadToggle "ghostty2") -- Alt_R tap via keyd (prog3 = f23)
