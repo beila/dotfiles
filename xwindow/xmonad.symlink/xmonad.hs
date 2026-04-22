@@ -153,8 +153,7 @@ shiftAllTo ws = composeAll . map (--> doShift ws)
 
 myManageHook =
     composeAll
-        [ debugManageHook
-        , floatRules
+        [ floatRules
         , browserRules
         , mailRules
         , editorRules
@@ -220,32 +219,6 @@ messengerRules =
 
 endsWith :: Query String -> String -> Query Bool
 endsWith q s = fmap (L.isSuffixOf s) q
-
--- Log every managed window's class/title for debugging
-debugManageHook :: ManageHook
-debugManageHook = do
-    w <- ask
-    c <- className
-    t <- title
-    io $ appendFile "/tmp/xmonad-debug.log" ("ManageHook w=" ++ show w ++ " class=" ++ show c ++ " title=" ++ show t ++ "\n")
-    idHook
-
--- Remove _NET_WM_STATE_FULLSCREEN from the window's _NET_WM_STATE property.
--- Used for Zoom Meeting window which is created with fullscreen state pre-set,
--- causing xmonad (and Zoom itself) to treat it as fullscreen.
-stripFullscreenProp :: ManageHook
-stripFullscreenProp = do
-    w <- ask
-    liftX $ withDisplay $ \dpy -> do
-        wmState <- getAtom "_NET_WM_STATE"
-        fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
-        atom <- getAtom "ATOM"
-        io $ do
-            cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
-            let newState = filter (/= fromIntegral fs) cur
-            appendFile "/tmp/xmonad-debug.log" ("MH stripFullscreenProp w=" ++ show w ++ " cur=" ++ show cur ++ " new=" ++ show newState ++ "\n")
-            changeProperty32 dpy w wmState atom propModeReplace newState
-    idHook
 
 -- Move matching windows to the currently focused workspace
 followToCurrentWorkspace :: Query Bool -> X ()
@@ -340,25 +313,25 @@ rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width
     return (All True)
 rescueOffscreenHook _ = return (All True)
 
--- Watch _NET_WM_STATE changes on Zoom Meeting windows and strip
--- _NET_WM_STATE_FULLSCREEN (and sink). Zoom sets fullscreen state both at
--- window creation time and via ClientMessage; this hook handles both.
+-- Strip _NET_WM_STATE_FULLSCREEN from Zoom "Meeting" windows and sink them.
+-- Zoom creates the window titled "Zoom Workplace" and only renames it to
+-- "Meeting" after the ManageHook has run, so we can't match it via ManageHook.
+-- Instead watch PropertyNotify for _NET_WM_STATE and WM_NAME/_NET_WM_NAME
+-- changes; whenever a zoom window becomes titled "Meeting", drop the
+-- fullscreen state (Zoom sets it pre-map and via ClientMessage) and re-sink.
 stripZoomFullscreenHook :: Event -> X All
 stripZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
     wmState <- getAtom "_NET_WM_STATE"
     netName <- getAtom "_NET_WM_NAME"
-    let wmName = wM_NAME
-    when (a == wmState || a == netName || a == wmName) $ do
+    when (a == wmState || a == netName || a == wM_NAME) $ do
         cls <- runQuery className w
         tit <- runQuery title w
-        io $ appendFile "/tmp/xmonad-debug.log" ("prop w=" ++ show w ++ " atom=" ++ show a ++ " class=" ++ show cls ++ " title=" ++ show tit ++ "\n")
         when (cls == "zoom" && tit == "Meeting") $ do
             fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
             atom <- getAtom "ATOM"
             withDisplay $ \dpy -> io $ do
                 cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
                 let newState = filter (/= fromIntegral fs) cur
-                appendFile "/tmp/xmonad-debug.log" ("  strip cur=" ++ show cur ++ " new=" ++ show newState ++ "\n")
                 when (newState /= cur) $
                     changeProperty32 dpy w wmState atom propModeReplace newState
             windows $ W.sink w
