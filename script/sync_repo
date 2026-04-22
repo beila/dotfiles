@@ -17,8 +17,9 @@ exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
 
 if jj root &>/dev/null 2>&1; then
-    # Skip if no 'hj' remote (avoid touching unrelated jj repos discovered by sync_all)
+    # If no 'hj' remote, just snapshot the working copy and exit
     if ! jj git remote list 2>/dev/null | grep -q '^hj '; then
+        jj status &>/dev/null
         exit 0
     fi
     jj workspace update-stale 2>/dev/null || true
