@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# Sync all known dotfiles/docs repos that exist on this machine
+# Sync all jj/git repos under $HOME that have an 'hj' remote.
+# sync_repo no-ops repos without hj, so we can run it broadly.
 DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 SYNC="$DOTFILES_ROOT/script/sync_repo"
-
-TARGETS="$DOTFILES_ROOT $HOME/hjdocs $HOME/hjdocs/public-docs $HOME/pp/insuk-www"
-TARGETS="$TARGETS $HOME/dev/hjdocs $HOME/dev/hjdocs/public-docs $HOME/dev/i"
-TARGETS="$TARGETS $HOME/devc/hjdocs $HOME/devc/hjdocs/public-docs $HOME/devc/i $HOME/devc/i/devc1"
-TARGETS="$TARGETS $HOME/devm/hjdocs $HOME/devm/hjdocs/public-docs $HOME/devm/i"
+DB="$HOME/.cache/plocate.db"
 
 NOTIFY="$DOTFILES_ROOT/bin/notify-webhook"
 HOST="$(hostnamectl --pretty 2>/dev/null || hostname)"
 
-for dir in $TARGETS; do
-    [ -d "$dir" ] && "$SYNC" "$dir" || "$NOTIFY" "⚠️ sync failed on $HOST: $dir"
-done
+if [ ! -f "$DB" ]; then
+    echo "plocate database not found at $DB" >&2
+    exit 1
+fi
 
-# Snapshot all other jj repos (not in TARGETS)
-"$DOTFILES_ROOT/script/jj_snapshot_all"
+{
+    plocate --database "$DB" -r '/\.jj$'  2>/dev/null
+    plocate --database "$DB" -r '/\.git$' 2>/dev/null
+} | while read -r marker; do dirname "$marker"; done \
+  | grep -Ev '/(\.cache|\.cargo|\.nix-profile|node_modules)(/|$)' \
+  | sort -u | while read -r repo; do
+    [ -d "$repo" ] || continue
+    "$SYNC" "$repo" || "$NOTIFY" "⚠️ sync failed on $HOST: $repo"
+done
