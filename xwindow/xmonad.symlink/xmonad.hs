@@ -25,7 +25,13 @@ import Graphics.X11.ExtraTypes.XF86
 -- Main
 ------------------------------------------------------------------------
 
-main = xmonad $ ewmhFullscreen $ rescreenHook monitorHotplugCfg myConfig
+main = xmonad $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
+  where
+    -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
+    fsHook = composeOne
+        [ className =? "zoom" <&&> title =? "Meeting" -?> idHook
+        , pure True -?> doFullFloat
+        ]
 
 myConfig =
     gnomeConfig
@@ -41,7 +47,7 @@ myConfig =
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep albert || albert"
                 ]
-        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> blockZoomFullscreenHook
+        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook
         , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
@@ -306,37 +312,6 @@ rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width
                         W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
     return (All True)
 rescueOffscreenHook _ = return (All True)
-
-------------------------------------------------------------------------
--- Block Zoom Meeting fullscreen (force tiled)
-------------------------------------------------------------------------
-
--- Zoom sends _NET_WM_STATE ClientMessage to request fullscreen; ewmhFullscreen
--- responds by floating. Intercept and drop those messages for the Meeting
--- window so it stays tiled as per meetingRules.
-blockZoomFullscreenHook :: Event -> X All
-blockZoomFullscreenHook ClientMessageEvent{ev_window = w, ev_message_type = mt, ev_data = d} = do
-    nwmState <- getAtom "_NET_WM_STATE"
-    fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
-    if mt == nwmState && fromIntegral fs `elem` drop 1 d
-        then do
-            isZoomMeeting <- runQuery (className =? "zoom" <&&> title =? "Meeting") w
-            if isZoomMeeting
-                then windows (W.sink w) >> return (All False)
-                else return (All True)
-        else return (All True)
-blockZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
-    isZoomMeeting <- runQuery (className =? "zoom" <&&> title =? "Meeting") w
-    when isZoomMeeting $ do
-        atomName <- withDisplay $ \d -> io $ getAtomName d a
-        io $ appendFile "/tmp/xmonad-debug.log" ("prop zoom " ++ show w ++ " atom=" ++ show atomName ++ "\n")
-    nwmState <- getAtom "_NET_WM_STATE"
-    when (a == nwmState) $ do
-        when isZoomMeeting $ do
-            io $ appendFile "/tmp/xmonad-debug.log" ("sink zoom meeting " ++ show w ++ "\n")
-            windows $ W.sink w
-    return (All True)
-blockZoomFullscreenHook _ = return (All True)
 
 ------------------------------------------------------------------------
 -- EWMH fullscreen support
