@@ -496,6 +496,7 @@ new-ws dir main_package *more_packages: mwinit
                 else
                     git clone ssh://git.amazon.com/pkg/$p "$main_dir"
                     git -C "$main_dir" remote add hj ssh://git.amazon.com/pkg/$p/backup/$(whoami)
+                    git -C "$main_dir" remote add hj ssh://git.amazon.com/pkg/$p/share/$(whoami)
                 fi
             fi
 
