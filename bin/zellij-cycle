@@ -7,6 +7,19 @@ set -euo pipefail
 
 SESSION="${1:-main}"
 
+# If argument looks like a number, pick the Nth existing session (1-indexed)
+# instead of creating a named session. Falls back to "main-N" if not enough sessions exist.
+if [[ "$SESSION" =~ ^[0-9]+$ ]]; then
+    IDX=$((SESSION - 1))
+    FALLBACK="main-${SESSION}"
+    mapfile -t sessions < <(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}')
+    if [ "${#sessions[@]}" -gt "$IDX" ]; then
+        SESSION="${sessions[$IDX]}"
+    else
+        SESSION="$FALLBACK"
+    fi
+fi
+
 next_session() {
     local cur="$1"
     local sessions
