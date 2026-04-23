@@ -13,9 +13,6 @@ keybinds clear-defaults=true {
         bind "Alt q" { Quit; }
         // Sessions: Alt-tab cycles (detach triggers zellij-cycle wrapper to reattach next)
         bind "Alt tab" { Detach; }
-        // Sessions: Alt-s opens fzf session picker in-place (Alt-s cycles in fzf)
-        // Sessions: Alt-s opens floating fzf session picker
-        bind "Alt s" { Run "zsh" "-ic" "zellij-pick-session CYCLE_SWITCH_CMD"; }
         // Tabs: Ctrl-tab
         bind "Ctrl tab" { GoToNextTab; }
         // Panes: Ctrl-h/j/k/l
