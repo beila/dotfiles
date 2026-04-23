@@ -17,6 +17,12 @@ keybinds clear-defaults=true {
         bind "Alt s" { Run "zsh" "-ic" "zellij-pick-session CYCLE_SWITCH_CMD"; }
         bind "Alt t" { SwitchToMode "tab"; }
         bind "Alt v" { EditScrollback; }
+        bind "Alt w" {
+            LaunchOrFocusPlugin "session-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+        }
         bind "Ctrl tab" { GoToNextTab; }
         bind "Alt tab" { Detach; }
     }
