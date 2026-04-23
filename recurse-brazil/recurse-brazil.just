@@ -502,8 +502,6 @@ new-ws dir main_package *more_packages: mwinit
             rm -rf "$target_dir"
 
             just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch="$my_branch" workspace "$target_dir" "$main_dir"
-
-            git -C "$target_dir" branch --set-upstream-to=origin/mainline $my_branch || true
         )
     done
 
@@ -519,12 +517,13 @@ workspace $target $source=".":
 
     if ! jj --version > /dev/null 2>&1;
     then
-        git worktree add "${target}" ${my_branch:+-B${my_branch}}
+        git worktree add "${target}" ${my_branch:+-B${my_branch}} &&
+            git -C "$target_dir" branch --set-upstream-to=origin/mainline $my_branch
         exit $?
     fi
 
     my_branch={{ work_branch }}
-    if [[ -d .git || -f .git ]]; then
+    if git rev-parse HEAD > /dev/null 2>&1; then
         git worktree add "${target}" ${my_branch:+-B${my_branch}}
 
         jj root &> /dev/null || exit 0
