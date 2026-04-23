@@ -17,8 +17,8 @@ exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
 
 if jj root &>/dev/null 2>&1; then
-    # If no 'hj' remote, just snapshot the working copy and exit
-    if ! jj git remote list 2>/dev/null | grep -q '^hj '; then
+    # If no 'backup' remote, just snapshot the working copy and exit
+    if ! jj git remote list 2>/dev/null | grep -q '^backup '; then
         jj status &>/dev/null
         exit 0
     fi
@@ -54,13 +54,13 @@ if jj root &>/dev/null 2>&1; then
     # 4. Fetch remote, merge tracked bookmark forward, push (no force)
     #    — if no remote changes, master and taygeta/master end up at the same commit
     GIT_DIR=$(jj git root 2>/dev/null)
-    HJ_URL=$(git --git-dir="$GIT_DIR" remote get-url hj 2>/dev/null)
+    HJ_URL=$(git --git-dir="$GIT_DIR" remote get-url backup 2>/dev/null)
     CURRENT_BM=$(jj bookmark list -r "..$PUSH_REV" -T 'name ++ "\n"' 2>/dev/null | head -1)
 
-    # Step 0: force-push workspace-named bookmark (hostname/workspace) to hj and delete locally.
+    # Step 0: force-push workspace-named bookmark (hostname/workspace) to backup and delete locally.
     # Pushes PUSH_REV. Empty merges are `jj new`-ed above so
     # PUSH_REV always resolves to a single revision even when @ was a merge commit.
-    # Uses raw git delete+push because hj server doesn't support --force-with-lease.
+    # Uses raw git delete+push because backup server doesn't support --force-with-lease.
     # Workspace name: match current @ commit against `jj workspace list` (op log is shared across
     # workspaces so `jj op log` returns the last-active workspace, not the current one).
     CURRENT_COMMIT=$(jj log -r @ --no-graph -T 'commit_id' 2>/dev/null)
@@ -91,10 +91,10 @@ if jj root &>/dev/null 2>&1; then
         fi
     done
 
-    # Step 2: fetch from hj, merge tracked bookmark forward, push
+    # Step 2: fetch from backup, merge tracked bookmark forward, push
     if [ -n "$CURRENT_BM" ]; then
         jj git fetch --all-remotes 2>/dev/null || true
-        REMOTE_REV="${CURRENT_BM}@hj"
+        REMOTE_REV="${CURRENT_BM}@backup"
         # Check if diverged (remote is not ancestor of local)
         if ! jj log -r "$REMOTE_REV & ancestors($CURRENT_BM)" --no-graph 2>/dev/null | grep -q .; then
             # Diverged: create a merge commit
@@ -107,12 +107,12 @@ if jj root &>/dev/null 2>&1; then
             else
                 jj bookmark set "$CURRENT_BM" -r @ 2>/dev/null || true
                 jj new 2>/dev/null || true
-                jj git push --remote hj --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
+                jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
             fi
         else
-            jj git push --remote hj --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
+            jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
         fi
-        jj bookmark track "${CURRENT_BM}@hj" 2>/dev/null || true
+        jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
     fi
 
     # Step 3: rebase local mutable chain onto updated bookmark
@@ -126,8 +126,8 @@ if jj root &>/dev/null 2>&1; then
     # Clean up empty no-description orphan heads left by git operations forking @
     jj abandon 'heads(empty() & description(exact:"")) ~ @ ~ bookmarks()' 2>/dev/null || true
 else
-    # Skip if no 'hj' remote (avoid touching unrelated git repos discovered by sync_all)
-    if ! $GIT remote | grep -qx 'hj'; then
+    # Skip if no 'backup' remote (avoid touching unrelated git repos discovered by sync_all)
+    if ! $GIT remote | grep -qx 'backup'; then
         exit 0
     fi
     $GIT submodule foreach bash -c "$GIT add --verbose --all .
