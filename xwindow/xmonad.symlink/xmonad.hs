@@ -265,6 +265,7 @@ myKeys =
       ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
     , ((mod4Mask, xK_0), moveTo Next (emptyWS :&: Not (WSIs $ return (\w -> W.tag w == "NSP")))) -- find a free workspace (skip NSP)
+    , ((mod4Mask, xK_s), spawn "scrot -s - | xclip -selection clipboard -t image/png") -- screenshot selection to clipboard
     ]
         ++
         -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view

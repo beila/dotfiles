@@ -63,9 +63,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 
 ### Low impact
-- [ ] zellij session picker: make it floating
-- [ ] zellij session picker: show current session differently and make it not choosable
-- [ ] zellij session picker: kills current pane, when the session is open in two zellij
 - [ ] airline tabbar changes a lot when opening nvimtree
 - [ ] there's no gap between ghostty vertically
 - [ ] make battery notification sticky
@@ -110,9 +107,8 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-  - Normal mode: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-s→fzf session picker, Alt-w→session manager (built-in plugin), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
+  - Normal mode: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-w→session manager (built-in plugin), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
   - Move mode: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
-  - Config template: `CYCLE_SWITCH_CMD` placeholder in Alt-s binding, replaced by `zellij-cycle` via sed
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), agents/no-mcp.json (no MCP servers, used by commit-msg to avoid orphaned processes), settings/cli.json (default agent: builder), bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID`), bin/test_mcp_tts.sh (run with `bash bin/test_mcp_tts.sh`)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Clipboard history: `copyq` (nix) — systemd user service, xmonad Super+V runs `copyq toggle`
@@ -130,8 +126,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (`--agent no-mcp`, stdin piping, 30s timeout), ollama + qwen2.5-coder:3b fallback (5s health check, started on demand), file-list final fallback; jj-first/git-fallback; `VERBOSE=1` enables detailed output
 - Notifications: `~/.dotfiles/bin/notify-webhook` — currently disabled (exit 0), awaiting Telegram bot
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored colocated jj/git repo; added as `git+file://` flake input; stores machine-specific config (host configs, tokens, webhook URLs), Brazil JDK setup, and per-host `homeConfigurations`; zsh `**/*.zsh` glob auto-sources; `install.sh` files run by `script/install`; `ssh.filesymlink/` provides SSH host aliases; see `private-dotfiles/AGENTS.md` for Brazil, flake input details, and how to add a new host
-- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; generates per-instance config via sed; supports session names with spaces
-- Zellij session picker: `~/.dotfiles/bin/zellij-pick-session` — fzf-based session picker with Alt-s cycling; closes own pane and runs callback detached via setsid
+- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; supports session names with spaces
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - Battery notify: `~/.dotfiles/script/battery-notify` — systemd timer every 1min, notifies at ≤20% (normal) and ≤10% (critical), once per threshold, resets on charge
 - zsh config: standalone files in `~/.dotfiles/zsh/` (zprezto fully removed)
@@ -206,6 +201,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Super+Shift+Enter → gnome-terminal
 - Super+` / Super+= → next screen
 - Super+0 → next empty workspace
+- Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)
 - Super+V → `copyq toggle` (clipboard history)
 
 ### Audio OSD System
