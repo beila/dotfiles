@@ -1,8 +1,5 @@
 "$schema" = "https://jj-vcs.github.io/jj/latest/config-schema.json"
 
-[user]
-name = "Hojin Ghim"
-
 [ui]
 default-command = "log"
 merge-editor = "vimdiff"
