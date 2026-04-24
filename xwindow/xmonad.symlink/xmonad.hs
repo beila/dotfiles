@@ -202,7 +202,7 @@ meetingRules =
             "8:meeting"
             [ className =? "AmazonChime"
             , title =? "Amazon Chime — Mozilla Firefox"
-            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting"
+            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting" <&&> title /=? "annotate_toolbar"
             , title =? "Meeting chat"
             ]
         , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
