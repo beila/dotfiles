@@ -1,0 +1,88 @@
+"$schema" = "https://jj-vcs.github.io/jj/latest/config-schema.json"
+
+[ui]
+default-command = "log"
+merge-editor = "vimdiff"
+
+[revsets]
+log = "present(@) | ancestors(immutable_heads().., 2) | trunk() ~ hidden()"
+
+[merge-tools.vimdiff]
+program = "nvim"
+merge-args = ["-f", "-d", "$output", "-M",
+    "$left", "$base", "$right",
+    "-c", "wincmd J", "-c", "set modifiable",
+    "-c", "set write"]
+merge-tool-edits-conflict-markers = true
+
+[revset-aliases]
+'immutable_heads()' = 'trunk() | tags() | untracked_remote_bookmarks() ~ remote_bookmarks(remote=backup)'
+
+# Mutable working chain + boundary + all branches off it (for fzf _jh)
+'workspace_view()' = 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::'
+
+# Show commits unique to a revision x relative to a set of marker revisions
+# (bookmarks, tags, etc), plus the boundary revs where unique history ends.
+#
+# Goal: when previewing a bookmark or tag, show only the commits that were
+# introduced by that bookmark/tag — not the shared history that already
+# existed in ancestor bookmarks/tags. Each branch in the graph terminates
+# at a boundary rev (the first shared commit), giving clear visual context
+# of where the unique work starts and ends.
+#
+# unique(x, markers):
+#   The range from ancestor markers to x. Finds all markers that are
+#   strict ancestors of x, then returns commits reachable from x but not
+#   from those markers.
+#
+# unique_boundary(x, markers):
+#   unique() plus the parent commits that sit just outside the range.
+#   These boundary revs are parents of range commits that are NOT
+#   themselves in the range — i.e. the first commits of shared history.
+#   This ensures every branch in the graph ends with a visible commit
+#   instead of trailing off with "~".
+#
+# Usage:
+#   jj log -r 'unique_boundary("my-bookmark", bookmarks())'
+#   jj log -r 'unique_boundary("v1.2.0", tags())'
+'unique(x, markers)' = '((markers ~ x) & ::x-)..x'
+'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
+
+[template-aliases]
+# Short relative timestamp: "1w", "3d", "2h", "5m", "6M", "1y"
+# (jj 0.32 lacks .replace(); uses .contains()/.substr() to strip " <unit> ago")
+'short_ago(ts)' = '''
+label("committer timestamp ago",
+if(ts.ago().contains("minutes"), ts.ago().substr(0, -12) ++ "m",
+if(ts.ago().contains("minute"),  ts.ago().substr(0, -11) ++ "m",
+if(ts.ago().contains("hours"),   ts.ago().substr(0, -10) ++ "h",
+if(ts.ago().contains("hour"),    ts.ago().substr(0, -9)  ++ "h",
+if(ts.ago().contains("days"),    ts.ago().substr(0, -9)  ++ "d",
+if(ts.ago().contains("day"),     ts.ago().substr(0, -8)  ++ "d",
+if(ts.ago().contains("weeks"),   ts.ago().substr(0, -10) ++ "w",
+if(ts.ago().contains("week"),    ts.ago().substr(0, -9)  ++ "w",
+if(ts.ago().contains("months"),  ts.ago().substr(0, -11) ++ "M",
+if(ts.ago().contains("month"),   ts.ago().substr(0, -10) ++ "M",
+if(ts.ago().contains("years"),   ts.ago().substr(0, -10) ++ "y",
+if(ts.ago().contains("year"),    ts.ago().substr(0, -9)  ++ "y",
+  ts.ago()))))))))))))
+)
+'''
+# Compact oneline for fzf: no author, no git commit id, shortest change id
+'fzf_oneline' = '''
+if(root, format_root_commit(self),
+  label(if(current_working_copy, "working_copy"),
+    separate(" ", change_id.shortest(), short_ago(commit_timestamp(self)), working_copies,
+      if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
+      bookmarks, tags) ++ "\n"))
+'''
+# Same but with author (for full history where multiple authors appear)
+'fzf_oneline_author' = '''
+if(root, format_root_commit(self),
+  label(if(current_working_copy, "working_copy"),
+    separate(" ", change_id.shortest(), if(author.name(), author.name().split(" ").first(), author.email().local()), short_ago(commit_timestamp(self)), working_copies,
+      if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
+      bookmarks, tags) ++ "\n"))
+'''

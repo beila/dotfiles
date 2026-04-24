@@ -1,0 +1,14 @@
+#!/bin/bash
+MATLAB=/usr/local/matlab75
+pgrep lmgrd >/dev/null
+if [ $? -ne 0 ]
+then
+    $MATLAB/etc/glnx86/lmgrd -c $MATLAB/etc/license.dat -l /var/tmp/LM_TMW.log
+fi
+
+#compiz 쓸 때 화면 안 나오는 문제 해결..
+#출처: http://www.mathworks.com/support/solutions/en/data/1-30BSFV/index.html?solution=1-30BSFV
+export AWT_TOOLKIT=MToolkit
+$MATLAB/bin/matlab "$@"
+
+#killall lmgrd

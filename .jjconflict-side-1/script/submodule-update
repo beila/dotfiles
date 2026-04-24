@@ -1,0 +1,4 @@
+#!/bin/bash
+GIT=${GIT_EXECUTABLE:-git}
+${GIT} submodule init\
+&& ${GIT} submodule foreach --recursive "bash -c \"${GIT} fetch origin && ${GIT} reset --hard origin/HEAD\""

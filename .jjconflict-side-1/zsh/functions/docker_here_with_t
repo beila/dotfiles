@@ -1,0 +1,34 @@
+#!env zsh
+all_signle_options=(-d --detach --init -i --interactive --no-healthcheck --oom-kill--disable --privileged -P --publish-all --read-only --rm --sig-proxy -t --tty) # from docker run --help (20.10.25)
+single_options=()
+double_options=()
+while [[ "$1" = -* ]]
+do
+    if [[ " ${all_signle_options[@]} " =~ " $1 " ]]
+    then
+        single_options+=($1)
+        shift
+    else
+        double_options+=("$1" "$2")
+        shift 2
+    fi
+done
+
+image="${1}"
+shift
+
+test -f /tmp/fake_passwd || echo "$(id -un):x:$(id -u):$(id -g):Git User:/tmp:/bin/bash" > /tmp/fake_passwd
+
+# --init is needed for xvfb-run to run
+docker_here_t \
+    --init \
+    "${single_options[@]}" "${double_options[@]}" \
+    "${image}" \
+    xvfb-run --auto-servernum -e /dev/stderr --server-args='-screen 0 1400x900x24 -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix' \
+        bash -c "
+            export HOME=${new_home:-\$HOME}
+            export PATH=${new_path}:\${PATH}
+            export DOCKER_HERE_HOME=${DOCKER_HERE_HOME}
+            $*"
+    #--volume "${this_dir}:${this_dir}" \
+    #--volume "${git_dir}:${git_dir}" \

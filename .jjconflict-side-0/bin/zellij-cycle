@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Zellij session cycler — wraps zellij attach in a loop.
+# On detach (Alt-tab), reattaches to the next active session.
+# Exits when the terminal is gone (ghostty killed).
+# Usage: zellij-cycle <default-session-name>
+set -euo pipefail
+
+SESSION="${1:-main}"
+
+# If argument looks like a number, pick the Nth existing session (1-indexed)
+# instead of creating a named session. Falls back to "main-N" if not enough sessions exist.
+if [[ "$SESSION" =~ ^[0-9]+$ ]]; then
+    IDX=$((SESSION - 1))
+    FALLBACK="main-${SESSION}"
+    mapfile -t sessions < <(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}')
+    if [ "${#sessions[@]}" -gt "$IDX" ]; then
+        SESSION="${sessions[$IDX]}"
+    else
+        SESSION="$FALLBACK"
+    fi
+fi
+
+next_session() {
+    local cur="$1"
+    local sessions
+    mapfile -t sessions < <(zellij ls -n 2>/dev/null | grep -v EXITED | awk -F" \\[" '{print $1}')
+    local n=${#sessions[@]}
+    [ "$n" -le 1 ] && echo "$cur" && return
+    for i in "${!sessions[@]}"; do
+        if [ "${sessions[$i]}" = "$cur" ]; then
+            echo "${sessions[$(((i + 1) % n))]}"
+            return
+        fi
+    done
+    echo "${sessions[0]}"
+}
+
+while [ -t 0 ]; do
+    zellij attach --create "$SESSION" 2>/dev/null || true
+    [ -t 0 ] || break
+    SESSION=$(next_session "$SESSION")
+    clear
+done

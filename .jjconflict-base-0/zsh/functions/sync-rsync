@@ -1,0 +1,3 @@
+#!env zsh
+# probably not working yet. sync-ssh is more recent.
+(set -x; RELPWD=${PWD#${HOME}/}; ssh c mkdir -p $RELPWD && (echo start; fswatch -r .) | xargs -I III rsync -aP --delete --exclude=.git $(git clean -dXn|awk '{print "--exclude=" $3}') . c:$RELPWD)

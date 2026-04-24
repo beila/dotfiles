@@ -1,0 +1,108 @@
+#!/bin/bash
+# Generate a commit message from the current jj/git diff using kiro-cli (preferred) or ollama (fallback)
+# Usage: commit-msg [revision]
+
+log() { [ "${VERBOSE:-}" = 1 ] && echo "commit-msg: $*" >&2; }
+
+REV="${1:-@}"
+
+# Compact diff: deleted files as names only, full diff for modified/added
+if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
+    diff=$({
+        jj diff -r "$REV" --types 2>/dev/null | awk '$1 ~ /-$/ {print "Deleted: " substr($0, index($0,$2))}'
+        jj diff -r "$REV" --git 2>/dev/null | awk '
+            /^diff --git/{header=$0; deleted=0; next}
+            /^deleted file/{deleted=1; next}
+            {if(!deleted){if(header){print header; header=""} print}}'
+    })
+else
+    diff=$({
+        git diff --cached --diff-filter=D --name-only 2>/dev/null | sed 's/^/Deleted: /'
+        git diff --cached --diff-filter=d 2>/dev/null
+    })
+    if [ -z "$diff" ]; then
+        diff=$({
+            git diff HEAD --diff-filter=D --name-only 2>/dev/null | sed 's/^/Deleted: /'
+            git diff HEAD --diff-filter=d 2>/dev/null
+        })
+    fi
+fi
+
+if [ -z "$diff" ]; then
+    log "no changes found"
+    echo "No changes to describe." >&2
+    exit 1
+fi
+
+log "diff size: $(echo "$diff" | wc -l) lines"
+
+PROMPT_BASE="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."
+
+strip_ansi() {
+    sed 's/\x1b\[[0-9;]*m//g; s/\x1b\[[?][0-9]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/.*\r//; s/^> //'
+}
+
+# Clean LLM output to a single commit message line
+clean_msg() {
+    sed '/^```/d' | sed '/^$/d' | head -1
+}
+
+if command -v kiro-cli &>/dev/null; then
+    log "trying kiro-cli"
+    KIRO_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
+    KIRO_ERR=$(mktemp /tmp/commit-msg-err.XXXXXX)
+    printf '%s\n\n%s' "$PROMPT_BASE" "$diff" > "$KIRO_PROMPT"
+    # Use no-mcp agent to avoid spawning orphaned MCP server processes
+    raw_msg=$(timeout 30 kiro-cli chat --no-interactive --wrap never --agent no-mcp < "$KIRO_PROMPT" 2>"$KIRO_ERR")
+    kiro_exit=$?
+    log "kiro-cli exit code: $kiro_exit"
+    [ -s "$KIRO_ERR" ] && log "kiro-cli stderr: $(cat "$KIRO_ERR")"
+    log "kiro-cli raw output (${#raw_msg} bytes): $(echo "$raw_msg" | head -3)"
+    msg=$(echo "$raw_msg" | strip_ansi | clean_msg)
+    log "kiro-cli cleaned: $msg"
+    rm -f "$KIRO_PROMPT" "$KIRO_ERR"
+    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press.*cancel|log.?in|▰'; then
+        log "kiro-cli succeeded: $msg"
+        echo "$msg"
+        exit 0
+    fi
+    log "kiro-cli failed (empty or invalid output)"
+else
+    log "kiro-cli skipped ($(! command -v kiro-cli &>/dev/null && echo "not installed" || echo "called from within kiro session"))"
+fi
+
+# Fallback: ollama local LLM — start on demand, stop after
+# Skip if ollama can't generate within 5s (e.g. out of memory / no GPU)
+truncated_diff=$(echo "$diff" | head -200)
+MODEL="qwen2.5-coder:3b"
+if ! curl -sf http://localhost:11434/api/tags &>/dev/null; then
+    log "starting ollama"
+    ollama serve &>/dev/null &
+    ollama_pid=$!
+    for _ in $(seq 50); do curl -sf http://localhost:11434/api/tags &>/dev/null && break; sleep 0.1; done
+fi
+trap 'kill $ollama_pid 2>/dev/null' EXIT
+log "trying ollama ($MODEL)"
+if curl -sf --max-time 5 http://localhost:11434/api/generate \
+    -d '{"model":"'"$MODEL"'","prompt":"hi","stream":false}' &>/dev/null; then
+    log "ollama health check passed"
+    msg=$(curl -sf --max-time 30 http://localhost:11434/api/generate \
+        -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT_BASE
+
+$truncated_diff" \
+            '{model: $model, prompt: $prompt, stream: false}')" \
+        | jq -r '.response' | clean_msg)
+    if [ -n "$msg" ]; then
+        log "ollama succeeded: $msg"
+        echo "$msg"
+        exit 0
+    fi
+    log "ollama failed (empty response)"
+else
+    log "ollama health check failed (timeout or unavailable)"
+fi
+
+# Final fallback: file list summary
+msg="Change $(echo "$diff" | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||' | paste -sd, -)"
+log "using fallback: $msg"
+echo "$msg"

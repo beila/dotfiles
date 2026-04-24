@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=GNOME Flashback + XMonad
+Comment=GNOME desktop environment with XMonad as window manager
+Exec=gnome-session --session=gnome-flashback-xmonad
+TryExec=gnome-session
+Type=Application
+DesktopNames=GNOME-Flashback;GNOME;
+X-Ubuntu-Gettext-Domain=gnome-flashback

@@ -1,0 +1,8 @@
+#/bin/bash
+if [ -z "$2" -o -a "$1" ]
+	then
+	echo "need destination directory name" >&2
+        exit 1
+	fi
+
+exiftool -v -r -P '-FileName</mnt/data/picture/${DateTimeOriginal}${Model}%-c.%e' -d "%Y/%Y-%m-%d${1}/%Y%m%d-%H%M%S" "${@:2}"

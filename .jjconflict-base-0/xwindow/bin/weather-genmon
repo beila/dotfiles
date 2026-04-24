@@ -1,0 +1,97 @@
+#!/bin/bash
+# Weather genmon script for xfce4-panel
+# Uses wttr.in API — no API key needed
+
+json=$(curl -sf 'https://wttr.in/London?format=j1' 2>/dev/null)
+if [ -z "$json" ]; then
+    echo "<txt>☁ --</txt>"
+    echo "<tool>Weather unavailable</tool>"
+    exit 0
+fi
+
+read -r icon temp sunrise sunset < <(echo "$json" | python3 -c "
+import sys,json
+from datetime import datetime
+d=json.load(sys.stdin)
+w=d['weather'][0]
+cur=d['current_condition'][0]
+icon=cur['weatherIconUrl'][0]['value']  # unused, use desc instead
+desc=cur['weatherDesc'][0]['value'].strip().lower()
+temp=cur['temp_C']
+sr=w['astronomy'][0]['sunrise'].strip()
+ss=w['astronomy'][0]['sunset'].strip()
+now=datetime.now()
+fmt='%I:%M %p'
+sunrise=datetime.strptime(sr, fmt).replace(year=now.year, month=now.month, day=now.day)
+sunset=datetime.strptime(ss, fmt).replace(year=now.year, month=now.month, day=now.day)
+night = now > sunset or now < sunrise
+if night:
+    if 'cloud' in desc or 'partly' in desc or 'overcast' in desc:
+        e='☁🌙'
+    else:
+        e='🌙'
+elif 'sun' in desc or 'clear' in desc:
+    e='☀️'
+elif 'partly' in desc or 'cloud' in desc:
+    e='⛅'
+elif 'rain' in desc or 'drizzle' in desc:
+    e='🌧'
+elif 'snow' in desc:
+    e='❄️'
+elif 'thunder' in desc:
+    e='⛈'
+elif 'fog' in desc or 'mist' in desc:
+    e='🌫'
+elif 'overcast' in desc:
+    e='☁️'
+else:
+    e='🌤'
+print(e, f'{temp}°C', sr, ss)
+" 2>/dev/null)
+
+if [ -n "$temp" ]; then
+    echo "<txt>${icon} ${temp}</txt>"
+else
+    echo "<txt>☁ --</txt>"
+    echo "<tool>Weather unavailable</tool>"
+    exit 0
+fi
+
+tooltip=$(echo "$json" | python3 -c "
+import sys,json
+from datetime import datetime,timedelta
+d=json.load(sys.stdin)
+cur=d['current_condition'][0]
+w=d['weather'][0]
+loc=d['nearest_area'][0]['areaName'][0]['value']
+cond=cur['weatherDesc'][0]['value'].strip()
+temp=cur['temp_C']
+feel=cur['FeelsLikeC']
+hum=cur['humidity']
+wind=cur['windspeedKmph']+'km/h '+cur['winddir16Point']
+sr=w['astronomy'][0]['sunrise'].strip()
+ss=w['astronomy'][0]['sunset'].strip()
+print(f'{loc}  —  {cond}')
+print()
+print(f'🌡️ Temp:     {temp}°C (feels {feel}°C)')
+print(f'💧 Humidity: {hum}%')
+print(f'💨 Wind:     {wind}')
+print(f'🌅 Sun:      {sr} – {ss}')
+print()
+print('📅 Forecast')
+today=datetime.now().date()
+now_h=int(datetime.now().strftime('%H'))
+first=True
+for h in w['hourly']:
+    hour=int(h['time'])//100
+    if hour<now_h: continue
+    if first: print('Today'); first=False
+    print(f\"  {hour:02d}:00    {h['tempC']:>3}°C  🌧 {h['chanceofrain']:>3}%  {h['weatherDesc'][0]['value']}\")
+for day in d['weather'][1:3]:
+    dt=datetime.strptime(day['date'],'%Y-%m-%d').date()
+    diff=(dt-today).days
+    label='Tomorrow' if diff==1 else dt.strftime('%A')
+    h=day['hourly'][4]
+    print(f\"{label:<10} {day['mintempC']:>2}–{day['maxtempC']:>2}°C  🌧 {h['chanceofrain']:>3}%  {h['weatherDesc'][0]['value'].strip()}\")
+" 2>/dev/null)
+echo "<tool>$tooltip</tool>"
