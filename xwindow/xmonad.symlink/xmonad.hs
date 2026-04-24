@@ -66,16 +66,17 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 ------------------------------------------------------------------------
 
 -- Two independent floating ghostty terminals
+-- Each attaches to the Nth existing zellij session (1st/2nd); falls back to creating main-N
 -- Positioning handled by adaptiveFloat based on screen orientation
 myScratchpads =
     [ NS
         "ghostty1"
-        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle scratch1"
+        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
         (appName =? "scratchpad1")
         (adaptiveFloat True)
     , NS
         "ghostty2"
-        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle scratch2"
+        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
         (appName =? "scratchpad2")
         (adaptiveFloat False)
     ]
@@ -175,6 +176,7 @@ floatRules =
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
+        , className =? "zoom" <&&> title =? "annotate_toolbar" --> doFloat
         ]
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
