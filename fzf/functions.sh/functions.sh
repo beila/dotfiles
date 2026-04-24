@@ -120,16 +120,15 @@ _jb() {
   # Preview uses unique_boundary() revset alias (see jj config.toml)
   # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
   # prefix them with the parent bookmark name so they become "nix@hj ..."
-  local _jb_local='jj --quiet bookmark list --color=always 2>/dev/null | awk '"'"'{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}'"'"
+  local _jb_local="jj --quiet bookmark list --color=always 2>/dev/null | awk -f ${_fzf_functions_sh%/*}/jb-preprocess.awk"
   local _jb_remote='jj --quiet bookmark list -a --color=always 2>/dev/null | grep "@"'
-  local _jb_toggle="/tmp/jb_remote_$$"
-  rm -f "$_jb_toggle"
   eval "$_jb_local" |
     fzf_down --ansi --multi --preview-window right:70% \
-      --header '☐ workspaces (ctrl-b) │ ☐ remotes (ctrl-r)' \
+      --header '☐ workspaces (ctrl-b) │ ☐ remotes (ctrl-r/ctrl-l)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} \"{q}\"')" \
-      --bind "ctrl-r:transform:if [ -f $_jb_toggle ]; then rm $_jb_toggle; echo 'reload($_jb_local)+change-header(☐ workspaces (ctrl-b) │ ☐ remotes (ctrl-r))'; else touch $_jb_toggle; echo 'reload($_jb_remote)+change-header(☐ workspaces (ctrl-b) │ ☑ remotes (ctrl-r))'; fi" \
+      --bind "ctrl-r:reload($_jb_remote)+change-header(☐ workspaces (ctrl-b) │ ☑ remotes (ctrl-r/ctrl-l))" \
+      --bind "ctrl-l:reload($_jb_local)+change-header(☐ workspaces (ctrl-b) │ ☐ remotes (ctrl-r/ctrl-l))" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
         jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
