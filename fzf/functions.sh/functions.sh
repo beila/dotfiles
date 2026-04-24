@@ -123,9 +123,24 @@ _jb() {
   jj --quiet bookmark list --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
-      --header '☐ workspaces (ctrl-b)' \
+      --header '☐ workspaces (ctrl-b) │ ☐ remotes (ctrl-r)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
-      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} \"{q}\"')" \
+      --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jbr {n} \"{q}\"')" \
+      --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
+        jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+    awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
+}
+
+_jbr() {
+  local pos_bind=()
+  [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
+  jj --quiet bookmark list -a --color=always 2>/dev/null | grep '@' |
+    fzf_down --ansi --multi --preview-window right:70% \
+      --header '☐ workspaces (ctrl-b) │ ☑ remotes (ctrl-r)' \
+      "${pos_bind[@]}" ${2:+--query "$2"} \
+      --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jb {n} \"{q}\"')" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} \"{q}\"')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
         jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
@@ -149,12 +164,14 @@ _jbb() {
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   jj --quiet workspace list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
-      --header '☑ workspaces (ctrl-b)' \
+      --header '☑ workspaces (ctrl-b) │ ☐ remotes (ctrl-r)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
-      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n} \"{q}\"')" \
+      --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jbr {n} \"{q}\"')" \
       --preview 'jj --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
+
 
 _git_bb() {
 # shellcheck disable=SC2016
@@ -225,7 +242,7 @@ _jyy() {
   jj --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')"
+    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} \"{q}\"')"
 }
 
 _git_yy() {
@@ -268,7 +285,7 @@ _jy() {
     fzf_down --ansi --no-sort --reverse --multi \
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
-      --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
+      --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} \"{q}\"')" \
       --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
     grep -o "[0-9a-f]\{12,\}" | tail -1
 }
