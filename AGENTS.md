@@ -113,7 +113,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Clipboard history: `copyq` (nix) — systemd user service, xmonad Super+V runs `copyq toggle`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in JSON API, python3 parser; 🌙 after sunset / before sunrise; tooltip: current + hourly + 3-day forecast
-- System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode for metrics where high=good (battery); history in `/tmp/sysmon-history`, 8 samples
+- System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, TEMP, FAN, BAT) via xfce4-genmon-plugin; colors: Catppuccin green / Gruvbox yellow+red; `color_bar` supports inverted mode for metrics where high=good (battery); temp via coretemp hwmon, fan via thinkpad hwmon (looked up by name); history in `/tmp/sysmon-history`, 8 samples
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (fallback; battery also in sysmon-genmon)
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Sync scripts: `~/.dotfiles/script/sync_all` (all jj/git repos via plocate, triggered by `sync-repos.timer`), `sync_repo` (single repo)
