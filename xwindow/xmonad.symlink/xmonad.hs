@@ -176,7 +176,6 @@ floatRules =
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
-        , className =? "zoom" <&&> title =? "annotate_toolbar" --> doFloat
         ]
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
@@ -196,16 +195,56 @@ calendarRules =
         , title =? "Email - hojin@amazon.co.uk — Mozilla Firefox"
         ]
 
+-- Zoom window handling
+--
+-- Zoom creates several window types, each needing different treatment:
+--
+-- 1. Main window (lobby/settings/meeting):
+--    className="zoom", title starts as "Zoom Workplace" then renames to "Meeting"
+--    after ManageHook has already run. Shifted to 8:meeting.
+--
+-- 2. "Meeting" (active meeting view):
+--    className="zoom", title="Meeting". Force-tiled (sunk) because Zoom tries to
+--    go fullscreen. The title rename happens AFTER ManageHook, so:
+--    - setEwmhFullscreenHooks returns idHook (blocks doFullFloat)
+--    - stripZoomFullscreenHook watches PropertyNotify for title/state changes,
+--      strips _NET_WM_STATE_FULLSCREEN, and re-sinks
+--
+-- 3. "Meeting chat":
+--    Separate window, title="Meeting chat". Shifted to 8:meeting.
+--
+-- 4. Notification popup:
+--    title="zoom_linux_float_message_reminder". Floats on ALL workspaces
+--    without stealing focus. Known bug: multi-monitor focus-follows-mouse
+--    can trigger workspace swap when mousing toward it.
+--
+-- 5. Self-view PiP:
+--    title="zoom_linux_float_video_window". Floats, follows the focused
+--    workspace via logHook (followToCurrentWorkspace).
+--
+-- 6. Annotation toolbar:
+--    className="zoom", title="annotate_toolbar". Floats on current workspace.
+--
+-- isZoomSpecial matches windows that need per-type handling (not the catch-all
+-- shift to 8:meeting). New special Zoom windows only need adding here.
+isZoomSpecial :: Query Bool
+isZoomSpecial =
+    title =? "Meeting"
+        <||> title =? "zoom_linux_float_message_reminder"
+        <||> title =? "zoom_linux_float_video_window"
+        <||> title =? "annotate_toolbar"
+
 meetingRules =
     composeAll
         [ shiftAllTo
             "8:meeting"
             [ className =? "AmazonChime"
             , title =? "Amazon Chime — Mozilla Firefox"
-            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting" <&&> title /=? "annotate_toolbar"
+            , className =? "zoom" <&&> fmap not isZoomSpecial -- catch-all for non-special zoom windows
             , title =? "Meeting chat"
             ]
         , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
+        , className =? "zoom" <&&> title =? "annotate_toolbar" --> doIgnore
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         ]

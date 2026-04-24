@@ -221,9 +221,14 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - `adaptiveFloat` manage hook: landscape→side-by-side halves, portrait→stacked halves, 2% margins
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show
 
-### Zoom Notification
-- `zoom_linux_float_message_reminder`: floats on all workspaces without stealing focus
-- Known bug: with multi-monitor, moving mouse toward notification can trigger workspace swap (focus-follows-mouse + `copyToAll` interaction)
+### Zoom Window Handling
+- `isZoomSpecial` query matches windows needing per-type handling; new special Zoom windows only need adding there
+- Main window (lobby/settings): catch-all `className =? "zoom" <&&> fmap not isZoomSpecial` → shift to 8:meeting
+- "Meeting" (active meeting): shift to 8:meeting + force sink; title renames from "Zoom Workplace" after ManageHook → `stripZoomFullscreenHook` watches PropertyNotify, strips `_NET_WM_STATE_FULLSCREEN`, re-sinks; `setEwmhFullscreenHooks` returns `idHook` for zoom+Meeting
+- "Meeting chat": shift to 8:meeting
+- `zoom_linux_float_message_reminder`: float on all workspaces (`copyToAllHook`), no focus steal
+- `zoom_linux_float_video_window`: float, follows focused workspace via `logHook`
+- `annotate_toolbar`: float on current workspace
 
 ### Known Issues / Constraints
 - keyd v2.5.0 parser fails on UTF-8 box-drawing characters in default.conf comments (works in kinesis.conf)
