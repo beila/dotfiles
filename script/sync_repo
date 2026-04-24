@@ -96,8 +96,17 @@ if jj root &>/dev/null 2>&1; then
     if [ -n "$CURRENT_BM" ]; then
         jj git fetch --all-remotes 2>/dev/null || true
         REMOTE_REV="${CURRENT_BM}@backup"
-        # Check if diverged (remote is not ancestor of local)
-        if ! jj log -r "$REMOTE_REV & ancestors($CURRENT_BM)" --no-graph 2>/dev/null | grep -q .; then
+        # Check if remote bookmark exists
+        if ! jj log -r "$REMOTE_REV" --no-graph 2>/dev/null | grep -q .; then
+            # Remote doesn't exist yet, just push
+            jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
+        elif jj log -r "$REMOTE_REV & ancestors($CURRENT_BM)" --no-graph 2>/dev/null | grep -q .; then
+            # Remote is ancestor of local (local is ahead), just push
+            jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
+        elif jj log -r "$CURRENT_BM & ancestors($REMOTE_REV)" --no-graph 2>/dev/null | grep -q .; then
+            # Local is ancestor of remote (remote is ahead), fast-forward
+            jj bookmark set "$CURRENT_BM" -r "$REMOTE_REV" --allow-backwards 2>/dev/null || true
+        else
             # Diverged: create a merge commit
             jj new "$CURRENT_BM" "$REMOTE_REV" -m "Merge ${REMOTE_REV} into $CURRENT_BM" 2>/dev/null || true
             # Skip push if merge has conflicts
@@ -110,8 +119,6 @@ if jj root &>/dev/null 2>&1; then
                 jj new 2>/dev/null || true
                 jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
             fi
-        else
-            jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
         fi
         jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
     fi
