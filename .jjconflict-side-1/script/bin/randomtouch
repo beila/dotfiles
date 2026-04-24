@@ -1,0 +1,2 @@
+#!/bin/bash
+find "$@" -mindepth 1 -maxdepth 1|sort -R|xargs -d '\n' -I IIIII sh -c "sleep 1;echo \"IIIII\";touch --no-create \"IIIII\""

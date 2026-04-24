@@ -1,0 +1,84 @@
+#!/bin/bash
+VIDEOFILE=$1
+TARGETNAME=${VIDEOFILE##*/}
+TARGETNAME=${TARGETNAME%.*}
+HISTORY_SEQUENCE_FILE=$HOME/bin/.pda_loaded_seq
+if [ ! -f $HISTORY_SEQUENCE_FILE ]
+then
+    echo "$RANDOM" > $HISTORY_SEQUENCE_FILE
+fi
+
+#MYRANDOM=$(printf "%03d" $(($RANDOM % 1000)))
+MYRANDOM_0=$(<$HISTORY_SEQUENCE_FILE)
+MYRANDOM=$(printf "%03d" $((++MYRANDOM_0 % 1000)))
+TARGETNAME=${MYRANDOM}-${TARGETNAME}
+echo "$((++MYRANDOM_0))" >$HISTORY_SEQUENCE_FILE
+
+SUBTITLENAME=${VIDEOFILE%.*}
+SUBTITLETYPE=
+SUBTITLEFILE=
+SUBTITLEOPTION=
+
+if [ -f "${SUBTITLENAME}.smi" ]
+then
+    SUBTITLETYPE="smi"
+    SUBTITLEFILE="${SUBTITLENAME}.smi"
+fi
+
+if [ -f "${SUBTITLENAME}.SMI" ]
+then
+    SUBTITLETYPE="smi"
+    SUBTITLEFILE="${SUBTITLENAME}.SMI"
+fi
+
+if [[ -f "${SUBTITLENAME}.srt" ]]
+then
+    SUBTITLETYPE="srt"
+    SUBTITLEFILE="${SUBTITLENAME}.srt"
+fi
+
+if [[ -f "${SUBTITLENAME}.SRT" ]]
+then
+    SUBTITLETYPE="srt"
+    SUBTITLEFILE="${SUBTITLENAME}.SRT"
+fi
+
+if [[ ${VIDEOFILE##*.} == "mp4" || ${VIDEOFILE##*.} == "MP4" ]]
+then
+    cp "${VIDEOFILE}" "${TARGETNAME}.mp4"
+
+elif [[ ${SUBTITLETYPE} == "smi" ]]
+then
+    MENCODER=${MENCODER:-/usr/bin/mencoder-mt}
+    TARGETFILE=${TARGETNAME}.avi
+
+    # options from BADAK
+    #SUBTITLEOPTION=-endpos 60 -font "C:\WINDOWS\Fonts\gulim.ttc" -sub "${SUBTITLEFILE}" -utf8  -subpos 95 -subfont-text-scale 5 -subfont-blur 2 -subfont-outline 2
+    #SUBTITLEOPTION="-endpos 60 -sub ${SUBTITLEFILE} -utf8  -subpos 95 -subfont-text-scale 5 -subfont-blur 2 -subfont-outline 2"
+    #SUBTITLEOPTION=${SUBTITLEFILE:+-font /usr/share/fonts/truetype/unfonts/UnDotum.ttf -subcp cp949  -subpos 95 -subfont-text-scale 5 -subfont-blur 2 -subfont-outline 2 -sub}
+
+    # options from BADAK
+    #${MENCODER} -noodml "$VIDEOFILE" -o "$TARGETFILE" -mc 0 -audio-preload 0.0 -ofps 15.000 -vf-add crop=768:480:-1:-1 -vf-add scale=320:200 -vf-add expand=320:240:-1:-1:1 -ovc xvid -xvidencopts bitrate=250 -srate 44100 -oac mp3lame -lameopts vbr=3 -lameopts br=64 -lameopts vol=0 -lameopts mode=1 -lameopts aq=7 -lameopts padding=3 -af volnorm $SUBTITLEOPTION "$SUBTITLEFILE" -quiet
+
+    # options from BADAK and modified
+    #${MENCODER} "$VIDEOFILE" -o "$TARGETFILE" -mc 0 -audio-preload 0.0 -ofps 15.000 -vf-add scale=320:-3 -vf-add expand=-1:-1:-1:-1:1 -ovc xvid -xvidencopts bitrate=250 -srate 44100 -oac mp3lame -lameopts vbr=3 -lameopts br=64 -lameopts vol=0 -lameopts mode=1 -lameopts aq=7 -lameopts padding=3 -af volnorm $SUBTITLEOPTION "$SUBTITLEFILE" -quiet
+
+    # options from http://forum.xda-developers.com/showthread.php?t=352258
+    SUBTITLEOPTION=${SUBTITLEFILE:+-subcp cp949 -subfont-autoscale 3 -subfont-text-scale 4 -sub}
+
+    # options from http://forum.xda-developers.com/showthread.php?t=352258
+    ${MENCODER} \
+        -vf pp=ac,unsharp=l5x5:2.0:c5x5:2.0,scale=400:-2,expand=400:240:::1,dsize=400:240 \
+        -af resample=44100:0:2 -oac mp3lame -lameopts cbr:br=64 \
+        -ovc lavc \
+        -lavcopts vcodec=mpeg4:vbitrate=200:mbd=2:mv0:trell:v4mv:cbp:last_pred=3:predia=2:dia=2:vmax_b_frames=2:vb_strategy=1:precmp=2:cmp=2:subcmp=2:preme=2:qns=2 \
+        -forceidx -quiet \
+        "$VIDEOFILE" -o "$TARGETFILE" \
+        $SUBTITLEOPTION "$SUBTITLEFILE"
+
+else
+    TARGETFILE=${TARGETNAME}.mp4
+    SUBTITLEOPTION=${SUBTITLEFILE:+--srt-codeset EUC-KR --srt-file}
+    #HandBrakeCLI -i "${VIDEOFILE}" -o "${TARGETFILE}" -X 400 -Y 240 -e x264 -b 512 -E lame -B 128 ${SUBTITLEOPTION} "${SUBTITLEFILE}"
+    HandBrakeCLI -i "${VIDEOFILE}" -o "${TARGETFILE}" -X 400 -Y 240 -b 512 -E lame -B 128 ${SUBTITLEOPTION} "${SUBTITLEFILE}"
+fi

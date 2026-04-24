@@ -1,0 +1,8 @@
+*.swp
+tags
+*.un~
+.netrwhist
+/view/
+/pack/local/
+# nix-generated, changes on every home-manager switch
+init.lua

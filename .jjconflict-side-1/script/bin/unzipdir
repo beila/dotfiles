@@ -1,0 +1,6 @@
+#!/bin/bash
+for jj in "$@"
+	do
+		mkdir ${jj%.zip}
+		unzip "$jj" -d ${jj%.zip}
+	done

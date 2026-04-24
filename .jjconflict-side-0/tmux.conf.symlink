@@ -1,0 +1,185 @@
+# Use Ctrl-a normally, Ctrl-b for nested
+set -g prefix C-a
+bind C-a send-prefix
+
+# If nested, change prefix to Ctrl-b
+%if "#{!=:#{TMUX},}"
+    set -g prefix C-b
+    bind C-b send-prefix
+%endif
+
+# Use vim keybindings in copy mode (h/j/k/l navigation)
+setw -g mode-keys vi
+
+# Enable mouse scrolling
+set -g mouse on
+
+# Near-infinite scroll buffer
+set -g history-limit 1000000
+
+# Show "home" for home directory, branch + subdir if in git repo, otherwise directory name
+set -g automatic-rename on
+set -g automatic-rename-format '#(
+    cd "#{pane_current_path}" && 
+    if [ "#{pane_current_path}" = "$HOME" ]; then
+        echo "home";
+    elif git rev-parse --git-dir >/dev/null 2>&1; then 
+        branch=$(git branch --show-current 2>/dev/null); 
+        subdir=$(git rev-parse --show-prefix 2>/dev/null | sed "s|/$||"); 
+        if [ -n "$subdir" ]; then 
+            echo "$branch:$subdir"; 
+        else 
+            echo "$branch"; 
+        fi; 
+    else 
+        basename "#{pane_current_path}"; 
+    fi
+)'
+
+# Modern dark theme with nice colors
+set -g status-bg '#2e3440'
+set -g status-fg '#d8dee9'
+
+# Current window - bright accent
+set -g window-status-current-style 'fg=#2e3440,bg=#88c0d0,bold'
+set -g window-status-current-format ' #I:#W '
+
+# Last window - subtle highlight
+set -g window-status-last-style 'fg=#88c0d0,bg=#2e3440'
+
+# Regular windows - same as status bar text
+set -g window-status-style 'fg=#d8dee9,bg=#2e3440'
+set -g window-status-format ' #I:#W '
+
+# Status bar borders
+set -g status-left-style 'fg=#88c0d0,bg=#2e3440'
+set -g status-right-style 'fg=#d8dee9,bg=#2e3440'
+
+# Remove session name from status bar
+set -g status-left ''
+
+# Show timer for current pane's shell only
+set -g status-right '#(
+    shell_pid=$(
+        cat /tmp/tmux-shell-pid-#{pane_id} 2>/dev/null
+    )
+    f="/tmp/tmux-cmd-start-$shell_pid"
+    if [ -f "$f" ]
+    then
+        elapsed=$(( $(date +%s) - $(cat "$f") ))
+        if [ $elapsed -ge 86400 ]; then
+            d=$(( elapsed / 86400 ))
+            h=$(( (elapsed % 86400) / 3600 ))
+            m=$(( (elapsed % 3600) / 60 ))
+            s=$(( elapsed % 60 ))
+            echo "${d}d ${h}h ${m}m ${s}s | "
+        elif [ $elapsed -ge 3600 ]; then
+            h=$(( elapsed / 3600 ))
+            m=$(( (elapsed % 3600) / 60 ))
+            s=$(( elapsed % 60 ))
+            echo "${h}h ${m}m ${s}s | "
+        elif [ $elapsed -ge 60 ]; then
+            m=$(( elapsed / 60 ))
+            s=$(( elapsed % 60 ))
+            echo "${m}m ${s}s | "
+        else
+            echo "${elapsed}s | "
+        fi
+    fi
+)%H:%M'
+
+# Update status bar every 1 second
+set -g status-interval 1
+
+# Start selection with 'v' in copy mode
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+
+# Copy with 'y' and auto-exit copy mode
+bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "if [ -n \"$WAYLAND_DISPLAY\" ]; then wl-copy; else xclip -selection clipboard; fi"
+
+# Make Enter start selection, then end selection and copy on second press
+bind-key -T copy-mode-vi Enter if-shell -F "#{selection_present}" \
+    "send-keys -X copy-pipe-and-cancel 'if [ -n \"$WAYLAND_DISPLAY\" ]; then wl-copy; else xclip -selection clipboard; fi'" \
+    "send-keys -X begin-selection"
+
+# More vim-like copy mode bindings
+bind-key -T copy-mode-vi 'C-e' send-keys -X scroll-down
+bind-key -T copy-mode-vi 'C-y' send-keys -X scroll-up
+bind-key -T copy-mode-vi 'H' send-keys -X top-line
+bind-key -T copy-mode-vi 'L' send-keys -X bottom-line
+bind-key -T copy-mode-vi 'M' send-keys -X middle-line
+bind-key -T copy-mode-vi 'w' send-keys -X next-word
+bind-key -T copy-mode-vi 'e' send-keys -X next-word-end
+bind-key -T copy-mode-vi 'b' send-keys -X previous-word
+bind-key -T copy-mode-vi '{' send-keys -X previous-paragraph
+bind-key -T copy-mode-vi '}' send-keys -X next-paragraph
+
+# Exit copy mode with Escape
+bind-key -T copy-mode-vi Escape send-keys -X cancel
+
+# Reduce escape time to make Escape more responsive
+set -sg escape-time 0
+
+# Paste from X clipboard instead of tmux buffer
+bind   ] run "if [ -n \"$WAYLAND_DISPLAY\" ]; then wl-paste; else xclip -selection clipboard -o; fi | tmux load-buffer - ; tmux paste-buffer"
+bind C-] run "if [ -n \"$WAYLAND_DISPLAY\" ]; then wl-paste; else xclip -selection clipboard -o; fi | tmux load-buffer - ; tmux paste-buffer"
+
+bind C-s split-window -v    # horizontal split (vertical in vim)
+bind C-v split-window -h    # vertical split (horizontal in vim)
+
+# Use hjkl to navigate panes
+bind   h select-pane -L
+bind C-h select-pane -L
+bind   j select-pane -D
+bind C-j select-pane -D
+bind   k select-pane -U
+bind C-k select-pane -U
+bind   l select-pane -R
+bind C-l select-pane -R
+
+# Ctrl+Arrow keys for pane resizing
+bind -n C-Left resize-pane -L 1
+bind -n C-Right resize-pane -R 1
+bind -n C-Up resize-pane -U 1
+bind -n C-Down resize-pane -D 1
+
+# Move pane keybindings
+bind m command-prompt -p "move pane to window:" "move-pane -t '%%'"
+bind M command-prompt -p "join pane from window:" "join-pane -s '%%'"
+
+bind C-a last-window
+
+# Allow all common keybindings to work with Ctrl held
+#bind 'C- ' next-layout # don't work. 한영전환
+#bind 'C-"' split-window -v	# don't work
+#bind 'C-&' confirm-before -p "kill-window #W? (y/n)" kill-window	# don't work
+bind 'C-,' command-prompt -I "#W" "rename-window '%%'"
+bind 'C-:' command-prompt
+bind 'C-?' list-keys
+#bind C-% split-window -h	# don't work
+bind C-0 select-window -t 0
+bind C-1 select-window -t 1
+bind C-2 select-window -t 2
+bind C-3 select-window -t 3
+bind C-4 select-window -t 4
+bind C-5 select-window -t 5
+bind C-6 select-window -t 6
+bind C-7 select-window -t 7
+bind C-8 select-window -t 8
+bind C-9 select-window -t 9
+#bind C-Down select-pane -D
+#bind C-Left select-pane -L
+#bind C-Right select-pane -R
+#bind C-Up select-pane -U
+bind C-[ copy-mode
+#bind C-] run "xclip -selection clipboard -o | tmux load-buffer - ; tmux paste-buffer"
+bind C-c new-window
+bind C-d detach-client
+#bind C-l last-window
+bind C-n next-window
+bind C-p previous-window
+#bind C-s choose-session
+bind C-w choose-window
+bind C-x confirm-before -p "kill-pane #P? (y/n)" kill-pane
+bind C-z resize-pane -Z
+set -g history-file ~/.tmux_history

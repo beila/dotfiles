@@ -1,0 +1,47 @@
+#!/bin/bash
+# Cycle audio output (sink) with OSD.
+# First press: show current device. Subsequent presses while visible: cycle to next.
+FIFO="/tmp/audio-out-osd-fifo"
+LOCKFILE="/tmp/audio-out-osd-lock"
+STATEFILE="/tmp/audio-out-osd-showing"
+
+start_dzen() {
+    rm -f "$FIFO"
+    mkfifo "$FIFO"
+    scale=$(xrdb -query 2>/dev/null | awk '/Xft.dpi/{printf "%d", $2/96}')
+    : "${scale:=1}"
+    (tail -f "$FIFO" | dzen2 -p -x $((100*scale)) -y $((210*scale)) -w $((1240*scale)) -h $((100*scale)) \
+        -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
+        -bg "#0d0d1a" -fg "#8be9fd" -title-name "audio-out-osd") &
+    sleep 0.2
+}
+
+# If popup is already showing, cycle to next
+if [ -f "$STATEFILE" ] && [ -p "$FIFO" ]; then
+    sinks=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*[0-9]\.')
+    mapfile -t ids < <(echo "$sinks" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+    current=$(echo "$sinks" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+
+    total=${#ids[@]}
+    for i in "${!ids[@]}"; do
+        if [ "${ids[$i]}" = "$current" ]; then
+            for ((j=1; j<total; j++)); do
+                next_i=$(( (i + j) % total ))
+                wpctl set-default "${ids[$next_i]}" 2>/dev/null
+                sleep 0.2
+                new=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
+                [ "$new" != "$current" ] && break
+            done
+            break
+        fi
+    done
+else
+    [ -p "$FIFO" ] || start_dzen
+fi
+
+touch "$STATEFILE"
+name=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+echo "  󰓃  $name" > "$FIFO"
+
+echo $$ > "$LOCKFILE"
+(sleep 3; [ "$(cat "$LOCKFILE" 2>/dev/null)" = "$$" ] && pkill -f "dzen2.*audio-out-osd" && rm -f "$FIFO" "$STATEFILE") &

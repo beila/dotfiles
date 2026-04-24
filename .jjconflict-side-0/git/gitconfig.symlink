@@ -1,0 +1,68 @@
+# Local/private config goes in the include
+[include]
+        path = ~/.gitconfig.local
+[color]
+        diff = auto
+    status = auto
+        branch = auto
+        ui = true
+[core]
+        excludesfile = ~/.gitignore
+        editor = vim
+	autocrlf = input
+	safecrlf = false
+[push]
+        # See `git help config` (search for push.default)
+        # for more information on different options of the below setting.
+        #
+        # Setting to git 2.0 default to suppress warning message
+	default = upstream
+[merge]
+	conflictStyle = zdiff3
+	tool = nvimdiff
+# https://lwn.net/Articles/1042355/#:~:text=%5Bmerge%20%22mergiraf%22%5D,%25Y%20%2Dp%20%25P%20%2Dl%20%25L
+[merge "mergiraf"]
+	name = mergiraf
+	driver = mergiraf merge --verbose --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
+[rerere]
+	enabled = true
+[alias]
+	#dag = log --graph --format='format:%C(yellow)%h%C(reset) %C(blue)\"%an\" <%ae>%C(reset) %C(magenta)%cr%C(reset)%C(auto)%d%C(reset)%n%s' --date-order
+    dag = log --graph --format='format:%C(yellow)%h%C(reset) %C(blue)\"%an\" <%ae>%C(reset) %C(magenta)%cd%C(reset)%C(auto)%d%C(reset)%n%s' --date='format:%y-%m-%d' --date-order
+[pull]
+	ff = only
+[protocol "codecommit"]
+	allow = always
+[init]
+	defaultBranch = main
+[rebase]
+	autoSquash = true
+	updateRefs = true
+	autoStash = true
+[diff]
+    colorMoved = default
+	submodule = log
+	external = difft
+[commit]
+	verbose = true
+[clone]
+	defaultRemoteName = origin
+
+# Defininig a custom hunk-header in man gitattributes
+[diff "artworkstoml"]
+    xfuncname = "^title *=.*$"
+
+[fetch]
+	prunetags = true
+	prune = true
+	parallel = 0
+[credential]
+	helper = !aws codecommit credential-helper $@
+	UseHttpPath = true
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[remote "hojin"]
+	pruneTags = false
