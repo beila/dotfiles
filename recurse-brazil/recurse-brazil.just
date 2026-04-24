@@ -517,25 +517,25 @@ workspace $target $source=".":
     target=${target:a}
     cd "${source}"
 
+    ws_name={{ work_branch }}
     if ! jj --version > /dev/null 2>&1;
     then
-        git worktree add "${target}" ${my_branch:+-B${my_branch}} &&
-            git -C "$target_dir" branch --set-upstream-to=origin/mainline $my_branch
+        git worktree add "${target}" ${ws_name:+-B${ws_name}} &&
+            git -C "$target_dir" branch --set-upstream-to=origin/mainline $ws_name
         exit $?
     fi
 
-    my_branch={{ work_branch }}
     if git rev-parse HEAD > /dev/null 2>&1; then
-        git worktree add "${target}" ${my_branch:+-B${my_branch}}
+        git worktree add --detach "${target}"
 
         jj root &> /dev/null || exit 0
 
         gitdir="$(<"${target}"/.git)"
         rm -rf "${target}"
-        jj workspace add "${target}" ${my_branch:+--name} ${my_branch}
+        jj workspace add "${target}" ${ws_name:+--name} ${ws_name}
         echo "${gitdir}" > "${target}"/.git
     else
-        jj workspace add "${target}" ${my_branch:+--name} ${my_branch}
+        jj workspace add "${target}" ${ws_name:+--name} ${ws_name}
     fi
 
 [no-cd]
