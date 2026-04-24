@@ -126,7 +126,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (`--agent no-mcp`, stdin piping, 30s timeout), ollama + qwen2.5-coder:3b fallback (5s health check, started on demand), file-list final fallback; jj-first/git-fallback; `VERBOSE=1` enables detailed output
 - Notifications: `~/.dotfiles/bin/notify-webhook` — currently disabled (exit 0), awaiting Telegram bot
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored colocated jj/git repo; added as `git+file://` flake input; stores machine-specific config (host configs, tokens, webhook URLs), Brazil JDK setup, and per-host `homeConfigurations`; zsh `**/*.zsh` glob auto-sources; `install.sh` files run by `script/install`; `ssh.filesymlink/` provides SSH host aliases; see `private-dotfiles/AGENTS.md` for Brazil, flake input details, and how to add a new host
-- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; supports session names with spaces
+- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; supports session names with spaces; numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - Battery notify: `~/.dotfiles/script/battery-notify` — systemd timer every 1min, notifies at ≤20% (normal) and ≤10% (critical), once per threshold, resets on charge
 - zsh config: standalone files in `~/.dotfiles/zsh/` (zprezto fully removed)
@@ -216,7 +216,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Uses brightnessctl (nix), 5% steps ≤20%, 10% above
 
 ### Scratchpad System
-- Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with its own default session
+- Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with a numeric index (1/2) — attaches to the Nth existing zellij session, falls back to creating `main-N`
 - `scratchpadToggle`: focused→hide, visible elsewhere→focus, hidden→bring to current workspace+float+focus
 - `adaptiveFloat` manage hook: landscape→side-by-side halves, portrait→stacked halves, 2% margins
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show
