@@ -125,7 +125,7 @@ _jb() {
   # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
   # prefix them with the parent bookmark name so they become "nix@hj ..."
   local _jb_local="jj --quiet bookmark list --color=always 2>/dev/null | awk -f ${_fzf_functions_sh%/*}/jb-preprocess.awk"
-  local _jb_remote='jj --quiet bookmark list -a --color=always 2>/dev/null | grep @'
+  local _jb_remote="jj --quiet bookmark list -a --color=always 2>/dev/null | awk -f ${_fzf_functions_sh%/*}/jb-preprocess.awk | awk '{s=\$1; gsub(/\\033\\[[0-9;]*m/,\"\",s)} s~/@/'"
   rm -f /tmp/.jb_toggle
   eval "$_jb_local" |
     fzf_down --ansi --multi --preview-window right:70% \
