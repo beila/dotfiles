@@ -176,6 +176,7 @@ floatRules =
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
+        , className =? "zoom" <&&> title =? "annotate_toolbar" --> doFloat
         ]
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
