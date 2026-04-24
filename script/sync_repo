@@ -53,9 +53,10 @@ if jj root &>/dev/null 2>&1; then
     #    — pushed FIRST so working copy is preserved even if merge creates conflict
     # 4. Fetch remote, merge tracked bookmark forward, push (no force)
     #    — if no remote changes, master and taygeta/master end up at the same commit
+    #    — skipped if sync.bookmark not set (jj config set --repo sync.bookmark NAME)
     GIT_DIR=$(jj git root 2>/dev/null)
     HJ_URL=$(git --git-dir="$GIT_DIR" remote get-url backup 2>/dev/null)
-    CURRENT_BM=$(jj bookmark list -r "..$PUSH_REV" -T 'name ++ "\n"' 2>/dev/null | head -1)
+    CURRENT_BM=$(jj config get sync.bookmark 2>/dev/null || true)
 
     # Step 0: force-push workspace-named bookmark (hostname/workspace) to backup and delete locally.
     # Pushes PUSH_REV. Empty merges are `jj new`-ed above so
