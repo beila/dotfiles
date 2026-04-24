@@ -4,9 +4,6 @@
 default-command = "log"
 merge-editor = "vimdiff"
 
-[revsets]
-log = "present(@) | ancestors(immutable_heads().., 2) | trunk() ~ hidden()"
-
 [merge-tools.vimdiff]
 program = "nvim"
 merge-args = ["-f", "-d", "$output", "-M",
@@ -16,8 +13,6 @@ merge-args = ["-f", "-d", "$output", "-M",
 merge-tool-edits-conflict-markers = true
 
 [revset-aliases]
-'immutable_heads()' = 'trunk() | tags() | untracked_remote_bookmarks() ~ remote_bookmarks(remote=backup)'
-
 # Mutable working chain + boundary + all branches off it (for fzf _jh)
 'workspace_view()' = 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::'
 
