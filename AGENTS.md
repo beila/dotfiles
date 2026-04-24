@@ -22,6 +22,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] use --impure for private-dotfiles instead of having to add commit and override the lock file every time
 - [ ] run systemd for user from nix
 - [ ] use https://github.com/neurosnap/zmx in just c instead of zellij
+- [ ] tug the bookmark only with the same name as workspace name in sync_repo
 
 ### Medium impact
 - [ ] add squash feature to _gf
