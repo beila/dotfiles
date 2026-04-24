@@ -46,8 +46,9 @@ merge-tool-edits-conflict-markers = true
 [template-aliases]
 # Compact bookmark for fzf: name + description, no IDs
 'fzf_bookmark' = '''
-if(remote, name ++ "@" ++ remote ++ ": ", name ++ ": ")
-++ if(normal_target, normal_target.description().first_line(), "(conflicted)")
+label("bookmark",
+  if(remote, name ++ "@" ++ remote, name) ++ ": ")
+++ if(normal_target, normal_target.description().first_line(), label("conflict", "(conflicted)"))
 ++ "\n"
 '''
 # Short relative timestamp: "1w", "3d", "2h", "5m", "6M", "1y"
