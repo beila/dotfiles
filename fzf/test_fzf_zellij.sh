@@ -135,6 +135,18 @@ for i in $(seq 1 5); do
 done
 check "5 rapid runs: all panes auto-closed" "0" "$coe_failures"
 
+echo "become output:"
+# become replaces fzf; verify the become command's stdout is captured by fzf-zellij
+out=$(timeout 5 bash -c 'printf "a\n" | '"$FZF_ZELLIJ"' -- --sync --bind "start:become(echo BECAME)"' 2>/dev/null)
+check "simple become output captured" "BECAME" "$out"
+check "no terminal_ noise" "" "$(echo "$out" | grep -o 'terminal' || true)"
+check "no leftover panes" "0" "$(cleanup "$before")"
+
+# become that launches a new fzf --filter (non-interactive, simulates toggle)
+out=$(timeout 10 bash -c 'printf "a\n" | '"$FZF_ZELLIJ"' -- --sync --bind "start:become(printf y)"' 2>/dev/null)
+check "become+printf output" "y" "$out"
+check "no leftover panes" "0" "$(cleanup "$before")"
+
 echo ""
 echo "$((pass+fail)) tests: $pass passed, $fail failed"
 exit "$fail"
