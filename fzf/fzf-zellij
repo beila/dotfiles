@@ -64,6 +64,7 @@ touch "$output"
   echo "export TERM=$(printf %q "$TERM")"
   echo "export PATH=$(printf %q "$PATH")"
   echo "export FZF_ZELLIJ=1"
+  echo "export FZF_ZELLIJ_OUTPUT=$(printf %q "$output")"
   echo "export FZF_DEFAULT_OPTS=$(printf %q "${FZF_DEFAULT_OPTS:-}")"
   [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
   echo "trap 'touch $(printf %q "$tmpdir/done")' EXIT"
@@ -94,4 +95,4 @@ zellij run --floating --close-on-exit \
 # Wait for pane's bash to exit (EXIT trap touches done marker, works even after become)
 while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
 
-cat "$output"
+sed 's/\r$//' < "$output" | grep -vE '^terminal(_[0-9]+)?$' || true

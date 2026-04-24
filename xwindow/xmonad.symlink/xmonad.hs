@@ -66,16 +66,17 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 ------------------------------------------------------------------------
 
 -- Two independent floating ghostty terminals
+-- Each attaches to the Nth existing zellij session (1st/2nd); falls back to creating main-N
 -- Positioning handled by adaptiveFloat based on screen orientation
 myScratchpads =
     [ NS
         "ghostty1"
-        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle scratch1"
+        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
         (appName =? "scratchpad1")
         (adaptiveFloat True)
     , NS
         "ghostty2"
-        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle scratch2"
+        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
         (appName =? "scratchpad2")
         (adaptiveFloat False)
     ]
@@ -194,16 +195,56 @@ calendarRules =
         , title =? "Email - hojin@amazon.co.uk — Mozilla Firefox"
         ]
 
+-- Zoom window handling
+--
+-- Zoom creates several window types, each needing different treatment:
+--
+-- 1. Main window (lobby/settings/meeting):
+--    className="zoom", title starts as "Zoom Workplace" then renames to "Meeting"
+--    after ManageHook has already run. Shifted to 8:meeting.
+--
+-- 2. "Meeting" (active meeting view):
+--    className="zoom", title="Meeting". Force-tiled (sunk) because Zoom tries to
+--    go fullscreen. The title rename happens AFTER ManageHook, so:
+--    - setEwmhFullscreenHooks returns idHook (blocks doFullFloat)
+--    - stripZoomFullscreenHook watches PropertyNotify for title/state changes,
+--      strips _NET_WM_STATE_FULLSCREEN, and re-sinks
+--
+-- 3. "Meeting chat":
+--    Separate window, title="Meeting chat". Shifted to 8:meeting.
+--
+-- 4. Notification popup:
+--    title="zoom_linux_float_message_reminder". Floats on ALL workspaces
+--    without stealing focus. Known bug: multi-monitor focus-follows-mouse
+--    can trigger workspace swap when mousing toward it.
+--
+-- 5. Self-view PiP:
+--    title="zoom_linux_float_video_window". Floats, follows the focused
+--    workspace via logHook (followToCurrentWorkspace).
+--
+-- 6. Annotation toolbar:
+--    className="zoom", title="annotate_toolbar". Floats on current workspace.
+--
+-- isZoomSpecial matches windows that need per-type handling (not the catch-all
+-- shift to 8:meeting). New special Zoom windows only need adding here.
+isZoomSpecial :: Query Bool
+isZoomSpecial =
+    title =? "Meeting"
+        <||> title =? "zoom_linux_float_message_reminder"
+        <||> title =? "zoom_linux_float_video_window"
+        <||> title =? "annotate_toolbar"
+
 meetingRules =
     composeAll
         [ shiftAllTo
             "8:meeting"
             [ className =? "AmazonChime"
             , title =? "Amazon Chime — Mozilla Firefox"
-            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting" <&&> title /=? "annotate_toolbar"
+            , className =? "zoom" <&&> fmap not isZoomSpecial -- catch-all for non-special zoom windows
             , title =? "Meeting chat"
             ]
         , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
+        , className =? "zoom" <&&> title =? "annotate_toolbar" --> doIgnore
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         ]

@@ -114,7 +114,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
 - Clipboard history: `copyq` (nix) — systemd user service, xmonad Super+V runs `copyq toggle`
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in JSON API, python3 parser; 🌙 after sunset / before sunrise; tooltip: current + hourly + 3-day forecast
-- System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode for metrics where high=good (battery); history in `/tmp/sysmon-history`, 8 samples
+- System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, TEMP, FAN, BAT) via xfce4-genmon-plugin; colors: Catppuccin green / Gruvbox yellow+red; `color_bar` supports inverted mode for metrics where high=good (battery); temp via coretemp hwmon, fan via thinkpad hwmon (looked up by name); history in `/tmp/sysmon-history`, 8 samples
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (fallback; battery also in sysmon-genmon)
 - Lock screen: `~/.dotfiles/xwindow/bin/random-lockscreen`
 - Sync scripts: `~/.dotfiles/script/sync_all` (all jj/git repos via plocate, triggered by `sync-repos.timer`), `sync_repo` (single repo)
@@ -127,7 +127,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Commit message generator: `~/.dotfiles/bin/commit-msg` — kiro-cli first (`--agent no-mcp`, stdin piping, 30s timeout), ollama + qwen2.5-coder:3b fallback (5s health check, started on demand), file-list final fallback; jj-first/git-fallback; `VERBOSE=1` enables detailed output
 - Notifications: `~/.dotfiles/bin/notify-webhook` — currently disabled (exit 0), awaiting Telegram bot
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored colocated jj/git repo; added as `git+file://` flake input; stores machine-specific config (host configs, tokens, webhook URLs), Brazil JDK setup, and per-host `homeConfigurations`; zsh `**/*.zsh` glob auto-sources; `install.sh` files run by `script/install`; `ssh.filesymlink/` provides SSH host aliases; see `private-dotfiles/AGENTS.md` for Brazil, flake input details, and how to add a new host
-- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; supports session names with spaces
+- Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; supports session names with spaces; numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - Battery notify: `~/.dotfiles/script/battery-notify` — systemd timer every 1min, notifies at ≤20% (normal) and ≤10% (critical), once per threshold, resets on charge
 - zsh config: standalone files in `~/.dotfiles/zsh/` (zprezto fully removed)
@@ -217,14 +217,19 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Uses brightnessctl (nix), 5% steps ≤20%, 10% above
 
 ### Scratchpad System
-- Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with its own default session
+- Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with a numeric index (1/2) — attaches to the Nth existing zellij session, falls back to creating `main-N`
 - `scratchpadToggle`: focused→hide, visible elsewhere→focus, hidden→bring to current workspace+float+focus
 - `adaptiveFloat` manage hook: landscape→side-by-side halves, portrait→stacked halves, 2% margins
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show
 
-### Zoom Notification
-- `zoom_linux_float_message_reminder`: floats on all workspaces without stealing focus
-- Known bug: with multi-monitor, moving mouse toward notification can trigger workspace swap (focus-follows-mouse + `copyToAll` interaction)
+### Zoom Window Handling
+- `isZoomSpecial` query matches windows needing per-type handling; new special Zoom windows only need adding there
+- Main window (lobby/settings): catch-all `className =? "zoom" <&&> fmap not isZoomSpecial` → shift to 8:meeting
+- "Meeting" (active meeting): shift to 8:meeting + force sink; title renames from "Zoom Workplace" after ManageHook → `stripZoomFullscreenHook` watches PropertyNotify, strips `_NET_WM_STATE_FULLSCREEN`, re-sinks; `setEwmhFullscreenHooks` returns `idHook` for zoom+Meeting
+- "Meeting chat": shift to 8:meeting
+- `zoom_linux_float_message_reminder`: float on all workspaces (`copyToAllHook`), no focus steal
+- `zoom_linux_float_video_window`: float, follows focused workspace via `logHook`
+- `annotate_toolbar`: float on current workspace
 
 ### Known Issues / Constraints
 - keyd v2.5.0 parser fails on UTF-8 box-drawing characters in default.conf comments (works in kinesis.conf)
