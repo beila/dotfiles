@@ -1,6 +1,0 @@
-{
-  "chat.defaultAgent": "builder",
-  "mcp.loadedBefore": true,
-  "chat.enableNotifications": true,
-  "chat.defaultModel": "claude-opus-4.6-1m"
-}

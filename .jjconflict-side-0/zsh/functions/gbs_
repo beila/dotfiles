@@ -1,2 +1,0 @@
-#!env zsh
-noglob git show-branch --topics $(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2> /dev/null) HEAD "$@"

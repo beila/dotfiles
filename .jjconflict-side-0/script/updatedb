@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# Update plocate database, notify if it takes too long
-THRESHOLD=10
-START=$SECONDS
-updatedb --require-visibility 0 --output "$HOME/.cache/plocate.db" --database-root "$HOME"
-ELAPSED=$((SECONDS - START))
-if [ "$ELAPSED" -gt "$THRESHOLD" ]; then
-    notify-send -u low "plocate updatedb" "Took ${ELAPSED}s (threshold: ${THRESHOLD}s)\nEdit ~/.dotfiles/script/updatedb to add --prunepaths"
-fi

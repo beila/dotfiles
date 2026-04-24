@@ -1,7 +1,0 @@
-# Show commits unique to a bookmark or tag, with boundary revs.
-# Uses bookmarks as markers for bookmarks, tags for tags.
-local markers='bookmarks() | remote_bookmarks()'
-if [ -n "$(jj --quiet log --no-pager -r "$1 & tags()" -T '' 2>/dev/null)" ]; then
-  markers='tags()'
-fi
-jj log -r "unique_boundary($1, $markers)" "${@[2,-1]}"

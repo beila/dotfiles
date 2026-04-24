@@ -1,4 +1,0 @@
-#!env zsh
-EXIT=$?
-say "done for $(basename $(pwd))"
-return $EXIT

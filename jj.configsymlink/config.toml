@@ -49,6 +49,12 @@ merge-tool-edits-conflict-markers = true
 'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
 
 [template-aliases]
+# Compact bookmark for fzf: name + description, no IDs
+'fzf_bookmark' = '''
+if(remote, name ++ "@" ++ remote ++ ": ", name ++ ": ")
+++ if(normal_target, normal_target.description().first_line(), "(conflicted)")
+++ "\n"
+'''
 # Short relative timestamp: "1w", "3d", "2h", "5m", "6M", "1y"
 # (jj 0.32 lacks .replace(); uses .contains()/.substr() to strip " <unit> ago")
 'short_ago(ts)' = '''
