@@ -95,4 +95,4 @@ zellij run --floating --close-on-exit \
 # Wait for pane's bash to exit (EXIT trap touches done marker, works even after become)
 while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
 
-grep -v '^terminal\(_[0-9]*\)\?$' "$output"
+sed 's/\r$//' < "$output" | grep -vE '^terminal(_[0-9]+)?$' || true
