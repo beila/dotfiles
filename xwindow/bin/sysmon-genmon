@@ -1,6 +1,7 @@
 #!/bin/bash
-# System monitor genmon script — sparkline graphs with color
-# Shows: CPU, MEM, IO wait, Network in panel with Pango markup
+# System monitor genmon script — sparkline graphs (Pango markup)
+# Panel: CPU, MEM, IO, NET, TEMP, FAN, BAT
+# Colors: Catppuccin green / Gruvbox yellow / Gruvbox red
 HIST=/tmp/sysmon-history
 LEN=8  # 8 samples × 23s ≈ 3 minutes
 
@@ -12,9 +13,9 @@ color_bar() {
     local bar="${bars[$idx]}"
     local hi=$pct
     (( inv )) && hi=$(( 100 - pct ))
-    if (( hi >= 75 )); then   printf "<span color='#ff5555'>%s</span>" "$bar"
-    elif (( hi >= 50 )); then printf "<span color='#f1fa8c'>%s</span>" "$bar"
-    else                       printf "<span color='#50fa7b'>%s</span>" "$bar"
+    if (( hi >= 75 )); then   printf "<span color='#fb4934'>%s</span>" "$bar"
+    elif (( hi >= 50 )); then printf "<span color='#fabd2f'>%s</span>" "$bar"
+    else                       printf "<span color='#a6e3a1'>%s</span>" "$bar"
     fi
 }
 
@@ -88,11 +89,37 @@ if [ -d "$bat" ]; then
 fi
 push_hist bat "$bat_pct"
 
+# --- Temperature (CPU package via coretemp, fallback x86_pkg_temp) ---
+hwmon_by_name() { for h in /sys/class/hwmon/hwmon*/; do [ "$(cat "${h}name" 2>/dev/null)" = "$1" ] && echo "$h" && return; done; }
+temp_raw=0
+ct=$(hwmon_by_name coretemp)
+if [ -n "$ct" ]; then
+    temp_raw=$(cat "${ct}temp1_input" 2>/dev/null)  # package temp
+else
+    temp_raw=$(cat /sys/class/thermal/thermal_zone1/temp 2>/dev/null)  # x86_pkg_temp
+fi
+temp_c=$(( temp_raw / 1000 ))
+# Scale: 30°C=0%, 100°C=100%
+temp_pct=$(( (temp_c - 30) * 100 / 70 ))
+(( temp_pct < 0 )) && temp_pct=0
+(( temp_pct > 100 )) && temp_pct=100
+push_hist tmp "$temp_pct"
+
+# --- Fan (thinkpad fan1, max ~6000 RPM) ---
+fan_rpm=0; fan_pct=0
+tp=$(hwmon_by_name thinkpad)
+if [ -n "$tp" ]; then
+    fan_rpm=$(cat "${tp}fan1_input" 2>/dev/null || echo 0)
+    fan_pct=$(( fan_rpm * 100 / 6000 ))
+    (( fan_pct > 100 )) && fan_pct=100
+fi
+push_hist fan "$fan_pct"
+
 # --- Panel ---
 bat_icon="🔋"
 [ "$(cat /sys/class/power_supply/AC/online 2>/dev/null)" = "1" ] && bat_icon="🔌"
 (( bat_pct < 20 )) && [ "$bat_status" != "Charging" ] && bat_icon="🪫"
-echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) ${bat_icon}$(spark bat 1)</txt>"
+echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) 🌡$(spark tmp) 🌀$(spark fan) ${bat_icon}$(spark bat 1)</txt>"
 
 # --- Tooltip ---
 used_mb=$(( (memtotal-memavail)/1024 ))
@@ -126,12 +153,14 @@ else
 fi
 cp "$cur_cores" "$prev_cores"
 
-printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
+printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nTemp: %s°C\nFan:  %s RPM\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
     "$cpu" "$loadavg" \
     "$cores_tip" \
     "$mem" "$used_mb" "$total_mb" \
     "$iow" \
     "$(hr $drx)" "$(hr $dtx)" \
+    "$temp_c" \
+    "$fan_rpm" \
     "$swap_used" "$swap_total" \
     "$bat_pct" "${bat_status:-AC}" \
     "$(uptime -p | sed 's/up //')"
