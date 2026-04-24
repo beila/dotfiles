@@ -120,8 +120,10 @@ _jb() {
   # Preview uses unique_boundary() revset alias (see jj config.toml)
   # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
   # prefix them with the parent bookmark name so they become "nix@hj ..."
-  jj --quiet bookmark list --color=always 2>/dev/null |
-    awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
+  local _jb_local="jj --quiet bookmark list --color=always -T fzf_bookmark 2>/dev/null"
+  local _jb_remote="jj --quiet bookmark list -a --color=always -T fzf_bookmark 2>/dev/null | awk -f ${_fzf_functions_sh%/*}/jb-remote-filter.awk"
+  rm -f /tmp/.jb_toggle
+  eval "$_jb_local" |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☐ workspaces (ctrl-b)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \

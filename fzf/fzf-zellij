@@ -86,7 +86,7 @@ zellij run --floating --close-on-exit \
   --width "$width" --height "$height" \
   --cwd "$PWD" \
   -- bash "$argsf" \
-  2>/dev/null || {
+  2>/dev/null >/dev/null || {
   "$fzf" "${args[@]}"
   exit $?
 }
