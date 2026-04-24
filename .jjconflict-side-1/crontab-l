@@ -1,0 +1,28 @@
+# m h  dom mon dow   command
+MAILTO=hojinni@gmail.com
+HOME=/home/beila
+USER=beila
+
+0   8   1,11,21   *   *    TRASH_OFF=YES nice -19 unison-latest-stable home -batch -fastcheck false -silent >/dev/null
+0   6   2-10,12-20,22-31   *   *   TRASH_OFF=YES nice -19 unison-latest-stable home -batch -silent >/dev/null
+#0   8   2,12,22   *   *    TRASH_OFF=YES nice -19 unison-latest-stable data -batch -fastcheck false -silent >/dev/null
+#0   7   1-2,3-11,13-21,23-31   *   *   TRASH_OFF=YES nice -19 unison-latest-stable data -batch -silent >/dev/null
+
+@reboot afuse -o mount_template="sshfs %r: %m" -o unmount_template="fusermount -u -z %m" $HOME/ssh >/home/beila/afuse-log 2>&1
+@reboot obexfs $HOME/obex 2>&1 >/home/beila/obexfs-log
+
+@monthly TRASH_OFF=YES find /home/beila/.Trash -atime +30 -delete
+@monthly TRASH_OFF=YES find /mnt/backup/backupdeleted -atime +90 -delete
+
+@reboot mpd-dynamic -o 57 -n 1 -s 1 2>&1 >/home/beila/mpd-dynamic-log
+@daily mpc update >/dev/null 2>&1
+
+#@reboot screen -dmS mailfetch offlineimap
+#2-59/13  *   *   *   *   nice -19 /home/beila/bin/offlineimap-once -o1 -u Noninteractive.Quiet
+
+@hourly nice -19 r2e run >/dev/null 2>&1
+4-59/7  *   *   *   *   nice -19 feed2imap
+#@50  5   *   *   7   nice -19 feed2imap-cleaner
+@weekly nice -19 /home/beila/bashpodder/bashpodder.shell
+@daily nice -19 /home/beila/bin/hpodder-once
+@hourly nice -19 /home/beila/bin/make-docu4pda-once 1024 >>/home/beila/make-docu4pda-once-log 2>&1

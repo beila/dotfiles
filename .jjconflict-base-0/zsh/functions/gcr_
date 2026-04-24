@@ -1,0 +1,8 @@
+#!env zsh
+1=${1:-HEAD} # HEAD if there's no argument
+
+if typeset -f _gh > /dev/null; then
+    git revert --no-edit $(_gh)
+else
+    git revert --no-edit $1
+fi

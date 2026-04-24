@@ -1,0 +1,75 @@
+#!/bin/bash
+#set -o xtrace   # 디버깅용
+
+set -o noglob
+TARGET_DIRECTORY=$HOME/video/device
+TOTAL_SIZE_LIMIT=${1:?USAGE: $0 target_size(in megabyte)}
+HISTORY_FILE=$HOME/bin/.pda_loaded
+DIRECTORY_LIST_FILE=$HOME/bin/docu-dirs
+EXTENSION_FILE=$HOME/bin/.video_extensions
+
+#~/bin/all-media
+
+CURRENT_SIZE=`du -ms $TARGET_DIRECTORY | cut -f1`
+echo Current size of target directory is $CURRENT_SIZE megabytes.
+
+if [[ $CURRENT_SIZE -ge $TOTAL_SIZE_LIMIT ]]
+then
+    exit
+fi
+
+#cat $DIRECTORY_LIST_FILE
+#for dir in `cat $DIRECTORY_LIST_FILE`
+#do
+#find -L $dir -iname \*.avi -print0
+#done | xargs -0 -I JFJFJF ls -t "JFJFJF"| head -20
+FIND_CONDITION_EXT=
+for uuu in `cat $EXTENSION_FILE`
+do
+    FIND_CONDITION_EXT="${FIND_CONDITION_EXT} -iname *${uuu} -or "
+done
+FIND_CONDITION_EXT=${FIND_CONDITION_EXT% -or }
+
+cd $TARGET_DIRECTORY
+date
+#xargs -rx -a $DIRECTORY_LIST_FILE -I FJFJFJ find -L "FJFJFJ" \( -iname \*.asf -o -iname \*.avi -o -iname \*.divx -o -iname \*.flv -o -iname \*.m4v -o -iname \*.mkv -o -iname \*.mov -o -iname \*.mp4 -o -iname \*.mpeg -o -iname \*.mpg -o -iname \*.ogm -o -iname \*.wmf -o -iname \*.wmv \) -print0 | xargs -0rx -I JFJFJF ls -ult "JFJFJF" #| head -20
+#xargs -rx -a $DIRECTORY_LIST_FILE -I FJFJFJ find -L "FJFJFJ" \( -iname \*.asf -o -iname \*.avi -o -iname \*.divx -o -iname \*.flv -o -iname \*.m4v -o -iname \*.mkv -o -iname \*.mov -o -iname \*.mp4 -o -iname \*.mpeg -o -iname \*.mpg -o -iname \*.ogm -o -iname \*.wmf -o -iname \*.wmv \) -print0 | xargs -0rx -I JFJFJF ls -l "JFJFJF"|sort -r -k 6|head -30
+xargs -rx -a $DIRECTORY_LIST_FILE -I FJFJFJ find -L "FJFJFJ" ${FIND_CONDITION_EXT} | sort -R | while read originalvideo
+do
+    echo "========= CONVERTING: ${originalvideo}"
+    grep -q "${originalvideo##*/}" $HISTORY_FILE && continue
+
+    echo "========= NOW START =================="
+    date
+
+    progname="$0"
+    curdir=`dirname "$progname"`
+    "${curdir}"/menc4pda "$originalvideo"
+    mencresult=$?
+
+    date
+    echo "========= JUST FINISHED =================="
+    echo "========= CONVERTING: $originalvideo"
+    echo "========= RESULTING IN: $mencresult"
+
+    if [[ $mencresult -ge 2 ]]
+    then
+        echo -n "FAIL($mencresult)::: " >> $HISTORY_FILE
+    fi
+    echo "${originalvideo##*/}" >> $HISTORY_FILE
+
+    # in case menc4pda is killed by some signal
+    if [[ $mencresult -ge 128 ]]
+    then
+        exit $mencresult
+    fi
+
+    CURRENT_SIZE=`du -ms $TARGET_DIRECTORY | cut -f1`
+    echo Current size of target directory is $CURRENT_SIZE megabytes.
+    if [[ $CURRENT_SIZE -ge $TOTAL_SIZE_LIMIT ]]
+    then
+        break
+    fi
+
+done
+

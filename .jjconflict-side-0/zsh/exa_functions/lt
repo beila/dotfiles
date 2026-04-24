@@ -1,0 +1,2 @@
+#!env zsh
+eza --only-dirs --tree "$@"

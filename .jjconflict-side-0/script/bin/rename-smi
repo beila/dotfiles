@@ -1,0 +1,10 @@
+#!/bin/bash
+SEQARG1=${1:?USAGE: $0 seq arguments}
+
+for jj in `seq -f "%02.0f" $*`
+do
+rr=`ls *E$jj*.[Ss][Mm][Ii]`
+tt=`ls *E$jj*.[Aa][Vv][Ii]`
+echo "MOVING \"$rr\" TO \"${tt%.*}.smi\""
+mv "$rr" "${tt%.*}.smi"
+done

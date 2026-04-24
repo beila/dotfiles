@@ -1,0 +1,41 @@
+# keyd common bindings — included by all keyboard configs
+# Not affected by GNOME keymap resets.
+#
+# Tap actions are handled by xmonad key bindings:
+#   prog1/f21 → XF86TouchpadToggle (Super tap)  → Albert toggle
+#   prog2/f22 → XF86TouchpadOn     (Alt_L tap)  → ghostty scratchpad 1
+#   prog3/f23 → XF86TouchpadOff    (Alt_R tap)  → ghostty scratchpad 2
+#   Volume keys (Pause/ScrollLock/PrtSc) → volume-osd / cycle-audio
+#
+# Note: keyd v2.6.0 maps prog1/2/3 to f21/f22/f23 (evdev 191/192/193),
+# NOT to KEY_PROG1/2/3 (evdev 148/149/202). The X keysyms are
+# XF86TouchpadToggle/On/Off, not XF86Launch1/2/3.
+
+[main]
+
+# overloadt2: only activates as modifier if held for timeout ms OR if another
+# key is tapped while held. Prevents accidental modifier when typing fast.
+
+# CapsLock: hold → Control, tap → Escape
+capslock = overloadt2(control, esc, 150)
+
+# Super: hold → Super, tap → prog1 (XF86Launch1, albert via xmonad)
+leftmeta = overloadt2(meta, prog1, 150)
+
+# Left Alt: hold → Alt, tap → prog2 (XF86Launch2, ghostty1 via xmonad)
+leftalt = overloadt2(alt, prog2, 150)
+
+# Right Alt: hold → Alt, tap → prog3 (XF86Launch3, ghostty2 via xmonad)
+rightalt = overloadt2(alt, prog3, 150)
+
+# Right Control: hold → Control, tap → apostrophe
+rightcontrol = overloadt2(control, apostrophe, 150)
+
+# Pause/ScrollLock/PrintScreen → volume keys
+pause = volumeup
+scrolllock = volumedown
+sysrq = mute
+
+[alt]
+pause = brightnessup
+scrolllock = brightnessdown

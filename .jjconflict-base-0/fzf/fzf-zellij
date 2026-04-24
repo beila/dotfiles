@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# fzf-zellij: starts fzf in a zellij floating pane
+# usage: fzf-zellij [LAYOUT OPTIONS] [--] [FZF OPTIONS]
+
+fail() { >&2 echo "$1"; exit 2; }
+
+fzf="$(command which fzf)" || fzf="$(dirname "$0")/fzf"
+[[ -x $fzf ]] || fail 'fzf executable not found'
+
+args=()
+skip=""
+width="90%"
+height="90%"
+
+while [[ $# -gt 0 ]]; do
+  arg="$1"; shift
+  [[ -z $skip ]] && case "$arg" in
+    --help)
+      >&2 echo 'usage: fzf-zellij [-p W,H | -w W -h H] [--] [FZF OPTIONS]'; exit ;;
+    -w*) if [[ ${#arg} -gt 2 ]]; then width="${arg:2}"; else width="$1"; shift; fi ;;
+    -h*) if [[ ${#arg} -gt 2 ]]; then height="${arg:2}"; else height="$1"; shift; fi ;;
+    -p*)
+      if [[ ${#arg} -gt 2 ]]; then size="${arg:2}"
+      elif [[ ${1:-} =~ ^[0-9%,]+$ ]]; then size="$1"; shift
+      else size="90%"; fi
+      width=${size%%,*}; height=${size##*,} ;;
+    --) skip=1; continue ;;
+    *) args+=("$arg") ;;
+  esac
+  [[ -n $skip ]] && args+=("$arg")
+done
+
+# Outside zellij or already in a fzf-zellij pane: just run fzf directly
+if [[ -z ${ZELLIJ:-} ]] || [[ -n ${FZF_ZELLIJ:-} ]]; then
+  if [[ -n ${FZF_ZELLIJ:-} ]]; then
+    # Strip --height/--min-height since the floating pane IS the viewport
+    filtered=(); skip=""
+    for a in "${args[@]}"; do
+      if [[ -n $skip ]]; then skip=""; continue; fi
+      case "$a" in
+        --height=*|--min-height=*) ;;
+        --height|--min-height) skip=1 ;;
+        *) filtered+=("$a") ;;
+      esac
+    done
+    args=("${filtered[@]}")
+  fi
+  "$fzf" "${args[@]}"
+  exit $?
+fi
+
+# --height not meaningful in a floating pane
+args=("${args[@]}" "--no-height" "--bind=ctrl-z:ignore")
+
+tmpdir=$(mktemp -d "${TMPDIR:-/tmp}/fzf-zellij-XXXXXX")
+trap '\rm -rf "$tmpdir"' EXIT
+
+output="$tmpdir/out"
+argsf="$tmpdir/args"
+touch "$output"
+
+# Build the script to run in the floating pane
+{
+  echo "export TERM=$(printf %q "$TERM")"
+  echo "export PATH=$(printf %q "$PATH")"
+  echo "export FZF_ZELLIJ=1"
+  echo "export FZF_ZELLIJ_OUTPUT=$(printf %q "$output")"
+  echo "export FZF_DEFAULT_OPTS=$(printf %q "${FZF_DEFAULT_OPTS:-}")"
+  [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
+  echo "trap 'touch $(printf %q "$tmpdir/done")' EXIT"
+  echo -n "\"$fzf\""
+  for a in "${args[@]}"; do printf ' %q' "$a"; done
+  if [[ ! -t 0 ]]; then
+    mkfifo "$tmpdir/fifo"
+    echo " < $(printf %q "$tmpdir/fifo") > $(printf %q "$output")"
+  else
+    echo " > $(printf %q "$output")"
+  fi
+} > "$argsf"
+
+# Feed stdin into FIFO in background (streams data as it arrives)
+if [[ ! -t 0 ]]; then
+  cat <&0 > "$tmpdir/fifo" &
+fi
+
+zellij run --floating --close-on-exit \
+  --width "$width" --height "$height" \
+  --cwd "$PWD" \
+  -- bash "$argsf" \
+  2>/dev/null >/dev/null || {
+  "$fzf" "${args[@]}"
+  exit $?
+}
+
+# Wait for pane's bash to exit (EXIT trap touches done marker, works even after become)
+while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
+
+sed 's/\r$//' < "$output" | grep -vE '^terminal(_[0-9]+)?$' || true
