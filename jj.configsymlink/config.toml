@@ -5,7 +5,7 @@ default-command = "log"
 merge-editor = "vimdiff"
 
 [revsets]
-log = "present(@) | ancestors(immutable_heads().., 2) | trunk() ~ hidden()"
+log = "(present(@) | ancestors(immutable_heads().., 2) | trunk()) ~ hidden()"
 
 [merge-tools.vimdiff]
 program = "nvim"
