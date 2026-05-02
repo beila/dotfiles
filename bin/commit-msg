@@ -6,6 +6,57 @@ log() { [ "${VERBOSE:-}" = 1 ] && echo "commit-msg: $*" >&2; }
 
 REV="${1:-@}"
 
+# Detect if REV is a merge and gather parent info (for jj only; git merges handled via diff).
+# For each parent P we collect commits introduced linearly on P's side of the merge, stopping
+# before any earlier merge on that side. The idea is to give the LLM the "story" of each branch
+# that was merged (what work was done on P's side since the previous merge) without dragging in
+# the entire shared history.
+#
+# Revset: (::P ~ ::others) ~ ::(merges() & (::P ~ ::others) ~ P)
+#   ::P ~ ::others                                    — commits unique to P's side of the merge
+#   merges() & (::P ~ ::others) ~ P                   — earlier merges on P's side (excluding P itself)
+#   ::(...)                                           — ancestors of those earlier merges
+#   outer ~                                           — drop those ancestors, keeping only the linear
+#                                                       run from P back to (but excluding) the previous
+#                                                       merge on this side
+is_merge=0
+merge_context=""
+if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
+    parent_count=$(jj log --ignore-working-copy -r "$REV" --no-graph -T 'parents.len()' 2>/dev/null)
+    if [ -n "$parent_count" ] && [ "$parent_count" -gt 1 ]; then
+        is_merge=1
+        parent_ids=$(jj log --ignore-working-copy -r "$REV" --no-graph -T 'parents.map(|p| p.commit_id()).join("\n")' 2>/dev/null)
+        merge_context="Merge commit with $parent_count parents."
+        parent_idx=0
+        while IFS= read -r pid; do
+            [ -z "$pid" ] && continue
+            parent_idx=$((parent_idx + 1))
+            others=$(echo "$parent_ids" | grep -v "^${pid}$" | paste -sd'|' -)
+            if [ -n "$others" ]; then
+                unique_revset="(::${pid} ~ ::(${others})) ~ ::(merges() & (::${pid} ~ ::(${others})) ~ ${pid})"
+            else
+                # Degenerate: P is the only parent. Walk back until we hit any merge.
+                unique_revset="::${pid} ~ ::(merges() & ::${pid} ~ ${pid})"
+            fi
+            unique_commits=$(jj log --ignore-working-copy -r "$unique_revset" --no-graph \
+                -T '"  - " ++ commit_id.short(12) ++ " " ++ description.first_line() ++ if(bookmarks, " [" ++ bookmarks ++ "]", "") ++ "\n"' 2>/dev/null)
+            parent_desc=$(jj log --ignore-working-copy -r "$pid" --no-graph \
+                -T 'commit_id.short(12) ++ " " ++ description.first_line()' 2>/dev/null)
+            if [ -n "$unique_commits" ]; then
+                merge_context="$merge_context
+
+Parent $parent_idx ($parent_desc) — commits introduced on this side since previous merge:
+$unique_commits"
+            else
+                merge_context="$merge_context
+
+Parent $parent_idx ($parent_desc) — no unique commits (fast-forward side)"
+            fi
+        done <<< "$parent_ids"
+        log "merge detected with $parent_count parents; gathered linear run per side"
+    fi
+fi
+
 # Compact diff: deleted files as names only, full diff for modified/added
 if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
     diff=$({
@@ -28,7 +79,7 @@ else
     fi
 fi
 
-if [ -z "$diff" ]; then
+if [ -z "$diff" ] && [ "$is_merge" = 0 ]; then
     log "no changes found"
     echo "No changes to describe." >&2
     exit 1
@@ -36,7 +87,17 @@ fi
 
 log "diff size: $(echo "$diff" | wc -l) lines"
 
-PROMPT_BASE="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."
+if [ "$is_merge" = 1 ]; then
+    PROMPT_BASE="Write a concise merge commit message. Use format like 'Merge <description of what's being merged>'. Keep it under 70 characters. Output ONLY the commit message, nothing else."
+    if [ -n "$diff" ]; then
+        PROMPT_INPUT=$(printf '%s\n\n%s\n\nResolved merge diff (changes beyond automatic merge):\n%s' "$PROMPT_BASE" "$merge_context" "$diff")
+    else
+        PROMPT_INPUT=$(printf '%s\n\n%s' "$PROMPT_BASE" "$merge_context")
+    fi
+else
+    PROMPT_BASE="Write a concise git commit message for this diff. Use conventional commit format (type: description). Output ONLY the commit message, nothing else."
+    PROMPT_INPUT=$(printf '%s\n\n%s' "$PROMPT_BASE" "$diff")
+fi
 
 strip_ansi() {
     sed 's/\x1b\[[0-9;]*m//g; s/\x1b\[[?][0-9]*[a-zA-Z]//g; s/\x1b\][^\x07]*\x07//g; s/.*\r//; s/^> //'
@@ -51,7 +112,7 @@ if command -v kiro-cli &>/dev/null; then
     log "trying kiro-cli"
     KIRO_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
     KIRO_ERR=$(mktemp /tmp/commit-msg-err.XXXXXX)
-    printf '%s\n\n%s' "$PROMPT_BASE" "$diff" > "$KIRO_PROMPT"
+    printf '%s' "$PROMPT_INPUT" > "$KIRO_PROMPT"
     # Use no-mcp agent to avoid spawning orphaned MCP server processes
     raw_msg=$(timeout 30 kiro-cli chat --no-interactive --wrap never --agent no-mcp < "$KIRO_PROMPT" 2>"$KIRO_ERR")
     kiro_exit=$?
@@ -61,7 +122,7 @@ if command -v kiro-cli &>/dev/null; then
     msg=$(echo "$raw_msg" | strip_ansi | clean_msg)
     log "kiro-cli cleaned: $msg"
     rm -f "$KIRO_PROMPT" "$KIRO_ERR"
-    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press.*cancel|log.?in|▰'; then
+    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press .*cancel|please log in|please sign in|^log in |^sign in |▰'; then
         log "kiro-cli succeeded: $msg"
         echo "$msg"
         exit 0
@@ -73,7 +134,7 @@ fi
 
 # Fallback: ollama local LLM — start on demand, stop after
 # Skip if ollama can't generate within 5s (e.g. out of memory / no GPU)
-truncated_diff=$(echo "$diff" | head -200)
+truncated_prompt=$(echo "$PROMPT_INPUT" | head -200)
 MODEL="qwen2.5-coder:3b"
 if ! curl -sf http://localhost:11434/api/tags &>/dev/null; then
     log "starting ollama"
@@ -87,9 +148,7 @@ if curl -sf --max-time 5 http://localhost:11434/api/generate \
     -d '{"model":"'"$MODEL"'","prompt":"hi","stream":false}' &>/dev/null; then
     log "ollama health check passed"
     msg=$(curl -sf --max-time 30 http://localhost:11434/api/generate \
-        -d "$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT_BASE
-
-$truncated_diff" \
+        -d "$(jq -n --arg model "$MODEL" --arg prompt "$truncated_prompt" \
             '{model: $model, prompt: $prompt, stream: false}')" \
         | jq -r '.response' | clean_msg)
     if [ -n "$msg" ]; then
@@ -102,7 +161,13 @@ else
     log "ollama health check failed (timeout or unavailable)"
 fi
 
-# Final fallback: file list summary
-msg="Change $(echo "$diff" | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||' | paste -sd, -)"
+# Final fallback: merge summary or file list
+if [ "$is_merge" = 1 ]; then
+    # Extract first-line descriptions of parents for a simple merge message
+    parents_desc=$(echo "$merge_context" | awk -F'  - [0-9a-f]{12} ' 'NR>1 {print $2}' | head -3 | paste -sd'; ' -)
+    msg="Merge: $parents_desc"
+else
+    msg="Change $(echo "$diff" | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||' | paste -sd, -)"
+fi
 log "using fallback: $msg"
 echo "$msg"
