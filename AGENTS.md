@@ -21,7 +21,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] stop amazon-vpn when the network changes
 - [ ] use --impure for private-dotfiles instead of having to add commit and override the lock file every time
 - [ ] run systemd for user from nix
-- [ ] use https://github.com/neurosnap/zmx in just c instead of zellij
 
 ### Medium impact
 - [ ] add squash feature to _gf
@@ -81,6 +80,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - `nvim.nix` — neovim (default editor, vi/vim aliases), `initLua` sources `myinit.lua` (nix generates `init.lua` which overwrites `nvim.configsymlink/init.lua` on every switch — `init.lua` is gitignored), dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim (Rust LSP); coverage table documents all tools per language
   - `xmonad.nix` — xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook
   - `xdg.nix` — firefox-container desktop entry + mimeapps
+  - `zmx.nix` — prebuilt zmx binary from zmx.sh (session persistence tool; source build via zmx's flake fails because zig2nix cannot vendor ghostty's `git+https?ref=HEAD` dependency)
   - `system-deps.sh` — detects package manager (dnf/yum preferred over apt-get for Amazon Linux); GNOME packages + session files guarded behind `gnome-session` check; keyd service guarded behind `/dev/input` check; loginctl enable-linger; ollama install guarded behind `$DISPLAY`/`$WAYLAND_DISPLAY` check (desktop only)
 - xmonad config: `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` (symlinked to ~/.xmonad/)
   - Build: `~/.xmonad/build` uses `$XMONAD_GHC` (set by nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`; `set -euo pipefail` + `${1:?}` guard prevents creating misnamed binaries if output path is missing
@@ -128,6 +128,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Notifications: `~/.dotfiles/bin/notify-webhook` — currently disabled (exit 0), awaiting Telegram bot
 - Private dotfiles: `~/.dotfiles/private-dotfiles/` — gitignored colocated jj/git repo; added as `git+file://` flake input; stores machine-specific config (host configs, tokens, webhook URLs), Brazil JDK setup, and per-host `homeConfigurations`; zsh `**/*.zsh` glob auto-sources; `install.sh` files run by `script/install`; `ssh.filesymlink/` provides SSH host aliases; see `private-dotfiles/AGENTS.md` for Brazil, flake input details, and how to add a new host
 - Zellij session cycler: `~/.dotfiles/bin/zellij-cycle` — wraps `zellij attach --create` in a loop; on detach cycles to next active session; supports session names with spaces; numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one
+- zmx session picker: `~/.dotfiles/bin/zmx-select` — fzf picker over `zmx list`; Enter attaches highlighted, Ctrl-N creates a new session with the typed name (auto-suffixes `-2`, `-3`... if the name is already in use), Ctrl-C exits. Skips the picker and attaches directly to a default session (CLI arg, `$ZMX_DEFAULT_SESSION`, or `main`) when no sessions exist
 - plocate updatedb: `~/.dotfiles/script/updatedb` — every 3min, notifies if slow
 - Battery notify: `~/.dotfiles/script/battery-notify` — systemd timer every 1min, notifies at ≤20% (normal) and ≤10% (critical), once per threshold, resets on charge
 - zsh config: standalone files in `~/.dotfiles/zsh/` (zprezto fully removed)
@@ -135,7 +136,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - `zshrc.symlink` — sources `**/*.zsh` (excludes path.zsh, completion.zsh); completion.zsh sourced last
   - `environment.zsh` — smart URLs, setopt, jobs, colored man pages
   - `terminal.zsh` — window/tab/pane titles via precmd/preexec
-  - `editor.zsh` — vi mode, dot expansion, key bindings, vim-surround, text objects
+  - `editor.zsh` — vi mode, dot expansion, key bindings, vim-surround, text objects. `KEYTIMEOUT=1` and `zle-line-init` forces insert mode on every new prompt so stray escape sequences (e.g. from zmx re-attach or kitty keyboard protocol) don't silently leave ZLE in vicmd mode. Bindkey setup is skipped when `! -o shinstdin` (e.g. under `zsh -ic 'cmd'`) because terminfo keycaps aren't populated yet
   - `history.zsh` — 10M entries, dedup, HIST_IGNORE_SPACE disabled
   - `directory.zsh` — auto_cd, auto_pushd, extended_glob, no clobber
   - `utility.zsh` — correction, nocorrect/noglob aliases, colored ls/grep
