@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# zmx-select — interactive fzf picker for zmx sessions
+#
+# Lists existing zmx sessions with scrollback preview. Actions:
+#   Enter    — attach to the highlighted session (or create with typed query if no match)
+#   Ctrl-N   — create a new session with the typed query, even if a match is highlighted
+#   Ctrl-C   — exit without attaching
+#
+# Optional first argument seeds the fzf query.
+#
+# Adapted from https://github.com/neurosnap/zmx (session picker section).
+
+set -euo pipefail
+
+initial_query="${1:-}"
+
+# Build display: "name  pid:N  clients:N  dir"
+# zmx list emits each field as "key=value" separated by tabs, with leading whitespace.
+display=$(zmx list 2>/dev/null | awk -F'\t' '
+    {
+        # For each field, strip leading whitespace and everything up to the first "=".
+        for (i=1; i<=NF; i++) {
+            sub(/^[[:space:]]+/, "", $i)
+            sub(/^[^=]*=/, "", $i)
+        }
+        if ($1 != "") printf "%-30s  pid:%-8s  clients:%-2s  %s\n", $1, $2, $3, $5
+    }
+')
+
+rc=0
+output=$({ [[ -n "$display" ]] && echo "$display"; } | fzf \
+    --print-query \
+    --expect=ctrl-n \
+    --height=80% \
+    --reverse \
+    --prompt="zmx> " \
+    --header="Enter: attach | Ctrl-N: new session with typed name | Ctrl-C: exit" \
+    --preview='zmx history {1} 2>/dev/null | tail -500' \
+    --preview-window=right:60%:follow \
+    --query="$initial_query") || rc=$?
+
+query=$(printf '%s\n' "$output" | sed -n '1p')
+key=$(printf '%s\n' "$output"   | sed -n '2p')
+selected=$(printf '%s\n' "$output" | sed -n '3p')
+
+if [[ "$key" == "ctrl-n" && -n "$query" ]]; then
+    session="$query"
+elif [[ $rc -eq 0 && -n "$selected" ]]; then
+    session=$(printf '%s' "$selected" | awk '{print $1}')
+elif [[ -n "$query" ]]; then
+    session="$query"
+else
+    exit 130
+fi
+
+exec zmx attach "$session"
