@@ -8,6 +8,11 @@
 
 [[ "$TERM" == 'dumb' ]] && return
 
+# Skip in `zsh -c` (including `zsh -ic`): no ZLE prompt loop runs, and
+# terminfo keycaps are empty at script time so bindkey spams "cannot bind to
+# an empty key sequence" warnings. Aliases/functions still load via -i.
+[[ -o shinstdin ]] || return
+
 setopt BEEP  # beep on error in line editor
 
 # Word characters for vi word motions
@@ -16,10 +21,18 @@ WORDCHARS='*?_-.[]~&;!#$%^(){}<>'
 # Vi mode
 bindkey -v
 
+# Short ESC timeout so stray escape sequences (e.g. from zmx re-attach or
+# kitty keyboard protocol) don't silently switch us into vicmd mode.
+KEYTIMEOUT=1
+
 # Terminal application mode (makes terminfo keys work in ZLE)
 zmodload zsh/terminfo
 function zle-line-init {
   (( $+terminfo[smkx] )) && echoti smkx
+  # Always start new prompts in insert mode. Without this, re-attaching to a
+  # zmx/tmux-style session can leave ZLE in vicmd mode, causing typed keys to
+  # be interpreted as vi motions (e.g. `j`/`k` trigger history-down/up).
+  zle -K viins
 }
 function zle-line-finish {
   (( $+terminfo[rmkx] )) && echoti rmkx
