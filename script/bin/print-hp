@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+# print-hp — send a file to an HP network printer via raw JetDirect (port 9100).
+#
+# Why this exists:
+#   Some CUPS print servers (e.g. older Synology bundled CUPS 1.5 with a broken
+#   rastertogutenprint filter) silently drop PDF jobs. This script bypasses
+#   CUPS entirely and streams PostScript directly to the printer's JetDirect
+#   port. It's also faster — no filter re-encoding.
+#
+# Features:
+#   - Auto-discovers a printer with port 9100 open on the local subnet (IPs
+#     often change via DHCP). Override with --ip / $PRINT_HP_IP.
+#   - Caches the discovered IP for 60 minutes.
+#   - Accepts PDF (converted to PS), PostScript, or text files.
+#   - Prints A4 duplex by default.
+#
+# Requires:
+#   - nmap                  (network scan)
+#   - ncat or netcat        (raw TCP send on port 9100)
+#   - pdftops               (poppler-utils — converts PDF → PS)
+#   - enscript              (optional — pretty-prints text files)
+
+set -euo pipefail
+
+# ─── Defaults (override via flags / env vars) ──────────────────────────────
+SUBNET="${PRINT_HP_SUBNET:-192.168.1.0/24}"
+HP_IP="${PRINT_HP_IP:-}"
+PAPER="${PRINT_HP_PAPER:-A4}"
+DUPLEX=1
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/print-hp"
+CACHE_TTL_MIN=60
+SCAN_TIMEOUT=30
+NC_TIMEOUT=60
+
+usage() {
+  cat <<'USAGE'
+Usage:  print-hp [OPTIONS] FILE
+
+Sends FILE to an HP network printer at port 9100 (JetDirect). Auto-discovers
+the printer on the local subnet and caches the IP for 60 minutes.
+
+OPTIONS
+  -h, --help             Show this help
+  -d, --discover         Print the detected printer IP and exit
+  -i, --ip IP            Skip discovery, use this IP
+  -s, --simplex          Single-sided (default: duplex, long-edge)
+  -p, --paper SIZE       Paper size for PDF conversion (default: A4)
+  -n, --no-cache         Force a fresh network scan
+      --subnet CIDR      Subnet to scan (default: 192.168.1.0/24)
+      --timeout SECS     Max transfer time (default: 60)
+
+SUPPORTED FORMATS
+  .pdf            — converted to PostScript locally
+  .ps / .eps      — sent as-is
+  .txt and others — pretty-printed via enscript if available, else raw
+
+ENVIRONMENT
+  PRINT_HP_IP      Override auto-discovery (e.g. "192.168.1.42")
+  PRINT_HP_SUBNET  Subnet to scan (default: 192.168.1.0/24)
+  PRINT_HP_PAPER   Paper size (default: A4)
+
+EXAMPLES
+  print-hp document.pdf
+  print-hp --simplex notes.txt
+  print-hp -d                                  # just show the printer IP
+  PRINT_HP_IP=192.168.1.42 print-hp report.pdf
+  print-hp --subnet 10.0.0.0/24 receipt.pdf
+USAGE
+}
+
+err()  { printf '\033[31m✗\033[0m %s\n' "$*" >&2; }
+ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
+info() { printf '\033[36m→\033[0m %s\n' "$*"; }
+warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
+
+# ─── Arg parsing ───────────────────────────────────────────────────────────
+DISCOVER_ONLY=0
+FORCE_RESCAN=0
+FILE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)      usage; exit 0 ;;
+    -d|--discover)  DISCOVER_ONLY=1; shift ;;
+    -i|--ip)        HP_IP="$2"; shift 2 ;;
+    -s|--simplex)   DUPLEX=0; shift ;;
+    -p|--paper)     PAPER="$2"; shift 2 ;;
+    -n|--no-cache)  FORCE_RESCAN=1; shift ;;
+    --subnet)       SUBNET="$2"; shift 2 ;;
+    --timeout)      NC_TIMEOUT="$2"; shift 2 ;;
+    --)             shift; FILE="${1:-}"; break ;;
+    -*)             err "Unknown option: $1"; usage >&2; exit 2 ;;
+    *)              FILE="$1"; shift ;;
+  esac
+done
+
+# ─── Discover printer ──────────────────────────────────────────────────────
+nmap_cmd() {
+  if command -v nmap &>/dev/null; then
+    echo nmap
+  elif command -v nix &>/dev/null; then
+    echo "nix shell nixpkgs#nmap --command nmap"
+  else
+    err "nmap not found. Install nmap or pass --ip."
+    exit 3
+  fi
+}
+
+discover() {
+  local cache_file="$CACHE_DIR/hp-ip"
+  mkdir -p "$CACHE_DIR"
+
+  if [[ -n "$HP_IP" ]]; then
+    info "Using printer IP: $HP_IP (from flag/env)"
+    echo "$HP_IP" > "$cache_file"
+    return
+  fi
+
+  if [[ "$FORCE_RESCAN" -eq 0 ]] && [[ -f "$cache_file" ]]; then
+    local cached_ip cache_age
+    cached_ip=$(cat "$cache_file")
+    cache_age=$(( ( $(date +%s) - $(stat -c %Y "$cache_file") ) / 60 ))
+    if [[ "$cache_age" -lt "$CACHE_TTL_MIN" ]] && [[ -n "$cached_ip" ]]; then
+      # Verify still reachable on 9100
+      if timeout 2 bash -c ": </dev/tcp/$cached_ip/9100" 2>/dev/null; then
+        HP_IP="$cached_ip"
+        info "Using cached printer IP: $HP_IP (cached ${cache_age} min ago)"
+        return
+      fi
+      warn "Cached IP $cached_ip no longer responds — rescanning"
+    fi
+  fi
+
+  info "Scanning $SUBNET for printer on port 9100 (may take ~20s)..."
+  local scan
+  # shellcheck disable=SC2086
+  scan=$(timeout "$SCAN_TIMEOUT" $(nmap_cmd) -Pn -p 9100 --open --min-rate 200 "$SUBNET" 2>/dev/null \
+    | awk '/Nmap scan report for/ { ip=$NF; gsub(/[()]/,"",ip); next } /9100\/tcp open/ { print ip }')
+
+  local count
+  count=$(printf '%s\n' "$scan" | grep -c '^[0-9]' || true)
+
+  if [[ "$count" -eq 0 ]]; then
+    err "No printer found on $SUBNET. Make sure it's powered on and on the same network."
+    exit 4
+  fi
+  if [[ "$count" -gt 1 ]]; then
+    warn "Multiple printers found — picking the first. Others:"
+    printf '%s\n' "$scan" | sed 's/^/    /'
+  fi
+
+  HP_IP=$(printf '%s\n' "$scan" | head -n 1)
+  ok "Found printer at $HP_IP"
+  echo "$HP_IP" > "$cache_file"
+}
+
+# ─── Prepare payload ───────────────────────────────────────────────────────
+PAYLOAD=""
+CLEANUP=()
+
+cleanup() { [[ ${#CLEANUP[@]} -gt 0 ]] && rm -f "${CLEANUP[@]}"; }
+trap cleanup EXIT
+
+prepare_payload() {
+  local file="$1"
+  local ext="${file##*.}"
+  ext="${ext,,}"
+
+  case "$ext" in
+    ps|eps)
+      PAYLOAD="$file"
+      ;;
+    pdf)
+      if ! command -v pdftops &>/dev/null; then
+        err "pdftops not found. Install poppler-utils."
+        exit 5
+      fi
+      PAYLOAD=$(mktemp --suffix=.ps)
+      CLEANUP+=("$PAYLOAD")
+      info "Converting PDF → PostScript ($PAPER)..."
+      pdftops -paper "$PAPER" -level3 "$file" "$PAYLOAD"
+      ok "Converted: $(du -h "$PAYLOAD" | cut -f1)"
+      ;;
+    *)
+      # Treat as text. Use enscript if available for nice formatting.
+      if command -v enscript &>/dev/null; then
+        PAYLOAD=$(mktemp --suffix=.ps)
+        CLEANUP+=("$PAYLOAD")
+        info "Pretty-printing text → PostScript..."
+        local dup_flag=""
+        [[ "$DUPLEX" -eq 1 ]] && dup_flag="--duplex"
+        # shellcheck disable=SC2086
+        enscript --output="$PAYLOAD" --media="$PAPER" $dup_flag \
+                 --fancy-header --line-numbers "$file" 2>/dev/null || {
+          warn "enscript failed — falling back to raw text"
+          PAYLOAD="$file"
+        }
+        [[ -s "$PAYLOAD" ]] && ok "Prepared: $(du -h "$PAYLOAD" | cut -f1)"
+      else
+        warn "enscript not installed — sending raw text (no margins/font)"
+        PAYLOAD="$file"
+      fi
+      ;;
+  esac
+}
+
+# ─── Send to printer ───────────────────────────────────────────────────────
+send_to_printer() {
+  local file="$1"
+  local ip="$2"
+  local size
+  size=$(du -h "$file" | cut -f1)
+
+  info "Sending $size to $ip:9100 (timeout ${NC_TIMEOUT}s)..."
+
+  local -a nc_cmd
+  if command -v ncat &>/dev/null; then
+    nc_cmd=(ncat --send-only -w "${NC_TIMEOUT}s" "$ip" 9100)
+  elif command -v nc &>/dev/null; then
+    nc_cmd=(nc -q 5 -w "$NC_TIMEOUT" "$ip" 9100)
+  else
+    err "No ncat or nc found. Install ncat (from nmap) or netcat."
+    exit 7
+  fi
+
+  if "${nc_cmd[@]}" < "$file"; then
+    ok "Data delivered. Pages should start in ~30s."
+  else
+    err "Failed to send print data to $ip:9100"
+    exit 8
+  fi
+}
+
+# ─── Main ──────────────────────────────────────────────────────────────────
+if [[ "$DISCOVER_ONLY" -eq 1 ]]; then
+  discover
+  echo "$HP_IP"
+  exit 0
+fi
+
+if [[ -z "$FILE" ]]; then
+  err "No file specified."
+  usage >&2
+  exit 2
+fi
+
+if [[ ! -f "$FILE" ]]; then
+  err "File not found: $FILE"
+  exit 2
+fi
+
+discover
+prepare_payload "$FILE"
+send_to_printer "$PAYLOAD" "$HP_IP"

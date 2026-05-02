@@ -91,12 +91,13 @@
     "private": {
       "flake": false,
       "locked": {
-        "lastModified": 1776965321,
-        "narHash": "sha256-qV7yZU39UHCJrXk6VbTkRNq/jII6Ij5ejJd5glrtTJM=",
-        "rev": "2b87c791058d99f617a687a296bd593bfa5c1f50",
-        "revCount": 30,
+        "lastModified": 1777897121,
+        "narHash": "sha256-kD2tuqGz44ZswZA70pW9RtxjX7Ahv//gdxiu9y/RnzI=",
+        "ref": "main",
+        "rev": "68244437fdb4e3c6fee107eac159e565b8f6685d",
+        "revCount": 36,
         "type": "git",
-        "url": "file:///local/home/hojin/.dotfiles/private-dotfiles"
+        "url": "file:///home/ANT.AMAZON.COM/hojin/.dotfiles/private-dotfiles"
       },
       "original": {
         "owner": "beila",

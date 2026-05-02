@@ -6,6 +6,17 @@ GIT=${GIT_EXECUTABLE:-git}
 GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 MACHINE_NAME=$(hostnamectl --pretty 2>/dev/null | grep -v '\.')
 MACHINE_NAME=${MACHINE_NAME:-$(hostname -s)}
+
+# SSH hardening for all git/jj subprocesses. ConnectTimeout kills stalled
+# handshakes fast; ServerAlive detects half-open connections (VPN drop, proxy
+# freeze). BatchMode prevents password prompts that would deadlock under
+# systemd. Caller can override by exporting GIT_SSH_COMMAND beforehand.
+export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o BatchMode=yes}"
+
+# Outer timeout for each git/jj network call. Catches total process hangs
+# that survive ssh-level timeouts (proxy wrappers, DNS stalls, etc.).
+SYNC_REPO_CMD_TIMEOUT=${SYNC_REPO_CMD_TIMEOUT:-60}
+
 cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
@@ -15,6 +26,54 @@ LOCK_PATH=$(jj root 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null || 
 LOCKFILE="/tmp/sync_repo_$(echo "$LOCK_PATH" | tr / _).lock"
 exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
+
+# --- structured logging + error classification --------------------------------
+# Uses the shared leveled logger at script/logger/log.sh. It writes to
+# ~/hjdocs/logs/<machine>/sync_repo.<repo-basename>.<date>[.<time>].log and
+# dispatches notifications for ERROR and above via bin/notify-webhook.
+# Notifications auto-suppress when stderr is a TTY (interactive runs don't
+# ping the phone); override with LOG_NOTIFY_MODE={always|never}.
+LOG_TAG=sync_repo
+LOG_CONTEXT=$(basename "$LOCK_PATH")
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+# classify_cmd <tag> <cmd...>
+# Run <cmd...>, capture stderr, classify failure as NETWORK (usually transient
+# -> WARN) or OTHER (-> ERROR). Returns the original exit code.
+# Network-pattern heuristics based on git/ssh/curl error strings.
+classify_cmd() {
+    local tag=$1; shift
+    local err rc
+    err=$(mktemp "/tmp/sync_repo_err.XXXXXX")
+    "$@" 2>"$err"
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
+            # timeout(1) exit codes: 124 (SIGTERM expired), 137 (SIGKILL after grace).
+            log WARN "TIMEOUT $tag: exceeded ${SYNC_REPO_CMD_TIMEOUT}s; killed"
+        elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed' "$err"; then
+            log WARN "NETWORK-ERR $tag: $(head -2 "$err" | tr '\n' ' ')"
+        else
+            log ERROR "OTHER-ERR $tag (rc=$rc): $(head -2 "$err" | tr '\n' ' ')"
+        fi
+        # Forward stderr to the process stderr so set -x / systemd journal still see it
+        cat "$err" >&2
+    fi
+    rm -f "$err"
+    return $rc
+}
+
+# timeout_cmd <tag> <cmd...>
+# classify_cmd wrapped in timeout(1). --kill-after sends SIGKILL 10s after
+# the initial SIGTERM if the child refuses to die. Total max wall time:
+# $SYNC_REPO_CMD_TIMEOUT + 10s.
+timeout_cmd() {
+    local tag=$1; shift
+    classify_cmd "$tag" timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" "$@"
+}
+
+log INFO "START"
 
 if jj root &>/dev/null 2>&1; then
     # If no 'backup' remote, just snapshot the working copy and exit
@@ -72,8 +131,8 @@ if jj root &>/dev/null 2>&1; then
         jj bookmark create "$WS_BM" -r "$PUSH_REV" 2>/dev/null || jj bookmark set "$WS_BM" -r "$PUSH_REV" --allow-backwards 2>/dev/null || true
         WS_REF=$(jj log -r "$WS_BM" --no-graph -T 'commit_id' 2>/dev/null)
         if [ -n "$WS_REF" ]; then
-            git --git-dir="$GIT_DIR" push "$HJ_URL" --delete "$WS_BRANCH" 2>/dev/null || true
-            git --git-dir="$GIT_DIR" push "$HJ_URL" "${WS_REF}:${WS_BRANCH}" 2>/dev/null || true
+            timeout_cmd "push-del $WS_BM" git --git-dir="$GIT_DIR" push "$HJ_URL" --delete "$WS_BRANCH" || true
+            timeout_cmd "push $WS_BM"     git --git-dir="$GIT_DIR" push "$HJ_URL" "${WS_REF}:${WS_BRANCH}" || true
         fi
         jj bookmark delete "$WS_BM" 2>/dev/null || true
     fi
@@ -82,42 +141,70 @@ if jj root &>/dev/null 2>&1; then
     if [ -n "$CURRENT_BM" ]; then
         jj bookmark set "$CURRENT_BM" -r "$PUSH_REV" 2>/dev/null || true
     fi
-    REMOTE_REFS=$(git --git-dir="$GIT_DIR" ls-remote "$HJ_URL" "refs/heads/${MACHINE_NAME}/*" 2>/dev/null)
+    REMOTE_REFS=$(timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" \
+        git --git-dir="$GIT_DIR" ls-remote "$HJ_URL" "refs/heads/${MACHINE_NAME}/*" 2>/dev/null)
     for bm in $(jj bookmark list -T 'name ++ "\n"' 2>/dev/null | grep -v "^${MACHINE_NAME}/" | sort -u); do
         REF=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
         REMOTE_REF=$(echo "$REMOTE_REFS" | awk -v ref="refs/heads/${MACHINE_NAME}/${bm}" '$2 == ref {print $1}')
         if [ "$REF" != "$REMOTE_REF" ]; then
-            git --git-dir="$GIT_DIR" push "$HJ_URL" --delete "refs/heads/${MACHINE_NAME}/${bm}" 2>/dev/null || true
-            git --git-dir="$GIT_DIR" push "$HJ_URL" "$REF:refs/heads/${MACHINE_NAME}/${bm}" 2>/dev/null || true
+            timeout_cmd "push-del ${MACHINE_NAME}/${bm}" git --git-dir="$GIT_DIR" push "$HJ_URL" --delete "refs/heads/${MACHINE_NAME}/${bm}" || true
+            timeout_cmd "push ${MACHINE_NAME}/${bm}"     git --git-dir="$GIT_DIR" push "$HJ_URL" "$REF:refs/heads/${MACHINE_NAME}/${bm}" || true
         fi
     done
 
-    # Step 2: fetch from backup, merge tracked bookmark forward, push
+    # Step 2: fetch from backup, merge tracked bookmark forward, push.
+    #
+    # IMPORTANT: after `jj git fetch`, the bare bookmark name (`$CURRENT_BM`, e.g. "master")
+    # can become ambiguous if the remote has diverged (local and remote both claim `master`).
+    # Any revset using the bare name then fails. We resolve the local bookmark to a
+    # commit_id BEFORE fetch and use THAT in all post-fetch revsets.
     if [ -n "$CURRENT_BM" ]; then
-        jj git fetch --all-remotes 2>/dev/null || true
-        REMOTE_REV="${CURRENT_BM}@backup"
-        # Check if remote bookmark exists
-        if ! jj log -r "$REMOTE_REV" --no-graph 2>/dev/null | grep -q .; then
+        LOCAL_BM_REV=$(jj log -r "$CURRENT_BM" --no-graph -T 'commit_id' 2>/dev/null)
+        if timeout_cmd "fetch $CURRENT_BM" jj git fetch --all-remotes; then
+            log INFO "FETCH-OK $CURRENT_BM"
+        fi
+        # Ensure the remote-tracking bookmark is tracked before push (jj 0.40+ rejects
+        # pushes to untracked remote bookmarks).
+        jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
+        REMOTE_REV=$(jj log -r "${CURRENT_BM}@backup" --no-graph -T 'commit_id' 2>/dev/null)
+        if [ -z "$REMOTE_REV" ]; then
             # Remote doesn't exist yet, just push
-            jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
-        elif jj log -r "$REMOTE_REV & ancestors($CURRENT_BM)" --no-graph 2>/dev/null | grep -q .; then
-            # Remote is ancestor of local (local is ahead), just push
-            jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
-        elif jj log -r "$CURRENT_BM & ancestors($REMOTE_REV)" --no-graph 2>/dev/null | grep -q .; then
-            # Local is ancestor of remote (remote is ahead), fast-forward
+            if timeout_cmd "push $CURRENT_BM (new)" jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new; then
+                log INFO "PUSH-OK $CURRENT_BM rev=$LOCAL_BM_REV (new)"
+            fi
+        elif [ "$LOCAL_BM_REV" = "$REMOTE_REV" ]; then
+            # Already in sync
+            log INFO "SKIP $CURRENT_BM already at $REMOTE_REV"
+        elif jj log -r "$REMOTE_REV & ::$LOCAL_BM_REV" --no-graph 2>/dev/null | grep -q .; then
+            # Remote is ancestor of local (local is strictly ahead), push
+            if timeout_cmd "push $CURRENT_BM (ahead)" jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new; then
+                log INFO "PUSH-OK $CURRENT_BM rev=$LOCAL_BM_REV (ahead)"
+            fi
+        elif jj log -r "$LOCAL_BM_REV & ::$REMOTE_REV" --no-graph 2>/dev/null | grep -q .; then
+            # Local is ancestor of remote (remote is strictly ahead), fast-forward
             jj bookmark set "$CURRENT_BM" -r "$REMOTE_REV" --allow-backwards 2>/dev/null || true
+            log INFO "FAST-FORWARD $CURRENT_BM local=$LOCAL_BM_REV -> remote=$REMOTE_REV"
         else
-            # Diverged: create a merge commit
-            jj new "$CURRENT_BM" "$REMOTE_REV" -m "Merge ${REMOTE_REV} into $CURRENT_BM" 2>/dev/null || true
-            # Skip push if merge has conflicts
-            if jj log -r @ --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
-                echo "WARNING: merge has conflicts, skipping push of $CURRENT_BM" >&2
-                jj bookmark set "$CURRENT_BM" -r @ 2>/dev/null || true
-                jj new 2>/dev/null || true
+            # Diverged: create a merge commit from explicit commit_ids (unambiguous).
+            merge_msg="Merge ${REMOTE_REV:0:12} into $CURRENT_BM"
+            if jj new "$LOCAL_BM_REV" "$REMOTE_REV" -m "$merge_msg" 2>/dev/null; then
+                # Skip push if merge has conflicts
+                if jj log -r @ --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
+                    log ERROR "MERGE-CONFLICT $CURRENT_BM local=$LOCAL_BM_REV remote=$REMOTE_REV"
+                    echo "WARNING: merge has conflicts, skipping push of $CURRENT_BM" >&2
+                    jj bookmark set "$CURRENT_BM" -r @ 2>/dev/null || true
+                    jj new 2>/dev/null || true
+                else
+                    jj bookmark set "$CURRENT_BM" -r @ 2>/dev/null || true
+                    MERGE_REV=$(jj log -r "$CURRENT_BM" --no-graph -T 'commit_id' 2>/dev/null)
+                    jj new 2>/dev/null || true
+                    if timeout_cmd "push $CURRENT_BM (merged)" jj git push --remote backup --bookmark "$CURRENT_BM"; then
+                        log INFO "PUSH-OK $CURRENT_BM rev=$MERGE_REV (merged local=$LOCAL_BM_REV remote=$REMOTE_REV)"
+                    fi
+                fi
             else
-                jj bookmark set "$CURRENT_BM" -r @ 2>/dev/null || true
-                jj new 2>/dev/null || true
-                jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new 2>/dev/null || true
+                log CRITICAL "MERGE-FAIL $CURRENT_BM local=$LOCAL_BM_REV remote=$REMOTE_REV; skipping push"
+                echo "WARNING: failed to create merge of $LOCAL_BM_REV and $REMOTE_REV for $CURRENT_BM; skipping push" >&2
             fi
         fi
         jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
