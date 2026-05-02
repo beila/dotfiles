@@ -6,13 +6,16 @@
 #   Ctrl-N   — create a new session with the typed query, even if a match is highlighted
 #   Ctrl-C   — exit without attaching
 #
-# Optional first argument seeds the fzf query.
+# If no sessions exist, the picker is skipped and a default session is attached
+# directly. The default name is the first CLI arg, or $ZMX_DEFAULT_SESSION,
+# or `main`. Optional first arg also seeds the fzf query when sessions exist.
 #
 # Adapted from https://github.com/neurosnap/zmx (session picker section).
 
 set -euo pipefail
 
 initial_query="${1:-}"
+default_session="${ZMX_DEFAULT_SESSION:-main}"
 
 # Build display: "name  pid:N  clients:N  dir"
 # zmx list emits each field as "key=value" separated by tabs, with leading whitespace.
@@ -27,14 +30,20 @@ display=$(zmx list 2>/dev/null | awk -F'\t' '
     }
 ')
 
+# No existing sessions: skip the picker and create the default session directly.
+# Use the initial query as the name if provided.
+if [[ -z "$display" ]]; then
+    exec zmx attach "${initial_query:-$default_session}"
+fi
+
 rc=0
-output=$({ [[ -n "$display" ]] && echo "$display"; } | fzf \
+output=$(echo "$display" | fzf \
     --print-query \
     --expect=ctrl-n \
     --height=80% \
     --reverse \
     --prompt="zmx> " \
-    --header="Enter: attach | Ctrl-N: new session with typed name | Ctrl-C: exit" \
+    --header="Enter: attach | Ctrl-N: new session (auto-suffix if name exists) | Ctrl-C: exit" \
     --preview='zmx history {1} 2>/dev/null | tail -500' \
     --preview-window=right:60%:follow \
     --query="$initial_query") || rc=$?
@@ -44,7 +53,16 @@ key=$(printf '%s\n' "$output"   | sed -n '2p')
 selected=$(printf '%s\n' "$output" | sed -n '3p')
 
 if [[ "$key" == "ctrl-n" && -n "$query" ]]; then
-    session="$query"
+    # Force a NEW session. If a session with the requested name already
+    # exists, append -2, -3, ... until we find a free name. This matches
+    # the mental model of Ctrl-N = "create", not "reuse".
+    base="$query"
+    session="$base"
+    n=2
+    while zmx list --short 2>/dev/null | grep -Fxq -- "$session"; do
+        session="$base-$n"
+        n=$((n + 1))
+    done
 elif [[ $rc -eq 0 && -n "$selected" ]]; then
     session=$(printf '%s' "$selected" | awk '{print $1}')
 elif [[ -n "$query" ]]; then
