@@ -29,7 +29,7 @@
       mkHost = { gnome ? false, extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = extraModules
-          ++ [ ./home.nix ./neovide.nix ./nvim.nix ./xdg.nix ./xmonad.nix
+          ++ [ ./home.nix ./neovide.nix ./nvim.nix ./xdg.nix ./xmonad.nix ./zmx.nix
                { targets.genericLinux.nixGL.packages = nixgl.packages; } ]
           ++ (if gnome then [ ./gnome.nix ] else [])
           ++ nixFilesFrom private;
