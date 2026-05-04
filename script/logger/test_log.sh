@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test_log.sh — exhaustive test harness for script/logger/log.sh.
 #
-# Runs all tests against an isolated temp LOG_ROOT and HJDOCS_ROOT so it
+# Runs all tests against an isolated temp LOG_ROOT and LOG_REL_BASE so it
 # doesn't touch your real logs. Uses the 'mock' notification backend to
 # capture notifications without network calls.
 #
@@ -12,7 +12,7 @@ set -u
 DOTFILES_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 export DOTFILES_ROOT
 LIB="$DOTFILES_ROOT/script/logger/log.sh"
-CLI="$DOTFILES_ROOT/script/logger/bin/log"
+CLI="$DOTFILES_ROOT/script/logger/bin/dlog"
 
 TMPDIR=$(mktemp -d /tmp/test_log.XXXXXX)
 trap 'rm -rf "$TMPDIR"' EXIT
@@ -85,6 +85,7 @@ echo "=== Test 1: basic log file creation and naming ==="
     source "$LIB"
     log INFO  "hello 1"
     log ERROR "hello 2"
+    log_finalize
     expected_dir="$TMPDIR/logs/testhost"
     today=$(date +%Y%m%d)
     expected_file="$expected_dir/test1.$today.log"
@@ -100,7 +101,8 @@ echo "=== Test 2: LOG_CONTEXT appears in both filename and each line ==="
     export LOG_TAG="test2"
     export LOG_CONTEXT="myrepo"
     source "$LIB"
-    log INFO  "start"
+    log ERROR "start"
+    log_finalize
     today=$(date +%Y%m%d)
     expected_file="$TMPDIR/logs/testhost/test2.myrepo.$today.log"
     check "file name includes context" "yes" "$([ -f "$expected_file" ] && echo yes || echo no)"
@@ -115,10 +117,27 @@ echo "=== Test 3: CONTEXT with slash sanitized in filename ==="
     export LOG_TAG="test3"
     export LOG_CONTEXT="/home/user/proj"
     source "$LIB"
-    log INFO  "s"
+    log ERROR "s"
+    log_finalize
     today=$(date +%Y%m%d)
-    expected_file="$TMPDIR/logs/testhost/test3.-home-user-proj.$today.log"
-    check "slashes in context replaced" "yes" "$([ -f "$expected_file" ] && echo yes || echo no)"
+    expected_file="$TMPDIR/logs/testhost/test3.home-user-proj.$today.log"
+    check "slashes stripped and sanitized in context" "yes" "$([ -f "$expected_file" ] && echo yes || echo no)"
+)
+
+echo
+echo "=== Test 3b: CONTEXT with leading dot collapsed ==="
+(
+    setup_test_env
+    export LOG_TAG="test3b"
+    export LOG_CONTEXT=".dotfiles"
+    source "$LIB"
+    log ERROR "s"
+    log_finalize
+    today=$(date +%Y%m%d)
+    expected_file="$TMPDIR/logs/testhost/test3b.dotfiles.$today.log"
+    check "leading dot stripped from context" "yes" "$([ -f "$expected_file" ] && echo yes || echo no)"
+    unwanted="$TMPDIR/logs/testhost/test3b..dotfiles.$today.log"
+    check "double-dot filename NOT created" "no" "$([ -f "$unwanted" ] && echo yes || echo no)"
 )
 
 echo
@@ -164,15 +183,15 @@ echo "=== Test 6: second run same day uses .HHMMSS.log ==="
 (
     setup_test_env
     export LOG_TAG="test6"
-    # first run
+    # Both runs log ERROR so the files are retained across their EXIT traps.
     (
         source "$LIB"
-        log INFO "first run"
+        log ERROR "first run"
     )
     # second run in same shell invocation but fresh subshell (cached _LOG_FILE cleared)
     (
         source "$LIB"
-        log INFO "second run"
+        log ERROR "second run"
     )
     today=$(date +%Y%m%d)
     count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test6\.")
@@ -199,8 +218,9 @@ echo "=== Test 7: CLI wrapper writes to the logger location ==="
 (
     setup_test_env
     export LOG_TAG="test7"
-    "$CLI" INFO  "from cli 1"
-    "$CLI" ERROR "from cli 2"
+    # Both calls log ERROR so both files are retained (default threshold).
+    "$CLI" ERROR "from cli 11"
+    "$CLI" ERROR "from cli 22"
     sleep 0.5
     today=$(date +%Y%m%d)
     # Two separate CLI invocations = two separate runs = two files (1 undecorated + 1 timestamped).
@@ -211,9 +231,9 @@ echo "=== Test 7: CLI wrapper writes to the logger location ==="
     # Each file has one line
     total_lines=$(wc -l "$TMPDIR"/logs/testhost/test7.*.log 2>/dev/null | tail -1 | awk '{print $1}')
     check "total two log lines across files" "2" "$total_lines"
-    # CLI's ERROR call fires a notification
+    # Both messages normalize to "from cli N" so notification dedupes to 1.
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
-    check "one notification from CLI ERROR" "1" "$mock_lines"
+    check "one deduped notification from CLI ERROR" "1" "$mock_lines"
 )
 
 echo
@@ -331,6 +351,221 @@ echo "=== Test 15: under non-TTY stderr + auto, notification still fires ==="
     sleep 0.6
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
     check "auto+non-TTY fires notification" "1" "$mock_lines"
+)
+
+echo
+echo "=== Test 16: same signature within dedup window fires once ==="
+(
+    setup_test_env
+    export LOG_TAG="test16"
+    export LOG_CONTEXT="myrepo"
+    source "$LIB"
+    # Two ERRORs whose only difference is a commit-id-like hex string.
+    log ERROR "MERGE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
+    log ERROR "MERGE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
+    sleep 1
+    mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
+    check "deduped to one notification" "1" "$mock_lines"
+)
+
+echo
+echo "=== Test 17: different signatures both notify ==="
+(
+    setup_test_env
+    export LOG_TAG="test17"
+    export LOG_CONTEXT="myrepo"
+    source "$LIB"
+    log ERROR "MERGE-CONFLICT main local=abc123def456 remote=fedcba987654"
+    log ERROR "OTHER-ERR main (rc=1): permission denied"
+    sleep 1
+    mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
+    check "two distinct signatures both notify" "2" "$mock_lines"
+)
+
+echo
+echo "=== Test 18: same signature across separate runs dedupes ==="
+(
+    setup_test_env
+    export LOG_TAG="test18"
+    export LOG_CONTEXT="myrepo"
+    # First run
+    (
+        source "$LIB"
+        log ERROR "MERGE-FAIL main local=abc123def456 remote=fedcba987654"
+    )
+    # Second run — fresh subshell, cached _LOG_FILE reset
+    (
+        source "$LIB"
+        log ERROR "MERGE-FAIL main local=111222333444 remote=555666777888"
+    )
+    sleep 1
+    mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
+    check "deduped across runs" "1" "$mock_lines"
+)
+
+echo
+echo "=== Test 19: expired dedup entry across separate runs re-notifies ==="
+(
+    setup_test_env
+    export LOG_TAG="test19"
+    export LOG_CONTEXT="myrepo"
+    export LOG_NOTIFY_DEDUP_WINDOW=1   # 1-second window for the test
+    (
+        source "$LIB"
+        log ERROR "MERGE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
+    )
+    sleep 2    # let the dedup window expire
+    (
+        source "$LIB"
+        log ERROR "MERGE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
+    )
+    sleep 1
+    mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
+    check "expired window allows re-notification" "2" "$mock_lines"
+)
+
+echo
+echo "=== Test 20: dedup window=0 disables dedup ==="
+(
+    setup_test_env
+    export LOG_TAG="test20"
+    export LOG_CONTEXT="myrepo"
+    export LOG_NOTIFY_DEDUP_WINDOW=0
+    source "$LIB"
+    log ERROR "MERGE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
+    log ERROR "MERGE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
+    sleep 1
+    mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
+    check "window=0 disables dedup" "2" "$mock_lines"
+)
+
+echo
+echo "=== Test 21: INFO-only run leaves no log file ==="
+(
+    setup_test_env
+    export LOG_TAG="test21"
+    (
+        source "$LIB"
+        log INFO "started"
+        log INFO "did a thing"
+        log INFO "finished cleanly"
+    )
+    count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test21\." || true)
+    check "no file retained for clean run" "0" "$count"
+)
+
+echo
+echo "=== Test 22: ERROR run retains log file ==="
+(
+    setup_test_env
+    export LOG_TAG="test22"
+    (
+        source "$LIB"
+        log INFO "started"
+        log ERROR "something broke"
+        log INFO "continued"
+    )
+    count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test22\." || true)
+    check "one file retained when ERROR occurred" "1" "$count"
+    # All three lines should be in the retained file
+    file=$(ls "$TMPDIR/logs/testhost/" | grep "^test22\.")
+    lines=$(wc -l < "$TMPDIR/logs/testhost/$file")
+    check "retained file has all lines" "3" "$lines"
+)
+
+echo
+echo "=== Test 23: LOG_KEEP_THRESHOLD=DEBUG keeps every run ==="
+(
+    setup_test_env
+    export LOG_TAG="test23"
+    (
+        export LOG_KEEP_THRESHOLD=DEBUG
+        source "$LIB"
+        log INFO "clean run but keep me"
+    )
+    count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test23\." || true)
+    check "DEBUG threshold keeps INFO-only run" "1" "$count"
+)
+
+echo
+echo "=== Test 24: LOG_KEEP_THRESHOLD=NEVER deletes even on ERROR ==="
+(
+    setup_test_env
+    export LOG_TAG="test24"
+    (
+        export LOG_KEEP_THRESHOLD=NEVER
+        source "$LIB"
+        log ERROR "normally would keep, but threshold=never"
+    )
+    count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test24\." || true)
+    check "NEVER threshold deletes even ERROR runs" "0" "$count"
+)
+
+echo
+echo "=== Test 25: log_finalize() callable manually, idempotent ==="
+(
+    setup_test_env
+    export LOG_TAG="test25"
+    source "$LIB"
+    log INFO "clean"
+    log_finalize    # explicit, before subshell exit
+    count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test25\." || true)
+    check "manual finalize deletes clean run's file" "0" "$count"
+    log_finalize    # should be no-op, not error
+    check "second finalize is idempotent" "0" "$count"
+)
+
+echo
+echo "=== Test 26: LOG_ROOT never written to DURING a run ==="
+(
+    setup_test_env
+    export LOG_TAG="test26"
+    rm -rf "$LOG_ROOT"
+    (
+        source "$LIB"
+        log INFO  "did work"
+        log ERROR "even an error mid-run must not touch LOG_ROOT"
+        # Snapshot state DURING the run — LOG_ROOT should still be empty.
+        mid_run_files=$(find "$LOG_ROOT" -type f 2>/dev/null | wc -l)
+        printf '%s' "$mid_run_files" > "$TMPDIR/mid_run_count"
+        log WARN  "finishing up"
+    )
+    # Read the snapshot taken during the run
+    check "no files under LOG_ROOT during the run (even after ERROR)" "0" "$(cat "$TMPDIR/mid_run_count")"
+    # After finalize (subshell exit), the file should now exist because of the ERROR.
+    count=$(find "$LOG_ROOT" -type f -name '*.log' 2>/dev/null | wc -l)
+    check "after exit, one log file under LOG_ROOT" "1" "$count"
+)
+
+echo
+echo "=== Test 27: log_file() points at temp path until finalize ==="
+(
+    setup_test_env
+    export LOG_TAG="test27"
+    source "$LIB"
+    log INFO  "in temp"
+    log ERROR "still in temp until exit"
+    p=$(log_file)
+    check "active path is under /tmp during the run" "yes" "$(case "$p" in "${TMPDIR:-/tmp}"/*|/tmp/*) echo yes;; *) echo no;; esac)"
+    check "temp file has both lines" "2" "$(wc -l < "$p")"
+    log_finalize
+    p_after=$(log_file)
+    check "after finalize, active path is under LOG_ROOT" "yes" "$(case "$p_after" in "$LOG_ROOT"/*) echo yes;; *) echo no;; esac)"
+    check "final file has both lines" "2" "$(wc -l < "$p_after")"
+)
+
+echo
+echo "=== Test 28: clean-run temp file is deleted (no orphans in /tmp) ==="
+(
+    setup_test_env
+    export LOG_TAG="test28-orphan"
+    before=$(ls /tmp/log.test28-orphan.* 2>/dev/null | wc -l)
+    (
+        source "$LIB"
+        log INFO "clean"
+    )
+    after=$(ls /tmp/log.test28-orphan.* 2>/dev/null | wc -l)
+    check "no /tmp leftovers after clean run" "$before" "$after"
 )
 
 pass=$(cat "$PASS_FILE")

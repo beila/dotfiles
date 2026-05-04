@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# log — CLI wrapper around script/logger/log.sh.
+# dlog — CLI wrapper around script/logger/log.sh.
+# (named 'dlog' because zsh has a 'log' builtin that shadows PATH entries.)
 #
 # Makes leveled logging callable from any shell without sourcing log.sh,
 # e.g. inside one-shot pipelines or from non-shell code.
 #
 # Usage:
-#   LOG_TAG=my-script log LEVEL "message"
-#   LOG_TAG=my-script LOG_CONTEXT=some-scope log ERROR "fell over"
+#   LOG_TAG=my-script dlog LEVEL "message"
+#   LOG_TAG=my-script LOG_CONTEXT=some-scope dlog ERROR "fell over"
 #
 # Required env:
 #   LOG_TAG     identifies the script in the log file name
@@ -21,14 +22,14 @@
 set -u
 
 if [ "$#" -lt 2 ]; then
-    echo "usage: log LEVEL \"message\"" >&2
+    echo "usage: dlog LEVEL \"message\"" >&2
     exit 2
 fi
 
 DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
 LIB="$DOTFILES_ROOT/script/logger/log.sh"
 if [ ! -f "$LIB" ]; then
-    echo "log: cannot find $LIB" >&2
+    echo "dlog: cannot find $LIB" >&2
     exit 1
 fi
 

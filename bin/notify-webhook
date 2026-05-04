@@ -10,15 +10,16 @@
 #   -u URL        optional related URL
 #
 # Environment:
-#   NOTIFY_BACKEND                 name of backend to use (default: none)
-#                                  If unset and a config file exists in
-#                                  private-dotfiles, the matching backend is picked.
-#   DOTFILES_ROOT                  default $HOME/.dotfiles
+#   NOTIFY_BACKEND   name of backend to use. If unset, auto-detected:
+#                      - private-dotfiles/telegram.env present -> 'telegram'
+#                      - otherwise                              -> 'none' (no-op)
+#   DOTFILES_ROOT    default $HOME/.dotfiles
 #
 # Backends live in $DOTFILES_ROOT/script/logger/backends/<name>.sh and export a
-# single function `notify_send TITLE PRIORITY URL MESSAGE`.  If the chosen
-# backend file does not exist, the dispatcher returns success (no-op) so
-# callers that set up notifications optionally never fail.
+# single function `notify_send TITLE PRIORITY URL MESSAGE`. If the chosen
+# backend file does not exist, the dispatcher prints a diagnostic to stderr
+# and returns 0, so callers that opt-in to notifications never fail on
+# misconfigured machines.
 
 set -u
 
