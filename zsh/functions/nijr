@@ -1,11 +1,25 @@
 #!env zsh
-nix_develop_command() {
-    which nix &> /dev/null &&
-        test ! -f flake.nix &&
-        return
+# Like `njr` but without --ignore-env/--keep VERBOSE.
+# See `n` for first-arg semantics.
+local installable=""
+case "$1" in
+    [+#]*)
+        installable=".#${1#[+#]}"; shift ;;
+    *'#'*|path:*|github:*|flake:*|gitlab:*|sourcehut:*|git+*|tarball+*|file+*|hg+*)
+        installable="$1"; shift ;;
+esac
 
-    git ls-files | grep '^flake.nix$' &> /dev/null &&
-        echo "nix develop --impure --command" ||
-        echo "nix develop path:. --impure --command"
+nix_develop_command() {
+    which nix &> /dev/null || return
+    local i="$installable"
+    if [[ -z "$i" ]]; then
+        test -f flake.nix || return
+        if git ls-files 2>/dev/null | grep -qx 'flake.nix'; then
+            i="."
+        else
+            i="path:."
+        fi
+    fi
+    echo "nix develop $i --impure --command"
 }
 $(nix_develop_command) just --justfile ~/.justfile run "$@"

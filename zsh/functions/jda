@@ -1,0 +1,12 @@
+#!env zsh
+# jj describe with AI-generated commit message from ~/.dotfiles/bin/commit-msg.
+# Usage: jda [rev] [extra jj describe args...]
+#   jda              # describe @
+#   jda sr           # describe rev "sr"
+#   jda sr --reset-author
+local rev="${1:-@}"
+(( $# > 0 )) && shift
+local msg
+msg=$("${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/commit-msg" "$rev") || return
+echo "$msg"
+jj describe -r "$rev" -m "$msg" "$@"
