@@ -8,20 +8,26 @@ log() { [ "${VERBOSE:-}" = 1 ] && echo "commit-msg: $*" >&2; }
 REV="${1:-@}"
 
 # Detect if REV is a merge and gather parent info (for jj only; git merges handled via diff).
-# For each parent P we collect commits introduced linearly on P's side of the merge, stopping
-# before any earlier merge on that side. The idea is to give the LLM the "story" of each branch
-# that was merged (what work was done on P's side since the previous merge) without dragging in
-# the entire shared history.
+# For each parent P we collect the cumulative diff of commits on P's side of the merge
+# since the previous merge on that side. Passing the actual code diffs — not just commit
+# descriptions — gives the LLM enough signal to write a specific merge message.
+# If the diff is too large, we fall back to the per-commit description list.
 #
-# Revset: (::P ~ ::others) ~ ::(merges() & (::P ~ ::others) ~ P)
+# Revset for the linear run of commits on P's side:
+#   (::P ~ ::others) ~ ::(merges() & (::P ~ ::others) ~ P)
 #   ::P ~ ::others                                    — commits unique to P's side of the merge
 #   merges() & (::P ~ ::others) ~ P                   — earlier merges on P's side (excluding P itself)
 #   ::(...)                                           — ancestors of those earlier merges
 #   outer ~                                           — drop those ancestors, keeping only the linear
 #                                                       run from P back to (but excluding) the previous
 #                                                       merge on this side
+#
+# The "start" of that run (for the diff) is `roots(unique_revset)-`, i.e. the commit immediately
+# before the oldest commit on this side — which is the previous merge (or the point where
+# this side's history begins, if no previous merge exists).
 is_merge=0
 merge_context=""
+MAX_MERGE_DIFF_LINES=${MAX_MERGE_DIFF_LINES:-500}
 if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
     parent_count=$(jj log --ignore-working-copy -r "$REV" --no-graph -T 'parents.len()' 2>/dev/null)
     if [ -n "$parent_count" ] && [ "$parent_count" -gt 1 ]; then
@@ -33,36 +39,59 @@ if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
             [ -z "$pid" ] && continue
             parent_idx=$((parent_idx + 1))
             others=$(echo "$parent_ids" | grep -v "^${pid}$" | paste -sd'|' -)
+            parent_desc=$(jj log --ignore-working-copy -r "$pid" --no-graph \
+                -T 'commit_id.short(12) ++ " " ++ description.first_line()' 2>/dev/null)
+
             if [ -n "$others" ]; then
                 unique_revset="(::${pid} ~ ::(${others})) ~ ::(merges() & (::${pid} ~ ::(${others})) ~ ${pid})"
             else
-                # Degenerate: P is the only parent. Walk back until we hit any merge.
                 unique_revset="::${pid} ~ ::(merges() & ::${pid} ~ ${pid})"
             fi
-            unique_commits=$(jj log --ignore-working-copy -r "$unique_revset" --no-graph \
-                -T '"  - " ++ commit_id.short(12) ++ " " ++ description.first_line() ++ if(bookmarks, " [" ++ bookmarks ++ "]", "") ++ "\n"' 2>/dev/null)
-            parent_desc=$(jj log --ignore-working-copy -r "$pid" --no-graph \
-                -T 'commit_id.short(12) ++ " " ++ description.first_line()' 2>/dev/null)
-            if [ -n "$unique_commits" ]; then
+
+            # "start" commit = parent of the oldest unique commit (the previous merge on this side).
+            start=$(jj log --ignore-working-copy -r "roots($unique_revset)-" --no-graph \
+                -T 'commit_id ++ "\n"' 2>/dev/null | head -1)
+
+            side_diff=""
+            if [ -n "$start" ]; then
+                side_diff=$(jj diff --ignore-working-copy --from "$start" --to "$pid" --git 2>/dev/null)
+            fi
+            side_diff_lines=$(printf '%s' "$side_diff" | wc -l)
+
+            if [ -n "$side_diff" ] && [ "$side_diff_lines" -le "$MAX_MERGE_DIFF_LINES" ]; then
                 merge_context="$merge_context
 
-Parent $parent_idx ($parent_desc) — commits introduced on this side since previous merge:
-$unique_commits"
+Parent $parent_idx ($parent_desc) — cumulative diff on this side since previous merge:
+$side_diff"
             else
-                merge_context="$merge_context
+                # Diff too large or unavailable — list commits instead (descriptions + bookmarks).
+                unique_commits=$(jj log --ignore-working-copy -r "$unique_revset" --no-graph \
+                    -T '"  - " ++ commit_id.short(12) ++ " " ++ description.first_line() ++ if(bookmarks, " [" ++ bookmarks ++ "]", "") ++ "\n"' 2>/dev/null)
+                if [ -n "$unique_commits" ]; then
+                    reason=""
+                    [ -n "$side_diff" ] && reason=" (diff $side_diff_lines lines > $MAX_MERGE_DIFF_LINES, using descriptions)"
+                    merge_context="$merge_context
+
+Parent $parent_idx ($parent_desc) — commits introduced on this side since previous merge$reason:
+$unique_commits"
+                else
+                    merge_context="$merge_context
 
 Parent $parent_idx ($parent_desc) — no unique commits (fast-forward side)"
+                fi
             fi
         done <<< "$parent_ids"
-        log "merge detected with $parent_count parents; gathered linear run per side"
+        log "merge detected with $parent_count parents; gathered per-side context"
     fi
 fi
 
-# Compact diff: deleted files as names only, full diff for modified/added
+# Compact diff: deleted files as names only, full diff for modified/added.
+# Use --ignore-working-copy so snapshots don't shift change_offset (the `/N` suffix
+# in `change_id/N` revsets) between the caller and the two jj diff calls below.
 if command -v jj &>/dev/null && jj root &>/dev/null 2>&1; then
     diff=$({
-        jj diff -r "$REV" --types 2>/dev/null | awk '$1 ~ /-$/ {print "Deleted: " substr($0, index($0,$2))}'
-        jj diff -r "$REV" --git 2>/dev/null | awk '
+        jj diff --ignore-working-copy -r "$REV" --types 2>/dev/null | awk '$1 ~ /-$/ {print "Deleted: " substr($0, index($0,$2))}'
+        jj diff --ignore-working-copy -r "$REV" --git 2>/dev/null | awk '
             /^diff --git/{header=$0; deleted=0; next}
             /^deleted file/{deleted=1; next}
             {if(!deleted){if(header){print header; header=""} print}}'
