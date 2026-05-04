@@ -22,4 +22,8 @@ nix_develop_command() {
     fi
     echo "nix develop $i --impure --command"
 }
-$(nix_develop_command) "$@"
+
+exec logrun --name "${*:-nix}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+    set -x
+    time $(nix_develop_command) ${(j: :)${(q-)@}}
+"

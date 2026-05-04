@@ -1,5 +1,6 @@
 #!env zsh
-# Run project's just inside a nix devshell, routed through the user justfile.
+# Run project's just inside a nix devshell, wrapped by `logrun` so output is
+# teed to a timestamped log and piped through the spacer/watchlog decorator.
 # First arg may be one of:
 #   +name / #name          — shortcut for .#name in the current-dir flake
 #   .#name, XXX#YYY        — full nix installable (the "usual nix arg")
@@ -24,8 +25,10 @@ nix_develop_command() {
             i="path:."
         fi
     fi
-    echo "nix develop $i --ignore-env --impure --keep VERBOSE --command"
+    echo "nix develop $i --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
 }
-set -x  # FIXME log name includes nix-shell-env
-log_prefix_ignore="$(nix_develop_command) just "\
-    just --justfile ~/.justfile run $(nix_develop_command) just "$@"
+
+exec logrun --name "just ${*:-list}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+    set -x
+    time $(nix_develop_command) just ${(j: :)${(q-)@}}
+"

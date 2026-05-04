@@ -1,5 +1,5 @@
 #!env zsh
-# Like `n` but invokes `just --justfile ~/.justfile run $@` inside the devshell.
+# Like `nijr` but without --ignore-env/--keep VERBOSE.
 # See `n` for first-arg semantics.
 local installable=""
 case "$1" in
@@ -20,6 +20,10 @@ nix_develop_command() {
             i="path:."
         fi
     fi
-    echo "nix develop $i --ignore-env --impure --keep VERBOSE --command"
+    echo "nix develop $i --impure --command"
 }
-$(nix_develop_command) just --justfile ~/.justfile run "$@"
+
+exec logrun --name "${*:-nix}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+    set -x
+    time $(nix_develop_command) just --justfile ~/.justfile run ${(j: :)${(q-)@}}
+"

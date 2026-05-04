@@ -1,2 +1,6 @@
 #!env zsh
-just --justfile ~/.justfile run "$@"
+# Run an arbitrary shell command through `logrun` (no nix devshell, no just).
+exec logrun --name "${*:-jr}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+    set -x
+    time ${(j: :)${(q-)@}}
+"

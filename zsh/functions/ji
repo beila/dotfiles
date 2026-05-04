@@ -22,6 +22,8 @@ nix_develop_command() {
     fi
     echo "nix develop $i --impure --command"
 }
-set -x  # FIXME log name includes nix-shell-env
-log_prefix_ignore="$(nix_develop_command) just "\
-    just --justfile ~/.justfile run $(nix_develop_command) just "$@"
+
+exec logrun --name "just ${*:-list}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+    set -x
+    time $(nix_develop_command) just ${(j: :)${(q-)@}}
+"
