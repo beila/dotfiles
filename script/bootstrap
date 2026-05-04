@@ -151,7 +151,7 @@ install_dotfiles () {
   for dir in $(find -H "$DOTFILES_ROOT" -maxdepth 3 -name '*.filesymlink' -type d -not -path '*.git*')
   do
     local base="$HOME/.$(basename "${dir%.*}")"
-    find -H "$dir" -type f | while read -r src; do
+    find -H "$dir" -type f,l | while read -r src; do
       local rel="${src#$dir/}"
       local dst="$base/$rel"
       mkdir -p "$(dirname "$dst")"

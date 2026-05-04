@@ -80,6 +80,8 @@ watch *command:
         date
     done
 
+my_branch := ""
+
 [no-cd]
 workspace $target $source=".":
     #!/usr/bin/env zsh
@@ -87,12 +89,12 @@ workspace $target $source=".":
     target=${target:a}
     cd "${source}"
 
+    my_branch={{ my_branch }}
     if ! jj --version > /dev/null 2>&1;
     then
         git worktree add "${target}" ${my_branch:+-b ${my_branch}}
     fi
 
-    my_branch={{ work_branch }}
     if [[ -d .git || -f .git ]]; then
         git worktree add "${target}" ${my_branch:+-b ${my_branch}}
 
