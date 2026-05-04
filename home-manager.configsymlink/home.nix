@@ -24,12 +24,14 @@
         pkgs.cmake
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
         pkgs.difftastic
+        pkgs.dust
         pkgs.fd
         pkgs.ffmpeg
         pkgs.fzf
         pkgs.git
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.ghostty.terminfo
+        pkgs.glow  # terminal markdown renderer
         pkgs.hishtory
         pkgs.jetbrains-mono # For OSD popups
         pkgs.nerd-fonts.jetbrains-mono  # For OSD popups
@@ -37,6 +39,7 @@
         pkgs.just
         pkgs.keyd
         pkgs.mergiraf
+        pkgs.nmap  # raw JetDirect printer discovery (print-hp)
         pkgs.ollama
         pkgs.pavucontrol
         pkgs.piper-tts
@@ -133,9 +136,12 @@
     Install.WantedBy = [ "timers.target" ];
   };
 
-  # Update plocate database every 3 minutes (user home only)
-  # Used by Albert for file search and jj_snapshot_all for repo discovery
-  # Notifies via desktop notification if update takes >10s
+  # Update plocate database every 10 minutes (user home only).
+  # Used by Albert for file search and sync_all for repo discovery.
+  # Notifies via desktop notification if update takes >30s (threshold is in
+  # the script itself). Runs every 10 minutes — frequent enough that
+  # locate/plocate results stay fresh, infrequent enough to not compete
+  # with interactive I/O when the system is busy.
   systemd.user.services.updatedb = {
     Unit.Description = "Update plocate database";
     Service = {
@@ -144,9 +150,9 @@
     };
   };
   systemd.user.timers.updatedb = {
-    Unit.Description = "Update plocate database every 3 minutes";
+    Unit.Description = "Update plocate database every 10 minutes";
     Timer = {
-      OnCalendar = "*:0/3";
+      OnCalendar = "*:0/10";
     };
     Install.WantedBy = [ "timers.target" ];
   };
