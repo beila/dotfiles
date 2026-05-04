@@ -8,10 +8,12 @@
 #   port. It's also faster — no filter re-encoding.
 #
 # Features:
-#   - Auto-discovers a printer with port 9100 open on the local subnet (IPs
-#     often change via DHCP). Override with --ip / $PRINT_HP_IP.
-#   - Caches the discovered IP for 60 minutes.
+#   - Uses the cached IP as long as it still answers on port 9100 (cheap
+#     /dev/tcp probe, CACHE_PROBE_TIMEOUT seconds). Otherwise falls back to
+#     an nmap scan of $SUBNET. Override with --ip / $PRINT_HP_IP.
 #   - Accepts PDF (converted to PS), PostScript, or text files.
+#   - Optional page range for PDF (--pages 3, --pages 2-5, --pages 3-, --pages -5).
+#   - --dry-run skips the final send and leaves the payload for inspection.
 #   - Prints A4 duplex by default.
 #
 # Requires:
@@ -27,9 +29,14 @@ SUBNET="${PRINT_HP_SUBNET:-192.168.1.0/24}"
 HP_IP="${PRINT_HP_IP:-}"
 PAPER="${PRINT_HP_PAPER:-A4}"
 DUPLEX=1
+PAGE_FIRST=""
+PAGE_LAST=""
 CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/print-hp"
-CACHE_TTL_MIN=60
 SCAN_TIMEOUT=30
+# Probe timeout when re-verifying a cached IP. Long enough for a sleeping
+# printer to complete the TCP handshake on 9100 after being woken; still
+# much faster than an nmap scan of a /22 subnet.
+CACHE_PROBE_TIMEOUT=8
 NC_TIMEOUT=60
 
 usage() {
@@ -37,7 +44,7 @@ usage() {
 Usage:  print-hp [OPTIONS] FILE
 
 Sends FILE to an HP network printer at port 9100 (JetDirect). Auto-discovers
-the printer on the local subnet and caches the IP for 60 minutes.
+the printer on the local subnet and caches the IP until it stops responding.
 
 OPTIONS
   -h, --help             Show this help
@@ -45,9 +52,16 @@ OPTIONS
   -i, --ip IP            Skip discovery, use this IP
   -s, --simplex          Single-sided (default: duplex, long-edge)
   -p, --paper SIZE       Paper size for PDF conversion (default: A4)
+      --pages RANGE      Page range for PDF only. Formats:
+                           N      single page (e.g. 3)
+                           N-M    range          (e.g. 2-5)
+                           N-     from N to end  (e.g. 3-)
+                           -M     start to M     (e.g. -5)
   -n, --no-cache         Force a fresh network scan
       --subnet CIDR      Subnet to scan (default: 192.168.1.0/24)
       --timeout SECS     Max transfer time (default: 60)
+      --dry-run          Do everything except send to the printer.
+                         Leaves the converted payload at a printed path.
 
 SUPPORTED FORMATS
   .pdf            — converted to PostScript locally
@@ -62,6 +76,8 @@ ENVIRONMENT
 EXAMPLES
   print-hp document.pdf
   print-hp --simplex notes.txt
+  print-hp --pages 3 report.pdf               # only page 3
+  print-hp --pages 2-5 report.pdf             # pages 2 through 5
   print-hp -d                                  # just show the printer IP
   PRINT_HP_IP=192.168.1.42 print-hp report.pdf
   print-hp --subnet 10.0.0.0/24 receipt.pdf
@@ -76,7 +92,9 @@ warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
 # ─── Arg parsing ───────────────────────────────────────────────────────────
 DISCOVER_ONLY=0
 FORCE_RESCAN=0
+DRY_RUN=0
 FILE=""
+PAGES_ARG=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -88,11 +106,36 @@ while [[ $# -gt 0 ]]; do
     -n|--no-cache)  FORCE_RESCAN=1; shift ;;
     --subnet)       SUBNET="$2"; shift 2 ;;
     --timeout)      NC_TIMEOUT="$2"; shift 2 ;;
+    --pages)        PAGES_ARG="$2"; shift 2 ;;
+    --dry-run)      DRY_RUN=1; shift ;;
     --)             shift; FILE="${1:-}"; break ;;
     -*)             err "Unknown option: $1"; usage >&2; exit 2 ;;
     *)              FILE="$1"; shift ;;
   esac
 done
+
+# ─── Parse --pages RANGE ───────────────────────────────────────────────────
+# Accepted: N, N-M, N-, -M
+if [[ -n "$PAGES_ARG" ]]; then
+  if [[ "$PAGES_ARG" =~ ^([0-9]+)$ ]]; then
+    PAGE_FIRST="${BASH_REMATCH[1]}"
+    PAGE_LAST="${BASH_REMATCH[1]}"
+  elif [[ "$PAGES_ARG" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+    PAGE_FIRST="${BASH_REMATCH[1]}"
+    PAGE_LAST="${BASH_REMATCH[2]}"
+    if (( PAGE_FIRST > PAGE_LAST )); then
+      err "--pages range reversed: $PAGES_ARG (first page > last page)"
+      exit 2
+    fi
+  elif [[ "$PAGES_ARG" =~ ^([0-9]+)-$ ]]; then
+    PAGE_FIRST="${BASH_REMATCH[1]}"
+  elif [[ "$PAGES_ARG" =~ ^-([0-9]+)$ ]]; then
+    PAGE_LAST="${BASH_REMATCH[1]}"
+  else
+    err "--pages: unrecognised range '$PAGES_ARG'. Use N, N-M, N-, or -M."
+    exit 2
+  fi
+fi
 
 # ─── Discover printer ──────────────────────────────────────────────────────
 nmap_cmd() {
@@ -116,19 +159,22 @@ discover() {
     return
   fi
 
+  # Try the cached IP first — most printers keep their DHCP lease for days,
+  # so a short TCP probe on port 9100 is far cheaper than an nmap sweep of
+  # a /22. CACHE_PROBE_TIMEOUT is generous enough for a sleeping printer to
+  # wake on the handshake. Age is informational only; we trust the probe.
   if [[ "$FORCE_RESCAN" -eq 0 ]] && [[ -f "$cache_file" ]]; then
     local cached_ip cache_age
     cached_ip=$(cat "$cache_file")
     cache_age=$(( ( $(date +%s) - $(stat -c %Y "$cache_file") ) / 60 ))
-    if [[ "$cache_age" -lt "$CACHE_TTL_MIN" ]] && [[ -n "$cached_ip" ]]; then
-      # Verify still reachable on 9100
-      if timeout 2 bash -c ": </dev/tcp/$cached_ip/9100" 2>/dev/null; then
-        HP_IP="$cached_ip"
-        info "Using cached printer IP: $HP_IP (cached ${cache_age} min ago)"
-        return
-      fi
-      warn "Cached IP $cached_ip no longer responds — rescanning"
+    if [[ -n "$cached_ip" ]] && timeout "$CACHE_PROBE_TIMEOUT" bash -c ": </dev/tcp/$cached_ip/9100" 2>/dev/null; then
+      HP_IP="$cached_ip"
+      info "Using cached printer IP: $HP_IP (cached ${cache_age} min ago, port 9100 responsive)"
+      # Touch the cache file so age reflects last-verified, not last-discovered.
+      touch "$cache_file"
+      return
     fi
+    [[ -n "$cached_ip" ]] && warn "Cached IP $cached_ip not responding on 9100 — rescanning"
   fi
 
   info "Scanning $SUBNET for printer on port 9100 (may take ~20s)..."
@@ -158,13 +204,31 @@ discover() {
 PAYLOAD=""
 CLEANUP=()
 
-cleanup() { [[ ${#CLEANUP[@]} -gt 0 ]] && rm -f "${CLEANUP[@]}"; }
+cleanup() {
+  # In dry-run mode we keep the payload so the caller can inspect it.
+  if [[ "$DRY_RUN" -eq 1 ]] && [[ -n "$PAYLOAD" ]] && [[ -f "$PAYLOAD" ]]; then
+    info "Dry-run: payload left at $PAYLOAD"
+    # Remove the payload from CLEANUP before deleting the rest.
+    local -a keep=()
+    local f
+    for f in "${CLEANUP[@]}"; do
+      [[ "$f" == "$PAYLOAD" ]] || keep+=("$f")
+    done
+    CLEANUP=("${keep[@]}")
+  fi
+  [[ ${#CLEANUP[@]} -gt 0 ]] && rm -f "${CLEANUP[@]}"
+}
 trap cleanup EXIT
 
 prepare_payload() {
   local file="$1"
   local ext="${file##*.}"
   ext="${ext,,}"
+
+  if [[ -n "$PAGES_ARG" ]] && [[ "$ext" != "pdf" ]]; then
+    err "--pages is only supported for PDF files (got .$ext)."
+    exit 2
+  fi
 
   case "$ext" in
     ps|eps)
@@ -177,8 +241,15 @@ prepare_payload() {
       fi
       PAYLOAD=$(mktemp --suffix=.ps)
       CLEANUP+=("$PAYLOAD")
-      info "Converting PDF → PostScript ($PAPER)..."
-      pdftops -paper "$PAPER" -level3 "$file" "$PAYLOAD"
+      local -a pdftops_args=(-paper "$PAPER" -level3)
+      [[ -n "$PAGE_FIRST" ]] && pdftops_args+=(-f "$PAGE_FIRST")
+      [[ -n "$PAGE_LAST"  ]] && pdftops_args+=(-l "$PAGE_LAST")
+      if [[ -n "$PAGE_FIRST$PAGE_LAST" ]]; then
+        info "Converting PDF → PostScript ($PAPER, pages ${PAGE_FIRST:-1}-${PAGE_LAST:-end})..."
+      else
+        info "Converting PDF → PostScript ($PAPER)..."
+      fi
+      pdftops "${pdftops_args[@]}" "$file" "$PAYLOAD"
       ok "Converted: $(du -h "$PAYLOAD" | cut -f1)"
       ;;
     *)
@@ -210,6 +281,11 @@ send_to_printer() {
   local ip="$2"
   local size
   size=$(du -h "$file" | cut -f1)
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    info "Dry-run: would send $size to $ip:9100 (not sending)"
+    return
+  fi
 
   info "Sending $size to $ip:9100 (timeout ${NC_TIMEOUT}s)..."
 
