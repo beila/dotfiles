@@ -1,0 +1,49 @@
+#!/usr/bin/env -S zsh -e
+
+#set -x
+
+files=("$@")
+JJ=(jj --ignore-working-copy)
+JJL=(jj --ignore-working-copy log --no-graph)
+
+echo "Storing current operation log"
+previous_op_log=$($JJ op log --color=always --limit 1)
+
+# Build jj fileset: 'a' | 'b' | 'c'
+# Nested expansion is required: ${(qq)files[@]} quotes each element first,
+# then ${(j: | :)...} joins them. A single ${(qqj: | :)files} would apply
+# both flags to the array as a whole, producing one quoted string
+# 'a b c' instead of 'a' 'b' 'c'.
+revset="files(${(j: | :)${(qq)files[@]}}) & mutable() ~ root()" 
+total_count=$($JJL -r "${revset}" -T 'commit_id ++ "\n"' | wc -l)
+echo "Total $total_count mutable changes containing ${(j:, :)files[@]}"
+i=0
+
+while c=$($JJL -r "roots(${revset})" -T 'format_short_change_id_with_change_offset(self)' --limit 1) && test -n "$c";
+do
+    i=$((i+1))
+    echo
+    echo "Restoring files from $c ($i/$total_count)"
+
+    for f in "${files[@]}"
+    do
+        $JJ restore --changes-in $c "$f" || true
+    done
+done
+
+revset="empty() & mutable() ~ root() ~ @" 
+total_count=$($JJL -r "${revset}" -T 'commit_id ++ "\n"' | wc -l)
+echo "Total $total_count empty mutable changes"
+i=0
+
+while c=$($JJL -r "${revset}" -T 'format_short_change_id_with_change_offset(self)' --limit 1) && test -n "$c";
+do
+    i=$((i+1))
+    echo
+    echo "Abandoning $c ($i/$total_count)"
+    $JJ abandon $c || true
+done
+
+echo
+echo "This was the last operation before this script does anything, if you want to restore"
+echo "$previous_op_log"

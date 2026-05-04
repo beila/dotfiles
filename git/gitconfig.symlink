@@ -24,6 +24,14 @@
 [merge "mergiraf"]
 	name = mergiraf
 	driver = mergiraf merge --verbose --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
+# Registers the `ours` merge driver used by lockfile patterns in
+# git.configsymlink/attributes. Git's built-in merge drivers are only
+# text/binary/union (per gitattributes(5)); `-s ours` is a whole-commit
+# strategy, not a per-path driver. `true` exits 0 without modifying %A
+# so our side is preserved.
+[merge "ours"]
+	name = Keep our version
+	driver = true
 [rerere]
 	enabled = true
 [alias]
