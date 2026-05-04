@@ -1,23 +1,66 @@
 #!/usr/bin/env bash
-# Battery low notification — triggered by systemd timer
-# Notifies at 20% and 10% (only while discharging, once per threshold)
+# Battery low notification — triggered by battery-notify.timer every minute.
+#
+# Fires a desktop notify-send popup at 20% (normal urgency) and 10% (critical)
+# while discharging. Only once per threshold until reset by charging.
+#
+# Logs only at state transitions (detect / recover / cross threshold) to keep
+# the log file readable; routine checks are silent.
 
 set -euo pipefail
 
-STATE_FILE="/tmp/battery-notify-last"
-BAT="/sys/class/power_supply/BAT0"
+LOG_TAG=battery-notify
+DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+STATE_FILE="${BATTERY_NOTIFY_STATE_FILE:-/tmp/battery-notify-last}"
+BAT="${BATTERY_NOTIFY_BAT_DIR:-/sys/class/power_supply/BAT0}"
+POWER_SUPPLY_DIR="${BATTERY_NOTIFY_POWER_SUPPLY_DIR:-/sys/class/power_supply}"
+
+# Preflight: battery directory. Laptops with non-standard naming (BAT1, CMB0,
+# macsmc-battery on Apple Silicon) would need updating here. Keep the error
+# actionable: list what IS available so the fix is obvious.
+if [ ! -d "$BAT" ]; then
+    # Only log once until the battery appears; otherwise every minute -> 1440 lines/day.
+    if [ "$(cat "$STATE_FILE" 2>/dev/null)" != "missing" ]; then
+        available=$(ls "$POWER_SUPPLY_DIR" 2>/dev/null | grep -i '^bat\|^cmb\|battery' | tr '\n' ' ')
+        log ERROR "battery not found at $BAT. Available power supplies: ${available:-none}. Edit script/battery-notify to set BAT=."
+        echo missing > "$STATE_FILE"
+    fi
+    exit 0
+fi
+
+if [ ! -r "$BAT/status" ] || [ ! -r "$BAT/capacity" ]; then
+    log ERROR "battery sysfs unreadable: $BAT/status or $BAT/capacity. Check permissions: $(ls -l "$BAT/status" "$BAT/capacity" 2>&1 | head -2)"
+    exit 1
+fi
 
 status=$(<"$BAT/status")
 capacity=$(<"$BAT/capacity")
 
-[[ "$status" == "Discharging" ]] || { rm -f "$STATE_FILE"; exit 0; }
+# Validate capacity is a sensible integer. Some kernels return junk for a few
+# seconds after wake.
+if ! [[ "$capacity" =~ ^[0-9]+$ ]] || [ "$capacity" -gt 100 ]; then
+    log WARN "unexpected capacity value '$capacity' (expected integer 0-100). Skipping this check."
+    exit 0
+fi
+
+if [[ "$status" != "Discharging" ]]; then
+    # Charging, full, or unknown. Reset the threshold state so that the next
+    # time we hit 20%/10% while discharging we alert again.
+    [ -f "$STATE_FILE" ] && rm -f "$STATE_FILE"
+    exit 0
+fi
 
 last=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 
 if (( capacity <= 10 )) && [[ "$last" != "10" ]]; then
-  notify-send -u critical "Battery Critical" "${capacity}% remaining"
-  echo 10 > "$STATE_FILE"
+    notify-send -u critical "Battery Critical" "${capacity}% remaining" 2>/dev/null || true
+    log WARN "battery at ${capacity}% (critical threshold)"
+    echo 10 > "$STATE_FILE"
 elif (( capacity <= 20 )) && [[ "$last" != "20" && "$last" != "10" ]]; then
-  notify-send -u normal "Battery Low" "${capacity}% remaining"
-  echo 20 > "$STATE_FILE"
+    notify-send -u normal "Battery Low" "${capacity}% remaining" 2>/dev/null || true
+    log INFO "battery at ${capacity}% (low threshold)"
+    echo 20 > "$STATE_FILE"
 fi

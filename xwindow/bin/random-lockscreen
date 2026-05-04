@@ -1,10 +1,77 @@
-#!/bin/bash
-# Pick a random image from ~/Pictures/Favourites and set as lock screen background.
-# Run daily via systemd timer.
-DIR="$HOME/Pictures/Favourites"
-PIC=$(find "$DIR" -maxdepth 1 -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.heic' \) | shuf -n1)
-if [ -n "$PIC" ]; then
-    gsettings set org.gnome.desktop.screensaver picture-uri "file://$PIC"
-    gsettings set org.gnome.desktop.screensaver picture-options "scaled"
-    gsettings set org.gnome.desktop.screensaver primary-color "#000000"
+#!/usr/bin/env bash
+# Pick a random image from $WALLPAPER_DIR and set it as the GNOME screensaver
+# background. Runs daily via random-lockscreen.timer.
+#
+# Structured logging and actionable errors: if the wallpaper dir is missing,
+# empty, or gsettings can't be invoked, the error says exactly what's wrong
+# and where to look.
+
+set -u
+
+LOG_TAG=random-lockscreen
+DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/Pictures/Favourites}"
+
+if [ ! -d "$WALLPAPER_DIR" ]; then
+    log ERROR "wallpaper directory not found: $WALLPAPER_DIR. Create it or set WALLPAPER_DIR= (e.g. in private-dotfiles/env.zsh)"
+    exit 1
 fi
+
+# Collect candidates. Anchor depth at 1 so we don't recurse into unexpected
+# subfolders like trash or drafts.
+mapfile -t candidates < <(find "$WALLPAPER_DIR" -maxdepth 1 -type f \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.heic' -o -iname '*.webp' \) \
+    2>/dev/null)
+
+if [ "${#candidates[@]}" -eq 0 ]; then
+    log WARN "no wallpapers found in $WALLPAPER_DIR (looking for jpg/jpeg/png/heic/webp at depth 1)"
+    exit 0
+fi
+
+PIC=$(printf '%s\n' "${candidates[@]}" | shuf -n1)
+
+if ! command -v gsettings >/dev/null 2>&1; then
+    log ERROR "gsettings not installed. This script expects a GNOME/glib session. Install glib or disable random-lockscreen.timer."
+    exit 1
+fi
+
+# gsettings needs an active DBus session. Under systemd --user the session
+# variables should be inherited. If they're missing, the set calls fail with
+# 'Cannot autolaunch D-Bus without X11' or similar.
+err=$(mktemp "/tmp/random-lockscreen-err.XXXXXX")
+fail=0
+for kv in \
+    'picture-uri file://'"$PIC" \
+    'picture-options scaled' \
+    'primary-color #000000' \
+; do
+    key=${kv%% *}
+    val=${kv#* }
+    if ! gsettings set org.gnome.desktop.screensaver "$key" "$val" 2>"$err"; then
+        reason=$(head -1 "$err")
+        case "$reason" in
+            *"autolaunch D-Bus"*|*"Cannot autolaunch"*)
+                log ERROR "gsettings needs a D-Bus session. Check DBUS_SESSION_BUS_ADDRESS is set (systemctl --user import-environment or re-login)."
+                fail=1
+                break
+                ;;
+            *"No such schema"*)
+                log ERROR "org.gnome.desktop.screensaver schema not found. Is GNOME installed? Try 'gsettings list-schemas | grep screensaver'"
+                fail=1
+                break
+                ;;
+            *)
+                log WARN "gsettings set $key failed: $reason"
+                ;;
+        esac
+    fi
+done
+rm -f "$err"
+
+if [ "$fail" -eq 0 ]; then
+    log INFO "set wallpaper to $(basename "$PIC")"
+fi
+exit $fail
