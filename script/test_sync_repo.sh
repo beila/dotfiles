@@ -161,6 +161,23 @@ else
     echo "FAIL: log has no TIMEOUT/NETWORK-ERR entry"
     fail=$((fail+1))
 fi
+# Regression: when push-del fails (network, concurrent push, etc.) the follow-up
+# push MUST be skipped — proceeding would non-fast-forward and emit a bogus
+# OTHER-ERR that masks the real delete failure. Assert both sides.
+if grep -rq 'SKIP-PUSH' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
+    echo "PASS: log recorded SKIP-PUSH after failed delete"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing SKIP-PUSH (push should skip when delete fails)"
+    fail=$((fail+1))
+fi
+if grep -rqE 'OTHER-ERR.*non-fast-forward' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
+    echo "FAIL: log has cascade non-fast-forward OTHER-ERR (delete failure should skip push)"
+    fail=$((fail+1))
+else
+    echo "PASS: no cascade non-fast-forward OTHER-ERR after failed delete"
+    pass=$((pass+1))
+fi
 
 echo
 echo "=== Scenario 5: empty BACKUP_URL (git/jj remote drift) exits cleanly ==="

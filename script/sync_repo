@@ -51,26 +51,38 @@ source "$DOTFILES_ROOT/script/logger/log.sh"
 # classify_cmd <tag> <cmd...>
 # Run <cmd...>, capture stderr, classify failure as NETWORK (usually transient
 # -> WARN) or OTHER (-> ERROR). Returns the original exit code.
+# Sets $_LAST_CLASSIFICATION to OK / TIMEOUT / BENIGN-DEL / NETWORK-ERR / OTHER-ERR
+# so callers can branch on the kind of failure (e.g. push_force_replace only
+# proceeds with the push if the preceding delete was successful or benign).
 # Network-pattern heuristics based on git/ssh/curl error strings.
+_LAST_CLASSIFICATION=""
 classify_cmd() {
     local tag=$1; shift
     local err rc
     err=$(mktemp "/tmp/sync_repo_err.XXXXXX")
     "$@" 2>"$err"
     rc=$?
+    _LAST_CLASSIFICATION=OK
     if [ $rc -ne 0 ]; then
         if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
             # timeout(1) exit codes: 124 (SIGTERM expired), 137 (SIGKILL after grace).
+            _LAST_CLASSIFICATION=TIMEOUT
             log WARN "TIMEOUT $tag: exceeded ${SYNC_REPO_CMD_TIMEOUT}s; killed"
         elif grep -qE 'remote ref does not exist|unable to delete.*remote ref|does not appear to be a git repository' "$err"; then
             # Benign: deleting a branch that isn't on the remote. Happens on
             # every run for push-del of hostname-prefixed bookmarks after their
             # first failed push, or when a bookmark was never pushed. Log at
             # DEBUG so we keep a trace without paging anyone.
+            _LAST_CLASSIFICATION=BENIGN-DEL
             log DEBUG "BENIGN-DEL $tag: $(head -1 "$err")"
-        elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed' "$err"; then
+        elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing' "$err"; then
+            # 'Another user is currently pushing' is gitfarm's message when the
+            # repo is locked by a concurrent git-receive-pack. Transient — the
+            # next sync_repo run will retry.
+            _LAST_CLASSIFICATION=NETWORK-ERR
             log WARN "NETWORK-ERR $tag: $(head -2 "$err" | tr '\n' ' ')"
         else
+            _LAST_CLASSIFICATION=OTHER-ERR
             log ERROR "OTHER-ERR $tag (rc=$rc): $(head -2 "$err" | tr '\n' ' ')"
         fi
         # Forward stderr to the process stderr so set -x / systemd journal still see it
@@ -78,6 +90,26 @@ classify_cmd() {
     fi
     rm -f "$err"
     return $rc
+}
+
+# push_force_replace <tag> <url> <ref> <branch>
+# Emulate force-push via delete+push for servers that reject --force (gitfarm).
+# Only push if the delete actually removed the ref OR the ref didn't exist —
+# otherwise the push would fail non-fast-forward and the bogus OTHER-ERR masks
+# the real cause (concurrent push, transient network, server hook). Next
+# sync_repo run retries the cycle cleanly.
+push_force_replace() {
+    local tag=$1 url=$2 ref=$3 branch=$4
+    timeout_cmd "push-del $tag" git --git-dir="$GIT_DIR" push "$url" --delete "$branch"
+    local del_class=$_LAST_CLASSIFICATION
+    case "$del_class" in
+        OK|BENIGN-DEL)
+            timeout_cmd "push $tag" git --git-dir="$GIT_DIR" push "$url" "${ref}:${branch}" || true
+            ;;
+        *)
+            log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
+            ;;
+    esac
 }
 
 # timeout_cmd <tag> <cmd...>
@@ -166,8 +198,7 @@ if jj root &>/dev/null 2>&1; then
         jj bookmark create "$WS_BM" -r "$PUSH_REV" 2>/dev/null || jj bookmark set "$WS_BM" -r "$PUSH_REV" --allow-backwards 2>/dev/null || true
         WS_REF=$(jj log -r "$WS_BM" --no-graph -T 'commit_id' 2>/dev/null)
         if [ -n "$WS_REF" ]; then
-            timeout_cmd "push-del $WS_BM" git --git-dir="$GIT_DIR" push "$BACKUP_URL" --delete "$WS_BRANCH" || true
-            timeout_cmd "push $WS_BM"     git --git-dir="$GIT_DIR" push "$BACKUP_URL" "${WS_REF}:${WS_BRANCH}" || true
+            push_force_replace "$WS_BM" "$BACKUP_URL" "$WS_REF" "$WS_BRANCH"
         fi
         jj bookmark delete "$WS_BM" 2>/dev/null || true
     fi
@@ -182,8 +213,7 @@ if jj root &>/dev/null 2>&1; then
         REF=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
         REMOTE_REF=$(echo "$REMOTE_REFS" | awk -v ref="refs/heads/${MACHINE_NAME}/${bm}" '$2 == ref {print $1}')
         if [ "$REF" != "$REMOTE_REF" ]; then
-            timeout_cmd "push-del ${MACHINE_NAME}/${bm}" git --git-dir="$GIT_DIR" push "$BACKUP_URL" --delete "refs/heads/${MACHINE_NAME}/${bm}" || true
-            timeout_cmd "push ${MACHINE_NAME}/${bm}"     git --git-dir="$GIT_DIR" push "$BACKUP_URL" "$REF:refs/heads/${MACHINE_NAME}/${bm}" || true
+            push_force_replace "${MACHINE_NAME}/${bm}" "$BACKUP_URL" "$REF" "refs/heads/${MACHINE_NAME}/${bm}"
         fi
     done
 
@@ -222,7 +252,7 @@ if jj root &>/dev/null 2>&1; then
                 log INFO "PUSH-OK $CURRENT_BM rev=$LOCAL_BM_REV (new)"
             fi
         else
-            merge_msg="Merge ${REMOTE_REV:0:12} into $CURRENT_BM"
+            merge_msg="Merge ${REMOTE_REV:0:12} into $CURRENT_BM from ${MACHINE_NAME}"
             if jj new --no-edit "$LOCAL_BM_REV" "$REMOTE_REV" -m "$merge_msg" 2>/dev/null; then
                 # Locate the merge we just created: newest child of both parents.
                 # (latest() is simpler than description(exact:...) which requires a
