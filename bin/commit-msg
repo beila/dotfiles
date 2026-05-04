@@ -1,5 +1,6 @@
 #!/bin/bash
-# Generate a commit message from the current jj/git diff using kiro-cli (preferred) or ollama (fallback)
+# Generate a commit message from the current jj/git diff.
+# Pipeline: kiro-cli (--agent no-mcp) → ollama qwen2.5-coder:3b → file-list.
 # Usage: commit-msg [revision]
 
 log() { [ "${VERBOSE:-}" = 1 ] && echo "commit-msg: $*" >&2; }
@@ -162,12 +163,32 @@ else
 fi
 
 # Final fallback: merge summary or file list
+# Cap to first N files + "and M more" suffix so descriptions stay readable.
+FALLBACK_MAX_FILES=3
+FALLBACK_MAX_LEN=200
 if [ "$is_merge" = 1 ]; then
     # Extract first-line descriptions of parents for a simple merge message
     parents_desc=$(echo "$merge_context" | awk -F'  - [0-9a-f]{12} ' 'NR>1 {print $2}' | head -3 | paste -sd'; ' -)
     msg="Merge: $parents_desc"
 else
-    msg="Change $(echo "$diff" | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||' | paste -sd, -)"
+    # Collect all changed paths (modified/added via diff --git headers + deletes via "Deleted:" lines)
+    files=$({
+        echo "$diff" | grep '^diff --git' | sed 's|diff --git a/||;s| b/.*||'
+        echo "$diff" | grep '^Deleted: ' | sed 's|^Deleted: ||'
+    } | awk 'NF && !seen[$0]++')
+    total=$(printf '%s\n' "$files" | grep -c . || true)
+    if [ "$total" -eq 0 ]; then
+        msg="Change (no file list available)"
+    elif [ "$total" -le "$FALLBACK_MAX_FILES" ]; then
+        msg="Change $(printf '%s\n' "$files" | paste -sd, -)"
+    else
+        head_files=$(printf '%s\n' "$files" | head -"$FALLBACK_MAX_FILES" | paste -sd, -)
+        msg="Change $head_files and $((total - FALLBACK_MAX_FILES)) more"
+    fi
+fi
+# Hard cap total length as a safety net (long single filenames, weird merge parent descs)
+if [ "${#msg}" -gt "$FALLBACK_MAX_LEN" ]; then
+    msg="${msg:0:$((FALLBACK_MAX_LEN - 3))}..."
 fi
 log "using fallback: $msg"
 echo "$msg"
