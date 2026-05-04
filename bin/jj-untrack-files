@@ -1,49 +1,134 @@
 #!/usr/bin/env -S zsh -e
 
-#set -x
+zmodload zsh/datetime
 
 files=("$@")
 JJ=(jj --ignore-working-copy)
 JJL=(jj --ignore-working-copy log --no-graph)
 
+if (( $DEBUG ))
+then
+    set -x
+fi
+
 echo "Storing current operation log"
 previous_op_log=$($JJ op log --color=always --limit 1)
+
+print_restore_message() {
+    echo
+    echo "This was the last operation before this script did anything, if you want to restore"
+    echo "$previous_op_log"
+}
+trap print_restore_message EXIT
+# Make sure EXIT trap still fires if the script is interrupted
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+
+target_fileset=${(j: | :)"${(qq)files[@]}"}
+fast_revset="files($target_fileset) & mutable() ~ hidden() ~ merges() ~ files(~($target_fileset))"
+#n_fast=$($JJL -r "$fast_revset" -T '"\n"' | wc -l)
+#if (( n_fast ))
+#then
+    #echo "Abandoning $n_fast commits that only modify target files"
+    #$JJ abandon -r "$fast_revset"
+#fi
+#if (( n_fast > 100 ))
+#then
+    #echo "Collecting garbage"
+    #$JJ util gc --expire now
+#fi
 
 # Build jj fileset: 'a' | 'b' | 'c'
 # Nested expansion is required: ${(qq)files[@]} quotes each element first,
 # then ${(j: | :)...} joins them. A single ${(qqj: | :)files} would apply
 # both flags to the array as a whole, producing one quoted string
 # 'a b c' instead of 'a' 'b' 'c'.
-revset="files(${(j: | :)${(qq)files[@]}}) & mutable() ~ root()" 
-total_count=$($JJL -r "${revset}" -T 'commit_id ++ "\n"' | wc -l)
-echo "Total $total_count mutable changes containing ${(j:, :)files[@]}"
+revset="files(${target_fileset}) & mutable() ~ hidden()"
+# Count only commits that the while loop will actually process — skip
+# conflict-only merges (same predicate as the while-condition template).
+count_template='if(parents.len() > 1 && empty, "", "\n")'
+initial_total_count=$($JJL -r "${revset}" -T "$count_template" | wc -l)
+total_count=${initial_total_count}
+if (( $total_count ))
+then
+    echo "Total $total_count mutable changes containing ${(j:, :)files[@]}"
+else
+    echo "No changes modifying files: [${(j:, :)files[@]}]" 1>&2
+    trap - EXIT
+    exit 0
+fi
 i=0
+c_done=()
 
-while c=$($JJL -r "roots(${revset})" -T 'format_short_change_id_with_change_offset(self)' --limit 1) && test -n "$c";
+# Starting from roots made a lot of conflicts and took so long from a long history.
+# Starting from heads is must faster.
+#
+# Conflict-only auto-merges can't be excluded via revset: jj's revset `empty()`
+# doesn't match commits with conflicts even when the template's `empty` says
+# the commit has no user modifications. So we filter in the template instead
+# — emit an empty line for these merges and let `head -1` pick the first
+# head that is actually worth processing.
+while c=$($JJL -r "${revset}" -T 'if(parents.len() > 1 && empty, "",
+                   format_short_change_id_with_change_offset(self) ++ "\n")' |
+          head -1) && test -n "$c"
 do
     i=$((i+1))
     echo
-    echo "Restoring files from $c ($i/$total_count)"
 
+    if (( $i % 100 == 0 ))
+    then
+        echo "Collecting garbage"
+        $JJ util gc --expire now
+    fi
+
+    if (( $i % 10 == 0 ))
+    then
+        total_count=$($JJL -r "${revset}" -T "$count_template" | wc -l)
+        if (( $total_count != $initial_total_count ))
+        then
+            echo "Total count changed to $total_count from initially $initial_total_count"
+        fi
+    fi
+    echo "Untracking files from $c ($i/$total_count)"
+
+    # ${c_done[(Ie)$c]} returns the last index where $c matches exactly, or 0.
+    commit_id=$($JJL -r "$c" -T "commit_id")
+    if (( ${c_done[(Ie)$commit_id]} ))
+    then
+        echo "Failed to untrack files from $commit_id" 1>&2
+        exit 2
+    fi
+
+    # if $c is not merge and does not include any diff for any file not included in $files
+    if $JJL -r "$c ~ merges() ~ files(~(${target_fileset}))" | grep -q .
+    then
+        echo "...Abandoning $c ($i/$total_count)"
+        $JJ abandon $c
+        continue
+    fi
+
+    restore_start=$EPOCHREALTIME
     for f in "${files[@]}"
     do
-        $JJ restore --changes-in $c "$f" || true
+        if $JJL -r "$c & files(\"$f\")" | grep -q .
+        then
+            echo "...Untracking $f"
+            $JJ restore --changes-in $c "\"$f\""
+        fi
     done
+    restore_elapsed=$(printf '%.2f' $((EPOCHREALTIME - restore_start)))
+    echo "...jj restore took ${restore_elapsed}s"
+
+    if $JJL -r "$c & empty()" | grep -q .
+    then
+        echo "Abandoning $c ($i/$total_count)"
+        $JJ abandon $c
+    else
+        echo "...Redescribing $c ($i/$total_count)"
+        msg=$(commit-msg "$c")
+        $JJ describe -r $c -m "$msg"
+
+        c_done+=($($JJL -r "$c" -T "commit_id"))
+    fi
 done
-
-revset="empty() & mutable() ~ root() ~ @" 
-total_count=$($JJL -r "${revset}" -T 'commit_id ++ "\n"' | wc -l)
-echo "Total $total_count empty mutable changes"
-i=0
-
-while c=$($JJL -r "${revset}" -T 'format_short_change_id_with_change_offset(self)' --limit 1) && test -n "$c";
-do
-    i=$((i+1))
-    echo
-    echo "Abandoning $c ($i/$total_count)"
-    $JJ abandon $c || true
-done
-
-echo
-echo "This was the last operation before this script does anything, if you want to restore"
-echo "$previous_op_log"
