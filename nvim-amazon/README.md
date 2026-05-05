@@ -13,6 +13,8 @@ A small Neovim plugin with Amazon-internal conveniences:
 
 Source: `https://w.amazon.com/bin/view/Users/Ethdestr/vim/#HNeovimLocalConfiguration` (Barium + Bemol snippets), with `fugitive-gitfarm.vim` by Benoît Taine.
 
+> **Note**: the plugin source (`plugin/init.lua`, `plugin/fugitive-gitfarm.vim`) was written by people; this README was drafted by an AI assistant. Corrections welcome.
+
 ## Requirements
 
 - Neovim (tested with 0.12); the lua init uses `vim.filetype.add`, `vim.fs.find`,
