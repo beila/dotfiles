@@ -15,7 +15,7 @@ function! s:gitfarm_url(opts) abort
   endif
   let default_domain = 'git\.amazon\.com'
   let domain = exists('g:fugitive_gitfarm_domain') ? g:fugitive_gitfarm_domain : default_domain
-  let repo = matchstr(get(a:opts, 'remote'), '^ssh://\(\w\+@\)\?' . domain . '\(:\d\+\)\?/pkg/\w\+$')
+  let repo = matchstr(get(a:opts, 'remote'), '^ssh://\(\w\+@\)\?' . domain . '\(:\d\+\)\?/pkg/[[:alnum:]_.-]\+$')
   if repo ==# ''
     return ''
   endif
