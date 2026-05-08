@@ -386,7 +386,10 @@ run +commands:
 
     # NOTE: Adding -i resulted in 'suspended (tty input)'
     #time zsh -ic "
-    time zsh -c "
+    # -o nonomatch: unmatched globs pass through as literal strings instead of
+    # erroring. Matches bash default and prevents user args like
+    # `--foo=Bar*.*` from failing when no files match.
+    time zsh -o nonomatch -c "
         set -x
         {{ commands }}
     "
