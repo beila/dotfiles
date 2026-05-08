@@ -382,7 +382,7 @@ run +commands:
 
     # https://stackoverflow.com/questions/8720508/bash-tee-remove-color#comment10868816_8721194
     # sed expression modified as https://stackoverflow.com/a/18000433
-    exec 4<&1 5<&2 1>&2>&>( tee >(sed -r 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
+    exec 4<&1 5<&2 1>&2>&>( tee >(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
 
     # NOTE: Adding -i resulted in 'suspended (tty input)'
     #time zsh -ic "
