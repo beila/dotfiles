@@ -4,13 +4,9 @@
 VERBOSE := env('VERBOSE', '')
 zsh_verbose := if VERBOSE == '' { '' } else { 'pwd; set -x' }
 
-log_decorator1 := ''
-#log_decorator1 := `which spacer 2>&1 > /dev/null && echo "spacer --right --force-color |" || echo ""`
+# The log / decorator pipeline lives in ~/.dotfiles/bin/logrun so multiple
+# projects share it. `run` below shells out to it.
 
-# https://gitlab.com/kevincox/watchlog/-/tree/v1
-
-log_decorator2 := `which wl 2>&1 > /dev/null && echo wl || echo cat`
-log_decorator := log_decorator1 + log_decorator2
 export just_recurse_log := env('just_recurse_log', '')
 
 export build_dir := env('build_dir', 'build')
@@ -351,62 +347,26 @@ run_with_brazil_env +commands:
 [no-exit-message]
 run +commands:
     #!/bin/bash
-    # zsh fails with >&
+    # Build a clean log name: strip the nix-develop prefix injected by
+    # the `j` / `n` / `nijr` zsh wrappers, and a leading `just ` token.
+    # The rest (sanitisation, timestamping, ANSI stripping, tee + decorator)
+    # is handled by logrun.
+    name="${name:-{{ commands }}}"
+    name=${name#${log_prefix_ignore:-}}
+    name=${name#just }
 
-    if [ -z "${log_path}" ]
-    then
-        name="${name:-{{ commands }}}"
-        name=${name#${log_prefix_ignore}}
-        name=${name#just }
-        name=${name// /-}
-        name=${name//|/-}
-        name=${name//&/-}
-        name=${name//\//-}
-        name=${name//\\/-}
-        name=${name//\*/-}
-        name=${name//\$/-}
-        name=${name//\'/}
-        name=${name//\"/}
-        name=${name//$'\n'/-}
-        name="${name:0:200}"    # file name limit https://serverfault.com/a/9548
-        log_file="log-${name}-$(date +%F-%H-%M-%S).txt"
-        log_path=$([ -d {{ build_dir }} ] && echo "{{ build_dir }}" || echo "/tmp")/$log_file
-        echo "Log: $log_path"
-    fi
+    # Under a recurse log the log path is already tracked for the recurse
+    # summary; suppress the .FAILED.txt rename on failure so that path
+    # stays valid.
+    fail_flags=()
+    [ -n "$just_recurse_log" ] && fail_flags=(--fail-suffix '')
 
-    if [ -z "${log_decorator_invoked}" ]
-    then
-        export log_decorator_invoked=1
-        exec 1>&2>&>({{ log_decorator }})
-    fi
-
-    # https://stackoverflow.com/questions/8720508/bash-tee-remove-color#comment10868816_8721194
-    # sed expression modified as https://stackoverflow.com/a/18000433
-    exec 4<&1 5<&2 1>&2>&>( tee >(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g' > $log_path ))
-
-    # NOTE: Adding -i resulted in 'suspended (tty input)'
-    #time zsh -ic "
-    # -o nonomatch: unmatched globs pass through as literal strings instead of
-    # erroring. Matches bash default and prevents user args like
-    # `--foo=Bar*.*` from failing when no files match.
-    time zsh -o nonomatch -c "
-        set -x
-        {{ commands }}
+    exec logrun --name "$name" --log-dir {{ build_dir }} "${fail_flags[@]}" -c "
+        time zsh -o nonomatch -c '
+            set -x
+            {{ commands }}
+        '
     "
-    exit_code=$?
-
-    exec 1<&4 4>&- 2<&5 5>&-
-
-    set -x  # FIXME see if -z "$just_recurse_log" works
-    if [ $exit_code -ne 0 -a -z "$just_recurse_log" ]   # recurse log already recorded log_path
-    then
-        failed_log_path=${log_path/%.txt/.FAILED.txt}
-        mv $log_path $failed_log_path
-        log_path=
-    fi
-
-    echo "Log: $log_path$failed_log_path"
-    exit $exit_code
 
 [no-cd]
 [no-exit-message]
