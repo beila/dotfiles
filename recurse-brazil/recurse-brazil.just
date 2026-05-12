@@ -4,9 +4,6 @@
 VERBOSE := env('VERBOSE', '')
 zsh_verbose := if VERBOSE == '' { '' } else { 'pwd; set -x' }
 
-# The log / decorator pipeline lives in ~/.dotfiles/bin/logrun so multiple
-# projects share it. `run` below shells out to it.
-
 export just_recurse_log := env('just_recurse_log', '')
 
 export build_dir := env('build_dir', 'build')
@@ -347,10 +344,6 @@ run_with_brazil_env +commands:
 [no-exit-message]
 run +commands:
     #!/bin/bash
-    # Build a clean log name: strip the nix-develop prefix injected by
-    # the `j` / `n` / `nijr` zsh wrappers, and a leading `just ` token.
-    # The rest (sanitisation, timestamping, ANSI stripping, tee + decorator)
-    # is handled by logrun.
     name="${name:-{{ commands }}}"
     name=${name#${log_prefix_ignore:-}}
     name=${name#just }
