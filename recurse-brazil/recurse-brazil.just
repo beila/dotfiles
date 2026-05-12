@@ -496,7 +496,7 @@ new-ws dir main_package *more_packages: mwinit
                 if jj --version > /dev/null 2>&1;
                 then
                     jj git clone --colocate ssh://git.amazon.com/pkg/$p "$main_dir"
-                    jj config set --repo 'revset-aliases.trunk\\(\\)' mainline@origin
+                    jj config set --repo 'revset-aliases.trunk\(\)' mainline@origin
                     jj --repository "$main_dir" git remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
                     jj --repository "$main_dir" git remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
                 else
@@ -534,6 +534,7 @@ workspace $target $source=".":
         git worktree add --detach "${target}"
 
         jj root &> /dev/null || exit 0
+        jj workspace update-stale
 
         gitdir="$(<"${target}"/.git)"
         rm -rf "${target}"
