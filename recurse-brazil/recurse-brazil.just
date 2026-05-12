@@ -432,14 +432,15 @@ syncmd: mwinit
 [no-cd]
 mwinit *command:
     #!/usr/bin/env zsh
+    {{ zsh_verbose }}
     mwinit_command="
-        mwinit -o -s --fido2 ||
-        {
+        mwinit -o -s --fido2 || {
             rm ~/.midway/cookie
             exit 1
         }
     "
     expiration=$(cat ~/.midway/cookie 2> /dev/null |
+            grep -v '#HttpOnly_code.amazon.com' |
             cut -d $'\t' -f 5 -s |
             sort -n |
             head -1)
@@ -451,7 +452,7 @@ mwinit *command:
 [no-cd]
 mwinitf *command:
     rm -rf ~/.ada ~/.aws ~/.midway ~/.config/ada
-    just mwinit {{ command }}
+    just mwinit "{{ command }}"
 
 work_branch := ""
 
