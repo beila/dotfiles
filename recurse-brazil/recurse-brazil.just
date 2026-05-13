@@ -394,7 +394,7 @@ mwinitf *command:
 work_branch := ""
 
 [no-cd]
-new-ws dir main_package *more_packages: mwinit
+ws-new dir main_package *more_packages: mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     {{ zsh_verbose }}
@@ -413,8 +413,16 @@ new-ws dir main_package *more_packages: mwinit
 
     just ws create --force --root "{{ dir }}" --package {{ main_package }} ${other_options}
 
+[no-cd]
+ws-add package dir="":
+    #!/usr/bin/env zsh
+    set -eo pipefail
+    {{ zsh_verbose }}
+    which brazil &> /dev/null || toolbox install brazilcli
+
+    dir=${dir:-$(pwd)}
     (
-        cd "{{ dir }}/src/{{ main_package }}"
+        cd "{{ dir }}"
         if (( ${#more_packages[@]} != 0 ))
         then
             just ws use ${more_packages[@]/#/--package }
