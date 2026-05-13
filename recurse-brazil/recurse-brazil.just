@@ -343,23 +343,7 @@ run_with_brazil_env +commands:
 [no-cd]
 [no-exit-message]
 run +commands:
-    #!/bin/bash
-    name="${name:-{{ commands }}}"
-    name=${name#${log_prefix_ignore:-}}
-    name=${name#just }
-
-    # Under a recurse log the log path is already tracked for the recurse
-    # summary; suppress the .FAILED.txt rename on failure so that path
-    # stays valid.
-    fail_flags=()
-    [ -n "$just_recurse_log" ] && fail_flags=(--fail-suffix '')
-
-    exec logrun --name "$name" --log-dir {{ build_dir }} "${fail_flags[@]}" -c "
-        time zsh -o nonomatch -c '
-            set -x
-            {{ commands }}
-        '
-    "
+    exec zsh -o nonomatch -c "set -x; {{ commands }}"
 
 [no-cd]
 [no-exit-message]
