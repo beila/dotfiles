@@ -421,18 +421,19 @@ ws-new dir main_package *more_packages: mwinit
     echo "{{ dir }}/src/{{ main_package }}"
 
 [no-cd]
-ws-add package dir="":
+ws-add package dir="": mwinit
     #!/usr/bin/env zsh
     set -eo pipefail
     {{ zsh_verbose }}
     which brazil &> /dev/null || toolbox install brazilcli
 
+    dir="{{ dir }}"
+    dir="${dir:-$(pwd)}"
+    dir="$(cd $dir && brazil-context workspace root)"
+
     p={{ package }}
     target_dir="${dir}/src/$p"
 
-    dir="{{ dir }}"
-    dir="${dir:-$(pwd)}"
-    dir="${cd $dir && brazil-context workspace root)"
     if [ ! -d "${target_dir}" ]
     then
         cd "${dir:?}"
@@ -449,7 +450,7 @@ ws-add package dir="":
         if jj --version > /dev/null 2>&1;
         then
             jj git clone --colocate ssh://git.amazon.com/pkg/$p "$main_dir"
-            jj config set --repo 'revset-aliases.trunk\(\)' mainline@origin
+            jj --repository "$main_dir" config set --repo 'revset-aliases."trunk()"' mainline@origin
             jj --repository "$main_dir" git remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
             jj --repository "$main_dir" git remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
         else
