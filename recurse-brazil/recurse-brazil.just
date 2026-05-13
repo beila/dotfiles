@@ -477,7 +477,22 @@ ws-remove dir:
     ws_root="$(cd ${dir} && brazil-context workspace root)"
     if [[ "$(realpath $dir)" != "$(realpath ${ws_root:?}) ]]
     then
+        echo "Not a package in brazil workspace" 1>&2
+        exit 1
     fi
+
+    main_dir="$HOME/brazil-repos/$(basename $dir)" 
+    if [ -d "$main_dir" ]
+    then
+        if jj --version > /dev/null 2>&1;
+        then
+            jj --repository "$main_dir" workspace forget "$dir"
+        fi
+        git -C "$main_dir" worktree remove "$dir"
+    fi
+
+    cd "$ws_root"
+    brazil workspace remove "$(basename $dir)"
 
 [no-cd]
 workspace $target $source=".":
