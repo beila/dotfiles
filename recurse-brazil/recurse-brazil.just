@@ -427,18 +427,23 @@ ws-add package dir="":
     {{ zsh_verbose }}
     which brazil &> /dev/null || toolbox install brazilcli
 
-    dir=${dir:-$(pwd)}
-    dir=${cd $dir && brazil-context workspace root)
-    (
-        cd "${dir}"
+    p={{ package }}
+    target_dir="${dir}/src/$p"
+
+    dir="{{ dir }}"
+    dir="${dir:-$(pwd)}"
+    dir="${cd $dir && brazil-context workspace root)"
+    if [ ! -d "${target_dir}" ]
+    then
+        cd "${dir:?}"
         just ws use {{ package }}
-    )
+    fi
 
     my_branch={{ work_branch }}
     my_branch=${my_branch:-$(basename ${dir})}
-    p={{ package }}
-    target_dir="${dir}/src/$p"
+
     main_dir="$HOME/brazil-repos/$p" 
+
     if [ ! -d "$main_dir" ]
     then
         if jj --version > /dev/null 2>&1;
@@ -456,7 +461,10 @@ ws-add package dir="":
 
     rm -rf "$target_dir"
 
-    just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch="$my_branch" workspace "$target_dir" "$main_dir"
+    just --justfile={{ source_file() }} \
+        VERBOSE={{ VERBOSE }} \
+        work_branch="$my_branch" \
+        workspace "$target_dir" "$main_dir"
 
 [no-cd]
 workspace $target $source=".":
