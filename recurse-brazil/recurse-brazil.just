@@ -413,6 +413,13 @@ ws-new dir main_package *more_packages: mwinit
 
     just ws create --force --root "{{ dir }}" --package {{ main_package }} ${other_options}
 
+    for p in {{ main_package }} ${more_packages[@]}
+    do
+        just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch={{ work_branch }} ws-add $p "{{ dir }}"
+    done
+
+    echo "{{ dir }}/src/{{ main_package }}"
+
 [no-cd]
 ws-add package dir="":
     #!/usr/bin/env zsh
@@ -423,16 +430,11 @@ ws-add package dir="":
     dir=${dir:-$(pwd)}
     (
         cd "{{ dir }}"
-        if (( ${#more_packages[@]} != 0 ))
-        then
-            just ws use ${more_packages[@]/#/--package }
-        fi
+        just ws use {{ package }}
     )
 
     my_branch={{ work_branch }}
     my_branch=${my_branch:-$(basename {{ dir }})}
-    for p in {{ main_package }} ${more_packages[@]}
-    do
         (
             target_dir="{{ dir }}/src/$p"
             main_dir="$HOME/brazil-repos/$p" 
@@ -455,9 +457,6 @@ ws-add package dir="":
 
             just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch="$my_branch" workspace "$target_dir" "$main_dir"
         )
-    done
-
-    echo "{{ dir }}/src/{{ main_package }}"
 
 [no-cd]
 workspace $target $source=".":
