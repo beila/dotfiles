@@ -429,14 +429,14 @@ ws-add package dir="": mwinit
 
     dir="{{ dir }}"
     dir="${dir:-$(pwd)}"
-    dir="$(cd $dir && brazil-context workspace root)"
+    cd "${dir}"
+    dir="$(brazil-context workspace root)"
 
     p={{ package }}
     target_dir="${dir}/src/$p"
 
     if [ ! -d "${target_dir}" ]
     then
-        cd "${dir:?}"
         just ws use {{ package }}
     fi
 
