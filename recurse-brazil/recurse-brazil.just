@@ -428,35 +428,35 @@ ws-add package dir="":
     which brazil &> /dev/null || toolbox install brazilcli
 
     dir=${dir:-$(pwd)}
+    dir=${cd $dir && brazil-context workspace root)
     (
-        cd "{{ dir }}"
+        cd "${dir}"
         just ws use {{ package }}
     )
 
     my_branch={{ work_branch }}
-    my_branch=${my_branch:-$(basename {{ dir }})}
-        (
-            target_dir="{{ dir }}/src/$p"
-            main_dir="$HOME/brazil-repos/$p" 
-            if [ ! -d "$main_dir" ]
-            then
-                if jj --version > /dev/null 2>&1;
-                then
-                    jj git clone --colocate ssh://git.amazon.com/pkg/$p "$main_dir"
-                    jj config set --repo 'revset-aliases.trunk\(\)' mainline@origin
-                    jj --repository "$main_dir" git remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
-                    jj --repository "$main_dir" git remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
-                else
-                    git clone ssh://git.amazon.com/pkg/$p "$main_dir"
-                    git -C "$main_dir" remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
-                    git -C "$main_dir" remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
-                fi
-            fi
+    my_branch=${my_branch:-$(basename ${dir})}
+    p={{ package }}
+    target_dir="${dir}/src/$p"
+    main_dir="$HOME/brazil-repos/$p" 
+    if [ ! -d "$main_dir" ]
+    then
+        if jj --version > /dev/null 2>&1;
+        then
+            jj git clone --colocate ssh://git.amazon.com/pkg/$p "$main_dir"
+            jj config set --repo 'revset-aliases.trunk\(\)' mainline@origin
+            jj --repository "$main_dir" git remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
+            jj --repository "$main_dir" git remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
+        else
+            git clone ssh://git.amazon.com/pkg/$p "$main_dir"
+            git -C "$main_dir" remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
+            git -C "$main_dir" remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
+        fi
+    fi
 
-            rm -rf "$target_dir"
+    rm -rf "$target_dir"
 
-            just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch="$my_branch" workspace "$target_dir" "$main_dir"
-        )
+    just --justfile={{ source_file() }} VERBOSE={{ VERBOSE }} work_branch="$my_branch" workspace "$target_dir" "$main_dir"
 
 [no-cd]
 workspace $target $source=".":
