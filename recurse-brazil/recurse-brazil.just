@@ -429,8 +429,8 @@ ws-add package dir="": mwinit
 
     dir="{{ dir }}"
     dir="${dir:-$(pwd)}"
-    cd "${dir}"
-    dir="$(brazil-context workspace root)"
+    dir="$(cd $dir && brazil-context workspace root)"
+    cd "${dir:?}"   # avoid being in target_dir because we'll remove it and recreate
 
     p={{ package }}
     target_dir="${dir}/src/$p"
@@ -466,6 +466,18 @@ ws-add package dir="": mwinit
         VERBOSE={{ VERBOSE }} \
         work_branch="$my_branch" \
         workspace "$target_dir" "$main_dir"
+
+[no-cd]
+ws-remove dir:
+    #!/usr/bin/env zsh
+    set -euo pipefail
+    {{ zsh_verbose }}
+
+    dir="{{ dir }}"
+    ws_root="$(cd ${dir} && brazil-context workspace root)"
+    if [[ "$(realpath $dir)" != "$(realpath ${ws_root:?}) ]]
+    then
+    fi
 
 [no-cd]
 workspace $target $source=".":
