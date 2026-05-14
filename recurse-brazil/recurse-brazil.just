@@ -473,26 +473,21 @@ ws-remove dir:
     set -euo pipefail
     {{ zsh_verbose }}
 
-    dir="{{ dir }}"
-    ws_root="$(cd ${dir} && brazil-context workspace root)"
-    if [[ "$(realpath $dir)" != "$(realpath ${ws_root:?}) ]]
+    dir="$(realpath {{ dir }})"
+
+    main_dir="$HOME/brazil-repos/$(basename $dir)" 
+    if [ ! -d "$main_dir" ]
     then
-        echo "Not a package in brazil workspace" 1>&2
+        echo "$(basename $dir) not in ~/brazil-repos" 1>&2
         exit 1
     fi
 
-    main_dir="$HOME/brazil-repos/$(basename $dir)" 
-    if [ -d "$main_dir" ]
+    if jj --version > /dev/null 2>&1;
     then
-        if jj --version > /dev/null 2>&1;
-        then
-            jj --repository "$main_dir" workspace forget "$dir"
-        fi
-        git -C "$main_dir" worktree remove "$dir"
+        jj --repository "$main_dir" workspace forget "$dir"
     fi
 
-    cd "$ws_root"
-    brazil workspace remove "$(basename $dir)"
+    git -C "$main_dir" worktree remove "$dir" --force
 
 [no-cd]
 workspace $target $source=".":
