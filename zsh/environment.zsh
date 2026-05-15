@@ -58,3 +58,15 @@ export LESS_TERMCAP_se=$'\E[0m'          # Ends standout-mode.
 export LESS_TERMCAP_so=$'\E[00;47;30m'   # Begins standout-mode.
 export LESS_TERMCAP_ue=$'\E[0m'          # Ends underline.
 export LESS_TERMCAP_us=$'\E[01;32m'      # Begins underline.
+
+#
+# Pager
+#
+
+# bat as the default pager: it auto-pipes through less when output is a TTY,
+# and emits raw bytes when piped, so it's a drop-in replacement.
+# MANPAGER: `col -bx` strips overstrike (backspace-bold) sequences that bat
+# would otherwise render literally; `-l man` selects the man syntax; `-p`
+# disables decorations (line numbers, headers).
+export PAGER='bat'
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
