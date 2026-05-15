@@ -9,8 +9,12 @@
   xdg.desktopEntries.neovide = {
     name = "Neovide";
     comment = "No Nonsense Neovim Client in Rust";
-    # login shell needed so GNOME can find nix-installed neovide and nvim
-    exec = ''bash -lc "neovide %F"'';
+    # login shell needed so GNOME can find nix-installed neovide and nvim.
+    # WINIT_X11_SCALE_FACTOR=randr: winit's default reads Xft.dpi once at
+    # startup and updates unreliably on monitor *disconnect* under X11
+    # (connect works). `randr` makes winit compute scale per-monitor from
+    # RandR PPI on every screen-change event, which handles disconnect too.
+    exec = ''bash -lc "WINIT_X11_SCALE_FACTOR=randr neovide %F"'';
     icon = "neovide";
     type = "Application";
     categories = [ "Utility" "TextEditor" ];
