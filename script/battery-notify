@@ -56,7 +56,11 @@ fi
 last=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 
 if (( capacity <= 10 )) && [[ "$last" != "10" ]]; then
-    notify-send -u critical "Battery Critical" "${capacity}% remaining" 2>/dev/null || true
+    # Huge, pseudo-transparent OSD (Python+cairo+XShape) replaces the
+    # desktop notification at 10% so the user can't miss it. Best-effort:
+    # a failure here must not stop the timer or block subsequent polls.
+    # BATTERY_OSD_BIN is overridable for the test harness.
+    "${BATTERY_OSD_BIN:-battery-osd}" "$capacity" 2>/dev/null || true
     log WARN "battery at ${capacity}% (critical threshold)"
     echo 10 > "$STATE_FILE"
 elif (( capacity <= 20 )) && [[ "$last" != "20" && "$last" != "10" ]]; then

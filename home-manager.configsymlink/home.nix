@@ -48,6 +48,13 @@
         pkgs.ripgrep
         pkgs.scrot
         pkgs.uv  # edge-tts runner for say-ko
+        # battery-osd: cairo + python-xlib OSD with XShape pseudo-transparency.
+        # writePython3Bin produces a single wrapper binary so we don't pull a
+        # full Python into PATH (would conflict with awscli2's own python3).
+        (pkgs.writers.writePython3Bin "battery-osd" {
+          libraries = with pkgs.python3Packages; [ pycairo xlib ];
+          flakeIgnore = [ "E501" "E731" "W503" ];
+        } (builtins.readFile ../xwindow/bin/battery-osd.py))
         pkgs.alsa-utils  # aplay for say/say-ko
         pkgs.wl-clipboard
         pkgs.xclip

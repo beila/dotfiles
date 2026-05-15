@@ -16,6 +16,9 @@ export LOG_ROOT="$TMPDIR/logs"
 export LOG_REL_BASE="$TMPDIR"
 export LOG_MACHINE_NAME="testhost"
 export LOG_NOTIFY_MODE=never
+# Default LOG_KEEP_THRESHOLD is ERROR, which means INFO/WARN log lines are
+# discarded on exit. Tests assert on INFO/WARN content, so persist everything.
+export LOG_KEEP_THRESHOLD=DEBUG
 export DOTFILES_ROOT
 
 # Fake sysfs tree and state file.
@@ -37,6 +40,17 @@ cat > "$STUB_BIN/notify-send" <<'EOF'
 printf 'CALL\t%s\n' "$*" >> "$NOTIFY_SEND_LOG"
 EOF
 chmod +x "$STUB_BIN/notify-send"
+
+# Stub battery-osd via $BATTERY_OSD_BIN override; battery-notify resolves
+# this absolute path before invoking, so PATH injection doesn't help.
+export BATTERY_OSD_LOG="$TMPDIR/battery-osd-calls"
+export BATTERY_OSD_BIN="$STUB_BIN/battery-osd"
+: > "$BATTERY_OSD_LOG"
+cat > "$BATTERY_OSD_BIN" <<'EOF'
+#!/usr/bin/env bash
+printf 'CALL\t%s\n' "$*" >> "$BATTERY_OSD_LOG"
+EOF
+chmod +x "$BATTERY_OSD_BIN"
 
 PASS_FILE="$TMPDIR/pass"; FAIL_FILE="$TMPDIR/fail"
 printf '0' > "$PASS_FILE"; printf '0' > "$FAIL_FILE"
@@ -79,7 +93,7 @@ run_under_test() {
 
 clear_logs() { rm -rf "$LOG_ROOT"; }
 clear_state() { rm -f "$STATE_FILE"; }
-clear_notify() { : > "$NOTIFY_SEND_LOG"; }
+clear_notify() { : > "$NOTIFY_SEND_LOG"; : > "$BATTERY_OSD_LOG"; }
 
 log_file() { find "$LOG_ROOT" -type f -name 'battery-notify.*.log' 2>/dev/null | head -1; }
 
@@ -90,6 +104,7 @@ set_bat "Charging" 50
 rc=$(run_under_test)
 check "exit 0" "0" "$rc"
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
 check "no state file" "no" "$([ -f "$STATE_FILE" ] && echo yes || echo no)"
 check "no log line" "no" "$([ -f "$(log_file)" ] && echo yes || echo no)"
 
@@ -100,6 +115,7 @@ set_bat "Discharging" 50
 rc=$(run_under_test)
 check "exit 0" "0" "$rc"
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
 check "no state file" "no" "$([ -f "$STATE_FILE" ] && echo yes || echo no)"
 
 echo
@@ -110,16 +126,19 @@ rc=$(run_under_test)
 check "exit 0" "0" "$rc"
 check "one notify-send call" "1" "$(wc -l < "$NOTIFY_SEND_LOG")"
 check_grep "notify-send Battery Low" "Battery Low" "$NOTIFY_SEND_LOG"
+check "no battery-osd call (low, not critical)" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
 check "state file is 20" "20" "$(cat "$STATE_FILE")"
 check_grep "INFO log at low threshold" '\[INFO\] battery at 20%' "$(log_file)"
 
 echo
-echo "=== Test 4: discharging at 10% — critical popup + WARN log ==="
+echo "=== Test 4: discharging at 10% — battery-osd OSD + WARN log ==="
 clear_logs; clear_state; clear_notify
 set_bat "Discharging" 10
 rc=$(run_under_test)
 check "exit 0" "0" "$rc"
-check_grep "notify-send Battery Critical" "Battery Critical" "$NOTIFY_SEND_LOG"
+check "no notify-send (replaced by OSD)" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "one battery-osd call" "1" "$(wc -l < "$BATTERY_OSD_LOG")"
+check_grep "battery-osd called with 10" $'CALL\t10' "$BATTERY_OSD_LOG"
 check "state file is 10" "10" "$(cat "$STATE_FILE")"
 check_grep "WARN log at critical threshold" '\[WARN\] battery at 10%' "$(log_file)"
 
@@ -130,6 +149,7 @@ echo 20 > "$STATE_FILE"
 set_bat "Discharging" 18
 rc=$(run_under_test)
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
 check "state file stays 20" "20" "$(cat "$STATE_FILE")"
 
 echo
@@ -139,14 +159,17 @@ echo 10 > "$STATE_FILE"
 set_bat "Discharging" 8
 rc=$(run_under_test)
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
 
 echo
-echo "=== Test 7: crossing 20% -> 10% while discharging — critical fires ==="
+echo "=== Test 7: crossing 20% -> 10% while discharging — critical OSD fires ==="
 clear_logs; clear_notify
 echo 20 > "$STATE_FILE"
 set_bat "Discharging" 9
 rc=$(run_under_test)
-check_grep "notify-send Battery Critical" "Battery Critical" "$NOTIFY_SEND_LOG"
+check "no notify-send (replaced by OSD)" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "one battery-osd call" "1" "$(wc -l < "$BATTERY_OSD_LOG")"
+check_grep "battery-osd called with 9" $'CALL\t9' "$BATTERY_OSD_LOG"
 check "state file bumps to 10" "10" "$(cat "$STATE_FILE")"
 
 echo
@@ -186,6 +209,7 @@ rc=$(run_under_test)
 check "exit 0" "0" "$rc"
 check_grep "WARN about capacity" '\[WARN\] unexpected capacity' "$(log_file)"
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
+check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
 
 echo
 echo "=== Test 12: status file unreadable -> ERROR ==="
