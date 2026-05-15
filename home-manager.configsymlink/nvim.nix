@@ -9,6 +9,12 @@ in
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+    # Disable the python3 and ruby providers — none of the plugins below use
+    # `:python3`/`:ruby` (nvim-dap-python uses external debugpy, not the embedded
+    # provider). Defaults flipped to false in home-manager 26.05; set explicitly
+    # so the value doesn't depend on home.stateVersion.
+    withPython3 = false;
+    withRuby = false;
     # Appended to nix-generated init.lua (which sets lua paths + providers).
     # nvim 0.12 only loads init.lua when it exists, ignoring init.vim/vimrc.
     # myinit.lua sources vimrc.symlink → myvimrc → vimrcs/*.lua
