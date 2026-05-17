@@ -239,9 +239,17 @@ if jj root &>/dev/null 2>&1; then
     # commit_id BEFORE fetch and use THAT in all post-fetch revsets.
     if [ -n "$CURRENT_BM" ]; then
         LOCAL_BM_REV=$(jj log -r "$CURRENT_BM" --no-graph -T 'commit_id' 2>/dev/null)
+        FETCH_OK=0
         if timeout_cmd "fetch $CURRENT_BM" jj git fetch --all-remotes; then
             log INFO "FETCH-OK $CURRENT_BM"
+            FETCH_OK=1
         fi
+        # Skip push when fetch failed: stale ${CURRENT_BM}@backup leads to
+        # wrong-path pushes (e.g. "new bookmark" full-history push on
+        # transient timeout). Next run reconciles.
+        if [ "$FETCH_OK" = "0" ]; then
+            log INFO "SKIP-PUSH $CURRENT_BM: fetch failed; will retry next run"
+        else
         # Ensure the remote-tracking bookmark is tracked before push (jj 0.40+ rejects
         # pushes to untracked remote bookmarks).
         jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
@@ -313,6 +321,7 @@ if jj root &>/dev/null 2>&1; then
             fi
         fi
         jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
+        fi
     fi
 
     # Step 3: rebase local mutable chain onto updated bookmark
