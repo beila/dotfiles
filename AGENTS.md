@@ -7,7 +7,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ## TODO List
 
 ### High impact
-- [ ] check `home-manager news` — neovim withRuby/withPython3 defaults changed (stateVersion < 26.05)
 - [ ] can't type hangul in zellij/ghostty
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [ ] use fzf for zsh tab completion
@@ -24,6 +23,9 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] migrate remaining `{{ log_decorator }}` callers in IgnitionX justfile to `bin/logrun` (recurse-brazil already done)
 
 ### Medium impact
+- [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
+  - options: pick a subtler border colour, or `borderWidth = 0` + picom shadow as the focus indicator
+  - picom adds GPU/process overhead; only adopt if the visual win is worth it
 - [ ] add squash feature to _gf
   - fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision
   - opens `_gh` with a header explaining the squash context, minimise duplicated code
