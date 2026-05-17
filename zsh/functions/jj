@@ -21,6 +21,7 @@ while (( i <= ${#args} )); do
   case $args[i] in
     --) break ;;                    # end of options
     --*=*) (( i++ )) ;;             # --flag=value (single token)
+    -r) (( i+=2 )) ;;               # -r revset (no need to find positional param)
     -R) (( i+=2 )) ;;               # -R PATH (short, separate value)
     -R*) (( i++ )) ;;               # -RPATH (short, joined)
     --repository|--at-operation|--at-op|--color|--config|--config-file)
