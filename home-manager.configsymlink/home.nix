@@ -1,5 +1,19 @@
 { config, pkgs, ... }:
 
+let
+  # Local Python package providing reusable OSD primitives (cairo render +
+  # XShape window). battery-osd uses it; future volume/brightness/audio
+  # OSD migrations will too.
+  osd = pkgs.python3Packages.buildPythonPackage {
+    pname = "osd";
+    version = "0.1.0";
+    pyproject = true;
+    src = ../xwindow/osd;
+    build-system = with pkgs.python3Packages; [ setuptools ];
+    propagatedBuildInputs = with pkgs.python3Packages; [ pycairo xlib ];
+    doCheck = false;
+  };
+in
 {
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -48,11 +62,10 @@
         pkgs.ripgrep
         pkgs.scrot
         pkgs.uv  # edge-tts runner for say-ko
-        # battery-osd: cairo + python-xlib OSD with XShape pseudo-transparency.
-        # writePython3Bin produces a single wrapper binary so we don't pull a
-        # full Python into PATH (would conflict with awscli2's own python3).
+        # battery-osd: invocation wrapper around the local `osd` library.
+        # Single binary in PATH; no full Python (would conflict with awscli2).
         (pkgs.writers.writePython3Bin "battery-osd" {
-          libraries = with pkgs.python3Packages; [ pycairo xlib ];
+          libraries = with pkgs.python3Packages; [ pycairo xlib ] ++ [ osd ];
           flakeIgnore = [ "E501" "E731" "W503" ];
         } (builtins.readFile ../xwindow/bin/battery-osd.py))
         pkgs.alsa-utils  # aplay for say/say-ko
