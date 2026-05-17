@@ -32,6 +32,7 @@
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.ghostty.terminfo
         pkgs.glow  # terminal markdown renderer
+        pkgs.gnumake  # `make` needed by bb
         pkgs.hishtory
         pkgs.jetbrains-mono # For OSD popups
         pkgs.nerd-fonts.jetbrains-mono  # For OSD popups
