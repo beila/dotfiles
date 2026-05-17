@@ -24,6 +24,8 @@ while (( i <= ${#args} )); do
     -r) (( i+=2 )) ;;               # -r revset (no need to find positional param)
     -R) (( i+=2 )) ;;               # -R PATH (short, separate value)
     -R*) (( i++ )) ;;               # -RPATH (short, joined)
+    -T) (( i+=2 )) ;;               # -T template (short, separate value)
+    -T*) (( i++ )) ;;               # -Ttemplate (short, joined)
     --repository|--at-operation|--at-op|--color|--config|--config-file)
       (( i+=2 )) ;;                 # long forms with separate value
     -*) (( i++ )) ;;                # any other flag (boolean)
