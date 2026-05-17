@@ -90,7 +90,7 @@ local_head=$(cd "$TMPDIR/repoA" && jj log -r master --no-graph -T 'commit_id')
 check "remote advanced to local after push" "$local_head" "$remote_head"
 
 echo
-echo "=== Scenario 2: divergence -> merge + push (different files -> no conflict) ==="
+echo "=== Scenario 2: divergence -> rebase + push (different files -> no conflict) ==="
 setup_repo repoB "b.txt" "from B"
 setup_repo repoC "c.txt" "from C"
 # repoB pushes first -> becomes remote tip
@@ -100,16 +100,18 @@ run_sync "$TMPDIR/repoC"
 
 remote_after=$(git -C "$TMPDIR/remote.git" rev-parse master)
 local_after=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'commit_id')
-check "local and remote master match after merge" "$local_after" "$remote_after"
+check "local and remote master match after rebase" "$local_after" "$remote_after"
 
-# Verify the merge has two parents and a description
+# Verify the rebased commit has 1 parent (linear history, no merge commit)
 parent_count=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'parents.len()')
-check "merge has 2 parents" "2" "$parent_count"
+check "rebased commit has 1 parent (linear history)" "1" "$parent_count"
 
-merge_desc=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'description.first_line()')
-case "$merge_desc" in
-    Merge*) echo "PASS: merge description starts with 'Merge' (got: '$merge_desc')"; pass=$((pass+1)) ;;
-    *) echo "FAIL: merge description was: '$merge_desc'"; fail=$((fail+1)) ;;
+# Verify the description is the original c.txt change description (not "Merge ...")
+rebased_desc=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'description.first_line()')
+case "$rebased_desc" in
+    Merge*) echo "FAIL: rebased description starts with 'Merge' (got: '$rebased_desc')"; fail=$((fail+1)) ;;
+    "")     echo "FAIL: rebased description is empty"; fail=$((fail+1)) ;;
+    *)      echo "PASS: rebased description preserved (got: '$rebased_desc')"; pass=$((pass+1)) ;;
 esac
 
 echo
@@ -126,7 +128,7 @@ grep_has() {
     fi
 }
 grep_has "PUSH-OK"
-grep_has "repoC.*merged"
+grep_has "repoC.*rebased"
 
 echo
 echo "=== Scenario 4: command timeout guard ==="
@@ -222,6 +224,60 @@ if grep -l '\[ERROR\]' "$LOG_ROOT"/*/sync_repo.repoNoBackup* 2>/dev/null | grep 
     fail=$((fail+1))
 else
     echo "PASS: no ERROR entries for empty BACKUP_URL path"
+    pass=$((pass+1))
+fi
+
+echo
+echo "=== Scenario 6: divergence with conflict -> REBASE-CONFLICT, no push ==="
+# Fresh bare remote so prior scenarios' state doesn't interfere.
+git -C "$TMPDIR" init --bare -q -b master conflict.git
+# Build a base repo that has one shared commit and pushes it as master.
+mkdir -p "$TMPDIR/conflict-base"
+(
+    cd "$TMPDIR/conflict-base"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/conflict.git"
+    jj config set --repo sync.bookmark master
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo "base content" > shared.txt
+    jj commit -m "base"
+    jj bookmark create master -r @-
+    jj git push --remote backup --bookmark master --allow-new
+) >/dev/null 2>&1
+# Two repos sharing the same base commit_id, with conflicting working-copy edits.
+cp -r "$TMPDIR/conflict-base" "$TMPDIR/repoX"
+cp -r "$TMPDIR/conflict-base" "$TMPDIR/repoY"
+echo "X content"           > "$TMPDIR/repoX/shared.txt"
+echo "DIFFERENT Y content" > "$TMPDIR/repoY/shared.txt"
+
+# repoX syncs first -> remote advances to repoX's commit
+run_sync "$TMPDIR/repoX"
+remote_after_x=$(git -C "$TMPDIR/conflict.git" rev-parse master)
+local_x=$(cd "$TMPDIR/repoX" && jj log -r master --no-graph -T 'commit_id')
+check "remote advanced to repoX's commit" "$local_x" "$remote_after_x"
+
+# repoY syncs and detects rebase conflict -> remote MUST be unchanged
+run_sync "$TMPDIR/repoY"
+remote_after_y=$(git -C "$TMPDIR/conflict.git" rev-parse master)
+check "remote unchanged after repoY conflict" "$remote_after_x" "$remote_after_y"
+
+# repoY's master must NOT be a descendant of remote (rebase was blocked).
+remote_in_local_y=$(cd "$TMPDIR/repoY" && jj log -r "$remote_after_x & ::master" --no-graph -T '"y"' 2>/dev/null)
+check "remote NOT ancestor of repoY master (rebase blocked)" "" "$remote_in_local_y"
+
+if grep -rqE 'REBASE-CONFLICT.*master' "$LOG_ROOT"/*/sync_repo.*repoY* 2>/dev/null; then
+    echo "PASS: log recorded REBASE-CONFLICT for repoY"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing REBASE-CONFLICT for repoY"
+    fail=$((fail+1))
+fi
+if grep -rqE 'PUSH-OK master' "$LOG_ROOT"/*/sync_repo.*repoY* 2>/dev/null; then
+    echo "FAIL: repoY logged PUSH-OK master despite conflict"
+    fail=$((fail+1))
+else
+    echo "PASS: repoY did not log PUSH-OK master"
     pass=$((pass+1))
 fi
 

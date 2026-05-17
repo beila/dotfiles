@@ -162,8 +162,8 @@ if jj root &>/dev/null 2>&1; then
     #    raw git delete+push because the backup server doesn't support
     #    --force-with-lease.
     # 2. Fetch the backup remote, then — depending on ancestry between local
-    #    and remote tips — push, fast-forward, or merge+push the
-    #    sync.bookmark. Skipped if sync.bookmark is unset.
+    #    and remote tips — push, fast-forward, or rebase+push the
+    #    sync.bookmark. Skipped if sync.bookmark is unset or fetch failed.
     # 3. Rebase any remaining mutable chain below @ onto the updated bookmark.
     # 4. Reconcile jj's view with raw git by `jj git import`.
     # Resolve the git dir. jj git root is the canonical source, but for
@@ -217,21 +217,21 @@ if jj root &>/dev/null 2>&1; then
         fi
     done
 
-    # Step 2: fetch from backup, merge tracked bookmark forward, push.
+    # Step 2: fetch from backup, reconcile sync.bookmark with remote, push.
     #
-    # Unified merge-based flow: we always do `jj new --no-edit LOCAL REMOTE` and
-    # let `jj simplify-parents` collapse redundant parents. This replaces the
-    # manual elif chain for equal/ahead/ff cases — simplify-parents is the
-    # canonical jj primitive for the same logic.
+    # Four cases by ancestry of LOCAL_BM_REV vs REMOTE_REV:
+    #   - equal:        no-op SKIP
+    #   - local is ancestor of remote:  fast-forward local, nothing to push
+    #   - remote is ancestor of local:  push local (ahead)
+    #   - diverged:     pre-flight conflict probe via `jj new --no-edit L R`;
+    #                   if the probe is conflicted, abandon and skip the push.
+    #                   Otherwise abandon the probe and `jj rebase` local-only
+    #                   commits onto remote, producing a fast-forward push.
     #
-    # After simplify the merge is either:
-    #   - empty + non-merge:  the degenerate cases (equal / ahead / ff). The
-    #     surviving single parent is the correct bookmark target. Abandon the
-    #     empty wrapper, advance the bookmark to the survivor, and push only
-    #     if we were the side that advanced (survivor == LOCAL_BM_REV).
-    #   - still a 2-parent merge:  genuine divergence. Re-describe with
-    #     commit-msg (so the remote receives an AI-generated summary instead
-    #     of the boilerplate "Merge XXX into <bookmark>" stub) and push.
+    # The probe shares conflict semantics with the rebase (both reduce to a
+    # 3-way merge of common-ancestor / L / R), so a clean probe guarantees a
+    # clean rebase. Bookmark commit_ids are not rewritten until the probe is
+    # known clean, leaving a clear retry surface on conflict.
     #
     # IMPORTANT: after `jj git fetch`, the bare bookmark name (`$CURRENT_BM`, e.g. "master")
     # can become ambiguous if the remote has diverged (local and remote both claim `master`).
@@ -259,65 +259,47 @@ if jj root &>/dev/null 2>&1; then
             if timeout_cmd "push $CURRENT_BM (new)" jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new; then
                 log INFO "PUSH-OK $CURRENT_BM rev=$LOCAL_BM_REV (new)"
             fi
+        elif [ "$LOCAL_BM_REV" = "$REMOTE_REV" ]; then
+            log INFO "SKIP $CURRENT_BM already at $REMOTE_REV"
+        elif jj log -r "$LOCAL_BM_REV & ::$REMOTE_REV" --no-graph -T '"y"' 2>/dev/null | grep -q y; then
+            # Local is ancestor of remote: fast-forward local, no push.
+            jj bookmark set "$CURRENT_BM" -r "$REMOTE_REV" --allow-backwards 2>/dev/null || true
+            log INFO "FAST-FORWARD $CURRENT_BM local=$LOCAL_BM_REV -> remote=$REMOTE_REV"
+        elif jj log -r "$REMOTE_REV & ::$LOCAL_BM_REV" --no-graph -T '"y"' 2>/dev/null | grep -q y; then
+            # Remote is ancestor of local: push local.
+            if timeout_cmd "push $CURRENT_BM (ahead)" jj git push --remote backup --bookmark "$CURRENT_BM"; then
+                log INFO "PUSH-OK $CURRENT_BM rev=$LOCAL_BM_REV (ahead)"
+            fi
         else
-            merge_msg="Merge ${REMOTE_REV:0:12} into $CURRENT_BM from ${MACHINE_NAME}"
-            if jj new --no-edit "$LOCAL_BM_REV" "$REMOTE_REV" -m "$merge_msg" 2>/dev/null; then
-                # Locate the merge we just created: newest child of both parents.
-                # (latest() is simpler than description(exact:...) which requires a
-                # trailing newline to match jj's stored description.)
-                MERGE_CHANGE=$(jj log -r 'latest("'"$LOCAL_BM_REV"'"+ & "'"$REMOTE_REV"'"+, 1)' --no-graph -T 'change_id' 2>/dev/null | head -1)
-                if [ -z "$MERGE_CHANGE" ]; then
-                    log CRITICAL "MERGE-FAIL $CURRENT_BM: could not locate new merge commit"
-                    echo "WARNING: could not locate new merge commit for $CURRENT_BM; skipping push" >&2
-                elif jj log -r "$MERGE_CHANGE" --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
-                    # Conflict: report filenames and abandon the merge. Bookmark stays at
-                    # its pre-merge position; next sync will retry after the user resolves.
-                    CONFLICT_FILES=$(jj resolve --list -r "$MERGE_CHANGE" 2>/dev/null | awk 'NF {print $1}' | paste -sd, -)
-                    log ERROR "MERGE-CONFLICT $CURRENT_BM files=${CONFLICT_FILES:-<unknown>} local=$LOCAL_BM_REV remote=$REMOTE_REV"
-                    echo "WARNING: merge has conflicts in ${CONFLICT_FILES:-<unknown>}; abandoning $MERGE_CHANGE" >&2
-                    jj abandon "$MERGE_CHANGE" 2>/dev/null || true
+            # Diverged: probe with a no-edit merge to detect conflicts, then
+            # rebase if clean (so the push is a fast-forward).
+            if jj new --no-edit "$LOCAL_BM_REV" "$REMOTE_REV" -m "rebase-probe" 2>/dev/null; then
+                PROBE_CHANGE=$(jj log -r 'latest("'"$LOCAL_BM_REV"'"+ & "'"$REMOTE_REV"'"+, 1)' --no-graph -T 'change_id' 2>/dev/null | head -1)
+                if [ -z "$PROBE_CHANGE" ]; then
+                    log CRITICAL "REBASE-PROBE-FAIL $CURRENT_BM: could not locate probe commit"
+                    echo "WARNING: could not locate rebase probe for $CURRENT_BM; skipping push" >&2
+                elif jj log -r "$PROBE_CHANGE" --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
+                    # Conflict: abandon probe, leave bookmarks untouched, log + skip.
+                    CONFLICT_FILES=$(jj resolve --list -r "$PROBE_CHANGE" 2>/dev/null | awk 'NF {print $1}' | paste -sd, -)
+                    log ERROR "REBASE-CONFLICT $CURRENT_BM files=${CONFLICT_FILES:-<unknown>} local=$LOCAL_BM_REV remote=$REMOTE_REV"
+                    echo "WARNING: rebase has conflicts in ${CONFLICT_FILES:-<unknown>}; skipping push for $CURRENT_BM" >&2
+                    jj abandon "$PROBE_CHANGE" 2>/dev/null || true
                 else
-                    # Collapse redundant parents, then rebase @ on top of the merge so
-                    # the user's working-copy commit isn't orphaned.
-                    jj simplify-parents -r "$MERGE_CHANGE" 2>/dev/null || true
-                    jj rebase -r @ -d "$MERGE_CHANGE" 2>/dev/null || true
-
-                    # Discriminator: empty+non-merge == degenerate (equal/ahead/ff).
-                    M_INFO=$(jj log -r "$MERGE_CHANGE" --no-graph -T 'if(empty, "1", "0") ++ "|" ++ if(parents.len() > 1, "1", "0") ++ "|" ++ parents.map(|p| p.commit_id()).join(",")' 2>/dev/null)
-                    IFS='|' read -r M_EMPTY M_MERGE M_PARENTS <<<"$M_INFO"
-                    if [ "$M_EMPTY" = "1" ] && [ "$M_MERGE" = "0" ]; then
-                        # Degenerate: abandon the empty wrapper and advance bookmark
-                        # to the surviving parent. Abandoning auto-rebases @ onto survivor.
-                        SURVIVOR=$M_PARENTS
-                        jj abandon "$MERGE_CHANGE" 2>/dev/null || true
-                        jj bookmark set "$CURRENT_BM" -r "$SURVIVOR" --allow-backwards 2>/dev/null || true
-                        if [ "$LOCAL_BM_REV" = "$REMOTE_REV" ]; then
-                            log INFO "SKIP $CURRENT_BM already at $REMOTE_REV"
-                        elif [ "$SURVIVOR" = "$LOCAL_BM_REV" ]; then
-                            # Local was ahead of remote; push local.
-                            if timeout_cmd "push $CURRENT_BM (ahead)" jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new; then
-                                log INFO "PUSH-OK $CURRENT_BM rev=$LOCAL_BM_REV (ahead)"
-                            fi
-                        else
-                            # Remote was ahead; fast-forward local. Nothing to push.
-                            log INFO "FAST-FORWARD $CURRENT_BM local=$LOCAL_BM_REV -> remote=$REMOTE_REV"
+                    # Clean: abandon probe, rebase local-only chain onto remote, push.
+                    jj abandon "$PROBE_CHANGE" 2>/dev/null || true
+                    if jj rebase -s 'roots(::'"$LOCAL_BM_REV"' ~ ::'"$REMOTE_REV"')' -d "$REMOTE_REV" 2>/dev/null; then
+                        REBASED_REV=$(jj log -r "$CURRENT_BM" --no-graph -T 'commit_id' 2>/dev/null)
+                        if timeout_cmd "push $CURRENT_BM (rebased)" jj git push --remote backup --bookmark "$CURRENT_BM"; then
+                            log INFO "PUSH-OK $CURRENT_BM rev=$REBASED_REV (rebased local=$LOCAL_BM_REV remote=$REMOTE_REV)"
                         fi
                     else
-                        # Genuine merge: re-describe with AI commit-msg BEFORE push so
-                        # the remote receives the final form, then set bookmark and push.
-                        if MSG=$(VERBOSE=1 "$DOTFILES_ROOT/bin/commit-msg" "$MERGE_CHANGE" 2>/dev/null) && [ -n "$MSG" ]; then
-                            jj describe "$MERGE_CHANGE" -m "$MSG" 2>/dev/null || true
-                        fi
-                        jj bookmark set "$CURRENT_BM" -r "$MERGE_CHANGE" --allow-backwards 2>/dev/null || true
-                        MERGE_REV=$(jj log -r "$MERGE_CHANGE" --no-graph -T 'commit_id' 2>/dev/null)
-                        if timeout_cmd "push $CURRENT_BM (merged)" jj git push --remote backup --bookmark "$CURRENT_BM"; then
-                            log INFO "PUSH-OK $CURRENT_BM rev=$MERGE_REV (merged local=$LOCAL_BM_REV remote=$REMOTE_REV)"
-                        fi
+                        log CRITICAL "REBASE-FAIL $CURRENT_BM local=$LOCAL_BM_REV remote=$REMOTE_REV"
+                        echo "WARNING: jj rebase failed for $CURRENT_BM; skipping push" >&2
                     fi
                 fi
             else
-                log CRITICAL "MERGE-FAIL $CURRENT_BM local=$LOCAL_BM_REV remote=$REMOTE_REV; skipping push"
-                echo "WARNING: failed to create merge of $LOCAL_BM_REV and $REMOTE_REV for $CURRENT_BM; skipping push" >&2
+                log CRITICAL "REBASE-PROBE-FAIL $CURRENT_BM local=$LOCAL_BM_REV remote=$REMOTE_REV; skipping push"
+                echo "WARNING: failed to create rebase probe for $CURRENT_BM; skipping push" >&2
             fi
         fi
         jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
