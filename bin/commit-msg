@@ -117,6 +117,45 @@ fi
 
 log "diff size: $(echo "$diff" | wc -l) lines"
 
+# Cap diff sent to LLMs so we don't blow past Bedrock's input limits.
+# Distribute the budget across files (so a single huge file doesn't crowd
+# out the rest), each file keeps its full diff if it fits its share, or
+# gets truncated with a `... [path: N more lines truncated]` marker so the
+# model knows it's looking at a sample.
+MAX_DIFF_LINES=${MAX_DIFF_LINES:-5000}
+total_lines=$(echo "$diff" | wc -l)
+if [ "$total_lines" -gt "$MAX_DIFF_LINES" ]; then
+    num_files=$(echo "$diff" | grep -c '^diff --git')
+    [ "$num_files" -lt 1 ] && num_files=1
+    per_file=$((MAX_DIFF_LINES / num_files))
+    [ "$per_file" -lt 30 ] && per_file=30  # always fit the diff --git header + a few lines
+    log "capping diff: $total_lines → ~$MAX_DIFF_LINES lines across $num_files files (≤$per_file lines/file)"
+    diff=$(echo "$diff" | awk -v per="$per_file" '
+        BEGIN { in_file=0; file_lines=0; current_file=""; }
+        /^Deleted: / { print; next }
+        /^diff --git/ {
+            if (in_file && file_lines > per) {
+                printf "... [%s: %d more lines truncated]\n", current_file, (file_lines - per)
+            }
+            in_file=1; file_lines=1; current_file=$0;
+            sub(/^diff --git a\//, "", current_file);
+            sub(/ b\/.*$/, "", current_file);
+            print; next
+        }
+        {
+            if (in_file) {
+                file_lines++
+                if (file_lines <= per) print
+            }
+        }
+        END {
+            if (in_file && file_lines > per) {
+                printf "... [%s: %d more lines truncated]\n", current_file, (file_lines - per)
+            }
+        }
+    ')
+fi
+
 if [ "$is_merge" = 1 ]; then
     PROMPT_BASE="Write a concise merge commit message. Use format like 'Merge <description of what's being merged>'. Keep it under 70 characters. Output ONLY the commit message, nothing else."
     if [ -n "$diff" ]; then
@@ -163,8 +202,16 @@ else
 fi
 
 # Fallback: ollama local LLM — start on demand, stop after
-# Skip if ollama can't generate within 5s (e.g. out of memory / no GPU)
-truncated_prompt=$(echo "$PROMPT_INPUT" | head -200)
+# Skip if ollama can't generate within 5s (e.g. out of memory / no GPU).
+# qwen2.5-coder:3b's small context wants a far tighter prompt than kiro-cli;
+# we head-cap to 200 lines and tag the truncation so the model knows.
+prompt_lines=$(echo "$PROMPT_INPUT" | wc -l)
+if [ "$prompt_lines" -gt 200 ]; then
+    truncated_prompt=$(printf '%s\n... [prompt truncated for ollama: %d more lines]\n' \
+        "$(echo "$PROMPT_INPUT" | head -200)" "$((prompt_lines - 200))")
+else
+    truncated_prompt="$PROMPT_INPUT"
+fi
 MODEL="qwen2.5-coder:3b"
 if ! curl -sf http://localhost:11434/api/tags &>/dev/null; then
     log "starting ollama"
