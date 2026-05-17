@@ -3,6 +3,16 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Vendored verbatim from:
+#   https://github.com/honsiorovskyi/open-url-in-container
+#   commit 4fa376570305de73e00b3ffc99adbbf241bed099 (master HEAD, 2020-07-18)
+#   path:  bin/launcher.sh
+#
+# Only this script is needed locally; the rest of the upstream tree (the
+# WebExtension source and its npm build tooling) is not used — the extension
+# itself is installed from addons.mozilla.org. License: MPL-2.0, see
+# launcher.LICENSE alongside this file.
 
 usage() {
 	app=$(basename $0)
