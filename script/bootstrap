@@ -151,7 +151,7 @@ install_dotfiles () {
   for dir in $(find -H "$DOTFILES_ROOT" -maxdepth 3 -name '*.filesymlink' -type d -not -path '*.git*')
   do
     local base="$HOME/.$(basename "${dir%.*}")"
-    find -H "$dir" -type f,l | while read -r src; do
+    find -H -L "$dir" -type f | while read -r src; do
       local rel="${src#$dir/}"
       local dst="$base/$rel"
       mkdir -p "$(dirname "$dst")"
@@ -222,17 +222,6 @@ clone_private_dotfiles () {
 
 clone_private_dotfiles
 
-# flake.nix uses github:beila/private-dotfiles as default input URL.
-# Override to local clone so changes apply without pushing.
-lock_private_dotfiles_input () {
-  info 'locking private-dotfiles flake input to local path'
-  nix flake update private \
-    --flake "$DOTFILES_ROOT/home-manager.configsymlink" \
-    --override-input private "git+file://$DOTFILES_ROOT/private-dotfiles?ref=main"
-  success 'private-dotfiles flake input locked'
-}
-
-lock_private_dotfiles_input
 # Override to local clone so changes apply without pushing.
 lock_private_dotfiles_input () {
   info 'locking private-dotfiles flake input to local path'
