@@ -171,6 +171,17 @@ else
     echo "FAIL: log missing SKIP-PUSH (push should skip when delete fails)"
     fail=$((fail+1))
 fi
+# Regression: when Step 2's fetch fails (timeout / network), Step 2 push MUST
+# be skipped. Otherwise stale ${CURRENT_BM}@backup leads to wrong-path pushes
+# (e.g. mistaking an existing remote bookmark for new and trying full-history
+# push, which fails on any no-description ancestor).
+if grep -rqE 'SKIP-PUSH master: fetch failed' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
+    echo "PASS: log recorded SKIP-PUSH master: fetch failed"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing 'SKIP-PUSH master: fetch failed' (Step 2 should skip when fetch fails)"
+    fail=$((fail+1))
+fi
 if grep -rqE 'OTHER-ERR.*non-fast-forward' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
     echo "FAIL: log has cascade non-fast-forward OTHER-ERR (delete failure should skip push)"
     fail=$((fail+1))
