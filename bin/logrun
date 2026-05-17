@@ -176,7 +176,7 @@ echo "Log: $log_path" >&2
 # `unbuffer`/`stdbuf` aren't needed here because both spacer and watchlog
 # implement their own periodic timers — the decorator flushes on a timer,
 # not on input.
-"$@" 2>&1 \
+zsh -ic "$@" 2>&1 \
     | tee >("${strip_ansi[@]}" > "$log_path") \
     | eval "$decorator"
 exit_code=${PIPESTATUS[0]}
