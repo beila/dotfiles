@@ -81,8 +81,8 @@
 # Notification deduplication: suppress re-notification if the same
 # (TAG, CONTEXT, LEVEL, normalized-message) signature was already notified
 # within this many seconds. Normalization collapses hex IDs (≥8 chars) and
-# multi-digit numbers so "MERGE-CONFLICT main local=abc123 remote=def456"
-# matches the next run's "MERGE-CONFLICT main local=xyz789 remote=uvw012".
+# multi-digit numbers so "REBASE-CONFLICT main local=abc123 remote=def456"
+# matches the next run's "REBASE-CONFLICT main local=xyz789 remote=uvw012".
 # Default 6 hours. Set to 0 to disable.
 : "${LOG_NOTIFY_DEDUP_WINDOW:=21600}"
 : "${LOG_NOTIFY_DEDUP_DIR:=$LOG_ROOT/.notify-dedup}"

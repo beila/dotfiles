@@ -361,8 +361,8 @@ echo "=== Test 16: same signature within dedup window fires once ==="
     export LOG_CONTEXT="myrepo"
     source "$LIB"
     # Two ERRORs whose only difference is a commit-id-like hex string.
-    log ERROR "MERGE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
-    log ERROR "MERGE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
+    log ERROR "REBASE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
+    log ERROR "REBASE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
     sleep 1
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
     check "deduped to one notification" "1" "$mock_lines"
@@ -375,7 +375,7 @@ echo "=== Test 17: different signatures both notify ==="
     export LOG_TAG="test17"
     export LOG_CONTEXT="myrepo"
     source "$LIB"
-    log ERROR "MERGE-CONFLICT main local=abc123def456 remote=fedcba987654"
+    log ERROR "REBASE-CONFLICT main local=abc123def456 remote=fedcba987654"
     log ERROR "OTHER-ERR main (rc=1): permission denied"
     sleep 1
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
@@ -391,12 +391,12 @@ echo "=== Test 18: same signature across separate runs dedupes ==="
     # First run
     (
         source "$LIB"
-        log ERROR "MERGE-FAIL main local=abc123def456 remote=fedcba987654"
+        log ERROR "REBASE-FAIL main local=abc123def456 remote=fedcba987654"
     )
     # Second run — fresh subshell, cached _LOG_FILE reset
     (
         source "$LIB"
-        log ERROR "MERGE-FAIL main local=111222333444 remote=555666777888"
+        log ERROR "REBASE-FAIL main local=111222333444 remote=555666777888"
     )
     sleep 1
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
@@ -412,12 +412,12 @@ echo "=== Test 19: expired dedup entry across separate runs re-notifies ==="
     export LOG_NOTIFY_DEDUP_WINDOW=1   # 1-second window for the test
     (
         source "$LIB"
-        log ERROR "MERGE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
+        log ERROR "REBASE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
     )
     sleep 2    # let the dedup window expire
     (
         source "$LIB"
-        log ERROR "MERGE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
+        log ERROR "REBASE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
     )
     sleep 1
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
@@ -432,8 +432,8 @@ echo "=== Test 20: dedup window=0 disables dedup ==="
     export LOG_CONTEXT="myrepo"
     export LOG_NOTIFY_DEDUP_WINDOW=0
     source "$LIB"
-    log ERROR "MERGE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
-    log ERROR "MERGE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
+    log ERROR "REBASE-CONFLICT main local=abc123def456 remote=aaaaaaaaaaaa"
+    log ERROR "REBASE-CONFLICT main local=0123456789ab remote=bbbbbbbbbbbb"
     sleep 1
     mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
     check "window=0 disables dedup" "2" "$mock_lines"
