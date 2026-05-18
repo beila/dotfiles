@@ -63,7 +63,7 @@ failed=0
 processed=0
 log INFO "discovered $total repo(s)"
 
-for repo in "${repos[@]}"; do
+for repo in ${repos[@]+"${repos[@]}"}; do
     processed=$((processed+1))
     "$SYNC" "$repo"
     rc=$?
