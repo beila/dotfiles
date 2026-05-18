@@ -97,6 +97,7 @@ else
     sanitized=${sanitized//[[:space:]]/-}
     sanitized=${sanitized//\//-}
     sanitized=${sanitized//|/-}
+    sanitized=${sanitized//#/-}
     sanitized=${sanitized//&/-}
     sanitized=${sanitized//\*/-}
     sanitized=${sanitized//\$/-}
