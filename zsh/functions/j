@@ -25,7 +25,7 @@ nix_develop_command() {
             i="path:."
         fi
     fi
-    echo "nix develop $i --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
+    echo "nix develop ${(q-)i} --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
 }
 
 exec logrun --name "just ${*:-list}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "

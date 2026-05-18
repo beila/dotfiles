@@ -20,7 +20,7 @@ nix_develop_command() {
             i="path:."
         fi
     fi
-    echo "nix develop $i --impure --command"
+    echo "nix develop ${(q-)i} --impure --command"
 }
 
 exec logrun --name "${*:-nix}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
