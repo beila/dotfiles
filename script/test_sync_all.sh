@@ -15,6 +15,10 @@ export LOG_ROOT="$TMPDIR/logs"
 export LOG_REL_BASE="$TMPDIR"
 export LOG_MACHINE_NAME="testhost"
 export LOG_NOTIFY_MODE=never
+# Keep INFO/WARN-only runs so happy-path / discovery / per-failure assertions
+# can grep the log file. log.sh defaults LOG_KEEP_THRESHOLD=ERROR which would
+# discard all but the ERROR-summary runs.
+export LOG_KEEP_THRESHOLD=DEBUG
 export DOTFILES_ROOT
 
 # Fake HOME so ~/.cache/plocate.db points at our temp location.
@@ -109,6 +113,14 @@ check_grep() {
         printf 'FAIL: %s (missing /%s/ in %s)\n' "$label" "$pattern" "$file"; _bump "$FAIL_FILE"
     fi
 }
+not_grep() {
+    local label=$1 pattern=$2 file=$3
+    if [ -f "$file" ] && grep -q "$pattern" "$file" 2>/dev/null; then
+        printf 'FAIL: %s (unexpected /%s/ in %s)\n' "$label" "$pattern" "$file"; _bump "$FAIL_FILE"
+    else
+        printf 'PASS: %s\n' "$label"; _bump "$PASS_FILE"
+    fi
+}
 
 run_under_test() {
     HOME="$HOME_OVERRIDE" DOTFILES_ROOT="$TMPDIR/fake_dotfiles" \
@@ -146,6 +158,11 @@ check "exit 1" "1" "$rc"
 check "still ran both" "2" "$(wc -l < "$SYNC_REPO_CALL_LOG")"
 check_grep "SUMMARY includes failed=1" 'SUMMARY processed=2 failed=1' "$(log_file)"
 check_grep "SUMMARY logged as ERROR" '\[ERROR\].*SUMMARY' "$(log_file)"
+# Per-repo failure must be logged at WARN with the repo path so the user can
+# rerun it for diagnostics without needing a separate sync_repo log file.
+check_grep "FAILED line carries repo path" '\[WARN\].*FAILED rc=.*repoD' "$(log_file)"
+# Successful repos must NOT emit a FAILED line.
+not_grep "no FAILED for repoC" 'FAILED.*repoC' "$(log_file)"
 
 echo
 echo "=== Test 3: dedup — multiple markers in one repo -> single call ==="

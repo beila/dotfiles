@@ -65,13 +65,19 @@ log INFO "discovered $total repo(s)"
 
 for repo in "${repos[@]}"; do
     processed=$((processed+1))
-    if ! "$SYNC" "$repo"; then
+    "$SYNC" "$repo"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
         failed=$((failed+1))
+        # WARN-level so per-repo lines survive in the SUMMARY-kept log without
+        # firing 35 notifications (LOG_NOTIFY_THRESHOLD defaults to ERROR).
+        # The path is enough to re-run `sync_repo $REPO` for diagnostics.
+        log WARN "FAILED rc=$rc $repo"
     fi
 done
 
 if [ "$failed" -gt 0 ]; then
-    log ERROR "SUMMARY processed=$processed failed=$failed (check sync_repo.*.log for details)"
+    log ERROR "SUMMARY processed=$processed failed=$failed (per-repo paths logged above as WARN)"
     exit 1
 fi
 log INFO "SUMMARY processed=$processed failed=0"
