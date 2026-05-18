@@ -57,7 +57,23 @@ while [[ $# -gt 0 ]]; do
 done
 
 if (( shell_mode )); then
-    set -- bash -c "$shell_cmd"
+    # Use interactive zsh so the body sees the user's aliases/functions
+    # (the original justfile pattern relied on this). Note: "$@" must end
+    # up as a single token for `zsh -ic`, not the buggy form
+    # `zsh -ic bash -c "<body>"` which parses as "run command 'bash' with
+    # positional params -c <body>" and silently drops the body.
+    set -- zsh -ic "$shell_cmd"
+elif [[ $# -gt 0 ]]; then
+    # Positional argv (e.g. `logrun la`): rebuild as a shell-safe command
+    # string and pipe it through zsh -ic so aliases/functions resolve. With
+    # bash exec the alias `la` would just be "command not found".
+    # printf %q quotes each arg so paths-with-spaces and other specials
+    # round-trip correctly through zsh's word splitter.
+    cmdline=""
+    for arg in "$@"; do
+        cmdline+=" $(printf '%q' "$arg")"
+    done
+    set -- zsh -ic "$cmdline"
 fi
 
 if [[ $# -eq 0 ]]; then
@@ -176,7 +192,7 @@ echo "Log: $log_path" >&2
 # `unbuffer`/`stdbuf` aren't needed here because both spacer and watchlog
 # implement their own periodic timers — the decorator flushes on a timer,
 # not on input.
-zsh -ic "$@" 2>&1 \
+"$@" 2>&1 \
     | tee >("${strip_ansi[@]}" > "$log_path") \
     | eval "$decorator"
 exit_code=${PIPESTATUS[0]}
