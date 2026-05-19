@@ -28,7 +28,7 @@ nix_develop_command() {
     echo "nix develop ${(q-)i} --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
 }
 
-exec logrun --name "just ${*:-list}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+logrun --name "just ${*:-list}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
     set -x
     time $(nix_develop_command) just ${(j: :)${(q-)@}}
 "
