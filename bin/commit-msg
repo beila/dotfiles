@@ -177,56 +177,49 @@ clean_msg() {
     sed '/^```/d' | sed '/^$/d' | head -1
 }
 
-# Skip claude if we're already inside a Claude Code session — recursive
-# invocations spawn nested instances and inherit the parent's working state.
-if command -v claude &>/dev/null && [ -z "$CLAUDECODE" ]; then
-    log "trying claude"
-    CLAUDE_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
-    CLAUDE_ERR=$(mktemp /tmp/commit-msg-err.XXXXXX)
-    printf '%s' "$PROMPT_INPUT" > "$CLAUDE_PROMPT"
-    # --print: non-interactive headless mode, prints the response and exits.
-    # --tools "": no tools available — purely text generation, no Read/Bash/etc.
-    # --no-session-persistence: don't write a transcript for one-shot use.
-    raw_msg=$(timeout 30 claude --print --tools "" --no-session-persistence < "$CLAUDE_PROMPT" 2>"$CLAUDE_ERR")
-    claude_exit=$?
-    log "claude exit code: $claude_exit"
-    [ -s "$CLAUDE_ERR" ] && log "claude stderr: $(cat "$CLAUDE_ERR")"
-    log "claude raw output (${#raw_msg} bytes): $(echo "$raw_msg" | head -3)"
+# try_llm_cli <label> <command> [args...]
+# Pipe $PROMPT_INPUT to the command, clean output, validate, and on success
+# echo the message + exit 0. Caller falls through to the next fallback otherwise.
+try_llm_cli() {
+    local label=$1; shift
+    local prompt_file err_file raw_msg rc msg
+    prompt_file=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
+    err_file=$(mktemp /tmp/commit-msg-err.XXXXXX)
+    printf '%s' "$PROMPT_INPUT" > "$prompt_file"
+    log "trying $label"
+    raw_msg=$(timeout 30 "$@" < "$prompt_file" 2>"$err_file")
+    rc=$?
+    log "$label exit code: $rc"
+    [ -s "$err_file" ] && log "$label stderr: $(cat "$err_file")"
+    log "$label raw output (${#raw_msg} bytes): $(echo "$raw_msg" | head -3)"
     msg=$(echo "$raw_msg" | strip_ansi | clean_msg)
-    log "claude cleaned: $msg"
-    rm -f "$CLAUDE_PROMPT" "$CLAUDE_ERR"
-    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press .*cancel|please log in|please sign in|^log in |^sign in |▰'; then
-        log "claude succeeded: $msg"
+    log "$label cleaned: $msg"
+    rm -f "$prompt_file" "$err_file"
+    # Reject empty output, non-zero exit (some CLIs print API errors to stdout
+    # then exit non-zero), or output matching login / API-error markers.
+    if [ "$rc" -eq 0 ] && [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press .*cancel|please log in|please sign in|^log in |^sign in |▰|^API Error|^Error:'; then
+        log "$label succeeded: $msg"
         echo "$msg"
         exit 0
     fi
-    log "claude failed (empty or invalid output)"
+    log "$label failed (empty or invalid output)"
+}
+
+# claude: skip if already inside a Claude Code session — recursive invocations
+# spawn nested instances and inherit the parent's working state.
+# --tools "": no tools available, purely text generation.
+# --no-session-persistence: don't write a transcript for one-shot use.
+if command -v claude &>/dev/null && [ -z "$CLAUDECODE" ]; then
+    try_llm_cli claude claude --print --tools "" --no-session-persistence
 else
     log "claude skipped ($(! command -v claude &>/dev/null && echo "not installed" || echo "called from within claude session"))"
 fi
 
+# kiro-cli: --agent no-mcp avoids spawning orphaned MCP server processes.
 if command -v kiro-cli &>/dev/null; then
-    log "trying kiro-cli"
-    KIRO_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
-    KIRO_ERR=$(mktemp /tmp/commit-msg-err.XXXXXX)
-    printf '%s' "$PROMPT_INPUT" > "$KIRO_PROMPT"
-    # Use no-mcp agent to avoid spawning orphaned MCP server processes
-    raw_msg=$(timeout 30 kiro-cli chat --no-interactive --wrap never --agent no-mcp < "$KIRO_PROMPT" 2>"$KIRO_ERR")
-    kiro_exit=$?
-    log "kiro-cli exit code: $kiro_exit"
-    [ -s "$KIRO_ERR" ] && log "kiro-cli stderr: $(cat "$KIRO_ERR")"
-    log "kiro-cli raw output (${#raw_msg} bytes): $(echo "$raw_msg" | head -3)"
-    msg=$(echo "$raw_msg" | strip_ansi | clean_msg)
-    log "kiro-cli cleaned: $msg"
-    rm -f "$KIRO_PROMPT" "$KIRO_ERR"
-    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press .*cancel|please log in|please sign in|^log in |^sign in |▰'; then
-        log "kiro-cli succeeded: $msg"
-        echo "$msg"
-        exit 0
-    fi
-    log "kiro-cli failed (empty or invalid output)"
+    try_llm_cli kiro-cli kiro-cli chat --no-interactive --wrap never --agent no-mcp
 else
-    log "kiro-cli skipped ($(! command -v kiro-cli &>/dev/null && echo "not installed" || echo "called from within kiro session"))"
+    log "kiro-cli skipped (not installed)"
 fi
 
 # Fallback: ollama local LLM — start on demand, stop after
