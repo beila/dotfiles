@@ -23,7 +23,7 @@ nix_develop_command() {
     echo "nix develop ${(q-)i} --impure --command"
 }
 
-exec logrun --name "${*:-nix}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
+logrun --name "${*:-nix}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
     set -x
     time $(nix_develop_command) just --justfile ~/.justfile run ${(j: :)${(q-)@}}
 "
