@@ -27,17 +27,17 @@ trap 'exit 129' HUP
 
 target_fileset=${(j: | :)"${(qq)files[@]}"}
 fast_revset="files($target_fileset) & mutable() ~ hidden() ~ merges() ~ files(~($target_fileset))"
-#n_fast=$($JJL -r "$fast_revset" -T '"\n"' | wc -l)
-#if (( n_fast ))
-#then
-    #echo "Abandoning $n_fast commits that only modify target files"
-    #$JJ abandon -r "$fast_revset"
-#fi
-#if (( n_fast > 100 ))
-#then
-    #echo "Collecting garbage"
-    #$JJ util gc --expire now
-#fi
+n_fast=$($JJL -r "$fast_revset" -T '"\n"' | wc -l)
+if (( n_fast ))
+then
+    echo "Abandoning $n_fast commits that only modify target files"
+    $JJ abandon -r "$fast_revset"
+fi
+if (( n_fast > 100 ))
+then
+    echo "Collecting garbage"
+    $JJ util gc --expire now
+fi
 
 # Build jj fileset: 'a' | 'b' | 'c'
 # Nested expansion is required: ${(qq)files[@]} quotes each element first,
