@@ -177,6 +177,34 @@ clean_msg() {
     sed '/^```/d' | sed '/^$/d' | head -1
 }
 
+# Skip claude if we're already inside a Claude Code session — recursive
+# invocations spawn nested instances and inherit the parent's working state.
+if command -v claude &>/dev/null && [ -z "$CLAUDECODE" ]; then
+    log "trying claude"
+    CLAUDE_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
+    CLAUDE_ERR=$(mktemp /tmp/commit-msg-err.XXXXXX)
+    printf '%s' "$PROMPT_INPUT" > "$CLAUDE_PROMPT"
+    # --print: non-interactive headless mode, prints the response and exits.
+    # --tools "": no tools available — purely text generation, no Read/Bash/etc.
+    # --no-session-persistence: don't write a transcript for one-shot use.
+    raw_msg=$(timeout 30 claude --print --tools "" --no-session-persistence < "$CLAUDE_PROMPT" 2>"$CLAUDE_ERR")
+    claude_exit=$?
+    log "claude exit code: $claude_exit"
+    [ -s "$CLAUDE_ERR" ] && log "claude stderr: $(cat "$CLAUDE_ERR")"
+    log "claude raw output (${#raw_msg} bytes): $(echo "$raw_msg" | head -3)"
+    msg=$(echo "$raw_msg" | strip_ansi | clean_msg)
+    log "claude cleaned: $msg"
+    rm -f "$CLAUDE_PROMPT" "$CLAUDE_ERR"
+    if [ -n "$msg" ] && ! echo "$msg" | grep -qiE 'opening browser|press .*cancel|please log in|please sign in|^log in |^sign in |▰'; then
+        log "claude succeeded: $msg"
+        echo "$msg"
+        exit 0
+    fi
+    log "claude failed (empty or invalid output)"
+else
+    log "claude skipped ($(! command -v claude &>/dev/null && echo "not installed" || echo "called from within claude session"))"
+fi
+
 if command -v kiro-cli &>/dev/null; then
     log "trying kiro-cli"
     KIRO_PROMPT=$(mktemp /tmp/commit-msg-prompt.XXXXXX)
