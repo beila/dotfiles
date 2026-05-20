@@ -82,11 +82,14 @@ if [[ ! -t 0 ]]; then
   cat <&0 > "$tmpdir/fifo" &
 fi
 
+# Suppress stdout: zellij run prints pane name (e.g. "terminal_45") which would
+# otherwise contaminate fzf-zellij's own stdout and get picked up by callers'
+# post-processing pipelines (e.g. _gh extracting jj change IDs)
 zellij run --floating --close-on-exit \
   --width "$width" --height "$height" \
   --cwd "$PWD" \
   -- bash "$argsf" \
-  2>/dev/null || {
+  >/dev/null 2>&1 || {
   "$fzf" "${args[@]}"
   exit $?
 }
@@ -94,4 +97,6 @@ zellij run --floating --close-on-exit \
 # Wait for pane's bash to exit (EXIT trap touches done marker, works even after become)
 while [[ ! -f "$tmpdir/done" ]]; do sleep 0.05; done
 
-cat "$output"
+# Strip \r (zellij pty leaves CRs) and any stray "terminal_NN" lines from
+# zellij output that may have slipped past the redirection
+sed -e 's/\r$//' -e '/^terminal_[0-9]*$/d' "$output"
