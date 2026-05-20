@@ -23,11 +23,12 @@ import sys
 from osd import OSDStyle, display_on_all_monitors, render_surface
 
 
-# Battery alert styling. Other OSDs (volume, brightness, audio) will pick
-# different fill colours / anchors when they migrate to this library.
-STYLE = OSDStyle(
-    fill_rgb=(1.0, 0.19, 0.19),  # #ff3030
-)
+# Battery alert styling per severity. Yellow is used at the 30/20/15
+# warning thresholds; red is used below 10% (critical).
+STYLES = {
+    "warn": OSDStyle(fill_rgb=(1.0, 0.78, 0.10)),      # #ffc71a yellow
+    "critical": OSDStyle(fill_rgb=(1.0, 0.19, 0.19)),  # #ff3030 red
+}
 
 
 def _format_text(percent: int) -> str:
@@ -41,6 +42,8 @@ def main() -> int:
         description="Huge pseudo-transparent battery OSD (cairo + XShape).",
     )
     p.add_argument("percent", type=int, help="battery percentage to display")
+    p.add_argument("--style", choices=sorted(STYLES), default="critical",
+                   help="visual style: warn (yellow) or critical (red, default)")
     p.add_argument("--duration", type=float, default=10.0,
                    help="visible seconds (default 10)")
     p.add_argument("--render-png", metavar="PATH",
@@ -53,6 +56,7 @@ def main() -> int:
         sys.stderr.write(f"battery-osd: percent out of range: {args.percent}\n")
         return 2
 
+    style = STYLES[args.style]
     text = _format_text(args.percent)
 
     if args.render_png:
@@ -61,14 +65,14 @@ def main() -> int:
         except ValueError:
             sys.stderr.write(f"battery-osd: invalid --screen: {args.screen}\n")
             return 2
-        render_surface(text, sw, sh, STYLE).write_to_png(args.render_png)
+        render_surface(text, sw, sh, style).write_to_png(args.render_png)
         return 0
 
     if not os.environ.get("DISPLAY"):
         sys.stderr.write("battery-osd: $DISPLAY not set; can't open X display\n")
         return 1
 
-    display_on_all_monitors(text, args.duration, STYLE)
+    display_on_all_monitors(text, args.duration, style)
     return 0
 
 

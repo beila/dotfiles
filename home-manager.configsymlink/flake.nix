@@ -44,9 +44,14 @@
           ++ (if gnome then [ ./gnome.nix ] else [])
           ++ nixFilesFrom privateRoot;
       };
+      allHosts = builtins.foldl' (a: b: a // b) {}
+        (map (f: import f { inherit mkHost; }) (nixFilesFrom hostsDir));
+
+      # Lets `home-manager switch --flake .` (no `#user@host`) auto-detect
+      # via bare $USER. See ./bare-aliases.nix for the matching logic.
+      bareAliases = import ./bare-aliases.nix { inherit allHosts; };
     in
     {
-      homeConfigurations = builtins.foldl' (a: b: a // b) {}
-        (map (f: import f { inherit mkHost; }) (nixFilesFrom hostsDir));
+      homeConfigurations = allHosts // bareAliases;
     };
 }

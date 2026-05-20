@@ -19,4 +19,9 @@
       "x-scheme-handler/chrome" = "firefox-container.desktop";
     };
   };
+
+  # Other tools (gio, browsers, claude-code-url-handler) write to mimeapps.list
+  # at runtime, so home-manager refuses to clobber it. Take ownership: nix is
+  # the single source of truth.
+  xdg.configFile."mimeapps.list".force = true;
 }
