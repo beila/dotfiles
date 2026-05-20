@@ -34,6 +34,7 @@ in
         pkgs.albert
         pkgs.bat
         pkgs.brightnessctl
+        pkgs.btop
         pkgs.xfce4-genmon-plugin
         pkgs.cmake
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
