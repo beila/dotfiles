@@ -158,10 +158,12 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - `gnu-utility.zsh` — g-prefixed GNU utils on macOS, no-op on Linux
   - `p10k.zsh` — powerlevel10k (nix) + user config
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification), `ju` (jj unique), `jda` (jj describe with AI commit-msg; prints the generated description) — Wayland/X11 aware
-- TTS: `~/.dotfiles/bin/say` — piper-tts with en_GB-alba-medium voice, auto-downloads model; override voice with `$PIPER_MODEL`
+- TTS dispatcher: `~/.dotfiles/bin/say` — routes by content language. Hangul (U+AC00–U+D7A3) → `say-ko`, otherwise → `say-en`. Accepts text as args or stdin.
+- TTS (English): `~/.dotfiles/bin/say-en` — piper-tts with en_GB-alba-medium voice, auto-downloads model; override voice with `$PIPER_MODEL`
   - `say_done` calls `say` to announce when commands >10s finish; only on desktop machines; runs in subshell
 - TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)
   - Default rate: +50%, override with `$EDGE_TTS_RATE`; override voice with `$EDGE_TTS_VOICE`
+- Claude Code Stop hook: `~/.dotfiles/bin/claude-stop-tts` — reads `transcript_path` from stdin JSON, extracts the last paragraph of the final assistant message, strips markdown, caps to `$CLAUDE_TTS_MAX_CHARS` (default 500), and pipes to `say` (which routes by language). Spawns via `setsid` so audio outlives the turn. Wired into `~/.claude/settings.json` `hooks.Stop`.
 
 ### Neovim Dev Tooling
 - Config: `~/.dotfiles/nvim.configsymlink/` (symlinked to ~/.config/nvim; also ~/.vim via `~/.dotfiles/vim.symlink` → `nvim.configsymlink`). If the `~/.vim/myvimrc` path is unreachable on a machine (vim.symlink missing/broken), `vimrc.symlink`'s `source ~/.vim/myvimrc` will error and abort everything downstream in `init.lua`. Fix via `ln -sfn nvim.configsymlink ~/.dotfiles/vim.symlink`.
