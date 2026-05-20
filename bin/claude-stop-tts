@@ -34,45 +34,45 @@ log "=== invocation pid=$$ ==="
 # Always exit 0 — Stop hook errors would loop or block. Print no-op response on any failure.
 trap 'printf "{\"continue\": true, \"suppressOutput\": true}\n"; log "EXIT trap fired"; exit 0' EXIT
 
-# Read transcript path from stdin JSON.
+# Read hook payload from stdin.
 input=$(cat)
 log "stdin: $input"
-transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
-log "transcript=$transcript"
-if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then
-    log "ABORT: transcript missing or unreadable"
-    exit 0
-fi
-log "transcript size=$(wc -c < "$transcript") mtime=$(stat -c %y "$transcript" 2>/dev/null)"
 
-# Concatenate all assistant text blocks across the transcript in order, then
-# pick the LAST paragraph that begins with "요약:" (or the variant "요약 :"
-# tolerating a stray space).
-#
-# Why concatenate then pick instead of per-entry "last paragraph":
-#   - The summary is always tagged "요약:", so we can search for it directly
-#     and ignore whatever followed it (short fixup entries, tool_use trailers,
-#     unflushed in-flight entries — none of those have the marker).
-#   - Awk's RS='' splits on blank lines so paragraphs survive within a single
-#     text block.
-# Append a trailing newline to each entry so awk RS='' can split entries as
-# separate paragraphs. Without this, adjacent entries collapse into one block
-# (jq -r joins values with a single \n, awk needs blank-line / \n\n to break).
-text=$(jq -r '
-    select(.message.role == "assistant")
-    | .message.content
-    | if type == "array" then map(select(.type == "text") | .text) | join("\n")
-      else . end
-    | select(. != null and . != "")
-    | . + "\n"
-' "$transcript" 2>/dev/null)
+# Prefer last_assistant_message (authoritative current-turn text) over the
+# on-disk transcript (which lags Stop hook firing by several seconds).
+text=$(printf '%s' "$input" | jq -r '.last_assistant_message // empty' 2>/dev/null)
+if [ -n "$text" ]; then
+    log "source=stdin.last_assistant_message bytes=${#text}"
+else
+    log "stdin.last_assistant_message empty — falling back to transcript"
+    transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+    if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then
+        log "ABORT: transcript missing or unreadable"
+        exit 0
+    fi
+    log "transcript=$transcript size=$(wc -c < "$transcript") mtime=$(stat -c %y "$transcript" 2>/dev/null)"
+fi
+
+# If we fell through to the transcript, concatenate all assistant text blocks
+# in order. (last_assistant_message already gave us the current-turn text in
+# the fast path above — skip this when text is already populated.)
+if [ -z "${text:-}" ]; then
+    text=$(jq -r '
+        select(.message.role == "assistant")
+        | .message.content
+        | if type == "array" then map(select(.type == "text") | .text) | join("\n")
+          else . end
+        | select(. != null and . != "")
+        | . + "\n"
+    ' "$transcript" 2>/dev/null)
+fi
 
 if [ -z "$text" ]; then
     log "ABORT: no assistant text extracted"
     exit 0
 fi
-log "extracted text bytes=${#text}"
-log "--- last 600 bytes of concatenated assistant text ---"
+log "text bytes=${#text}"
+log "--- last 600 bytes of text ---"
 printf '%s\n' "${text: -600}" >> "$LOG_FILE"
 log "--- end ---"
 
@@ -92,15 +92,13 @@ log "--- selected paragraph (pre-trim) ---"
 printf '%s\n' "$last_para" >> "$LOG_FILE"
 log "--- end ---"
 
-# If we matched a 요약 paragraph but it's preceded by other lines in the same
-# block (rare — paragraphs are blank-line separated), trim to the marker line
-# onward.
+# If we matched a 요약 paragraph, trim everything before the marker line and
+# strip the leading "요약:" itself — TTS just speaks the summary content.
 case "$last_para" in
     *요약*:*)
-        last_para=$(printf '%s\n' "$last_para" | awk '
-            /^요약[[:space:]]*:/ { hit=1 }
-            hit { print }
-        ')
+        last_para=$(printf '%s\n' "$last_para" \
+            | awk '/^요약[[:space:]]*:/ { hit=1 } hit { print }' \
+            | sed -E '1 s/^요약[[:space:]]*:[[:space:]]*//')
         log "post-trim 요약 paragraph: $last_para"
         ;;
     *)
