@@ -18,7 +18,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - files: `fzf/functions.sh/functions.sh` — `_jy()` (line ~263), `_jyy()` (line ~222)
 - [ ] make zellij floating point as big and more importantly as wide as appropriate while leaving slight context
 - [ ] stop amazon-vpn when the network changes
-- [ ] use --impure for private-dotfiles instead of having to add commit and override the lock file every time
 - [ ] run systemd for user from nix
 - [ ] migrate remaining `{{ log_decorator }}` callers in IgnitionX justfile to `bin/logrun` (recurse-brazil already done)
 
@@ -263,7 +262,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - kiro-cli can't receive prompts as command-line arguments (hangs on large input) — use stdin piping
 - kiro-cli `--agent default` spawns MCP servers that become orphaned on exit — use `--agent no-mcp` for scripted use
 - Cloud desktop (Amazon Linux): `apt` in PATH is JDK's Annotation Processing Tool, not Debian apt; `system-deps.sh` checks dnf/yum first; linuxbrew `dbus-run-session` has broken config — `gnome.nix` conditionally skipped when `/usr/bin/dconf` absent
-- Nix flakes and gitignored files: flakes copy git-tracked source tree to store; `git+file://` with a separate repo is the only way to include gitignored content without `--impure`
+- Nix flakes and gitignored files: flakes copy git-tracked source tree to store. Two ways to include gitignored content: (1) keep it in a separate colocated repo and use `git+file://` (no `--impure` needed but flake.lock then bakes a per-machine path — bad for portability), or (2) resolve the path from `$HOME` via `builtins.getEnv` at eval time and run `--impure` (portable flake.lock; this is what the `private` input uses).
 - Nix flakes `warn-dirty`: jj always has uncommitted changes; `nix eval` outputs warning to stdout, breaking home-manager's string comparison; fix: `warn-dirty = false` in `~/.config/nix/nix.conf`
 - jj revset `empty()` vs template `empty`: the revset predicate excludes commits that contain conflicts, even when the template keyword `empty` reports them as empty. So `files(X) & empty()` (revset) will NOT match conflict-only auto-merges; use `-T 'if(empty, …)'` (template) when you need the merge-with-no-user-work semantics (e.g., filtering out boilerplate merges in `jj-untrack-files`, `commit-msg`).
 - jj revset `diff_lines(regex:".", X)` vs `files(X)`: `diff_lines` matches only commits with visible diff text in X, which means submodule pointer changes, mode-only changes, and binary-only changes are NOT matched (gitlinks have no textual content). Use `files(X)` when you need tree-level change detection; use `diff_lines` when you want to ignore conflict-only tree diffs on merges.
