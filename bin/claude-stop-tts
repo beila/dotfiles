@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
-# Claude Code Stop hook: speaks the last paragraph of the assistant's final
-# response. Korean (contains Hangul) → say-ko; otherwise → say.
+# Claude Code Stop hook: speaks the most recent Korean summary paragraph
+# (a paragraph starting with "요약:") from the just-finished assistant turn.
 #
-# stdin: {"session_id": "...", "transcript_path": "/path/to/session.jsonl", ...}
+# Source of truth: the `last_assistant_message` field on the Stop hook stdin
+# payload is the authoritative current-turn text. The transcript file on disk
+# lags by several seconds at Stop time — using it would cause the hook to
+# read the *previous* turn's summary aloud (verified via debug log: the
+# transcript mtime is consistently before the Stop hook firing time).
+#
+# Transcript fallback only kicks in if `last_assistant_message` is missing
+# (e.g. older Claude Code versions or non-Stop event reuse).
+#
+# stdin: {"session_id": "...", "transcript_path": "...", "last_assistant_message": "...", ...}
 # Output: print {"continue": true, "suppressOutput": true} so the hook is silent.
 set -u
 
@@ -10,35 +19,94 @@ DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 SAY="$DOTFILES_ROOT/bin/say"
 MAX_CHARS=${CLAUDE_TTS_MAX_CHARS:-500}
 
+# Debug log — every invocation appends here so we can see what was actually
+# extracted vs what got spoken. Trim to last 2000 lines on entry so it doesn't
+# grow without bound.
+LOG_FILE="${CLAUDE_TTS_LOG:-$HOME/.local/state/claude-stop-tts.log}"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+if [ -f "$LOG_FILE" ] && [ "$(wc -l < "$LOG_FILE" 2>/dev/null || echo 0)" -gt 2000 ]; then
+    tail -1000 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+fi
+log() { printf '[%s] %s\n' "$(date -Iseconds)" "$*" >> "$LOG_FILE"; }
+
+log "=== invocation pid=$$ ==="
+
 # Always exit 0 — Stop hook errors would loop or block. Print no-op response on any failure.
-trap 'printf "{\"continue\": true, \"suppressOutput\": true}\n"; exit 0' EXIT
+trap 'printf "{\"continue\": true, \"suppressOutput\": true}\n"; log "EXIT trap fired"; exit 0' EXIT
 
 # Read transcript path from stdin JSON.
 input=$(cat)
+log "stdin: $input"
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
-[ -z "$transcript" ] || [ ! -f "$transcript" ] && exit 0
+log "transcript=$transcript"
+if [ -z "$transcript" ] || [ ! -f "$transcript" ]; then
+    log "ABORT: transcript missing or unreadable"
+    exit 0
+fi
+log "transcript size=$(wc -c < "$transcript") mtime=$(stat -c %y "$transcript" 2>/dev/null)"
 
-# Find the last assistant message that actually contains text and extract it.
-# A turn's final entry is often a tool_use message with no text blocks; skip those
-# and keep walking backwards until we find one with real text content. jq's
-# first(...) short-circuits on the first match (no `head -1` truncation of
-# multi-line text). `inputs` streams without slurping the whole transcript.
-text=$(tac "$transcript" | jq -rn '
-    first(
-        inputs
-        | select(.message.role == "assistant")
-        | .message.content
-        | if type == "array" then map(select(.type == "text") | .text) | join("\n")
-          else . end
-        | select(. != null and . != "")
-    ) // empty
-' 2>/dev/null)
+# Concatenate all assistant text blocks across the transcript in order, then
+# pick the LAST paragraph that begins with "요약:" (or the variant "요약 :"
+# tolerating a stray space).
+#
+# Why concatenate then pick instead of per-entry "last paragraph":
+#   - The summary is always tagged "요약:", so we can search for it directly
+#     and ignore whatever followed it (short fixup entries, tool_use trailers,
+#     unflushed in-flight entries — none of those have the marker).
+#   - Awk's RS='' splits on blank lines so paragraphs survive within a single
+#     text block.
+# Append a trailing newline to each entry so awk RS='' can split entries as
+# separate paragraphs. Without this, adjacent entries collapse into one block
+# (jq -r joins values with a single \n, awk needs blank-line / \n\n to break).
+text=$(jq -r '
+    select(.message.role == "assistant")
+    | .message.content
+    | if type == "array" then map(select(.type == "text") | .text) | join("\n")
+      else . end
+    | select(. != null and . != "")
+    | . + "\n"
+' "$transcript" 2>/dev/null)
 
-[ -z "$text" ] && exit 0
+if [ -z "$text" ]; then
+    log "ABORT: no assistant text extracted"
+    exit 0
+fi
+log "extracted text bytes=${#text}"
+log "--- last 600 bytes of concatenated assistant text ---"
+printf '%s\n' "${text: -600}" >> "$LOG_FILE"
+log "--- end ---"
 
-# Take the last non-empty paragraph (paragraphs separated by blank lines).
-last_para=$(printf '%s' "$text" | awk -v RS='' 'NF {p=$0} END {print p}')
-[ -z "$last_para" ] && exit 0
+# Collect all "요약:"-prefixed paragraphs in order; take the last one.
+# If no summary marker exists in this transcript yet, fall back to the last
+# non-empty paragraph so plain English replies still get spoken.
+last_para=$(printf '%s\n' "$text" | awk -v RS='' '
+    /(^|\n)요약[[:space:]]*:/ { found=$0 }
+    NF { last=$0 }
+    END { print (found != "" ? found : last) }
+')
+if [ -z "$last_para" ]; then
+    log "ABORT: no last_para found"
+    exit 0
+fi
+log "--- selected paragraph (pre-trim) ---"
+printf '%s\n' "$last_para" >> "$LOG_FILE"
+log "--- end ---"
+
+# If we matched a 요약 paragraph but it's preceded by other lines in the same
+# block (rare — paragraphs are blank-line separated), trim to the marker line
+# onward.
+case "$last_para" in
+    *요약*:*)
+        last_para=$(printf '%s\n' "$last_para" | awk '
+            /^요약[[:space:]]*:/ { hit=1 }
+            hit { print }
+        ')
+        log "post-trim 요약 paragraph: $last_para"
+        ;;
+    *)
+        log "no 요약 marker — using fallback paragraph"
+        ;;
+esac
 
 # Strip markdown noise and code-fence-only paragraphs.
 cleaned=$(printf '%s' "$last_para" \
@@ -49,17 +117,27 @@ cleaned=$(printf '%s' "$last_para" \
     | tr -s '[:space:]' ' ' \
     | sed 's/^ //; s/ $//')
 
-[ -z "$cleaned" ] && exit 0
+if [ -z "$cleaned" ]; then
+    log "ABORT: cleaned empty"
+    exit 0
+fi
 
 # Cap length so long responses don't read forever.
 if [ "${#cleaned}" -gt "$MAX_CHARS" ]; then
     cleaned="${cleaned:0:$MAX_CHARS}"
 fi
 
+log "WILL-SPEAK (${#cleaned} chars): $cleaned"
+
 # Speak in the background so the hook returns immediately. setsid detaches
 # from the Claude Code controlling tty so the audio outlives the turn. The
 # `say` dispatcher routes Hangul → say-ko, otherwise → say-en.
-[ -x "$SAY" ] && setsid "$SAY" "$cleaned" </dev/null >/dev/null 2>&1 &
+if [ -x "$SAY" ]; then
+    setsid "$SAY" "$cleaned" </dev/null >/dev/null 2>&1 &
+    log "spawned $SAY pid=$!"
+else
+    log "ABORT: $SAY not executable"
+fi
 disown 2>/dev/null || true
 
 exit 0
