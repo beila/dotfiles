@@ -21,8 +21,15 @@ cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
 
-# Per-repo lock to prevent concurrent syncs (use jj/git root so workspaces sharing a repo lock together)
-LOCK_PATH=$(jj root 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null || echo "$1")
+# Per-repo lock to prevent concurrent syncs. Must key off the BACKING repo, not
+# the workspace, because multiple jj workspaces (e.g. ~/dev/{pro,pro2,sawt}/src/IgnitionX)
+# share one .jj store + op log under ~/brazil-repos/IgnitionX/.jj. Concurrent
+# runs on different workspaces would otherwise race the shared op log (visible
+# as branching `jj workspace update-stale` ops) and clobber Step 1's shared
+# sync.bookmark (e.g. taygeta/pro), producing divergent change_ids.
+# jj git root / git rev-parse --git-dir return the shared .git path; jj root
+# would return the per-workspace path and miss this.
+LOCK_PATH=$(jj git root 2>/dev/null || git rev-parse --git-dir 2>/dev/null | xargs -I{} readlink -f {} 2>/dev/null || echo "$1")
 LOCKFILE="/tmp/sync_repo_$(echo "$LOCK_PATH" | tr / _).lock"
 exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }

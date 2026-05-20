@@ -18,18 +18,21 @@ input=$(cat)
 transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
 [ -z "$transcript" ] || [ ! -f "$transcript" ] && exit 0
 
-# Find the last assistant message and extract its text content.
-text=$(tac "$transcript" | while IFS= read -r line; do
-    role=$(printf '%s' "$line" | jq -r '.message.role // empty' 2>/dev/null)
-    [ "$role" != "assistant" ] && continue
-    # message.content is an array of blocks; concatenate text-block text fields.
-    printf '%s' "$line" | jq -r '
-        .message.content
+# Find the last assistant message that actually contains text and extract it.
+# A turn's final entry is often a tool_use message with no text blocks; skip those
+# and keep walking backwards until we find one with real text content. jq's
+# first(...) short-circuits on the first match (no `head -1` truncation of
+# multi-line text). `inputs` streams without slurping the whole transcript.
+text=$(tac "$transcript" | jq -rn '
+    first(
+        inputs
+        | select(.message.role == "assistant")
+        | .message.content
         | if type == "array" then map(select(.type == "text") | .text) | join("\n")
           else . end
-    ' 2>/dev/null
-    break
-done)
+        | select(. != null and . != "")
+    ) // empty
+' 2>/dev/null)
 
 [ -z "$text" ] && exit 0
 
