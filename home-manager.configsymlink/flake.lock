@@ -88,28 +88,11 @@
         "type": "github"
       }
     },
-    "private": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1778506007,
-        "narHash": "sha256-X5Wrhwyx8OnPtLP6fyHUA2HIzG8ghfgRtbKpBi2jFvA=",
-        "rev": "59ae7a070aac52fe9b9149467d7c84b4d31b7eb9",
-        "revCount": 44,
-        "type": "git",
-        "url": "file:///local/home/hojin/.dotfiles/private-dotfiles"
-      },
-      "original": {
-        "owner": "beila",
-        "repo": "private-dotfiles",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "home-manager": "home-manager",
         "nixgl": "nixgl",
-        "nixpkgs": "nixpkgs_2",
-        "private": "private"
+        "nixpkgs": "nixpkgs_2"
       }
     },
     "systems": {

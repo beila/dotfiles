@@ -8,30 +8,27 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixgl.url = "github:nix-community/nixGL";
-    # `private` is intentionally pinned to a stable upstream so flake.lock is
-    # portable across machines. At evaluation time we override the input path
-    # to the local $HOME/.dotfiles/private-dotfiles checkout so local edits
-    # apply without pushing — no per-machine flake.lock churn.
-    private = {
-      url = "github:beila/private-dotfiles";
-      flake = false;
-    };
   };
 
   outputs =
-    { nixpkgs, home-manager, nixgl, private, ... }:
+    { nixpkgs, home-manager, nixgl, ... }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      # Resolve private-dotfiles from the current user's $HOME so the flake
-      # works on any machine without rewriting flake.lock. Falls back to the
-      # upstream-pinned `private` input if HOME is unset (e.g. CI/sandbox eval).
+      # Resolve private-dotfiles from the current user's $HOME at eval time so
+      # flake.lock is portable across machines. `script/bootstrap` clones the
+      # repo before any home-manager switch is run, so the local checkout is
+      # guaranteed to exist. Requires `home-manager switch --impure`.
+      #
+      # When HOME is unavailable (pure eval, e.g. home-manager's "sanity check"
+      # phase that runs without --impure), fall through to a sentinel path. The
+      # sentinel won't exist, so hostsDir reads empty and homeConfigurations
+      # comes out as an empty attrset — pure eval succeeds with no targets.
       home = builtins.getEnv "HOME";
-      localPrivate = home + "/.dotfiles/private-dotfiles";
       privateRoot =
-        if home != "" && builtins.pathExists localPrivate
-        then /. + localPrivate
-        else private;
+        if home != "" && builtins.pathExists (home + "/.dotfiles/private-dotfiles")
+        then /. + (home + "/.dotfiles/private-dotfiles")
+        else /. + "/var/empty/private-dotfiles-not-resolved";
       nixFilesFrom = dir:
         if builtins.pathExists dir then
           builtins.filter (f: f != null)
