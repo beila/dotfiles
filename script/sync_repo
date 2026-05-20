@@ -92,19 +92,23 @@ classify_cmd() {
     return $rc
 }
 
-# push_force_replace <tag> <url> <ref> <branch>
+# push_force_replace <tag> <remote> <ref> <branch>
 # Emulate force-push via delete+push for servers that reject --force (gitfarm).
 # Only push if the delete actually removed the ref OR the ref didn't exist —
 # otherwise the push would fail non-fast-forward and the bogus OTHER-ERR masks
 # the real cause (concurrent push, transient network, server hook). Next
 # sync_repo run retries the cycle cleanly.
+#
+# Pushes via the remote NAME (not URL) so git updates the local tracking refs
+# under refs/remotes/<remote>/* — Step 4's `jj git import` then sees the new
+# SHAs and jj's view of @backup bookmarks stays in sync.
 push_force_replace() {
-    local tag=$1 url=$2 ref=$3 branch=$4
-    timeout_cmd "push-del $tag" git --git-dir="$GIT_DIR" push "$url" --delete "$branch"
+    local tag=$1 remote=$2 ref=$3 branch=$4
+    timeout_cmd "push-del $tag" git --git-dir="$GIT_DIR" push "$remote" --delete "$branch"
     local del_class=$_LAST_CLASSIFICATION
     case "$del_class" in
         OK|BENIGN-DEL)
-            timeout_cmd "push $tag" git --git-dir="$GIT_DIR" push "$url" "${ref}:${branch}" || true
+            timeout_cmd "push $tag" git --git-dir="$GIT_DIR" push "$remote" "${ref}:${branch}" || true
             ;;
         *)
             log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
@@ -198,7 +202,7 @@ if jj root &>/dev/null 2>&1; then
         jj bookmark create "$WS_BM" -r "$PUSH_REV" 2>/dev/null || jj bookmark set "$WS_BM" -r "$PUSH_REV" --allow-backwards 2>/dev/null || true
         WS_REF=$(jj log -r "$WS_BM" --no-graph -T 'commit_id' 2>/dev/null)
         if [ -n "$WS_REF" ]; then
-            push_force_replace "$WS_BM" "$BACKUP_URL" "$WS_REF" "$WS_BRANCH"
+            push_force_replace "$WS_BM" backup "$WS_REF" "$WS_BRANCH"
         fi
         jj bookmark delete "$WS_BM" 2>/dev/null || true
     fi
@@ -213,9 +217,13 @@ if jj root &>/dev/null 2>&1; then
         REF=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
         REMOTE_REF=$(echo "$REMOTE_REFS" | awk -v ref="refs/heads/${MACHINE_NAME}/${bm}" '$2 == ref {print $1}')
         if [ "$REF" != "$REMOTE_REF" ]; then
-            push_force_replace "${MACHINE_NAME}/${bm}" "$BACKUP_URL" "$REF" "refs/heads/${MACHINE_NAME}/${bm}"
+            push_force_replace "${MACHINE_NAME}/${bm}" backup "$REF" "refs/heads/${MACHINE_NAME}/${bm}"
         fi
     done
+    # Sync jj's view of the freshly-updated refs/remotes/backup/* tracking refs
+    # immediately, so subsequent jj queries (and any early exit before Step 4)
+    # see the right SHAs for taygeta/*@backup bookmarks.
+    jj git import 2>/dev/null || true
 
     # Step 2: fetch from backup, reconcile sync.bookmark with remote, push.
     #
