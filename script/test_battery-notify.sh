@@ -127,7 +127,7 @@ check "exit 0" "0" "$rc"
 check "one notify-send call" "1" "$(wc -l < "$NOTIFY_SEND_LOG")"
 check_grep "notify-send Battery Low" "Battery Low" "$NOTIFY_SEND_LOG"
 check "no battery-osd call (low, not critical)" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
-check "state file is 20" "20" "$(cat "$STATE_FILE")"
+check "state file is low" "low" "$(cat "$STATE_FILE")"
 check_grep "INFO log at low threshold" '\[INFO\] battery at 20%' "$(log_file)"
 
 echo
@@ -139,43 +139,54 @@ check "exit 0" "0" "$rc"
 check "no notify-send (replaced by OSD)" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
 check "one battery-osd call" "1" "$(wc -l < "$BATTERY_OSD_LOG")"
 check_grep "battery-osd called with 10" $'CALL\t10' "$BATTERY_OSD_LOG"
-check "state file is 10" "10" "$(cat "$STATE_FILE")"
+check "state file is crit:10" "crit:10" "$(cat "$STATE_FILE")"
 check_grep "WARN log at critical threshold" '\[WARN\] battery at 10%' "$(log_file)"
 
 echo
 echo "=== Test 5: re-run at 20% already warned — no duplicate notification ==="
 clear_logs; clear_notify
-echo 20 > "$STATE_FILE"
+echo low > "$STATE_FILE"
 set_bat "Discharging" 18
 rc=$(run_under_test)
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
 check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
-check "state file stays 20" "20" "$(cat "$STATE_FILE")"
+check "state file stays low" "low" "$(cat "$STATE_FILE")"
 
 echo
-echo "=== Test 6: re-run at 10% already critical — no duplicate ==="
+echo "=== Test 6: re-run at SAME critical % — no duplicate ==="
 clear_logs; clear_notify
-echo 10 > "$STATE_FILE"
+echo "crit:8" > "$STATE_FILE"
 set_bat "Discharging" 8
 rc=$(run_under_test)
 check "no notify-send call" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
-check "no battery-osd call" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
+check "no battery-osd call (same %)" "0" "$(wc -l < "$BATTERY_OSD_LOG")"
+check "state file stays crit:8" "crit:8" "$(cat "$STATE_FILE")"
 
 echo
-echo "=== Test 7: crossing 20% -> 10% while discharging — critical OSD fires ==="
+echo "=== Test 6b: critical % drops 10 -> 8 — OSD re-fires every percent ==="
 clear_logs; clear_notify
-echo 20 > "$STATE_FILE"
+echo "crit:10" > "$STATE_FILE"
+set_bat "Discharging" 8
+rc=$(run_under_test)
+check "one battery-osd call" "1" "$(wc -l < "$BATTERY_OSD_LOG")"
+check_grep "battery-osd called with 8" $'CALL\t8' "$BATTERY_OSD_LOG"
+check "state file bumps to crit:8" "crit:8" "$(cat "$STATE_FILE")"
+
+echo
+echo "=== Test 7: crossing 20% -> 9% while discharging — critical OSD fires ==="
+clear_logs; clear_notify
+echo low > "$STATE_FILE"
 set_bat "Discharging" 9
 rc=$(run_under_test)
 check "no notify-send (replaced by OSD)" "0" "$(wc -l < "$NOTIFY_SEND_LOG")"
 check "one battery-osd call" "1" "$(wc -l < "$BATTERY_OSD_LOG")"
 check_grep "battery-osd called with 9" $'CALL\t9' "$BATTERY_OSD_LOG"
-check "state file bumps to 10" "10" "$(cat "$STATE_FILE")"
+check "state file bumps to crit:9" "crit:9" "$(cat "$STATE_FILE")"
 
 echo
 echo "=== Test 8: charger plugged back in — state reset ==="
 clear_logs; clear_notify
-echo 10 > "$STATE_FILE"
+echo "crit:7" > "$STATE_FILE"
 set_bat "Charging" 15
 rc=$(run_under_test)
 check "state file removed" "no" "$([ -f "$STATE_FILE" ] && echo yes || echo no)"

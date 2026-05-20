@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Battery low notification — triggered by battery-notify.timer every minute.
 #
-# Fires a desktop notify-send popup at 20% (normal urgency) and 10% (critical)
-# while discharging. Only once per threshold until reset by charging.
+# While discharging:
+#   - At ≤20% (once): notify-send "Battery Low" (normal urgency)
+#   - At ≤10% (every percent change): big pseudo-transparent battery-osd
+#     overlay. Re-fires on every drop (10 → 9 → 8 …) so the user keeps
+#     noticing as the situation gets worse.
+# Charging/full/unknown resets the state so the cycle starts over.
 #
-# Logs only at state transitions (detect / recover / cross threshold) to keep
-# the log file readable; routine checks are silent.
+# Logs only at state transitions to keep the log file readable; routine
+# checks are silent.
 
 set -euo pipefail
 
@@ -55,16 +59,17 @@ fi
 
 last=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 
-if (( capacity <= 10 )) && [[ "$last" != "10" ]]; then
+if (( capacity <= 10 )) && [[ "$last" != "crit:$capacity" ]]; then
     # Huge, pseudo-transparent OSD (Python+cairo+XShape) replaces the
-    # desktop notification at 10% so the user can't miss it. Best-effort:
-    # a failure here must not stop the timer or block subsequent polls.
-    # BATTERY_OSD_BIN is overridable for the test harness.
+    # desktop notification at 10% so the user can't miss it. Re-fires on
+    # every percent change so the user notices the trend, not just the
+    # initial cross. Best-effort: a failure here must not stop the timer
+    # or block subsequent polls. BATTERY_OSD_BIN is overridable for tests.
     "${BATTERY_OSD_BIN:-battery-osd}" "$capacity" 2>/dev/null || true
-    log WARN "battery at ${capacity}% (critical threshold)"
-    echo 10 > "$STATE_FILE"
-elif (( capacity <= 20 )) && [[ "$last" != "20" && "$last" != "10" ]]; then
+    log WARN "battery at ${capacity}% (critical)"
+    echo "crit:$capacity" > "$STATE_FILE"
+elif (( capacity <= 20 )) && [[ "$last" != "low" && "$last" != crit:* ]]; then
     notify-send -u normal "Battery Low" "${capacity}% remaining" 2>/dev/null || true
     log INFO "battery at ${capacity}% (low threshold)"
-    echo 20 > "$STATE_FILE"
+    echo low > "$STATE_FILE"
 fi
