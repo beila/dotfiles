@@ -44,10 +44,8 @@ fi
 # then ${(j: | :)...} joins them. A single ${(qqj: | :)files} would apply
 # both flags to the array as a whole, producing one quoted string
 # 'a b c' instead of 'a' 'b' 'c'.
-revset="files(${target_fileset}) & mutable() ~ hidden()"
-# Count only commits that the while loop will actually process — skip
-# conflict-only merges (same predicate as the while-condition template).
-count_template='if(parents.len() > 1 && empty, "", "\n")'
+revset="files(${target_fileset}) & mutable() ~ hidden() ~ merges()"
+count_template='"\n"'
 initial_total_count=$($JJL -r "${revset}" -T "$count_template" | wc -l)
 total_count=${initial_total_count}
 if (( $total_count ))
@@ -64,13 +62,12 @@ c_done=()
 # Starting from roots made a lot of conflicts and took so long from a long history.
 # Starting from heads is must faster.
 #
-# Conflict-only auto-merges can't be excluded via revset: jj's revset `empty()`
-# doesn't match commits with conflicts even when the template's `empty` says
-# the commit has no user modifications. So we filter in the template instead
-# — emit an empty line for these merges and let `head -1` pick the first
-# head that is actually worth processing.
-while c=$($JJL -r "${revset}" -T 'if(parents.len() > 1 && empty, "",
-                   format_short_change_id_with_change_offset(self) ++ "\n")' |
+# Merges are excluded from the revset entirely: `jj restore --changes-in` is a
+# no-op on conflict-only tree diffs in merge commits (template `empty` is false,
+# but there's nothing user-authored to restore), which previously caused the
+# loop to redescribe the same commit forever. Once the merge's parents are
+# cleaned, jj's rebase carries the change forward through the auto-merge.
+while c=$($JJL -r "${revset}" -T 'format_short_change_id_with_change_offset(self) ++ "\n"' |
           head -1) && test -n "$c"
 do
     i=$((i+1))
