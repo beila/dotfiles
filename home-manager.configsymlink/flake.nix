@@ -8,6 +8,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixgl.url = "github:nix-community/nixGL";
+    # `private` is intentionally pinned to a stable upstream so flake.lock is
+    # portable across machines. At evaluation time we override the input path
+    # to the local $HOME/.dotfiles/private-dotfiles checkout so local edits
+    # apply without pushing — no per-machine flake.lock churn.
     private = {
       url = "github:beila/private-dotfiles";
       flake = false;
@@ -19,20 +23,29 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      # Resolve private-dotfiles from the current user's $HOME so the flake
+      # works on any machine without rewriting flake.lock. Falls back to the
+      # upstream-pinned `private` input if HOME is unset (e.g. CI/sandbox eval).
+      home = builtins.getEnv "HOME";
+      localPrivate = home + "/.dotfiles/private-dotfiles";
+      privateRoot =
+        if home != "" && builtins.pathExists localPrivate
+        then /. + localPrivate
+        else private;
       nixFilesFrom = dir:
         if builtins.pathExists dir then
           builtins.filter (f: f != null)
             (map (name: if builtins.match ".*\\.nix" name != null then dir + "/${name}" else null)
               (builtins.attrNames (builtins.readDir dir)))
         else [];
-      hostsDir = private + "/hosts";
+      hostsDir = privateRoot + "/hosts";
       mkHost = { gnome ? false, extraModules ? [] }: home-manager.lib.homeManagerConfiguration {
         inherit pkgs;
         modules = extraModules
           ++ [ ./home.nix ./neovide.nix ./nvim.nix ./xdg.nix ./xmonad.nix ./zmx.nix
                { targets.genericLinux.nixGL.packages = nixgl.packages; } ]
           ++ (if gnome then [ ./gnome.nix ] else [])
-          ++ nixFilesFrom private;
+          ++ nixFilesFrom privateRoot;
       };
     in
     {
