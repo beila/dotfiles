@@ -8,7 +8,6 @@ set -u
 
 DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 SAY="$DOTFILES_ROOT/bin/say"
-SAY_KO="$DOTFILES_ROOT/bin/say-ko"
 MAX_CHARS=${CLAUDE_TTS_MAX_CHARS:-500}
 
 # Always exit 0 — Stop hook errors would loop or block. Print no-op response on any failure.
@@ -54,16 +53,10 @@ if [ "${#cleaned}" -gt "$MAX_CHARS" ]; then
     cleaned="${cleaned:0:$MAX_CHARS}"
 fi
 
-# Detect Hangul (U+AC00–U+D7A3); pick voice. grep -P for unicode classes.
-if printf '%s' "$cleaned" | grep -qP '[\x{AC00}-\x{D7A3}]'; then
-    voice="$SAY_KO"
-else
-    voice="$SAY"
-fi
-
 # Speak in the background so the hook returns immediately. setsid detaches
-# from the Claude Code controlling tty so the audio outlives the turn.
-[ -x "$voice" ] && setsid "$voice" "$cleaned" </dev/null >/dev/null 2>&1 &
+# from the Claude Code controlling tty so the audio outlives the turn. The
+# `say` dispatcher routes Hangul → say-ko, otherwise → say-en.
+[ -x "$SAY" ] && setsid "$SAY" "$cleaned" </dev/null >/dev/null 2>&1 &
 disown 2>/dev/null || true
 
 exit 0

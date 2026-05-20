@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Text-to-speech via piper
-# Usage: say "text to speak" or echo "text" | say
-MODEL="${PIPER_MODEL:-$HOME/.local/share/piper/en_GB-alba-medium.onnx}"
-if [ ! -f "$MODEL" ]; then
-    mkdir -p "$(dirname "$MODEL")"
-    echo "Downloading piper voice model..." >&2
-    BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alba/medium"
-    curl -sfL "$BASE/en_GB-alba-medium.onnx" -o "$MODEL" && curl -sfL "$BASE/en_GB-alba-medium.onnx.json" -o "$MODEL.json"
-fi
+# Text-to-speech dispatcher: routes by content language.
+#   Hangul (U+AC00–U+D7A3) → say-ko (edge-tts, online)
+#   otherwise              → say-en (piper, offline)
+# Usage: say "text" or echo "text" | say
+set -u
+
+DOTFILES_ROOT="${DOTFILES_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+
 if [ $# -gt 0 ]; then
-    echo "$*"
+    text="$*"
 else
-    cat
-fi | piper --model "$MODEL" --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -c 1 -q 2>/dev/null
+    text=$(cat)
+fi
+
+if printf '%s' "$text" | grep -qP '[\x{AC00}-\x{D7A3}]'; then
+    exec "$DOTFILES_ROOT/bin/say-ko" "$text"
+else
+    exec "$DOTFILES_ROOT/bin/say-en" "$text"
+fi
