@@ -92,19 +92,21 @@ log "--- selected paragraph (pre-trim) ---"
 printf '%s\n' "$last_para" >> "$LOG_FILE"
 log "--- end ---"
 
-# If we matched a 요약 paragraph, trim everything before the marker line and
-# strip the leading "요약:" itself — TTS just speaks the summary content.
-case "$last_para" in
-    *요약*:*)
-        last_para=$(printf '%s\n' "$last_para" \
-            | awk '/^요약[[:space:]]*:/ { hit=1 } hit { print }' \
-            | sed -E '1 s/^요약[[:space:]]*:[[:space:]]*//')
-        log "post-trim 요약 paragraph: $last_para"
-        ;;
-    *)
-        log "no 요약 marker — using fallback paragraph"
-        ;;
-esac
+# If a line in the paragraph starts with "요약:", trim everything before that
+# line and strip the leading "요약:" itself — TTS just speaks the summary
+# content (the user doesn't want "summary" announced every turn).
+#
+# Gate by an actual line-start match: a paragraph that just *mentions* "요약:"
+# mid-sentence (e.g. "요약: 접두어 제거") would otherwise enter the trim branch,
+# find no matching line-start, and return empty.
+if printf '%s\n' "$last_para" | grep -q '^요약[[:space:]]*:'; then
+    last_para=$(printf '%s\n' "$last_para" \
+        | awk '/^요약[[:space:]]*:/ { hit=1 } hit { print }' \
+        | sed -E '1 s/^요약[[:space:]]*:[[:space:]]*//')
+    log "post-trim 요약 paragraph: $last_para"
+else
+    log "no 요약 line-start — using paragraph as-is"
+fi
 
 # Strip markdown noise and code-fence-only paragraphs.
 cleaned=$(printf '%s' "$last_para" \
