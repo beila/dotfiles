@@ -208,9 +208,12 @@ meetingRules =
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         -- The annotation toolbar is a small Zoom popup that should float on top
-        -- of the meeting, not tile alongside it. The general zoom rule above
-        -- shifts it to 8:meeting; this rule sinks it into a floating window.
-        , title =? "annotate_toolbar" --> doFloat
+        -- of the meeting, not tile alongside it. doRectFloat (not plain doFloat)
+        -- because Zoom's WM_NORMAL_HINTS reports whatever size xmonad last gave
+        -- it — under doFloat the window stays at the full tile size from the
+        -- previous run. Fixed proportional rect: ~20% wide × 4% tall (sized for
+        -- a single row of icons), centered horizontally near the top.
+        , title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.40 0.02 0.20 0.04)
         ]
 
 messengerRules =
