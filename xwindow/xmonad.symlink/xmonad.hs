@@ -211,9 +211,11 @@ meetingRules =
         -- of the meeting, not tile alongside it. doRectFloat (not plain doFloat)
         -- because Zoom's WM_NORMAL_HINTS reports whatever size xmonad last gave
         -- it — under doFloat the window stays at the full tile size from the
-        -- previous run. Fixed proportional rect: ~20% wide × 4% tall (sized for
-        -- a single row of icons), centered horizontally near the top.
-        , title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.40 0.02 0.20 0.04)
+        -- previous run. The toolbar's actual content is a single ~80px circular
+        -- icon, so size it just big enough for the icon and ditch the padding.
+        -- ~3% × 4.5% ≈ 115 × 108 px on 3840×2400 (and scales down proportionally
+        -- on smaller displays), centered horizontally near the top.
+        , title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.485 0.02 0.03 0.045)
         ]
 
 messengerRules =
