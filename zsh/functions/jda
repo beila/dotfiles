@@ -1,12 +1,39 @@
 #!env zsh
 # jj describe with AI-generated commit message from ~/.dotfiles/bin/commit-msg.
-# Usage: jda [rev] [extra jj describe args...]
-#   jda              # describe @
-#   jda sr           # describe rev "sr"
-#   jda sr --reset-author
-local rev="${1:-@}"
-(( $# > 0 )) && shift
-local msg
-msg=$("${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/commit-msg" "$rev") || return
-echo "$msg"
-jj describe -r "$rev" -m "$msg" "$@"
+# Each argument is a revision OR a revset; revsets expand to every change
+# they match. Duplicates are deduped. Each commit is re-described in turn.
+#
+# Usage: jda [REV_OR_REVSET ...]
+#   jda                          # describe @
+#   jda sr                       # describe rev "sr"
+#   jda abc xyz                  # two specific change IDs
+#   jda 'mutable() & ::@'        # all mutable ancestors of @
+#   jda main..@                  # everything since main
+
+# Combine all args into one revset (`a | b | c | ...`); default to @ if none.
+# `--no-graph` strips graph chars; awk dedupes change ids matched by multiple args.
+local revset
+if (( $# == 0 )); then
+    revset="@"
+else
+    revset="${(j: | :)@}"
+fi
+
+local -a change_ids
+change_ids=("${(@f)$(jj log --no-graph -T 'change_id ++ "\n"' -r "$revset" 2>/dev/null \
+                    | awk 'NF && !seen[$0]++')}")
+
+if (( ${#change_ids[@]} == 0 )); then
+    echo "jda: no commits matched: $revset" >&2
+    return 1
+fi
+
+local cm="${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/commit-msg"
+local id msg total=${#change_ids[@]} idx=0
+for id in "${change_ids[@]}"; do
+    idx=$((idx + 1))
+    echo "[$idx/$total] $id"
+    msg=$("$cm" "$id") || { echo "  commit-msg failed for $id" >&2; continue }
+    echo "$msg" | sed 's/^/  /'
+    jj describe -r "$id" -m "$msg" || echo "  describe failed for $id" >&2
+done
