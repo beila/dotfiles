@@ -9,9 +9,14 @@
 #   jda abc xyz                  # two specific change IDs
 #   jda 'mutable() & ::@'        # all mutable ancestors of @
 #   jda main..@                  # everything since main
+#
+# Important: snapshot the working copy ONCE up front (via `jj status`), then
+# use `--ignore-working-copy` for every subsequent describe so the second
+# iteration doesn't see the auto-snapshot triggered by the first iteration's
+# describe (which would otherwise contaminate later commits' diffs with
+# whatever uncommitted edits live in @).
 
 # Combine all args into one revset (`a | b | c | ...`); default to @ if none.
-# `--no-graph` strips graph chars; awk dedupes change ids matched by multiple args.
 local revset
 if (( $# == 0 )); then
     revset="@"
@@ -19,8 +24,11 @@ else
     revset="${(j: | :)@}"
 fi
 
+# Freeze working-copy state for the whole run.
+jj status >/dev/null 2>&1
+
 local -a change_ids
-change_ids=("${(@f)$(jj log --no-graph -T 'change_id ++ "\n"' -r "$revset" 2>/dev/null \
+change_ids=("${(@f)$(jj log --ignore-working-copy --no-graph -T 'change_id ++ "\n"' -r "$revset" 2>/dev/null \
                     | awk 'NF && !seen[$0]++')}")
 
 if (( ${#change_ids[@]} == 0 )); then
@@ -35,5 +43,6 @@ for id in "${change_ids[@]}"; do
     echo "[$idx/$total] $id"
     msg=$("$cm" "$id") || { echo "  commit-msg failed for $id" >&2; continue }
     echo "$msg" | sed 's/^/  /'
-    jj describe -r "$id" -m "$msg" || echo "  describe failed for $id" >&2
+    jj describe --ignore-working-copy -r "$id" -m "$msg" \
+        || echo "  describe failed for $id" >&2
 done
