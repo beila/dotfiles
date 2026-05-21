@@ -207,6 +207,10 @@ meetingRules =
         , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
+        -- The annotation toolbar is a small Zoom popup that should float on top
+        -- of the meeting, not tile alongside it. The general zoom rule above
+        -- shifts it to 8:meeting; this rule sinks it into a floating window.
+        , title =? "annotate_toolbar" --> doFloat
         ]
 
 messengerRules =
