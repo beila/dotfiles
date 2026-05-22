@@ -16,9 +16,11 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - `_gy` expects hex operation IDs (`grep -o "[0-9a-f]\{12,\}"`), but `_jyy` returns change IDs (lowercase alpha via `_jj_log_fzf`)
   - possible fix: unify output format or move post-processing into the `become` target so each function owns its own output pipeline
   - files: `fzf/functions.sh/functions.sh` — `_jyy()` (line ~222), `_jy()` (line ~263)
-- [ ] make zellij floating point as big and more importantly as wide as appropriate while leaving slight context
+- [ ] make zellij floating pane as big and more importantly as wide as appropriate while leaving slight context
 - [ ] stop amazon-vpn when the network changes
 - [ ] run systemd for user from nix
+- [ ] sync_repo to rely on jj config rather than remost list and use the url directly rather than the remote name
+  - use git to directly force-push the git commit id of each bookmark, workspace to the server with the url
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
@@ -29,7 +31,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - opens `_gh` with a header explaining the squash context, minimise duplicated code
   - runs `jj squash --into <rev> -- <files>`
   - enter keeps current behaviour (output filenames)
-- [ ] how do I get notified with sync_all error
 - [ ] share fzf config between shell (`fzf/functions.sh/functions.sh`) and nvim (`fzf.lua`)
   - fzf command-line parameters (including preview commands) are duplicated between the two
   - goal: single source of truth for shared fzf options/previews
@@ -59,6 +60,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - files: `fzf/fzf.zsh` (env vars, widget sourcing), `fzf/functions.sh/key-binding.zsh` (custom bindings)
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
+- [ ] use zmx-select locally instead of zellij
 
 ### Low impact
 - [ ] there's no gap between ghostty vertically
