@@ -61,12 +61,12 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] Check if I can log in with fingerprint https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] use zmx-select locally instead of zellij
+  - zmx-select should be able to switch between machines, of course without blocking
+- [ ] replace absolute path from xfce settings
 
 ### Low impact
 - [ ] there's no gap between ghostty vertically
-- [ ] make battery notification sticky
 - [ ] make copilot key work as super
-- [ ] replace absolute path from xfce settings
 - [ ] review remaining mini-nvim modules: mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 
 ## Architecture Overview
