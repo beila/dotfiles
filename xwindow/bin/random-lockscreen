@@ -21,9 +21,11 @@ if [ ! -d "$WALLPAPER_DIR" ]; then
 fi
 
 # Collect candidates. Anchor depth at 1 so we don't recurse into unexpected
-# subfolders like trash or drafts.
+# subfolders like trash or drafts. HEIC excluded: GNOME's gdk-pixbuf usually
+# lacks the libheif loader, so a HEIC URI silently renders as the primary
+# fallback colour (i.e. black) on the lock screen.
 mapfile -t candidates < <(find "$WALLPAPER_DIR" -maxdepth 1 -type f \
-    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.heic' -o -iname '*.webp' \) \
+    \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
     2>/dev/null)
 
 if [ "${#candidates[@]}" -eq 0 ]; then
