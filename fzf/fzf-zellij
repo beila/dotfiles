@@ -9,8 +9,22 @@ fzf="$(command which fzf)" || fzf="$(dirname "$0")/fzf"
 
 args=()
 skip=""
-width="90%"
-height="90%"
+
+# Adaptive default size based on terminal width:
+#   - wide screens (>=200 cols, e.g. ultrawide / external): 80% × 85% so the
+#     underlying pane peeks ~10% on each side and you can still read context.
+#   - narrow screens (laptop, ~150-180 cols): 98% × 92% so we don't waste
+#     columns on a margin that's too thin to be useful anyway.
+# CLI flags below (-w / -h / -p) still override these defaults verbatim.
+_cols=${COLUMNS:-$(tput cols 2>/dev/null || echo 0)}
+if (( _cols >= 200 )); then
+  width="80%"
+  height="85%"
+else
+  width="98%"
+  height="92%"
+fi
+unset _cols
 
 while [[ $# -gt 0 ]]; do
   arg="$1"; shift

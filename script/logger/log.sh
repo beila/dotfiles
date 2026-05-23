@@ -371,7 +371,10 @@ log() {
             local rel body title
             rel=$(_log_rel_path)
             title="${LOG_TAG}${LOG_CONTEXT:+ $LOG_CONTEXT} ${level}"
-            body=$(printf '%s\nLog: %s' "$line" "$rel")
+            # Body is just the message; the title already carries
+            # tag/context/level, and the notifier (Telegram, etc.) shows
+            # its own timestamp — no need to repeat ours.
+            body=$(printf '%s\nLog: %s' "$msg" "$rel")
             # Fire-and-forget. The dispatcher is expected to handle its own errors.
             ( "$LOG_NOTIFY_CMD" -p high -t "$title" "$body" >/dev/null 2>&1 & )
         fi
