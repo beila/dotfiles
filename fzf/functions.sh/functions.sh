@@ -53,20 +53,17 @@ _git_log_fzf() {
 # Uses \{1,\} not \{2,\} — fzf_oneline shortest prefix can be a single char in small repos.
 _jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
 
-# _jj_log_fzf is a thin fzf wrapper — extraction is the *dispatcher's* job
-# (`_g*`), not this helper's. Keeping extraction out of here is what makes the
-# ctrl-y / ctrl-h `become` toggles safe: when fzf is replaced via `become`, the
-# replacement's stdout flows through whatever pipe the original caller built;
-# any extractor hidden in this helper would mangle the swapped-to function's
-# raw output. Each `_g*` does its own extraction at the top level.
+# fzf wrapper for jj log views. Extraction is delegated to fzf's own
+# --accept-nth: each caller passes the field index of the ID (e.g. =2 for
+# change-id which sits after the graph char). This keeps the chosen ID inside
+# fzf, so when `become` swaps fzf for another leaf, no outer pipe-tail can
+# mangle the swapped leaf's output (the original bug behind the y-pair
+# toggle: `_jyy → become(_jy)` would print "minutes" because op-log lines
+# went through the change-id letter regex).
 _jj_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi "$@" \
     --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && jj --quiet show --color=always \"\$id\""
 }
-
-# Final post-stage for change-log lines (used by _gh / _ghh).
-# Same regex as _jj_extract_id, applied to stdin instead of fzf's {}.
-_jj_h_extract() { sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{1,\}' | grep -o '[a-z]\{1,\}$' | head -1; }
 
 _dim_jj_op_ids() {
   # Replace blue operation IDs (ansi 38;5;4) with dim gray, and fully reset after
@@ -203,6 +200,16 @@ _jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}"
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
 _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
+# Field index of the change ID in jj log output. The fzf_oneline /
+# fzf_oneline_author templates produce lines like:
+#   ◆  mptlxvr 2h ago hojin description
+# The graph char(s) are field 1, the change id is field 2. fzf's --accept-nth
+# extracts that token directly, stripping ANSI, so callers do not need a
+# pipe-tail extractor — which means the toggle (`become`-swap fzf for the
+# other leaf) cannot mangle the swapped leaf's output by running it through
+# the wrong extractor.
+_jj_change_field=2
+
 # shellcheck disable=SC2120
 _jh() {
   local pos_bind=()
@@ -212,6 +219,7 @@ _jh() {
   fi
   jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☐ full log (ctrl-h) insert after (ctrl-o)' \
+    --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then echo "reload(jj --quiet log --color=always -T '"'"'fzf_oneline'"'"' -r '"'"'workspace_view()'"'"' 2>/dev/null)+change-header(☐ full log (ctrl-h) insert after (ctrl-o))"; else echo "change-header(⚠ $err)"; fi' \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
@@ -224,7 +232,7 @@ _git_h() {
   _git_log_fzf
 }
 
-_gh() { if is_in_jj_repo; then _jh | _jj_h_extract; elif is_in_git_repo; then _git_h; fi }
+_gh() { if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
 
 # --- log all ---
 
@@ -233,9 +241,9 @@ _jyy() {
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   jj --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
+    --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')" |
-  _jj_y_extract_change | _emit
+    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')"
 }
 
 _git_yy() {
@@ -243,7 +251,7 @@ _git_yy() {
   _git_log_fzf
 }
 
-_gyy() { if is_in_jj_repo; then _jj_y_dispatch _jyy; elif is_in_git_repo; then _git_yy; fi }
+_gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 
 # --- log ---
 
@@ -256,6 +264,7 @@ _jhh() {
   fi
   jj --quiet log --color=always -T 'fzf_oneline_author' -r '::workspace_view()' 2>/dev/null | _jj_log_fzf \
     --header '☑ full log (ctrl-h) insert after (ctrl-o)' \
+    --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then echo "reload(jj --quiet log --color=always -T '"'"'fzf_oneline_author'"'"' -r '"'"'::workspace_view()'"'"' 2>/dev/null)+change-header(☑ full log (ctrl-h) insert after (ctrl-o))"; else echo "change-header(⚠ $err)"; fi' \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
@@ -266,51 +275,25 @@ _git_hh() {
   _git_log_fzf
 }
 
-_ghh() { if is_in_jj_repo; then _jhh | _jj_h_extract; elif is_in_git_repo; then _git_hh; fi }
+_ghh() { if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
 
 # --- reflog / operation log ---
 
-# `_jy`/`_jyy` emit different ID shapes (hex op id vs lowercase change id).
-# A naive pipeline tail would mangle one when ctrl-y `become`-toggles to the
-# other. Workaround: leaves write the extracted ID to a side-channel file
-# named by `$FZF_BECOME_OUT`, so the toggled-to leaf's output skips the
-# original leaf's pipe entirely. The dispatcher reads the file at the end.
-# (`_jh`/`_jhh` don't need this — both produce change ids, same shape.)
-_jj_y_extract_oplog() { sed 's/\x1b\[[0-9;]*m//g' | grep -oE '[0-9a-f]{12,}' | tail -1; }
-_jj_y_extract_change() { sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{1,\}' | grep -o '[a-z]\{1,\}$' | head -1; }
-
-# Run a leaf with FZF_BECOME_OUT pointing at a temp file; print the file's
-# contents on completion. Standalone leaves (no FZF_BECOME_OUT preset) keep
-# working by virtue of `_emit` falling back to stdout.
-_jj_y_dispatch() {
-  local out; out=$(mktemp /tmp/jj_y_out.XXXXXX) || return
-  FZF_BECOME_OUT=$out "$@"
-  cat "$out"
-  rm -f "$out"
-}
-
-# Helper: emit the chosen ID either to FZF_BECOME_OUT or stdout. When two
-# pipelines may race for the same file (toggle case: original leaf's pipe-tail
-# AND the becomed leaf's pipe-tail both run `_emit`), only the one that
-# actually saw non-empty input wins — empty input is a no-op so the other
-# leaf's earlier write isn't truncated.
-_emit() {
-  local id; IFS= read -r id || true
-  [[ -z "$id" ]] && return 0
-  if [[ -n "${FZF_BECOME_OUT:-}" ]]; then printf '%s\n' "$id" >"$FZF_BECOME_OUT"; else printf '%s\n' "$id"; fi
-}
-
+# Op log lines have the hex op ID as the LAST field (template self.id().short()
+# is appended last). --accept-nth=-1 picks it. Same rationale as _jh/_jhh
+# above: extraction lives inside fzf, so the ctrl-y toggle (become-swap to
+# _jyy and back) cannot mangle either leaf's output.
 _jy() {
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   jj --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
     _dim_jj_op_ids |
     fzf_down --ansi --no-sort --reverse --multi \
+      --accept-nth=-1 \
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
-      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
-    _jj_y_extract_oplog | _emit
+      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %'
 }
 
 _git_y() {
@@ -318,7 +301,7 @@ _git_y() {
   _git_log_fzf
 }
 
-_gy() { if is_in_jj_repo; then _jj_y_dispatch _jy; elif is_in_git_repo; then _git_y; fi }
+_gy() { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi }
 
 # --- remotes ---
 
