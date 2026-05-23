@@ -62,9 +62,12 @@ cd "$FLAKE_DIR" || { log ERROR "cd $FLAKE_DIR failed"; exit 1; }
 log INFO "START flake_dir=$FLAKE_DIR"
 
 # Snapshot lock before so we can summarise what moved.
+# Important: log.sh has already installed `trap log_finalize EXIT`.
+# Chain into it rather than replacing — overwriting the trap would leave
+# the log file unpromoted (stuck in /tmp).
 LOCK_BEFORE=$(mktemp /tmp/flake-update.lock.XXXXXX)
 cp flake.lock "$LOCK_BEFORE" 2>/dev/null || true
-trap 'rm -f "$LOCK_BEFORE"' EXIT
+trap '_rc=$?; rm -f "$LOCK_BEFORE"; log_finalize 2>/dev/null || true; exit $_rc' EXIT
 
 # --- Step 1: nix flake update -------------------------------------------------
 if [ "${FLAKE_UPDATE_DRY_RUN:-}" = "1" ]; then
