@@ -29,7 +29,12 @@
 #     possible after the watcher has been running for a while.
 #
 # Env:
-#   VPN_PROCESS_NAME    process to SIGTERM on loss (default "openconnect")
+#   VPN_PROCESS_NAME    process to SIGTERM on loss (default "openconnect").
+#                       Looked up via pgrep -x; works fine when there's at
+#                       most one such process at a time.
+#   VPN_PROCESS_PID     specific PID to watch instead of looking up by name.
+#                       Preferred when the caller knows which one to track
+#                       (e.g. vpn-up sets this for the foreground VPN child).
 #   VPN_DEBOUNCE_SEC    debounce window in seconds (default 5)
 #   VPN_SUDO_REFRESH    sudo cache refresh interval in seconds (default 240,
 #                       under the typical sudo timestamp_timeout of 5-15 min)
