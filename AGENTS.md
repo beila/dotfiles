@@ -16,7 +16,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - `_gy` expects hex operation IDs (`grep -o "[0-9a-f]\{12,\}"`), but `_jyy` returns change IDs (lowercase alpha via `_jj_log_fzf`)
   - possible fix: unify output format or move post-processing into the `become` target so each function owns its own output pipeline
   - files: `fzf/functions.sh/functions.sh` — `_jyy()` (line ~222), `_jy()` (line ~263)
-- [ ] make zellij floating pane as big and more importantly as wide as appropriate while leaving slight context
+- [x] make zellij floating pane as big and more importantly as wide as appropriate while leaving slight context
 - [ ] stop amazon-vpn when the network changes
 - [ ] run systemd for user from nix
 - [ ] sync_repo to rely on jj config rather than remost list and use the url directly rather than the remote name
@@ -26,11 +26,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
   - options: pick a subtler border colour, or `borderWidth = 0` + picom shadow as the focus indicator
   - picom adds GPU/process overhead; only adopt if the visual win is worth it
-- [ ] add squash feature to _gf
-  - fzf shortcut (not enter) squashes the currently selected/highlighted file(s) from `@` into a target revision
-  - opens `_gh` with a header explaining the squash context, minimise duplicated code
-  - runs `jj squash --into <rev> -- <files>`
-  - enter keeps current behaviour (output filenames)
 - [ ] share fzf config between shell (`fzf/functions.sh/functions.sh`) and nvim (`fzf.lua`)
   - fzf command-line parameters (including preview commands) are duplicated between the two
   - goal: single source of truth for shared fzf options/previews
@@ -95,7 +90,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), user email in `private-dotfiles/jj/user.toml` (symlinked to `conf.d/user.toml`); revset aliases: `workspace_view()`, `unique(x, markers)`, `unique_boundary(x, markers)`; template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author first name via `.split(" ").first()`, falls back to email local part)
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars, sources `fzf --zsh` dynamically, then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
-  - `fzf-zellij` — drop-in `fzf-tmux` equivalent for zellij; runs fzf in a floating pane with FIFO stdin streaming and temp file output; `FZF_ZELLIJ=1` env var prevents nested floating panes on `become` toggles and strips `--height`/`--min-height`; `zellij run` stdout suppressed (prints pane name `terminal_##`); output post-processed to strip `\r` and residual `terminal_*` lines; `FZF_ZELLIJ_OUTPUT` exported for `become` targets via `_fzf_become` wrapper; falls back to plain fzf outside zellij
+  - `fzf-zellij` — drop-in `fzf-tmux` equivalent for zellij; runs fzf in a floating pane with FIFO stdin streaming and temp file output; **adaptive default size**: ≥200 cols → 80%×85% (wide screens leave visible side context); else → 98%×92% (narrow laptops near-fullscreen since a thin margin would just waste columns). `-w`/`-h`/`-p` flags still override the defaults verbatim. `FZF_ZELLIJ=1` env var prevents nested floating panes on `become` toggles and strips `--height`/`--min-height`; `zellij run` stdout suppressed (prints pane name `terminal_##`); output post-processed to strip `\r` and residual `terminal_*` lines; `FZF_ZELLIJ_OUTPUT` exported for `become` targets via `_fzf_become` wrapper; falls back to plain fzf outside zellij
   - `test_fzf_zellij.sh` — automated tests; run with `bash fzf/test_fzf_zellij.sh` inside a zellij session
   - `functions.sh/functions.sh` — jj-first/git-fallback functions; each `_g*` dispatcher delegates to `_j*` (jj) or `_git_*` (git); `_jb`/`_jt` previews use `unique_boundary()` revset; `_jb` parses `jj bookmark list` output directly (indented remote-tracking lines like `  @hj …` get re-prefixed with the parent bookmark via awk so the row says `nix@hj …`); toggles via `become`: `_jh`↔`_jhh` (ctrl-h), `_jb`↔`_jbb` (workspaces, ctrl-b), `_jy`↔`_jyy` (op log, ctrl-y); ctrl-o inserts empty revision after selected (`jj new --no-edit --after`), uses `transform:` colon form for error display; fzf query preserved across toggles via `{q}`→`--query`; line-number focus uses `result:pos(N+1)+unbind(result)`
   - `functions.sh/test_toggle_query.sh` — non-interactive test for toggle query/focus preservation, ctrl-o binding, and change ID extraction; run with `zsh fzf/functions.sh/test_toggle_query.sh`; file is read-only — only `chmod u+w` when the user explicitly allows it
