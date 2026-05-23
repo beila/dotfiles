@@ -63,12 +63,18 @@ zstyle ':completion:*:*:*:*:*' menu select
 zstyle ':completion:*:matches' group 'yes'
 zstyle ':completion:*:options' description 'yes'
 zstyle ':completion:*:options' auto-description '%d'
-zstyle ':completion:*:corrections' format ' %F{green}-- %d (errors: %e) --%f'
-zstyle ':completion:*:descriptions' format ' %F{yellow}-- %d --%f'
-zstyle ':completion:*:messages' format ' %F{purple} -- %d --%f'
-zstyle ':completion:*:warnings' format ' %F{red}-- no matches found --%f'
+# fzf-tab parses these formats as group headers and does NOT expand zsh
+# prompt escapes (`%F{...}`/`%f`); leaving them in produces literal
+# "%F{yellow}-- external command --%f" rows inside the fzf picker. Use
+# plain bracketed form so fzf-tab can read it cleanly. The regular zsh
+# menu (when fzf-tab is bypassed) loses the colorful header but keeps
+# the grouping, which is the right trade-off here.
+zstyle ':completion:*:corrections' format '[%d (errors: %e)]'
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*:messages' format '[%d]'
+zstyle ':completion:*:warnings' format '[no matches found]'
 zstyle ':completion:*:default' list-prompt '%S%M matches%s'
-zstyle ':completion:*' format ' %F{yellow}-- %d --%f'
+zstyle ':completion:*' format '[%d]'
 zstyle ':completion:*' group-name ''
 zstyle ':completion:*' verbose yes
 
@@ -183,6 +189,24 @@ if [[ -e ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh ]]; then
 
     # Comma/period switch between completion groups (e.g. files vs dirs).
     zstyle ':fzf-tab:*' switch-group ',' '.'
+
+    # Render group headers as headers (not as selectable rows). `full` puts
+    # the header line above each group inline (so command completion shows
+    # `[external command]` then commands, then `[parameter]` then params,
+    # etc.). `brief` only shows the current selection's group header — less
+    # useful when scrolling.
+    zstyle ':fzf-tab:*' show-group full
+
+    # Strip the per-row prefix marker. fzf-tab adds a middle-dot (·) before
+    # each candidate when `:completion:*:descriptions:format` is set, as a
+    # visual hint that the row belongs to a group. We have group headers
+    # via show-group=full, so the prefix is redundant noise — and renders
+    # as a leading "." in fonts without proper U+00B7 glyph spacing.
+    zstyle ':fzf-tab:*' prefix ''
+
+    # Plain default colour for non-selected rows; lets terminal theme show
+    # through instead of fzf-tab's slightly dim default.
+    zstyle ':fzf-tab:*' default-color $'\033[37m'
 
     # Per-command previews. Keep tight: more rules = slower tab cycle.
     zstyle ':fzf-tab:complete:cd:*' fzf-preview \
