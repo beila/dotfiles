@@ -123,10 +123,15 @@ log INFO "home-manager build OK"
 rm -f result
 
 # --- Step 3: home-manager news → claude classifier ----------------------------
-news_raw=$(home-manager news --flake . --information 2>/dev/null || true)
-# Strip the always-present "Last checked" / "X news items" framing; keep
-# the actual entry bodies. If nothing meaningful is left, treat as empty.
-news_body=$(printf '%s\n' "$news_raw" | grep -v -E '^Last checked:|^[0-9]+ unread|^$' | head -200)
+# `home-manager news` with `--flake` requires `--impure` because our flake's
+# `bare-aliases.nix` reads /etc/hostname via builtins.readFile. Without
+# `--impure` the news subcommand can't enumerate homeConfigurations and dies
+# with "does not provide attribute ...".
+news_raw=$(home-manager news --flake . --impure 2>/dev/null || true)
+# Keep the unread entry bodies. Strip the trailing "There are N unread items"
+# summary line and blank dividers. Cap to 200 lines to keep the LLM prompt
+# bounded.
+news_body=$(printf '%s\n' "$news_raw" | grep -v -E '^There are [0-9]+ unread|^Run them by running|^Read them|^$' | head -200)
 
 if [ -z "$news_body" ]; then
     log INFO "no unread home-manager news"

@@ -100,6 +100,56 @@ assert "ctrl-o reloads on success" "reload" "$out"
 assert "ctrl-o shows error on failure" "change-header" "$out"
 assert "header mentions ctrl-o" "ctrl-o" "$out"
 
+echo "_gy / _gyy post-extraction (recovery toggle: ctrl-y swaps after accidental keypress):"
+# Override fzf to ALSO emit a chosen "selected line" on stdout, simulating what
+# the post-pipeline of the dispatcher will see. Each scenario picks the line
+# representing what the toggled-to function would actually emit.
+EMIT_LINE=""
+fzf() { echo "$*" > "$_args_file"; [[ -n "$EMIT_LINE" ]] && printf '%s\n' "$EMIT_LINE"; }
+fzf_down() { fzf "$@"; }
+_jj_log_fzf() { fzf "$@"; }
+# Stub the leaf functions so we test only the dispatcher's outer post-pipeline.
+# A real toggle goes _jy -> become(_jyy) -> _jj_log_fzf prints a change ID;
+# from _gy's perspective that is just stdin, regardless of which leaf wrote it.
+_jy()    { printf '%s\n' "$EMIT_LINE"; }
+_jyy()   { printf '%s\n' "$EMIT_LINE"; }
+_git_y() { printf '%s\n' "$EMIT_LINE"; }
+_git_yy(){ printf '%s\n' "$EMIT_LINE"; }
+is_in_jj_repo() { return 0; }
+is_in_git_repo(){ return 1; }
+
+# Natural exit of _jy: op-log line ends with hex op ID
+EMIT_LINE="1 minute ago jj git push --remote backup --bookmark main a2c1e1ac0660"
+assert "_gy natural: extracts hex op ID from op-log line" "a2c1e1ac0660" "$(_gy)"
+
+# Natural exit of _jyy: _jj_log_fzf already produced a single change ID
+EMIT_LINE="mptlxvr"
+assert "_gyy natural: passes change ID through" "mptlxvr" "$(_gyy)"
+
+# Recovery case A: user typed ^G^Y (=> _gy), realised mistake, ctrl-y -> _jyy.
+# _jyy via _jj_log_fzf emits a single change ID. Dispatcher must NOT mangle it.
+EMIT_LINE="mptlxvr"
+got=$(_gy)
+assert "_gy after ctrl-y to _jyy: returns the change ID, not empty/mangled" "mptlxvr" "$got"
+assert_not "_gy after toggle: not a hex op id" "a2c1e1ac0660" "$got"
+
+# Recovery case B: user typed ^GY (=> _gyy), realised mistake, ctrl-y -> _jy.
+# _jy emits the raw fzf-selected op-log line (no inner extraction). Dispatcher
+# must extract the trailing hex op ID.
+EMIT_LINE="2 hours ago jj git fetch --all-remotes 6d8b8b9d73c0"
+got=$(_gyy)
+assert "_gyy after ctrl-y to _jy: extracts hex op ID from raw line" "6d8b8b9d73c0" "$got"
+
+# ANSI-stripped raw line (real op log has color)
+EMIT_LINE=$'\x1b[33m2h\x1b[0m ago \x1b[32mjj op restore\x1b[0m \x1b[2;90mc824cb3cc197\x1b[0m'
+got=$(_gyy)
+assert "_gyy: strips ANSI before extracting op ID" "c824cb3cc197" "$got"
+
+# Empty input (user cancelled fzf)
+EMIT_LINE=""
+got=$(_gy)
+assert "_gy: empty input -> empty output (no extraction noise)" "" "$got"
+
 echo
 echo "$pass passed, $fail failed"
 (( fail == 0 ))

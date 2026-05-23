@@ -11,11 +11,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
 - [ ] use fzf for zsh tab completion
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
-- [ ] `_gy` ↔ `_gyy` toggle via `become` produces wrong output
-  - after `become`, the new function's output goes through the original function's post-processing pipeline
-  - `_gy` expects hex operation IDs (`grep -o "[0-9a-f]\{12,\}"`), but `_jyy` returns change IDs (lowercase alpha via `_jj_log_fzf`)
-  - possible fix: unify output format or move post-processing into the `become` target so each function owns its own output pipeline
-  - files: `fzf/functions.sh/functions.sh` — `_jyy()` (line ~222), `_jy()` (line ~263)
+- [x] `_gy` ↔ `_gyy` toggle via `become` produces wrong output
 - [x] make zellij floating pane as big and more importantly as wide as appropriate while leaving slight context
 - [x] stop amazon-vpn when the network changes
 - [ ] run systemd for user from nix
@@ -254,7 +250,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - zellij + kitty keyboard protocol: under rapid key repeat, zellij occasionally fails to parse CSI u sequences; worked around by sending legacy control codes from ghostty for ctrl-j/k/n/p
 - C++ treesitter textobjects: `#make-range!` directives can silently fail; `@function.outer` misses lambdas; mini.ai pattern-based `f`/`a` is more reliable for C++
 - Push notifications: Google Chat webhooks blocked by org admin; Slack requires workspace admin; KakaoTalk "나에게 보내기" doesn't trigger push. Chose Telegram bot (see Notifications + Telegram setup sections); ntfy.sh remains a viable alternative via a new backend under `script/logger/backends/`.
-- fzf `become` toggle output mismatch: `_gy`↔`_gyy` output goes through wrong post-processing pipeline; `_gh`↔`_ghh` unaffected (same output format)
+- fzf `become` toggle (`_gy`↔`_gyy`) once mangled output because each leaf had its own post-extraction in the pipeline; fixed by stripping inner extraction from `_jy` and putting a shape-tolerant `_jj_y_extract` (sed strip ANSI + `awk '{print $NF}'`) on `_gy`/`_gyy` so the dispatcher gets the last token regardless of which leaf actually wrote (op log line ends in hex op ID; `_jj_log_fzf` already emits a bare change ID). `_gh`↔`_ghh` and `_gb`↔`_gbb` are inherently safe since their inner extractors act as identity-on-single-token for the toggled-to shape.
 - kiro-cli can't receive prompts as command-line arguments (hangs on large input) — use stdin piping
 - kiro-cli `--agent default` spawns MCP servers that become orphaned on exit — use `--agent no-mcp` for scripted use
 - Cloud desktop (Amazon Linux): `apt` in PATH is JDK's Annotation Processing Tool, not Debian apt; `system-deps.sh` checks dnf/yum first; linuxbrew `dbus-run-session` has broken config — `gnome.nix` conditionally skipped when `/usr/bin/dconf` absent

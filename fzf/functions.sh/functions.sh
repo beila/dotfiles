@@ -233,7 +233,7 @@ _git_yy() {
   _git_log_fzf
 }
 
-_gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
+_gyy() { { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi } | _jj_y_extract; }
 
 # --- log ---
 
@@ -260,6 +260,12 @@ _ghh() { if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
 
 # --- reflog / operation log ---
 
+# Final post-stage for the _g{y,yy} pair. Tolerant of both shapes so the
+# ctrl-y toggle (an accidental-keypress recovery affordance) works in either
+# direction: op-log line ends in a hex op ID, _jyy output is a bare change ID
+# — `awk '{print $NF}'` picks the right token from each.
+_jj_y_extract() { sed 's/\x1b\[[0-9;]*m//g' | awk '{print $NF}' | head -1; }
+
 _jy() {
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
@@ -269,8 +275,7 @@ _jy() {
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
-      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
-    grep -o "[0-9a-f]\{12,\}" | tail -1
+      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %'
 }
 
 _git_y() {
@@ -278,7 +283,7 @@ _git_y() {
   _git_log_fzf
 }
 
-_gy() { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi }
+_gy() { { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi } | _jj_y_extract; }
 
 # --- remotes ---
 
