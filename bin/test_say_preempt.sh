@@ -86,29 +86,45 @@ wait "$say1" 2>/dev/null || true
 
 echo
 echo "Test 3: external TERM to the say wrapper tears down its backend"
-# `say2` is the foreground wrapper PID; killing it should propagate via the trap
-kill -TERM "$say2" 2>/dev/null || true
-for _ in $(seq 1 100); do
-    if ! kill -0 "$backend2" 2>/dev/null; then break; fi
+# Spawn a fresh say wrapper specifically for this test to avoid harness races
+# with prior preemption flows that may have already torn things down.
+run_say "test3-target" &
+say3_target=$!
+for _ in $(seq 1 50); do
+    [ -s "$last_pid" ] && [ "$(cat "$last_pid")" != "$backend2" ] && break
     sleep 0.05
 done
-assert_true "backend2 killed via wrapper's TERM trap" "! kill -0 '$backend2' 2>/dev/null"
+backend3a=$(cat "$last_pid")
+assert_true "test3 backend started" "kill -0 '$backend3a' 2>/dev/null"
+assert_true "test3 say wrapper alive" "kill -0 '$say3_target' 2>/dev/null"
+sleep 0.3  # ensure trap is registered before we send TERM
+echo "    DEBUG: say3_target=$say3_target backend3a=$backend3a"
+ps -o pid,ppid,pgid,sid,cmd -p "$say3_target","$backend3a" 2>&1 | sed 's/^/    /'
+kill -TERM "$say3_target"
+echo "    DEBUG: after kill, say3_target alive: $(kill -0 $say3_target 2>/dev/null && echo yes || echo no)"
+for _ in $(seq 1 100); do
+    if ! kill -0 "$backend3a" 2>/dev/null; then break; fi
+    sleep 0.05
+done
+echo "    DEBUG: backend3a still alive: $(kill -0 $backend3a 2>/dev/null && echo yes || echo no)"
+assert_true "test3 backend killed via wrapper's TERM trap" "! kill -0 '$backend3a' 2>/dev/null"
 
 wait "$say2" 2>/dev/null || true
+wait "$say3_target" 2>/dev/null || true
 
 echo
 echo "Test 4: stale state file (PID no longer alive) is harmless"
 echo 999999 >"$state_file"
 run_say "third" &
-say3=$!
+say4=$!
 for _ in $(seq 1 50); do
-    [ -s "$last_pid" ] && [ "$(cat "$last_pid")" != "$backend2" ] && break
+    [ -s "$last_pid" ] && [ "$(cat "$last_pid")" != "$backend3a" ] && break
     sleep 0.05
 done
-backend3=$(cat "$last_pid")
-assert_true "third backend started despite stale state file" "kill -0 '$backend3' 2>/dev/null"
-kill -TERM "$say3" 2>/dev/null || true
-wait "$say3" 2>/dev/null || true
+backend4=$(cat "$last_pid")
+assert_true "fourth backend started despite stale state file" "kill -0 '$backend4' 2>/dev/null"
+kill -TERM "$say4" 2>/dev/null || true
+wait "$say4" 2>/dev/null || true
 
 echo
 echo "Test 5: SAY_NO_PREEMPT=1 skips preemption + state-file write"
@@ -116,7 +132,7 @@ echo "Test 5: SAY_NO_PREEMPT=1 skips preemption + state-file write"
 run_say "victim" &
 say_victim=$!
 for _ in $(seq 1 50); do
-    [ -s "$last_pid" ] && [ "$(cat "$last_pid")" != "$backend3" ] && break
+    [ -s "$last_pid" ] && [ "$(cat "$last_pid")" != "$backend4" ] && break
     sleep 0.05
 done
 victim_backend=$(cat "$last_pid")
