@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-set -x
+# Trace mode for manual debugging: SYNC_REPO_DEBUG=1 sync_repo …
+# Off by default — systemd-driven runs are noisy enough already, and the
+# leveled logger captures everything important to ~/hjdocs/logs/.
+if [ "${SYNC_REPO_DEBUG:-0}" = "1" ]; then
+    set -x
+fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
 GIT=${GIT_EXECUTABLE:-git}
