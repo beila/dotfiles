@@ -9,7 +9,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ### High impact
 - [ ] can't type hangul in zellij/ghostty
 - [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
-- [ ] use fzf for zsh tab completion
+- [x] use fzf for zsh tab completion — fzf-tab plugin routed through fzf-zellij; see `zsh/completion.zsh` end
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
 - [x] `_gy` ↔ `_gyy` toggle via `become` produces wrong output
 - [x] make zellij floating pane as big and more importantly as wide as appropriate while leaving slight context
@@ -18,7 +18,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] sync_repo to rely on jj config rather than remost list and use the url directly rather than the remote name
   - use git to directly force-push the git commit id of each bookmark, workspace to the server with the url
 - [x] say something whenever asking for permission in claude — Notification hook at `bin/claude-notification-tts`
-- [ ] in zellij super-w to open session manager as alt-w does
+- [x] in zellij super-w to open session manager as alt-w does
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
@@ -84,6 +84,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - keyd config: `~/.dotfiles/keyd/` (common, default.conf, kinesis.conf, thinkpad.conf — copied to /etc/keyd/ by system-deps.sh)
 - input-remapper: `~/.dotfiles/input-remapper-2.configsymlink/` (symlinked to ~/.config/input-remapper-2/) — mice only
 - jj config: `~/.dotfiles/jj.configsymlink/` (symlinked to ~/.config/jj/), user email in `private-dotfiles/jj/user.toml` (symlinked to `conf.d/user.toml`); revset aliases: `workspace_view()`, `unique(x, markers)`, `unique_boundary(x, markers)`; template aliases: `short_ago(ts)` (compact relative time: m/h/d/w/M/y), `fzf_oneline` (shortest change ID, no author/git-id, short relative time, bookmarks after description), `fzf_oneline_author` (same + author first name via `.split(" ").first()`, falls back to email local part)
+- fzf-tab tab-completion: `pkgs.zsh-fzf-tab` (loaded from `~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh` at the end of `zsh/completion.zsh`, after compinit). Replaces zsh's built-in `<Tab>` menu-select with an fzf picker. **Routes through `fzf-zellij`** via `zstyle ':fzf-tab:*' fzf-command "$DOTFILES_ROOT/fzf/fzf-zellij"` so completion menus open in the same floating pane as `_gh` / `_jb` / file picker — consistent UX and falls back to plain fzf when not inside zellij. zstyles set: `use-fzf-default-opts yes` (inherits ctrl-n/ctrl-p preview-page bindings), `switch-group ',' '.'` (switch between completion groups e.g. files vs dirs), per-command previews for `cd` (eza/ls), `bat`/`cat` (bat preview), `git-(add|diff|restore|stash)` (git diff), `git-show` (commit body), `git-(log|reflog)` (per-commit log), `systemctl-*` (status output). Plugin-file guard so machines without the package fall back gracefully to zsh's built-in menu. Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget registered, fzf-command zstyle wired, compinit cold + warm OK, plugin loads cleanly even when fzf-zellij missing from PATH).
 - fzf config: `~/.dotfiles/fzf/fzf.zsh` — env vars, sources `fzf --zsh` dynamically, then sources custom key-binding.zsh, binds Ctrl-E to fzf-cd-widget
   - `fzf-zellij` — drop-in `fzf-tmux` equivalent for zellij; runs fzf in a floating pane with FIFO stdin streaming and temp file output; **adaptive default size**: ≥200 cols → 80%×85% (wide screens leave visible side context); else → 98%×92% (narrow laptops near-fullscreen since a thin margin would just waste columns). `-w`/`-h`/`-p` flags still override the defaults verbatim. `FZF_ZELLIJ=1` env var prevents nested floating panes on `become` toggles and strips `--height`/`--min-height`; `zellij run` stdout suppressed (prints pane name `terminal_##`); output post-processed to strip `\r` and residual `terminal_*` lines; `FZF_ZELLIJ_OUTPUT` exported for `become` targets via `_fzf_become` wrapper; falls back to plain fzf outside zellij
   - `test_fzf_zellij.sh` — automated tests; run with `bash fzf/test_fzf_zellij.sh` inside a zellij session
@@ -98,7 +99,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-  - Normal mode: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-w→session manager (built-in plugin), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
+  - Normal mode: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-w / Super-w→session manager (built-in plugin; both keys bound so Super-w works via kitty CSI u when forwarded, with `keybind = super+w=text:\x1bw` in ghostty as a fallback if needed), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
   - Move mode: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), agents/no-mcp.json (no MCP servers, used by commit-msg to avoid orphaned processes), agents/builder.json (local override of the AmazonBuilderCoreAIAgents `builder` agent: adds TTS MCP server, narrowed `execute_bash` allowlist for read-only operations, allows `fs_write:*AGENTS.md` so Kiro can edit this file without prompting), settings/cli.json (default agent: builder, default model: claude-opus-4.7), kiro.filesymlink/bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID`), bin/test_mcp_tts.sh (run with `bash bin/test_mcp_tts.sh`)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`

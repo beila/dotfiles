@@ -83,6 +83,7 @@ in
         pkgs.zsh-powerlevel10k
         pkgs.zsh-fast-syntax-highlighting
         pkgs.zsh-autosuggestions
+        pkgs.zsh-fzf-tab  # fzf-driven <Tab> completion; sourced from completion.zsh
 
         pkgs.awscli2
         pkgs.copyq  # clipboard history manager (Super+V picker)

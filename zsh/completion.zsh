@@ -161,3 +161,42 @@ zstyle ':completion:*:(ssh|scp|rsync):*:hosts-ipaddr' ignored-patterns '^(<->.<-
 # AWS CLI: uses bash-style completion via aws_completer
 autoload -Uz bashcompinit && bashcompinit
 complete -C aws_completer aws
+
+# --- fzf-tab: replace the menu-select <Tab> UI with fzf -----------------------
+# Must be loaded AFTER compinit (above) but BEFORE syntax-highlighting (sourced
+# earlier by the alphabetical glob in zshrc.symlink — fast-syntax-highlighting
+# only intercepts redraw, not widget binding, so order vs it doesn't matter).
+#
+# The package is `pkgs.zsh-fzf-tab` from home.nix; the plugin entry lives at
+# `~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh`. Guard so machines without
+# the package (e.g. mid-migration) just keep zsh's built-in menu.
+if [[ -e ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh ]]; then
+    source ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh
+
+    # Route fzf-tab through fzf-zellij so completion menus appear in the same
+    # floating pane as our other widgets (_gh, _jb, file picker). fzf-zellij
+    # falls back to plain fzf when not inside zellij.
+    zstyle ':fzf-tab:*' fzf-command "${DOTFILES_ROOT:-$HOME/.dotfiles}/fzf/fzf-zellij"
+
+    # Inherit FZF_DEFAULT_OPTS (ctrl-n/ctrl-p preview-page bindings, etc).
+    zstyle ':fzf-tab:*' use-fzf-default-opts yes
+
+    # Comma/period switch between completion groups (e.g. files vs dirs).
+    zstyle ':fzf-tab:*' switch-group ',' '.'
+
+    # Per-command previews. Keep tight: more rules = slower tab cycle.
+    zstyle ':fzf-tab:complete:cd:*' fzf-preview \
+        'eza -la --color=always --icons=auto $realpath 2>/dev/null || ls -la --color=always $realpath'
+    zstyle ':fzf-tab:complete:(\\\\|*/|)bat:argument-rest' fzf-preview \
+        'bat --color=always --style=numbers --line-range=:200 $realpath 2>/dev/null'
+    zstyle ':fzf-tab:complete:(\\\\|*/|)cat:argument-rest' fzf-preview \
+        'bat --color=always --style=numbers --line-range=:200 $realpath 2>/dev/null'
+    zstyle ':fzf-tab:complete:git-(add|diff|restore|stash):*' fzf-preview \
+        'git diff --color=always -- $realpath 2>/dev/null'
+    zstyle ':fzf-tab:complete:git-show:*' fzf-preview \
+        'git show --color=always $word 2>/dev/null'
+    zstyle ':fzf-tab:complete:git-(log|reflog):*' fzf-preview \
+        'git log --color=always $word 2>/dev/null'
+    zstyle ':fzf-tab:complete:systemctl-*:*' fzf-preview \
+        'SYSTEMD_COLORS=1 systemctl status $word 2>/dev/null'
+fi
