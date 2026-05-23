@@ -49,15 +49,24 @@ _git_log_fzf() {
 # --- helpers (jj) ---
 
 # shellcheck disable=SC2120
-# Extract jj change ID: first all-lowercase word after graph chars (strips ANSI)
-# Uses \{1,\} not \{2,\} — fzf_oneline shortest prefix can be a single char in small repos
+# Extract jj change ID: first all-lowercase word after graph chars (strips ANSI).
+# Uses \{1,\} not \{2,\} — fzf_oneline shortest prefix can be a single char in small repos.
 _jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
 
+# _jj_log_fzf is a thin fzf wrapper — extraction is the *dispatcher's* job
+# (`_g*`), not this helper's. Keeping extraction out of here is what makes the
+# ctrl-y / ctrl-h `become` toggles safe: when fzf is replaced via `become`, the
+# replacement's stdout flows through whatever pipe the original caller built;
+# any extractor hidden in this helper would mangle the swapped-to function's
+# raw output. Each `_g*` does its own extraction at the top level.
 _jj_log_fzf() {
   fzf_down --ansi --no-sort --reverse --multi "$@" \
-    --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && jj --quiet show --color=always \"\$id\"" |
-  sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{1,\}' | grep -o '[a-z]\{1,\}$' | head -1
+    --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && jj --quiet show --color=always \"\$id\""
 }
+
+# Final post-stage for change-log lines (used by _gh / _ghh).
+# Same regex as _jj_extract_id, applied to stdin instead of fzf's {}.
+_jj_h_extract() { sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{1,\}' | grep -o '[a-z]\{1,\}$' | head -1; }
 
 _dim_jj_op_ids() {
   # Replace blue operation IDs (ansi 38;5;4) with dim gray, and fully reset after

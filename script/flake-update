@@ -151,8 +151,11 @@ Be conservative — when in doubt, say OK. No code blocks, no preamble.
 
 NEWS:
 '
+    # 90s timeout: claude --print regularly takes 30-60s for non-trivial
+    # prompts when invoked from a non-tty subshell (no streaming UI to bail
+    # the user out early). The previous 30s consistently hit timeout=124.
     classifier_output=$(printf '%s%s\n' "$prompt" "$news_body" \
-        | timeout 30 claude --print --tools "" --no-session-persistence 2>/dev/null \
+        | timeout 90 claude --print --tools "" --no-session-persistence 2>/dev/null \
         | head -1 \
         | sed 's/\x1b\[[0-9;]*m//g; s/^[[:space:]]*//; s/[[:space:]]*$//')
 

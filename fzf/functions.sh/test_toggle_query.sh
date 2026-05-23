@@ -151,5 +151,36 @@ got=$(_gy)
 assert "_gy: empty input -> empty output (no extraction noise)" "" "$got"
 
 echo
+echo "_gy / _gyy real-pipeline toggle (no leaf stubs — exercises _jj_log_fzf tail):"
+# Re-source so the real _jy / _jyy / _jj_log_fzf bodies are live again.
+source "${0:a:h}/functions.sh"
+is_in_jj_repo() { return 0; }
+is_in_git_repo(){ return 1; }
+# Only stub fzf_down so the chosen line travels through every real downstream
+# stage (any extractor inside _jj_log_fzf, the leaf, and the dispatcher).
+EMIT_LINE=""
+fzf_down() { [[ -n "$EMIT_LINE" ]] && printf '%s\n' "$EMIT_LINE"; }
+# Avoid running the real `jj` for these scenarios — the leaf functions only
+# need their post-pipeline behaviour exercised.
+jj() { :; }
+
+# Recovery B (real pipeline): _jyy was up, ctrl-y swapped to _jy.
+# The line emitted is what _jy (no inner extractor) would write: a raw op-log
+# line. Inside _jyy this still flows through _jj_log_fzf's letter-extracting
+# tail, which mauls it to "minutes" unless the dispatcher's extractor is
+# robust to that.
+EMIT_LINE="2 minutes ago jj git fetch --all-remotes 6d8b8b9d73c0"
+got=$(_gyy)
+assert "_gyy after ctrl-y -> _jy (real pipeline): hex op ID, not 'minutes'" "6d8b8b9d73c0" "$got"
+assert_not "_gyy after toggle: not the word 'minutes'" "minutes" "$got"
+
+# Recovery A (real pipeline): _jy was up, ctrl-y swapped to _jyy.
+# _jyy emits a bare change ID; _jy has no inner extractor any more, so the
+# dispatcher's extractor sees a single token directly.
+EMIT_LINE="mptlxvr"
+got=$(_gy)
+assert "_gy after ctrl-y -> _jyy (real pipeline): change ID preserved" "mptlxvr" "$got"
+
+echo
 echo "$pass passed, $fail failed"
 (( fail == 0 ))

@@ -17,6 +17,8 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] run systemd for user from nix
 - [ ] sync_repo to rely on jj config rather than remost list and use the url directly rather than the remote name
   - use git to directly force-push the git commit id of each bookmark, workspace to the server with the url
+- [ ] say something whenever asking for permission in claude
+- [ ] in zellij super-w to open session manager as alt-w does
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
