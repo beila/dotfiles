@@ -40,6 +40,7 @@ in
         pkgs.dzen2  # lightweight OSD popups for audio/device switching
         pkgs.difftastic
         pkgs.dust
+        pkgs.eza  # modern ls replacement; used by fzf-tab directory previews
         pkgs.fd
         pkgs.ffmpeg
         pkgs.fzf
