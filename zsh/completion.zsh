@@ -179,10 +179,16 @@ complete -C aws_completer aws
 if [[ -e ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh ]]; then
     source ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh
 
-    # Route fzf-tab through fzf-zellij so completion menus appear in the same
-    # floating pane as our other widgets (_gh, _jb, file picker). fzf-zellij
-    # falls back to plain fzf when not inside zellij.
-    zstyle ':fzf-tab:*' fzf-command "${DOTFILES_ROOT:-$HOME/.dotfiles}/fzf/fzf-zellij"
+    # Tried routing through fzf-zellij so completion would appear in a
+    # floating pane (consistent with _gh / _jb / file picker), but it broke:
+    # fzf-zellij runs fzf in a bash subshell inside the pane, while fzf-tab
+    # generates its preview strings as zsh code (`[[ -d $realpath ]]`, etc.)
+    # and exports compsys variables like $realpath / $word / $desc only
+    # within the parent zsh widget. Bash inside the pane can't see those,
+    # and even if it could, the syntax doesn't parse. fzf-tab is designed
+    # to run inline in the current zsh shell; honour that. The other widgets
+    # (_gh, _jb, file picker) still use fzf-zellij — those are independent.
+    # Default fzf-command is "fzf"; nothing to set.
 
     # Inherit FZF_DEFAULT_OPTS (ctrl-n/ctrl-p preview-page bindings, etc).
     zstyle ':fzf-tab:*' use-fzf-default-opts yes
@@ -208,13 +214,38 @@ if [[ -e ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh ]]; then
     # through instead of fzf-tab's slightly dim default.
     zstyle ':fzf-tab:*' default-color $'\033[37m'
 
-    # Per-command previews. Keep tight: more rules = slower tab cycle.
-    zstyle ':fzf-tab:complete:cd:*' fzf-preview \
-        'eza -la --color=always --icons=auto $realpath 2>/dev/null || ls -la --color=always $realpath'
-    zstyle ':fzf-tab:complete:(\\\\|*/|)bat:argument-rest' fzf-preview \
-        'bat --color=always --style=numbers --line-range=:200 $realpath 2>/dev/null'
-    zstyle ':fzf-tab:complete:(\\\\|*/|)cat:argument-rest' fzf-preview \
-        'bat --color=always --style=numbers --line-range=:200 $realpath 2>/dev/null'
+    # Generic file/dir preview for ANY command that completes a path. Runs
+    # whenever the more-specific rules below don't match. Branches at runtime:
+    # directory → name-only listing (eza --tree -L 1 if available, else
+    # `ls -1 -F` so file/dir names get the full preview width — `ls -la` was
+    # truncating names because perm/owner/group/size/date eats half the
+    # column budget); text file → bat (200 lines); binary/other → file metadata.
+    zstyle ':fzf-tab:complete:*:*' fzf-preview '
+        if [[ -d $realpath ]]; then
+            if command -v eza >/dev/null 2>&1; then
+                eza --color=always --icons=auto -1 -F --group-directories-first $realpath
+            else
+                ls -1 -F --color=always $realpath
+            fi
+        elif [[ -f $realpath ]]; then
+            bat --color=always --style=numbers --line-range=:200 $realpath 2>/dev/null \
+                || cat $realpath 2>/dev/null \
+                || file $realpath
+        elif [[ -n $realpath ]]; then
+            file $realpath 2>/dev/null
+        fi
+    '
+
+    # Command-specific overrides go below — these win over the generic rule
+    # because fzf-tab matches the most-specific zstyle pattern. Keep tight:
+    # more rules = slower tab cycle.
+    zstyle ':fzf-tab:complete:cd:*' fzf-preview '
+        if command -v eza >/dev/null 2>&1; then
+            eza --color=always --icons=auto -1 -F --group-directories-first $realpath
+        else
+            ls -1 -F --color=always $realpath
+        fi
+    '
     zstyle ':fzf-tab:complete:git-(add|diff|restore|stash):*' fzf-preview \
         'git diff --color=always -- $realpath 2>/dev/null'
     zstyle ':fzf-tab:complete:git-show:*' fzf-preview \

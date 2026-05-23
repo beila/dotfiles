@@ -55,12 +55,15 @@ else
 fi
 
 echo
-echo "=== Test 3: fzf-command zstyle points at fzf-zellij ==="
-out=$(zsh_eval "zstyle -s ':fzf-tab:*' fzf-command cmd && echo \"cmd=\$cmd\"")
-if printf '%s' "$out" | grep -q "fzf-zellij"; then
-    pass "fzf-command set: $out"
+echo "=== Test 3: fzf-command unset (fzf-tab uses default fzf) ==="
+# fzf-tab is intentionally NOT routed through fzf-zellij — preview strings
+# break in bash subshells inside the floating pane (fzf-tab generates zsh
+# syntax + relies on parent-zsh compsys variables). Verify we don't set it.
+out=$(zsh_eval "zstyle -s ':fzf-tab:*' fzf-command cmd; echo \"cmd=\${cmd:-<unset>}\"")
+if printf '%s' "$out" | grep -q "cmd=<unset>"; then
+    pass "fzf-command not set (default fzf)"
 else
-    fail "fzf-command not fzf-zellij" "got: $out"
+    fail "fzf-command unexpectedly set" "got: $out"
 fi
 
 echo
