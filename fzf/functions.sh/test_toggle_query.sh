@@ -116,12 +116,21 @@ echo "_gh / _gy / _gyy real-fzf end-to-end (uses the real fzf binary in filter m
 source "${0:a:h}/functions.sh"
 is_in_jj_repo() { return 0; }
 is_in_git_repo(){ return 1; }
-jj() { :; }
-# Replace fzf_down with a real-fzf-in-filter-mode shim. FZF_LINE is the only
-# candidate; fzf -1 auto-selects it; --accept-nth (passed by the leaf) does
-# the field extraction. This proves the whole pipe end-to-end.
+# Stub jj to emit FZF_LINE on `jj log` / `jj operation log` calls; ignore
+# everything else (any positional args, color flags, templates).
+jj() {
+  case "${1:-}" in
+    --quiet) shift ;;
+  esac
+  case "${1:-}" in
+    log|operation) printf '%s\n' "$FZF_LINE" ;;
+    *) : ;;
+  esac
+}
+# Use real fzf. Empty filter matches every line, fzf -1 auto-selects, the
+# leaf's --accept-nth extracts the right field.
 fzf_down() {
-  printf '%s\n' "$FZF_LINE" | command fzf --ansi -1 --filter '.' "$@" 2>/dev/null
+  command fzf --ansi -1 --filter '' "$@" 2>/dev/null
 }
 
 FZF_LINE="◆  mptlxvr 2h ago hojin description"
