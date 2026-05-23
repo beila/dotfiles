@@ -224,7 +224,7 @@ _git_h() {
   _git_log_fzf
 }
 
-_gh() { if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
+_gh() { if is_in_jj_repo; then _jh | _jj_h_extract; elif is_in_git_repo; then _git_h; fi }
 
 # --- log all ---
 
@@ -234,7 +234,8 @@ _jyy() {
   jj --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')"
+    --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')" |
+  _jj_y_extract_change | _emit
 }
 
 _git_yy() {
@@ -242,7 +243,7 @@ _git_yy() {
   _git_log_fzf
 }
 
-_gyy() { { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi } | _jj_y_extract; }
+_gyy() { if is_in_jj_repo; then _jj_y_dispatch _jyy; elif is_in_git_repo; then _git_yy; fi }
 
 # --- log ---
 
@@ -265,15 +266,39 @@ _git_hh() {
   _git_log_fzf
 }
 
-_ghh() { if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
+_ghh() { if is_in_jj_repo; then _jhh | _jj_h_extract; elif is_in_git_repo; then _git_hh; fi }
 
 # --- reflog / operation log ---
 
-# Final post-stage for the _g{y,yy} pair. Tolerant of both shapes so the
-# ctrl-y toggle (an accidental-keypress recovery affordance) works in either
-# direction: op-log line ends in a hex op ID, _jyy output is a bare change ID
-# — `awk '{print $NF}'` picks the right token from each.
-_jj_y_extract() { sed 's/\x1b\[[0-9;]*m//g' | awk '{print $NF}' | head -1; }
+# `_jy`/`_jyy` emit different ID shapes (hex op id vs lowercase change id).
+# A naive pipeline tail would mangle one when ctrl-y `become`-toggles to the
+# other. Workaround: leaves write the extracted ID to a side-channel file
+# named by `$FZF_BECOME_OUT`, so the toggled-to leaf's output skips the
+# original leaf's pipe entirely. The dispatcher reads the file at the end.
+# (`_jh`/`_jhh` don't need this — both produce change ids, same shape.)
+_jj_y_extract_oplog() { sed 's/\x1b\[[0-9;]*m//g' | grep -oE '[0-9a-f]{12,}' | tail -1; }
+_jj_y_extract_change() { sed 's/\x1b\[[0-9;]*m//g' | grep -o '^[^a-z(]*[a-z]\{1,\}' | grep -o '[a-z]\{1,\}$' | head -1; }
+
+# Run a leaf with FZF_BECOME_OUT pointing at a temp file; print the file's
+# contents on completion. Standalone leaves (no FZF_BECOME_OUT preset) keep
+# working by virtue of `_emit` falling back to stdout.
+_jj_y_dispatch() {
+  local out; out=$(mktemp /tmp/jj_y_out.XXXXXX) || return
+  FZF_BECOME_OUT=$out "$@"
+  cat "$out"
+  rm -f "$out"
+}
+
+# Helper: emit the chosen ID either to FZF_BECOME_OUT or stdout. When two
+# pipelines may race for the same file (toggle case: original leaf's pipe-tail
+# AND the becomed leaf's pipe-tail both run `_emit`), only the one that
+# actually saw non-empty input wins — empty input is a no-op so the other
+# leaf's earlier write isn't truncated.
+_emit() {
+  local id; IFS= read -r id || true
+  [[ -z "$id" ]] && return 0
+  if [[ -n "${FZF_BECOME_OUT:-}" ]]; then printf '%s\n' "$id" >"$FZF_BECOME_OUT"; else printf '%s\n' "$id"; fi
+}
 
 _jy() {
   local pos_bind=()
@@ -284,7 +309,8 @@ _jy() {
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
-      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %'
+      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %' |
+    _jj_y_extract_oplog | _emit
 }
 
 _git_y() {
@@ -292,7 +318,7 @@ _git_y() {
   _git_log_fzf
 }
 
-_gy() { { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi } | _jj_y_extract; }
+_gy() { if is_in_jj_repo; then _jj_y_dispatch _jy; elif is_in_git_repo; then _git_y; fi }
 
 # --- remotes ---
 

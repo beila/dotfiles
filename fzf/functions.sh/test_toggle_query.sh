@@ -100,86 +100,66 @@ assert "ctrl-o reloads on success" "reload" "$out"
 assert "ctrl-o shows error on failure" "change-header" "$out"
 assert "header mentions ctrl-o" "ctrl-o" "$out"
 
-echo "_gy / _gyy post-extraction (recovery toggle: ctrl-y swaps after accidental keypress):"
-# Override fzf to ALSO emit a chosen "selected line" on stdout, simulating what
-# the post-pipeline of the dispatcher will see. Each scenario picks the line
-# representing what the toggled-to function would actually emit.
-EMIT_LINE=""
-fzf() { echo "$*" > "$_args_file"; [[ -n "$EMIT_LINE" ]] && printf '%s\n' "$EMIT_LINE"; }
-fzf_down() { fzf "$@"; }
-_jj_log_fzf() { fzf "$@"; }
-# Stub the leaf functions so we test only the dispatcher's outer post-pipeline.
-# A real toggle goes _jy -> become(_jyy) -> _jj_log_fzf prints a change ID;
-# from _gy's perspective that is just stdin, regardless of which leaf wrote it.
-_jy()    { printf '%s\n' "$EMIT_LINE"; }
-_jyy()   { printf '%s\n' "$EMIT_LINE"; }
-_git_y() { printf '%s\n' "$EMIT_LINE"; }
-_git_yy(){ printf '%s\n' "$EMIT_LINE"; }
-is_in_jj_repo() { return 0; }
-is_in_git_repo(){ return 1; }
-
-# Natural exit of _jy: op-log line ends with hex op ID
-EMIT_LINE="1 minute ago jj git push --remote backup --bookmark main a2c1e1ac0660"
-assert "_gy natural: extracts hex op ID from op-log line" "a2c1e1ac0660" "$(_gy)"
-
-# Natural exit of _jyy: _jj_log_fzf already produced a single change ID
-EMIT_LINE="mptlxvr"
-assert "_gyy natural: passes change ID through" "mptlxvr" "$(_gyy)"
-
-# Recovery case A: user typed ^G^Y (=> _gy), realised mistake, ctrl-y -> _jyy.
-# _jyy via _jj_log_fzf emits a single change ID. Dispatcher must NOT mangle it.
-EMIT_LINE="mptlxvr"
-got=$(_gy)
-assert "_gy after ctrl-y to _jyy: returns the change ID, not empty/mangled" "mptlxvr" "$got"
-assert_not "_gy after toggle: not a hex op id" "a2c1e1ac0660" "$got"
-
-# Recovery case B: user typed ^GY (=> _gyy), realised mistake, ctrl-y -> _jy.
-# _jy emits the raw fzf-selected op-log line (no inner extraction). Dispatcher
-# must extract the trailing hex op ID.
-EMIT_LINE="2 hours ago jj git fetch --all-remotes 6d8b8b9d73c0"
-got=$(_gyy)
-assert "_gyy after ctrl-y to _jy: extracts hex op ID from raw line" "6d8b8b9d73c0" "$got"
-
-# ANSI-stripped raw line (real op log has color)
-EMIT_LINE=$'\x1b[33m2h\x1b[0m ago \x1b[32mjj op restore\x1b[0m \x1b[2;90mc824cb3cc197\x1b[0m'
-got=$(_gyy)
-assert "_gyy: strips ANSI before extracting op ID" "c824cb3cc197" "$got"
-
-# Empty input (user cancelled fzf)
-EMIT_LINE=""
-got=$(_gy)
-assert "_gy: empty input -> empty output (no extraction noise)" "" "$got"
-
-echo
-echo "_gy / _gyy real-pipeline toggle (no leaf stubs — exercises _jj_log_fzf tail):"
+echo "_gy / _gyy real-pipeline toggle (no leaf stubs — exercises full extraction):"
 # Re-source so the real _jy / _jyy / _jj_log_fzf bodies are live again.
 source "${0:a:h}/functions.sh"
 is_in_jj_repo() { return 0; }
 is_in_git_repo(){ return 1; }
-# Only stub fzf_down so the chosen line travels through every real downstream
-# stage (any extractor inside _jj_log_fzf, the leaf, and the dispatcher).
+# Only stub fzf_down. The chosen "selected line" travels through every real
+# downstream stage of the leaf (extractor + _emit + side-channel + dispatcher).
 EMIT_LINE=""
 fzf_down() { [[ -n "$EMIT_LINE" ]] && printf '%s\n' "$EMIT_LINE"; }
-# Avoid running the real `jj` for these scenarios — the leaf functions only
-# need their post-pipeline behaviour exercised.
+# Avoid running the real `jj` for these natural-exit scenarios.
 jj() { :; }
 
-# Recovery B (real pipeline): _jyy was up, ctrl-y swapped to _jy.
-# The line emitted is what _jy (no inner extractor) would write: a raw op-log
-# line. Inside _jyy this still flows through _jj_log_fzf's letter-extracting
-# tail, which mauls it to "minutes" unless the dispatcher's extractor is
-# robust to that.
-EMIT_LINE="2 minutes ago jj git fetch --all-remotes 6d8b8b9d73c0"
-got=$(_gyy)
-assert "_gyy after ctrl-y -> _jy (real pipeline): hex op ID, not 'minutes'" "6d8b8b9d73c0" "$got"
-assert_not "_gyy after toggle: not the word 'minutes'" "minutes" "$got"
+# Natural exit of _jy: op-log line ends with hex op ID (after _dim_jj_op_ids
+# pre-stage so the line passes through with ANSI tags too).
+EMIT_LINE="1 minute ago jj git push --remote backup --bookmark main a2c1e1ac0660"
+assert "_gy natural (real pipeline): extracts hex op ID" "a2c1e1ac0660" "$(_gy)"
 
-# Recovery A (real pipeline): _jy was up, ctrl-y swapped to _jyy.
-# _jyy emits a bare change ID; _jy has no inner extractor any more, so the
-# dispatcher's extractor sees a single token directly.
-EMIT_LINE="mptlxvr"
+# Natural exit of _jyy: change-log line, change ID is the leading lowercase token.
+EMIT_LINE="◆  mptlxvr 2h ago hojin description here"
+assert "_gyy natural (real pipeline): extracts leading change ID" "mptlxvr" "$(_gyy)"
+
+# Recovery B: _gyy was up, ctrl-y swapped to _jy (becomed). The becomed
+# subprocess inherits FZF_BECOME_OUT and writes its extracted op ID directly
+# to the file; _jyy's outer pipe should not overwrite that. We simulate this
+# by sourcing functions, swapping fzf_down to launch a real becomed _jy in a
+# subshell that writes into FZF_BECOME_OUT before fzf_down returns.
+fzf_down() {
+  # Mimic fzf's `become` action: in a subshell, run _jy directly so it writes
+  # its op ID into the file via _emit, then return without emitting anything
+  # on stdout (the becomed leaf replaced fzf and did not produce stdout).
+  ( EMIT_LINE_INNER="2 minutes ago jj git fetch --all-remotes 6d8b8b9d73c0"
+    fzf_down() { printf '%s\n' "$EMIT_LINE_INNER"; }
+    _jy ) >/dev/null
+  # Original fzf returns no stdout (replaced by become).
+  return 0
+}
+got=$(_gyy)
+assert "_gyy after ctrl-y -> _jy (becomed via side-channel): op ID, not 'minutes'" "6d8b8b9d73c0" "$got"
+assert_not "_gyy after toggle: NOT the word 'minutes'" "minutes" "$got"
+
+# Recovery A: _gy was up, ctrl-y swapped to _jyy.
+fzf_down() {
+  ( EMIT_LINE_INNER="◆  mptlxvr 2h ago hojin description here"
+    fzf_down() { printf '%s\n' "$EMIT_LINE_INNER"; }
+    _jyy ) >/dev/null
+  return 0
+}
 got=$(_gy)
-assert "_gy after ctrl-y -> _jyy (real pipeline): change ID preserved" "mptlxvr" "$got"
+assert "_gy after ctrl-y -> _jyy (becomed via side-channel): change ID preserved" "mptlxvr" "$got"
+
+# Empty selection (user pressed Esc): nothing written to side-channel, dispatcher emits empty.
+fzf_down() { :; }
+EMIT_LINE=""
+assert "_gy cancelled: empty output" "" "$(_gy)"
+assert "_gyy cancelled: empty output" "" "$(_gyy)"
+
+# Op-log line with ANSI color (typical real-world line shape from _dim_jj_op_ids).
+fzf_down() { printf '%s\n' "$EMIT_LINE"; }
+EMIT_LINE=$'\x1b[33m2 hours ago\x1b[0m jj op restore \x1b[2;90mc824cb3cc197\x1b[0m'
+assert "_gy: strips ANSI before extracting op ID" "c824cb3cc197" "$(_gy)"
 
 echo
 echo "$pass passed, $fail failed"
