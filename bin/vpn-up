@@ -6,11 +6,14 @@
 # without first tearing down the tunnel, the box ends up with a dead tunnel
 # that still claims to be the default route — every DNS lookup hangs and
 # the network is effectively inaccessible until the user notices. vpn-up
-# bundles three things into one foreground command:
-#   1. One sudo prompt to prime the cache (no NOPASSWD entry needed).
-#   2. The VPN client itself (caller supplies via $1 / VPN_START_CMD).
-#   3. vpn-watch in the background, which monitors NetworkManager
+# bundles two things into one foreground command:
+#   1. The VPN client itself (caller supplies via $1 / VPN_START_CMD).
+#      The client is expected to do its own sudo prompt up front (e.g.
+#      amazon-vpn calls `sudo /bin/true` then `sudo openconnect …`).
+#   2. vpn-watch in the background, which monitors NetworkManager
 #      connectivity and SIGTERMs the VPN process the moment it drops.
+#      The watcher's `sudo -n pkill` reuses the cache the VPN client just
+#      primed, and `sudo -nv` keeps it warm via VPN_SUDO_REFRESH.
 # When the VPN client exits (user disconnect, watcher kill, network
 # failure), vpn-up tears down the watcher and returns.
 #
@@ -50,15 +53,11 @@ if ! command -v "${START_CMD[0]}" >/dev/null 2>&1; then
     exit 127
 fi
 
-# Prime sudo so the watcher can pkill without prompting later. Interactive
-# (no `-n`): one prompt per session, exactly as expected.
-if ! sudo -v; then
-    log ERROR "sudo authentication failed"
-    exit 1
-fi
-
-# Spawn watcher in the background. It inherits the sudo cache and our env;
-# vpn-watch handles its own log tag.
+# Spawn the watcher first so it's already running by the time the VPN
+# client primes sudo — vpn-watch's startup wait gives the client time to
+# both prompt for sudo and spawn the actual VPN process before the watcher
+# starts polling. The watcher will reuse the sudo cache primed by the
+# client when it later needs to `pkill -TERM` on connectivity loss.
 "$DOTFILES_ROOT/bin/vpn-watch" &
 WATCHER_PID=$!
 

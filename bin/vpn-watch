@@ -48,9 +48,30 @@ DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
 source "$DOTFILES_ROOT/script/logger/log.sh"
 
 VPN_PROCESS_NAME=${VPN_PROCESS_NAME:-openconnect}
+VPN_PROCESS_PID=${VPN_PROCESS_PID:-}
 VPN_DEBOUNCE_SEC=${VPN_DEBOUNCE_SEC:-5}
 VPN_SUDO_REFRESH=${VPN_SUDO_REFRESH:-240}
 VPN_STARTUP_WAIT=${VPN_STARTUP_WAIT:-30}
+
+# is_vpn_alive — return 0 if the watched VPN process is still running.
+# When VPN_PROCESS_PID is set we check that exact PID; otherwise fall back
+# to pgrep -x by name.
+is_vpn_alive() {
+    if [ -n "$VPN_PROCESS_PID" ]; then
+        kill -0 "$VPN_PROCESS_PID" 2>/dev/null
+    else
+        pgrep -x "$VPN_PROCESS_NAME" >/dev/null
+    fi
+}
+
+# kill_vpn — SIGTERM the VPN process. PID-targeted when known.
+kill_vpn() {
+    if [ -n "$VPN_PROCESS_PID" ]; then
+        sudo -n kill -TERM "$VPN_PROCESS_PID"
+    else
+        sudo -n pkill -TERM -x "$VPN_PROCESS_NAME"
+    fi
+}
 
 # nm_connectivity — print the integer 0-4, or empty if NM unreachable.
 # We don't bail when NM is missing: in that case the watcher just monitors
@@ -68,9 +89,9 @@ nm_connectivity() {
 # Wait for the VPN process to appear. vpn-up forks us early so the inner
 # command (e.g. amazon-vpn) gets a chance to spawn it.
 elapsed=0
-while ! pgrep -x "$VPN_PROCESS_NAME" >/dev/null; do
+while ! is_vpn_alive; do
     if [ "$elapsed" -ge "$VPN_STARTUP_WAIT" ]; then
-        log INFO "no $VPN_PROCESS_NAME after ${VPN_STARTUP_WAIT}s; exiting"
+        log INFO "VPN process never appeared after ${VPN_STARTUP_WAIT}s; exiting"
         exit 0
     fi
     sleep 1
@@ -92,9 +113,9 @@ REFRESHER_PID=$!
 trap 'kill "$REFRESHER_PID" 2>/dev/null || true' EXIT
 
 last_state=$(nm_connectivity)
-log INFO "watching $VPN_PROCESS_NAME; initial connectivity=${last_state:-unknown}"
+log INFO "watching VPN ${VPN_PROCESS_PID:-$VPN_PROCESS_NAME}; initial connectivity=${last_state:-unknown}"
 
-while pgrep -x "$VPN_PROCESS_NAME" >/dev/null; do
+while is_vpn_alive; do
     state=$(nm_connectivity)
     if [ -n "$state" ] && [ "$state" != "4" ] && [ "${last_state:-}" = "4" ]; then
         log INFO "connectivity dropped FULL -> $state; debouncing ${VPN_DEBOUNCE_SEC}s"
@@ -105,13 +126,13 @@ while pgrep -x "$VPN_PROCESS_NAME" >/dev/null; do
             last_state="4"
             continue
         fi
-        log INFO "connectivity still $new_state; killing $VPN_PROCESS_NAME"
-        if sudo -n pkill -TERM -x "$VPN_PROCESS_NAME"; then
-            log INFO "killed $VPN_PROCESS_NAME"
-        elif ! pgrep -x "$VPN_PROCESS_NAME" >/dev/null; then
-            log INFO "$VPN_PROCESS_NAME already gone (race); no-op"
+        log INFO "connectivity still $new_state; killing VPN"
+        if kill_vpn; then
+            log INFO "killed VPN"
+        elif ! is_vpn_alive; then
+            log INFO "VPN already gone (race); no-op"
         else
-            log ERROR "pkill failed (sudo expired or permission denied); $VPN_PROCESS_NAME still running"
+            log ERROR "kill failed (sudo expired or permission denied); VPN still running"
         fi
         exit 0
     fi
@@ -119,4 +140,4 @@ while pgrep -x "$VPN_PROCESS_NAME" >/dev/null; do
     sleep 1
 done
 
-log INFO "$VPN_PROCESS_NAME exited; watcher exiting"
+log INFO "VPN exited; watcher exiting"
