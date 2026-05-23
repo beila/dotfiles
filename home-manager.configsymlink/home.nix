@@ -203,5 +203,29 @@ in
     Install.WantedBy = [ "timers.target" ];
   };
 
+  # Weekly flake update + dry-run home-manager build. Catches breaking
+  # changes (deprecated options, schema migrations, package renames) on
+  # a Sunday morning instead of the next time the user runs `home-manager
+  # switch` for an unrelated reason. Never auto-switches — only signals.
+  # See script/flake-update for the full flow.
+  systemd.user.services.flake-update = {
+    Unit.Description = "Weekly nix flake update + home-manager build dry-run";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "%h/.dotfiles/script/flake-update";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+    };
+  };
+  systemd.user.timers.flake-update = {
+    Unit.Description = "Run flake-update weekly";
+    Timer = {
+      OnCalendar = "Sun 03:00";
+      RandomizedDelaySec = "2h";
+      Persistent = true;  # Catch up if laptop was off at 03:00 Sun
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
   targets.genericLinux.enable = true;
 }
