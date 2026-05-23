@@ -18,7 +18,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] sync_repo to rely on jj config rather than remost list and use the url directly rather than the remote name
   - use git to directly force-push the git commit id of each bookmark, workspace to the server with the url
 - [x] say something whenever asking for permission in claude — Notification hook at `bin/claude-notification-tts`
-- [x] in zellij super-w to open session manager as alt-w does
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
@@ -99,7 +98,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - xfce4-panel config: `~/.dotfiles/xfce4.configsymlink/` (symlinked to ~/.config/xfce4/)
 - gtk-3.0 config: `~/.dotfiles/gtk-3.0.configsymlink/` (symlinked to ~/.config/gtk-3.0/) — monospace tooltip font
 - zellij config: `~/.dotfiles/zellij.configsymlink/` (symlinked to ~/.config/zellij/)
-  - Normal mode: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-w / Super-w→session manager (built-in plugin; both keys bound so Super-w works via kitty CSI u when forwarded, with `keybind = super+w=text:\x1bw` in ghostty as a fallback if needed), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
+  - Normal mode: Alt-tab→Detach (triggers zellij-cycle session switch), Alt-w→session manager (built-in plugin), Ctrl-tab→next tab, Alt-h/j/k/l→MoveFocus, Alt-Shift-h/j/k/l→MovePane
   - Move mode: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), agents/no-mcp.json (no MCP servers, used by commit-msg to avoid orphaned processes), agents/builder.json (local override of the AmazonBuilderCoreAIAgents `builder` agent: adds TTS MCP server, narrowed `execute_bash` allowlist for read-only operations, allows `fs_write:*AGENTS.md` so Kiro can edit this file without prompting), settings/cli.json (default agent: builder, default model: claude-opus-4.7), kiro.filesymlink/bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID`), bin/test_mcp_tts.sh (run with `bash bin/test_mcp_tts.sh`)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`

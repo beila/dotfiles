@@ -16,7 +16,7 @@ keybinds clear-defaults=true {
         bind "Alt q" { Quit; }
         bind "Alt t" { SwitchToMode "tab"; }
         bind "Alt v" { EditScrollback; }
-        bind "Alt w" "Super w" {
+        bind "Alt w" {
             LaunchOrFocusPlugin "session-manager" {
                 floating true
                 move_to_focused_tab true
@@ -168,7 +168,7 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "normal"
         }
-        bind "Alt w" "Super w" {
+        bind "Alt w" {
             LaunchOrFocusPlugin "session-manager" {
                 floating true
                 move_to_focused_tab true
