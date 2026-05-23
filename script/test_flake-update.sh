@@ -131,7 +131,11 @@ reset_fixtures() {
 }
 
 run_under_test() {
-    PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" >/dev/null 2>&1
+    # Explicitly unset CLAUDECODE — when this harness is run from inside a
+    # Claude Code session (common during dev), the env var would otherwise
+    # cause flake-update to take the "skip classifier" branch and we can't
+    # exercise the BREAKING / OK paths. Test 8 sets CLAUDECODE deliberately.
+    env -u CLAUDECODE PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" >/dev/null 2>&1
     echo $?
 }
 
@@ -210,7 +214,7 @@ echo
 echo "=== Test 8: build OK + news exists + CLAUDECODE set — silent INFO ==="
 reset_fixtures; set_nix ok; set_hm ok; set_claude breaking
 set_news "* deprecation notice."
-rc=$(CLAUDECODE=1 PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" >/dev/null 2>&1; echo $?)
+rc=$(env CLAUDECODE=1 PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" >/dev/null 2>&1; echo $?)
 check "exit 0" "0" "$rc"
 check_grep "claude skipped" 'claude skipped .running inside Claude Code' "$(log_file)"
 check_nogrep "no ERROR"     '\[ERROR\]' "$(log_file)"
