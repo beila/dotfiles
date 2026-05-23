@@ -103,10 +103,15 @@ fi
 err=$(mktemp /tmp/flake-update.err.XXXXXX)
 if ! home-manager build --impure --flake . 2>"$err"; then
     # Build failure = the next `home-manager switch` will fail too. Page user.
-    summary=$(grep -E "^error:|^warning:" "$err" | head -3 | tr '\n' ' | ')
-    log ERROR "home-manager build FAILED after flake update — switch will break. Summary: ${summary:-see log}"
-    log ERROR "first 20 lines of build stderr:"
-    head -20 "$err" | while IFS= read -r line; do log ERROR "  $line"; done
+    # Nix error traces are noisy — the actionable line is usually the LAST
+    # `error:` block, not the first. Show both ends so the Telegram preview
+    # carries the actionable summary even before the user clicks the log link.
+    summary=$(tac "$err" | grep -m1 -E "^[[:space:]]*error: " | sed 's/^[[:space:]]*//; s/^error: //')
+    log ERROR "home-manager build FAILED after flake update — switch will break. Reason: ${summary:-see log}"
+    log ERROR "--- last 40 lines of build stderr (root cause usually here) ---"
+    tail -40 "$err" | while IFS= read -r line; do log ERROR "  $line"; done
+    log ERROR "--- first 10 lines of build stderr (chain start) ---"
+    head -10 "$err" | while IFS= read -r line; do log ERROR "  $line"; done
     rm -f "$err"
     exit 1
 fi

@@ -138,31 +138,18 @@ timeout_cmd() {
 }
 
 # --- jj branch helpers --------------------------------------------------------
-#
-# Pipeline overview (orchestrated in main flow below):
-#   snapshot_at_to_push_rev          — pick a stable single-rev change_id (PUSH_REV)
-#   resolve_git_dir                  — find $GIT_DIR (jj-first, git-fallback)
-#   step0_push_workspace_snapshot    — force-push hostname/<workspace> snapshot
-#   step1_advance_and_push_local_bookmarks
-#                                    — advance sync.bookmark + push hostname-prefixed refs
-#   step2_reconcile_sync_bookmark    — fetch + ancestry-based reconcile (push/FF/rebase)
-#   step3_rebase_local_chain         — rebase any leftover mutable chain onto sync.bookmark
-#   step4_jj_git_import_cleanup      — re-import refs, untrack hostname remotes, drop orphans
-#
-# Step functions read these globals (set in main): PUSH_REV, GIT_DIR, BACKUP_URL,
-# CURRENT_BM, MACHINE_NAME, DOTFILES_ROOT, SYNC_REPO_CMD_TIMEOUT.
+# Step functions read these globals (set in main):
+#   PUSH_REV, GIT_DIR, BACKUP_URL, CURRENT_BM, MACHINE_NAME, DOTFILES_ROOT,
+#   SYNC_REPO_CMD_TIMEOUT.
 
-# Snapshot @ atomically and pick PUSH_REV (a stable single-rev change_id we can
-# publish below — even when @ is an empty merge). One jj call avoids races with
-# concurrent jj. On the `jj new` path, also runs commit-msg + jj describe so
-# the snapshot lands with a useful subject.
+# Pick a stable single-rev change_id even when @ is an empty merge. One jj
+# call to snapshot @ avoids races with concurrent jj.
 snapshot_at_to_push_rev() {
     local at_info change_id is_empty is_merge has_desc parent_change_id msg
     at_info=$(jj log -r @ --no-graph -T 'change_id ++ "|" ++ if(empty, "1", "0") ++ "|" ++ if(parents.len() > 1, "1", "0") ++ "|" ++ if(description, "1", "0") ++ "|" ++ parents.map(|p| p.change_id()).join(",")' 2>/dev/null)
     IFS='|' read -r change_id is_empty is_merge has_desc parent_change_id <<<"$at_info"
     if [ "$is_empty" = "0" ] || [ "$is_merge" = "1" ]; then
         jj new
-        # Skip describe if @- was empty (nothing to commit-msg) or already has a description
         if [ "$is_empty" = "0" ] && [ "$has_desc" = "0" ]; then
             if ! msg=$(VERBOSE=1 "$DOTFILES_ROOT/bin/commit-msg" "$change_id"); then
                 echo "commit-msg failed" >&2
@@ -176,10 +163,8 @@ snapshot_at_to_push_rev() {
     fi
 }
 
-# Resolve $GIT_DIR via jj-first, git-fallback. jj git root is canonical, but for
-# colocated worktrees with a degraded op log (e.g. stale workspace) it can return
-# empty or a non-existent path. Fall back to git's own view so sync can proceed
-# via raw git while jj recovers.
+# `jj git root` can return empty/nonexistent for colocated worktrees with a
+# degraded op log; fall back to git's view so sync proceeds while jj recovers.
 resolve_git_dir() {
     GIT_DIR=$(jj git root 2>/dev/null)
     if [ -z "$GIT_DIR" ] || [ ! -d "$GIT_DIR" ] && [ ! -f "$GIT_DIR" ]; then
@@ -187,11 +172,8 @@ resolve_git_dir() {
     fi
 }
 
-# Step 0: force-push hostname/<workspace> snapshot bookmark via raw git, then
-# delete it locally. Preserves @ on the remote even if later steps fail.
-# Workspace name: match current @ commit against `jj workspace list` (op log is
-# shared across workspaces, so `jj op log` returns the last-active workspace,
-# not the current one).
+# Workspace name: match current @ against `jj workspace list` — `jj op log` is
+# shared across workspaces and would return the last-active, not the current.
 step0_push_workspace_snapshot() {
     local current_commit workspace_name ws_bm ws_branch ws_ref
     current_commit=$(jj log -r @ --no-graph -T 'commit_id' 2>/dev/null)
@@ -207,11 +189,9 @@ step0_push_workspace_snapshot() {
     jj bookmark delete "$ws_bm" 2>/dev/null || true
 }
 
-# Step 1: advance sync.bookmark to PUSH_REV and force-push every hostname-prefixed
-# bookmark whose tip differs from the remote. Pushed via raw git delete+push
-# (backup server doesn't support --force-with-lease). After all pushes, run
-# `jj git import` so subsequent jj queries (and any early exit before Step 4)
-# see the right SHAs for taygeta/*@backup bookmarks.
+# Push hostname-prefixed refs whose tip differs from remote (raw git delete+push
+# — backup server rejects --force-with-lease). Final `jj git import` syncs
+# refs/remotes/backup/* so any later early-exit still sees the right SHAs.
 step1_advance_and_push_local_bookmarks() {
     local remote_refs ref remote_ref bm
     if [ -n "$CURRENT_BM" ]; then
@@ -229,9 +209,6 @@ step1_advance_and_push_local_bookmarks() {
     jj git import 2>/dev/null || true
 }
 
-# Classify ancestry of two commit IDs as one of:
-#   equal | local-ancestor | remote-ancestor | diverged
-# Echoes the class so the caller can branch on it.
 ancestry_class() {
     local local_rev=$1 remote_rev=$2
     if [ "$local_rev" = "$remote_rev" ]; then
@@ -245,11 +222,10 @@ ancestry_class() {
     fi
 }
 
-# Reconcile a diverged sync.bookmark by probing a 3-way merge of L and R via
-# `jj new --no-edit`. The probe shares conflict semantics with the actual
-# rebase (both reduce to a 3-way merge of common-ancestor / L / R), so a clean
-# probe guarantees a clean rebase — and bookmark commit_ids are not rewritten
-# until the probe is known clean, leaving a clear retry surface on conflict.
+# Probe a 3-way merge of L and R before mutating bookmarks. The probe shares
+# conflict semantics with the actual rebase (both reduce to a 3-way merge of
+# common-ancestor / L / R), so a clean probe guarantees a clean rebase — and
+# we leave a clear retry surface on conflict.
 handle_diverged() {
     local current_bm=$1 local_rev=$2 remote_rev=$3
     local probe_change conflict_files rebased_rev
@@ -265,14 +241,12 @@ handle_diverged() {
         return 0
     fi
     if jj log -r "$probe_change" --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
-        # Conflict: abandon probe, leave bookmarks untouched, log + skip.
         conflict_files=$(jj resolve --list -r "$probe_change" 2>/dev/null | awk 'NF {print $1}' | paste -sd, -)
         log ERROR "REBASE-CONFLICT $current_bm files=${conflict_files:-<unknown>} local=$local_rev remote=$remote_rev"
         echo "WARNING: rebase has conflicts in ${conflict_files:-<unknown>}; skipping push for $current_bm" >&2
         jj abandon "$probe_change" 2>/dev/null || true
         return 0
     fi
-    # Clean: abandon probe, rebase local-only chain onto remote, push.
     jj abandon "$probe_change" 2>/dev/null || true
     if ! jj rebase -s 'roots(::'"$local_rev"' ~ ::'"$remote_rev"')' -d "$remote_rev" 2>/dev/null; then
         log CRITICAL "REBASE-FAIL $current_bm local=$local_rev remote=$remote_rev"
@@ -285,13 +259,9 @@ handle_diverged() {
     fi
 }
 
-# Step 2: fetch from backup and reconcile sync.bookmark with remote.
-# Skipped when sync.bookmark is unset or fetch fails.
-#
-# IMPORTANT: after `jj git fetch`, the bare bookmark name (e.g. "master") can
-# become ambiguous if the remote diverged (local and remote both claim it).
-# We resolve LOCAL_BM_REV to a commit_id BEFORE fetch and use THAT in all
-# post-fetch revsets.
+# After `jj git fetch`, a bare bookmark name like "master" can become
+# ambiguous when the remote diverged. Resolve LOCAL_BM_REV to a commit_id
+# BEFORE fetch and use that in all post-fetch revsets.
 step2_reconcile_sync_bookmark() {
     [ -n "$CURRENT_BM" ] || return 0
 
@@ -299,9 +269,8 @@ step2_reconcile_sync_bookmark() {
     local_bm_rev=$(jj log -r "$CURRENT_BM" --no-graph -T 'commit_id' 2>/dev/null)
 
     if ! timeout_cmd "fetch $CURRENT_BM" jj git fetch --all-remotes; then
-        # Skip push when fetch failed: stale ${CURRENT_BM}@backup leads to
-        # wrong-path pushes (e.g. "new bookmark" full-history push on transient
-        # timeout). Next run reconciles.
+        # Skip push: stale ${CURRENT_BM}@backup would route us to a wrong-path
+        # push (e.g. "new bookmark" full-history push on transient timeout).
         log INFO "SKIP-PUSH $CURRENT_BM: fetch failed; will retry next run"
         return 0
     fi
@@ -312,7 +281,6 @@ step2_reconcile_sync_bookmark() {
     remote_rev=$(jj log -r "${CURRENT_BM}@backup" --no-graph -T 'commit_id' 2>/dev/null)
 
     if [ -z "$remote_rev" ]; then
-        # Remote bookmark doesn't exist yet — push with --allow-new.
         if timeout_cmd "push $CURRENT_BM (new)" jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new; then
             log INFO "PUSH-OK $CURRENT_BM rev=$local_bm_rev (new)"
         fi
@@ -322,12 +290,10 @@ step2_reconcile_sync_bookmark() {
                 log INFO "SKIP $CURRENT_BM already at $remote_rev"
                 ;;
             local-ancestor)
-                # Local is behind remote: fast-forward local, no push.
                 jj bookmark set "$CURRENT_BM" -r "$remote_rev" --allow-backwards 2>/dev/null || true
                 log INFO "FAST-FORWARD $CURRENT_BM local=$local_bm_rev -> remote=$remote_rev"
                 ;;
             remote-ancestor)
-                # Local is ahead of remote: push local.
                 if timeout_cmd "push $CURRENT_BM (ahead)" jj git push --remote backup --bookmark "$CURRENT_BM"; then
                     log INFO "PUSH-OK $CURRENT_BM rev=$local_bm_rev (ahead)"
                 fi
@@ -340,18 +306,14 @@ step2_reconcile_sync_bookmark() {
     jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
 }
 
-# Step 3: rebase any leftover mutable chain below @ onto the freshly-updated
-# bookmark, so local @ catches up to whatever Step 2 reconciled.
 step3_rebase_local_chain() {
     [ -n "$CURRENT_BM" ] || return 0
     jj rebase -s 'roots(mutable() & ::@ ~ ::'"$CURRENT_BM"')' -d "$CURRENT_BM" 2>/dev/null || true
 }
 
-# Step 4: re-import refs/remotes/* into jj, untrack hostname-prefixed remote
-# bookmarks (per-host snapshots, not branches we want jj to follow — without
-# untrack they'd pollute `jj bookmark list` and interfere with future
-# `jj git push` operations), and abandon empty no-description orphan heads
-# left by git operations forking @.
+# Untrack hostname-prefixed remote bookmarks: they're per-host snapshots, not
+# branches we want jj to follow — left tracked, they pollute `jj bookmark list`
+# and interfere with future `jj git push` operations.
 step4_jj_git_import_cleanup() {
     local bm
     jj git import 2>/dev/null || true
@@ -366,7 +328,6 @@ log INFO "START"
 
 if jj root &>/dev/null 2>&1; then
     if ! jj git remote list 2>/dev/null | grep -q '^backup '; then
-        # No backup remote: just snapshot the working copy and exit.
         jj status &>/dev/null
         exit 0
     fi
@@ -377,7 +338,6 @@ if jj root &>/dev/null 2>&1; then
     BACKUP_URL=$(git --git-dir="$GIT_DIR" remote get-url backup 2>/dev/null)
     CURRENT_BM=$(jj config get sync.bookmark 2>/dev/null || true)
     if [ -z "$BACKUP_URL" ]; then
-        # Not an error: the repo isn't set up for backup yet.
         log INFO "NO-BACKUP-URL skipping push steps (git has no 'backup' remote)"
         exit 0
     fi
@@ -388,7 +348,7 @@ if jj root &>/dev/null 2>&1; then
     step3_rebase_local_chain
     step4_jj_git_import_cleanup
 else
-    # Skip if no 'backup' remote (avoid touching unrelated git repos discovered by sync_all)
+    # Skip unrelated git repos discovered by sync_all
     if ! $GIT remote | grep -qx 'backup'; then
         exit 0
     fi

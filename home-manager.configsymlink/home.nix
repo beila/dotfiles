@@ -104,6 +104,19 @@ in
   nixpkgs.config.allowUnfreePredicate = pkg:
     builtins.elem (pkgs.lib.getName pkg) [
       "albert"
+      # Reclassified as unfree by upstream nixpkgs after 2026-05-23 flake update.
+      # nvim plugins where the upstream repo lists a non-OSI license (or no
+      # license at all, which nixpkgs now treats as unfree). We're not
+      # redistributing — local use only.
+      "nvim-dap-vscode-js"
+      "typescript-vim"
+      "YankRing.vim"
+      "vimproc.vim"
+      "vim-table-mode"
+      "vim-jinja"
+      "vim-fubitive"
+      "vim-dirdiff"
+      "vim-argumentative"
     ];
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage

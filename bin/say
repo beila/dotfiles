@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
-# Text-to-speech dispatcher: routes by content language.
-#   Hangul (U+AC00–U+D7A3) → say-ko (edge-tts, online)
-#   otherwise              → say-en (piper, offline)
-# Usage: say "text" or echo "text" | say
-#
-# Preemption: a new `say` invocation kills any still-playing one before
-# starting. We spawn the backend under `setsid` so it owns its own process
-# group; the previous PGID is stashed in $STATE_FILE and SIGTERM'd on entry.
-# Disable with SAY_NO_PREEMPT=1 (used by mcp-tts, which manages PGIDs itself).
+# TTS dispatcher: Hangul (U+AC00–U+D7A3) → say-ko, else → say-en.
+# Usage: say "text"  or  echo "text" | say
+# A new invocation preempts any still-playing one via setsid + kill -PGID.
+# Disable with SAY_NO_PREEMPT=1 (for callers managing PGIDs themselves).
 set -u
 
 DOTFILES_ROOT="${DOTFILES_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
@@ -25,8 +20,7 @@ else
     backend="$DOTFILES_ROOT/bin/say-en"
 fi
 
-# Preempt any prior playback. Kill the recorded PGID; ignore failures (stale
-# PID after natural exit is the common case).
+# Stale PID after natural exit is the common case — ignore failures.
 if [ "${SAY_NO_PREEMPT:-0}" != "1" ] && [ -r "$STATE_FILE" ]; then
     prev=$(cat "$STATE_FILE" 2>/dev/null) || prev=
     if [ -n "$prev" ] && kill -0 "$prev" 2>/dev/null; then
@@ -38,37 +32,31 @@ if [ "${SAY_NO_PREEMPT:-0}" = "1" ]; then
     exec "$backend" "$text"
 fi
 
-# Spawn the backend in its own session (PID == PGID) so we can kill the whole
-# audio pipeline (uv → edge-tts → ffmpeg → aplay, or piper → aplay) by PGID.
+# setsid: PID == PGID, so kill -PGID reaches the whole audio pipeline
+# (uv → edge-tts → ffmpeg → aplay, or piper → aplay).
 setsid "$backend" "$text" &
 worker=$!
 ( umask 077 && printf '%s' "$worker" >"$STATE_FILE" ) 2>/dev/null || true
 
-# Forward fatal signals to the worker session so an external `kill say` (e.g.
-# mcp-tts's preemption) still tears down the audio pipeline rather than
-# orphaning aplay.
 cleanup_state_file() {
-    # Clear the state file iff it still points at us — a newer `say` may have
-    # overwritten it during our run, in which case we must NOT remove it.
+    # Only remove the file if it still names us; a newer `say` may have claimed it.
     if [ -r "$STATE_FILE" ] && [ "$(cat "$STATE_FILE" 2>/dev/null)" = "$worker" ]; then
         rm -f "$STATE_FILE"
     fi
 }
 
+# Forward signals so an external `kill say` (e.g. mcp-tts) still tears down
+# the audio pipeline. Must exit explicitly — bash otherwise swallows the
+# signal after the trap and hangs in `wait`.
 forward_term() {
     kill -TERM -- "-$worker" 2>/dev/null || true
-    # Reap so the worker isn't a zombie, then exit ourselves — without this,
-    # bash's default trap behaviour swallows the signal and we'd hang in `wait`.
     wait "$worker" 2>/dev/null || true
     cleanup_state_file
-    exit 143  # 128 + SIGTERM(15)
+    exit 143
 }
 trap forward_term TERM INT HUP
 
-# Wait for natural completion. If a signal is forwarded, forward_term exits
-# directly so we don't fall through.
 wait "$worker"
 rc=$?
-
 cleanup_state_file
 exit "$rc"

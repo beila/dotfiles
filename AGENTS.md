@@ -37,7 +37,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - benefit: nix stops overwriting `init.lua`, `myinit.lua` can be merged back into `init.lua`, simpler config chain
   - see home-manager news 2026-01-25 and PR #8586/#8606
   - files: `home-manager.configsymlink/nvim.nix`, `nvim.configsymlink/myinit.lua`, `nvim.configsymlink/.gitignore`
-- [ ] make sync_repo more readable
+- [x] make sync_repo more readable
 - [x] automate nix flake updates and catch breaking changes early — see "Flake update watchdog" entry below
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] make ctrl-/ in fzf cycle through preview layouts: horizontal → vertical → hidden
@@ -152,7 +152,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - `gnu-utility.zsh` — g-prefixed GNU utils on macOS, no-op on Linux
   - `p10k.zsh` — powerlevel10k (nix) + user config
 - zsh functions: `~/.dotfiles/zsh/functions/c` (copy), `p` (paste), `o` (open), `say_done` (TTS notification), `ju` (jj unique), `jda` (jj describe with AI commit-msg; prints the generated description) — Wayland/X11 aware
-- TTS dispatcher: `~/.dotfiles/bin/say` — routes by content language. Hangul (U+AC00–U+D7A3) → `say-ko`, otherwise → `say-en`. Accepts text as args or stdin.
+- TTS dispatcher: `~/.dotfiles/bin/say` — routes by content language. Hangul (U+AC00–U+D7A3) → `say-ko`, otherwise → `say-en`. Accepts text as args or stdin. **Preempts** still-playing audio: spawns the backend under `setsid` (PID==PGID), records the PGID at `${SAY_STATE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say.pgid}`, and TERMs the previous PGID on the next call. A TERM/INT/HUP trap forwards to the backend session so external preemption (e.g. by mcp-tts) tears down the whole audio pipeline instead of orphaning aplay. Bypass with `SAY_NO_PREEMPT=1`. Test: `bash bin/test_say_preempt.sh`.
 - TTS (English): `~/.dotfiles/bin/say-en` — piper-tts with en_GB-alba-medium voice, auto-downloads model; override voice with `$PIPER_MODEL`
   - `say_done` calls `say` to announce when commands >10s finish; only on desktop machines; runs in subshell
 - TTS (Korean): `~/.dotfiles/bin/say-ko` — edge-tts with ko-KR-SunHiNeural voice (requires internet)

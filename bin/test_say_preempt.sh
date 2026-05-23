@@ -39,11 +39,13 @@ last_pid="$tmp/last_pid"
 : >"$events"
 
 run_say() {
-    DOTFILES_ROOT="$tmp" \
-    SAY_STATE_FILE="$state_file" \
-    SAY_TEST_EVENTS="$events" \
-    SAY_TEST_LAST_BACKEND_PID="$last_pid" \
-        "$tmp/bin/say" "$@"
+    # `exec` so $! in the caller is the say wrapper, not the intermediate subshell
+    exec env \
+        DOTFILES_ROOT="$tmp" \
+        SAY_STATE_FILE="$state_file" \
+        SAY_TEST_EVENTS="$events" \
+        SAY_TEST_LAST_BACKEND_PID="$last_pid" \
+            "$tmp/bin/say" "$@"
 }
 
 echo "Test 1: state file written when say spawns a backend"
@@ -98,15 +100,11 @@ backend3a=$(cat "$last_pid")
 assert_true "test3 backend started" "kill -0 '$backend3a' 2>/dev/null"
 assert_true "test3 say wrapper alive" "kill -0 '$say3_target' 2>/dev/null"
 sleep 0.3  # ensure trap is registered before we send TERM
-echo "    DEBUG: say3_target=$say3_target backend3a=$backend3a"
-ps -o pid,ppid,pgid,sid,cmd -p "$say3_target","$backend3a" 2>&1 | sed 's/^/    /'
-kill -TERM "$say3_target"
-echo "    DEBUG: after kill, say3_target alive: $(kill -0 $say3_target 2>/dev/null && echo yes || echo no)"
+kill -TERM "$say3_target" 2>/dev/null || true
 for _ in $(seq 1 100); do
     if ! kill -0 "$backend3a" 2>/dev/null; then break; fi
     sleep 0.05
 done
-echo "    DEBUG: backend3a still alive: $(kill -0 $backend3a 2>/dev/null && echo yes || echo no)"
 assert_true "test3 backend killed via wrapper's TERM trap" "! kill -0 '$backend3a' 2>/dev/null"
 
 wait "$say2" 2>/dev/null || true
