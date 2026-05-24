@@ -67,56 +67,33 @@ if [ -n "$wid" ]; then
     class=$("$XDOTOOL" getwindowclassname "$wid" 2>/dev/null) || class=""
 fi
 
-is_terminal=0
-for t in $TERMINAL_CLASSES; do
-    [ "$class" = "$t" ] && { is_terminal=1; break; }
-done
-
-if [ "$is_terminal" -eq 1 ]; then
-    # Most terminal emulators bind Ctrl+Shift+C/V for clipboard. The
-    # outer terminal intercepts the keystroke before forwarding to any
-    # inner program (zellij, nvim, etc.).
-    case "$action" in
-        copy)  combo="ctrl+shift+c" ;;
-        paste) combo="ctrl+shift+v" ;;
-    esac
-else
-    case "$action" in
-        copy)  combo="ctrl+c" ;;
-        paste) combo="ctrl+v" ;;
-    esac
-fi
+# Use the dedicated XF86Copy / XF86Paste keysyms instead of Ctrl+C/V or
+# Ctrl+Shift+C/V. Reasoning: when xmonad's Super+C/V binding fires,
+# Super is still physically held — combining Super with Ctrl+Shift+V
+# yields Super+Ctrl+Shift+V which no app has bound, falling through to
+# `^V` typed at the prompt. With XF86Copy / XF86Paste, the user-held
+# Super becomes Super+XF86Paste — also not bound anywhere — and the
+# receiving app strips the modifier and acts on the bare XF86Paste,
+# which all major apps treat as clipboard ops:
+#   - ghostty: `keybind = paste=paste_from_clipboard` by default
+#   - firefox / vivaldi / native GTK: standard clipboard handlers
+#   - xterm and other VTE-based: respond to XF86Paste
+# This sidesteps the wait-for-Super-release dance entirely.
+case "$action" in
+    copy)  combo="XF86Copy" ;;
+    paste) combo="XF86Paste" ;;
+esac
 
 log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
-
-# Wait until the user's physical Super key is released before dispatching.
-# xmonad's keybinding handler runs while Super is still held; xdotool's
-# --clearmodifiers only clears its own synthetic event, not the upstream
-# physical state, so without this wait the receiving app sees
-# Super+Ctrl+Shift+V → falls through to literal `^V` typed at the prompt,
-# OR subsequent letter keystrokes (j/k/l) fire xmonad's Super+letter
-# defaults (focusDown, shrink master, ...). 1s timeout — bail rather than
-# hang if Super is genuinely held longer.
-#
-# wait-for-key-release is a tiny C program (compiled by home.nix
-# stdenv.mkDerivation against libX11). ~2ms cold start, deterministic.
-# Silently skipped if not on PATH (mid-migration before next home-manager
-# switch); failure is acceptable since we still have --clearmodifiers
-# below as defence in depth.
-WAIT="${COPY_PASTE_WAIT:-wait-for-key-release}"
-if command -v "$WAIT" >/dev/null 2>&1; then
-    "$WAIT" --timeout-ms 1000 Super_L 2>/dev/null || true
-fi
 
 # Don't `exec` — it replaces the shell and skips log.sh's EXIT trap, so
 # log_finalize never runs and DEBUG events never persist when
 # LOG_KEEP_THRESHOLD=DEBUG. Cost of a fork is negligible for a one-shot
 # keystroke dispatch.
 #
-# --clearmodifiers releases the modifiers from xdotool's own synthetic
-# event (defence in depth alongside the wait above).
-# --window <wid> targets the originally-focused window explicitly so
-# the keystroke can't race with focus shifts during dispatch.
+# No wait-for-key-release step needed: XF86Copy / XF86Paste aren't
+# Super-prefixable in any app, so Super-still-held-by-the-user is benign.
+# --clearmodifiers + --window stay as cheap defence-in-depth.
 if [ -n "$wid" ]; then
     "$XDOTOOL" key --clearmodifiers --window "$wid" "$combo"
 else

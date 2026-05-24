@@ -84,38 +84,36 @@ assert_combo() {
     pass "$label"
 }
 
-echo "=== Test 1: ghostty + copy → ctrl+shift+c (with --clearmodifiers + --window) ==="
+echo "=== Test 1: ghostty + copy → XF86Copy (with --clearmodifiers + --window) ==="
 clear_calls; set_class "ghostty"
 out=$(run copy)
-assert_combo "ghostty + copy" "ctrl+shift+c" yes
+assert_combo "ghostty + copy" "XF86Copy" yes
 echo "$out" | grep -q "rc=0" && pass "exit 0" || fail "exit 0" "got: $out"
 
 echo
-echo "=== Test 2: ghostty + paste → ctrl+shift+v ==="
+echo "=== Test 2: ghostty + paste → XF86Paste ==="
 clear_calls; set_class "ghostty"
 run paste >/dev/null
-assert_combo "ghostty + paste" "ctrl+shift+v" yes
+assert_combo "ghostty + paste" "XF86Paste" yes
 
 echo
-echo "=== Test 3: firefox + copy → ctrl+c ==="
+echo "=== Test 3: firefox + copy → XF86Copy (same combo regardless of class) ==="
 clear_calls; set_class "firefox"
 run copy >/dev/null
-assert_combo "firefox + copy" "ctrl+c" yes
+assert_combo "firefox + copy" "XF86Copy" yes
 
 echo
-echo "=== Test 4: vivaldi + paste → ctrl+v ==="
+echo "=== Test 4: vivaldi + paste → XF86Paste ==="
 clear_calls; set_class "Vivaldi-stable"
 run paste >/dev/null
-assert_combo "vivaldi + paste" "ctrl+v" yes
+assert_combo "vivaldi + paste" "XF86Paste" yes
 
 echo
-echo "=== Test 5: empty class but valid wid → ctrl+c (default routing) ==="
+echo "=== Test 5: empty class but valid wid → XF86Copy ==="
 clear_calls
 : > "$ACTIVE_CLASS_FILE"  # class lookup returns empty
 run copy >/dev/null
-# wid is still 0x42; class is empty so the ghostty match misses → ctrl+c.
-# --window is still passed because we have a wid.
-assert_combo "empty-class fallback" "ctrl+c" yes
+assert_combo "empty-class still works" "XF86Copy" yes
 
 echo
 echo "=== Test 6: bad action → exit 2 ==="
@@ -125,28 +123,28 @@ echo "$out" | grep -q "rc=2" && pass "exit 2 on bad action" || fail "exit 2 on b
 [ "$(wc -l < "$XDOTOOL_CALLS")" = "0" ] && pass "no xdotool call on bad action" || fail "no xdotool call on bad action" "calls: $(cat "$XDOTOOL_CALLS")"
 
 echo
-echo "=== Test 7: getactivewindow fails → still emits ctrl+c, no --window ==="
+echo "=== Test 7: getactivewindow fails → still emits XF86Copy, no --window ==="
 clear_calls
 : > "$ACTIVE_WID_FILE"  # empty → stub exits 1
 run copy >/dev/null
 last=$(last_call)
 # No wid → no --window flag, but --clearmodifiers still applied.
-[[ "$last" == *"ctrl+c" ]] && [[ "$last" == *"--clearmodifiers"* ]] && [[ "$last" != *"--window"* ]] \
+[[ "$last" == *"XF86Copy" ]] && [[ "$last" == *"--clearmodifiers"* ]] && [[ "$last" != *"--window"* ]] \
     && pass "getactivewindow fail falls back without --window" \
     || fail "getactivewindow fail falls back" "got: $last"
 echo "0x42" > "$ACTIVE_WID_FILE"  # restore
 
 echo
-echo "=== Test 8: COPY_PASTE_GHOSTTY_CLASSES env override ==="
+echo "=== Test 8: env override (kept for back-compat) does not change behaviour ==="
 clear_calls; set_class "MyCustomTerminal"
 COPY_PASTE_GHOSTTY_CLASSES="MyCustomTerminal AnotherTerm" run copy >/dev/null
-assert_combo "env override matches" "ctrl+shift+c" yes
+assert_combo "env override harmless" "XF86Copy" yes
 
 echo
-echo "=== Test 9: multi-word class with the alternate variant ==="
+echo "=== Test 9: arbitrary class still resolves to XF86Copy ==="
 clear_calls; set_class "com.mitchellh.ghostty"
 run copy >/dev/null
-assert_combo "alt ghostty class" "ctrl+shift+c" yes
+assert_combo "alt class still copy" "XF86Copy" yes
 
 echo
 echo "=== Results: $PASS passed, $FAIL failed ==="
