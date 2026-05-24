@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# copy-paste-route — universal copy/paste dispatcher for X11.
+#
+# Bound by xmonad to Super+C / Super+V. Looks at the focused window's class
+# and emits the correct keystroke for that app via xdotool:
+#   - ghostty (any class variant): Ctrl+Shift+C / Ctrl+Shift+V (terminal default)
+#   - everything else (firefox, native GTK, vivaldi, …): Ctrl+C / Ctrl+V
+#
+# This keeps the user's muscle memory at one combo (Super+C / Super+V) while
+# delivering whatever the focused app actually expects. nvim is intentionally
+# NOT special-cased — keep `yy` / `p` on the unnamed register; for system
+# clipboard from within nvim, use the existing `"+y` / `"+p` flow.
+#
+# Env knobs (test surface):
+#   COPY_PASTE_XDOTOOL          path to xdotool binary; default `xdotool`
+#   COPY_PASTE_GHOSTTY_CLASSES  space-separated class names treated as ghostty;
+#                               default covers known modern + legacy variants
+#   LOG_TAG                     overridable; default copy-paste-route
+#
+# Failure modes:
+#   - missing xdotool binary             → ERROR + exit 127
+#   - getactivewindow / getwindowclassname fails (no X / no window) →
+#                                          fall through to default Ctrl+C/V
+#                                          (don't strand the user with a no-op)
+#   - bad arg                            → exit 2 with usage
+
+set -u
+
+LOG_TAG="${LOG_TAG:-copy-paste-route}"
+DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+XDOTOOL="${COPY_PASTE_XDOTOOL:-xdotool}"
+GHOSTTY_CLASSES="${COPY_PASTE_GHOSTTY_CLASSES:-ghostty com.mitchellh.ghostty Ghostty}"
+
+action="${1:-}"
+case "$action" in
+    copy|paste) ;;
+    *)
+        echo "usage: copy-paste-route {copy|paste}" >&2
+        exit 2
+        ;;
+esac
+
+if ! command -v "$XDOTOOL" >/dev/null 2>&1; then
+    log ERROR "xdotool not found at \`$XDOTOOL\` — install via home.nix or pass COPY_PASTE_XDOTOOL"
+    exit 127
+fi
+
+# Determine focused window class. Both calls can fail (no X, no focused
+# window) — treat that as "use default Ctrl+C/V" rather than aborting.
+wid=$("$XDOTOOL" getactivewindow 2>/dev/null) || wid=""
+class=""
+if [ -n "$wid" ]; then
+    class=$("$XDOTOOL" getwindowclassname "$wid" 2>/dev/null) || class=""
+fi
+
+is_ghostty=0
+for g in $GHOSTTY_CLASSES; do
+    [ "$class" = "$g" ] && { is_ghostty=1; break; }
+done
+
+if [ "$is_ghostty" -eq 1 ]; then
+    # Ghostty's clipboard binding is Ctrl+Shift+C/V (terminal-canonical).
+    # Note: ghostty uses this even when something inside (zellij, nvim) is
+    # active — ghostty intercepts before forwarding to the inner program.
+    case "$action" in
+        copy)  combo="ctrl+shift+c" ;;
+        paste) combo="ctrl+shift+v" ;;
+    esac
+else
+    case "$action" in
+        copy)  combo="ctrl+c" ;;
+        paste) combo="ctrl+v" ;;
+    esac
+fi
+
+log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
+exec "$XDOTOOL" key "$combo"
