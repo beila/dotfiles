@@ -32,22 +32,18 @@ DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 source "$DOTFILES_ROOT/script/logger/log.sh"
 
 XDOTOOL="${COPY_PASTE_XDOTOOL:-xdotool}"
+
 # Terminal emulators that need Ctrl+Shift+C/V instead of Ctrl+C/V.
 # Override via $COPY_PASTE_TERMINAL_CLASSES if a new terminal is installed.
 # `$COPY_PASTE_GHOSTTY_CLASSES` kept as a back-compat alias so existing
-# tests / docs continue to work.
-TERMINAL_CLASSES="${COPY_PASTE_TERMINAL_CLASSES:-${COPY_PASTE_GHOSTTY_CLASSES:-\
-ghostty com.mitchellh.ghostty Ghostty \
-gnome-terminal-server Gnome-terminal \
-Alacritty alacritty \
-kitty kitty-shell \
-wezterm org.wezfurlong.wezterm \
-foot \
-xterm XTerm UXTerm \
-urxvt URxvt rxvt-unicode \
-konsole org.kde.konsole \
-tilix com.gexperts.Tilix \
-terminator Terminator}"
+# tests / docs continue to work. Single-line on purpose: bash's
+# line-continuation inside ${X:-...} parameter expansion is fragile under
+# `set -u` and historically caused "action: unbound variable" errors with
+# misleading line numbers on failure.
+# Includes neovide: not strictly a terminal, but we want the same Ctrl+Shift+C/V
+# keystroke so the same nvim mapping covers both terminal-nvim and neovide.
+DEFAULT_TERMINAL_CLASSES="ghostty com.mitchellh.ghostty Ghostty gnome-terminal-server Gnome-terminal Alacritty alacritty kitty kitty-shell wezterm org.wezfurlong.wezterm foot xterm XTerm UXTerm urxvt URxvt rxvt-unicode konsole org.kde.konsole tilix com.gexperts.Tilix terminator Terminator neovide Neovide"
+TERMINAL_CLASSES="${COPY_PASTE_TERMINAL_CLASSES:-${COPY_PASTE_GHOSTTY_CLASSES:-$DEFAULT_TERMINAL_CLASSES}}"
 
 action="${1:-}"
 case "$action" in
