@@ -22,6 +22,13 @@
     "org/gnome/gnome-flashback" = {
       desktop = false;
     };
+    # Free up Super+V for our universal-paste binding (keyd's [meta] layer
+    # emits M-v as the second token; gnome-shell otherwise grabs <Super>v
+    # before any app sees it). Default was ['<Super>v', '<Super>m']; keep
+    # message-tray on Super+M alone.
+    "org/gnome/shell/keybindings" = {
+      toggle-message-tray = [ "<Super>m" ];
+    };
     # Fallback: empty gnome-panel layout (primary fix is session override below)
     "org/gnome/gnome-panel/layout" = {
       toplevel-id-list = lib.gvariant.mkEmptyArray lib.gvariant.type.string;

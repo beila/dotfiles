@@ -48,26 +48,32 @@ scrolllock = brightnessdown
 #      evdev: KEY_COPY / KEY_PASTE) — handled by ghostty (default
 #      keybind = copy=copy_to_clipboard, paste=paste_from_clipboard),
 #      firefox / GTK / Qt apps, native VTE terminals.
-#   2. `M-c` / `M-v` (Super+C / Super+V proper) — neovide's input layer
-#      (winit) decodes Super as the `D-` prefix and surfaces `<D-c>` /
-#      `<D-v>` to nvim, matching Neovide's official FAQ recipe. The bare
-#      keysym alone won't reach nvim because Neovide's `get_special_key`
-#      table has no NamedKey::Copy / NamedKey::Paste case (silent drop).
+#   2. `f24` / `f20` — high F-keys that no app binds by default. These
+#      pass through GNOME-shell's keybind grabs (which our `<Super>v`
+#      → toggle-message-tray collision exposed) AND survive neovide's
+#      `get_special_key` table (NamedKey::F24 / F20 are explicitly
+#      listed, unlike NamedKey::Copy / Paste which fall through to None
+#      and get silently dropped). nvim maps <F24>/<F20> in
+#      vimrcs/my-clipboard.lua. F21-F23 are taken by prog1/2/3 (albert
+#      / scratchpads), so F24 + F20 are the highest contiguous-ish pair
+#      free on Linux (KEY_F24 = 194 is the kernel ceiling — winit lists
+#      F25-F35 but they don't exist at the evdev layer).
 #
-# Why both: no single keysym works everywhere on Linux. The bare keysym
-# is invisible to neovide; the Super+letter combo is invisible to GTK
-# clipboard handlers. Apps respond to whichever they're bound to and
-# silently ignore the other:
-#   - ghostty:   handles `copy`/`paste`, no default Super+c/v binding (drops M-c/M-v)
-#   - firefox:   GTK handles XF86Copy/Paste, no Super+c/v binding (drops M-c/M-v)
-#   - xmonad:    no (mod4Mask, xK_c|xK_v) bindings (drops both)
-#   - neovide:   drops bare keysym (no NamedKey case), maps <D-c>/<D-v> in nvim
+# Why two tokens: no single keysym works everywhere on Linux. The bare
+# `copy`/`paste` keysym is invisible to neovide; the F-keys are invisible
+# to GTK clipboard handlers and ghostty's clipboard keybinds. Apps respond
+# to whichever they're bound to and silently ignore the other:
+#   - ghostty:   handles `copy`/`paste`, no default F20/F24 binding
+#   - firefox:   GTK handles XF86Copy/Paste, no F20/F24 binding
+#   - xmonad:    no bindings on F20/F24 or `copy`/`paste`
+#   - neovide:   drops bare keysym (no NamedKey case), maps <F24>/<F20> in nvim
 #
-# Note: keyd's bare key names are lowercase `copy`/`paste` — NOT XF86Copy
-# or macro(XF86Paste). `macro(<unknown>)` would type the literal string.
+# Note: keyd's bare key names are lowercase `copy`/`paste`/`f24`/`f20` —
+# NOT XF86Copy or macro(XF86Paste). `macro(<unknown>)` would type the
+# literal string.
 [meta]
-c = macro(copy M-c)
-v = macro(paste M-v)
+c = macro(copy f24)
+v = macro(paste f20)
 
 # Super+Shift+V → copyq toggle (clipboard history picker, bound in xmonad).
 # Without this composite layer, [meta]'s explicit `v = ...` would fire even

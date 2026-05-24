@@ -2,26 +2,30 @@
 --
 -- Setup chain: keyd's [meta] layer (~/.dotfiles/keyd/common) emits a TWO-token
 -- macro on Super+C / Super+V — first the bare `copy`/`paste` keysym (handled
--- by ghostty/firefox/GTK), then a real `M-c`/`M-v` (Super+letter, which
--- neovide's winit input layer reports to nvim as `<D-c>` / `<D-v>` per the
--- official FAQ recipe). Apps respond to whichever keysym they're bound to;
--- the other is silently dropped.
+-- by ghostty/firefox/GTK), then F24/F20 respectively. The F-keys are the
+-- vehicle that reaches nvim inside neovide:
+--   - The bare `copy`/`paste` keysym is silently dropped by neovide because
+--     its `get_special_key` table (src/window/keyboard_manager.rs) has no
+--     NamedKey::Copy / NamedKey::Paste case.
+--   - F24/F20 ARE in that table (NamedKey::F20 / F24 → "F20" / "F24"), so
+--     they survive neovide's pipeline and arrive as <F24> / <F20>.
+--   - Neither F-key has a default binding in xmonad / GNOME / ghostty /
+--     firefox, so the firefox/ghostty path only acts on the bare keysym
+--     and ignores the F-key (and vice versa for neovide).
 --
--- Why both keystrings:
---   - **neovide**: drops the bare XF86Copy/XF86Paste keysym (its
---     `get_special_key` table has no NamedKey::Copy / Paste case), so we need
---     the `<D-c>`/`<D-v>` path. Working in all modes (n/i/v/c/t).
---   - **terminal nvim inside ghostty**: ghostty intercepts XF86Paste before
---     nvim sees it (`keybind = paste=paste_from_clipboard`) and sends
---     bracketed paste — works in insert mode only. Normal/visual still
---     requires explicit `"+y`/`"+p`. The legacy `<XF86Paste>` mapping below
---     is kept for the rare case ghostty doesn't intercept (and as a no-op
---     fallback if neovide ever adds NamedKey::Paste support).
+-- Why F24/F20 and not e.g. F21–F23: prog1/2/3 (Albert / scratchpads) are
+-- already mapped to F21/F22/F23 by keyd v2.6.0. F24 is the highest standard
+-- F-key on Linux (KEY_F24 = 194 — winit lists F25–F35 but they don't exist
+-- at the evdev layer). F20 is the next free slot below the prog range.
 --
--- Why not `set clipboard=unnamedplus`?
--- The user explicitly wants the unnamed register to stay independent —
--- `yy` and `p` keep using register 0, not the system clipboard. Only
--- explicit Super+C/V crosses over to `+`.
+-- Why not Super+letter directly: neovide does encode Super as `<D-c>`/`<D-v>`
+-- (per the official FAQ recipe), but on Linux GNOME-shell intercepts
+-- `<Super>v` for toggle-message-tray (we strip that in gnome.nix), and the
+-- general approach of relying on Super-modified letters is fragile across
+-- desktop environments. F-keys sidestep all modifier-handling differences.
+--
+-- Why not `set clipboard=unnamedplus`: the user wants `yy`/`p` to keep
+-- using register 0, not the system clipboard. Only Super+C/V crosses to `+`.
 --
 -- Mappings follow Neovide's official FAQ
 -- (https://neovide.dev/faq.html — "How can I use cmd-c/cmd-v…"), which
@@ -36,9 +40,9 @@ local function paste()
   vim.api.nvim_paste(vim.fn.getreg("+"), true, -1)
 end
 
--- <D-c> / <D-v> — neovide's serialization of Super+C / Super+V on Linux.
-map("v", "<D-c>", copy, { silent = true, desc = "Copy visual selection to + register" })
-map({ "n", "i", "v", "c", "t" }, "<D-v>", paste, { silent = true, desc = "Paste from + register" })
+-- <F24> / <F20> — keyd's neovide-friendly Super+C / Super+V vehicle.
+map("v", "<F24>", copy, { silent = true, desc = "Copy visual selection to + register" })
+map({ "n", "i", "v", "c", "t" }, "<F20>", paste, { silent = true, desc = "Paste from + register" })
 
 -- <XF86Copy> / <XF86Paste> — fallback for any nvim host that delivers the
 -- bare keysym (terminal nvim's insert mode via ghostty bracketed paste).
