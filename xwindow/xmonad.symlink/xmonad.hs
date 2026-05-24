@@ -257,44 +257,16 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
 -- Key bindings
 ------------------------------------------------------------------------
 
--- spawnAfterSuperRelease — like `spawn`, but waits for the physical Super
--- key (Mod4 / left-Super, keycode 133) to be released before forking the
--- shell. xmonad's keybinding handler runs while keyd is still emitting a
--- "Super held" stream, so even with `xdotool --clearmodifiers` the X
--- server's *physical* state stays "Super-down" — subsequent letter
--- keypresses by the user (j/k/l) get interpreted as Super+letter and
--- fire xmonad's defaults (focusDown, shrink master, …). Polling
--- queryKeymap directly inside xmonad has no per-invocation process cost,
--- unlike a Python xlib helper, so we can afford a 5ms tick.
-spawnAfterSuperRelease :: String -> X ()
-spawnAfterSuperRelease cmd = do
-    withDisplay $ \dpy -> io $ do
-        let superKeycode = 133 :: Int  -- left Super on most modern keyboards
-            superByte    = superKeycode `shiftR` 3   -- 16
-            superBit     = superKeycode .&. 7        -- 5
-            mask         = (1 :: Int) `shiftL` superBit
-            timeoutTicks = 200                       -- 200 × 5ms = 1s ceiling
-            wait n = do
-                km <- queryKeymap dpy
-                let down = case drop superByte km of
-                        (b : _) -> fromIntegral b .&. mask /= 0
-                        []      -> False
-                if down && n > 0
-                    then threadDelay 5000 >> wait (n - 1)
-                    else return ()
-        wait timeoutTicks
-    spawn cmd
-
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     -- Universal copy/paste: Super+C / Super+V dispatch to the correct
     -- keystroke for the focused window class (ghostty → Ctrl+Shift+C/V,
-    -- everything else → Ctrl+C/V). See bin/copy-paste-route.
-    -- spawnAfterSuperRelease waits for the physical Super to lift before
-    -- the route script runs xdotool, so subsequent letter keys aren't
-    -- mis-interpreted as Super+letter.
-    , ((mod4Mask, xK_c), spawnAfterSuperRelease "$HOME/.dotfiles/bin/copy-paste-route copy")
-    , ((mod4Mask, xK_v), spawnAfterSuperRelease "$HOME/.dotfiles/bin/copy-paste-route paste")
+    -- everything else → Ctrl+C/V). See bin/copy-paste-route. The route
+    -- script calls `wait-for-key-release Super_L` before xdotool so the
+    -- user's still-held Super doesn't bleed into the dispatched keystroke
+    -- and trigger xmonad's Super+letter defaults (Super+j = focusDown, etc).
+    , ((mod4Mask, xK_c), spawn "$HOME/.dotfiles/bin/copy-paste-route copy")
+    , ((mod4Mask, xK_v), spawn "$HOME/.dotfiles/bin/copy-paste-route paste")
     -- Clipboard history picker moved off Super+V (which is now paste); use
     -- Super+Shift+V to open the copyq picker.
     , ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker

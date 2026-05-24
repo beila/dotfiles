@@ -88,22 +88,35 @@ else
 fi
 
 log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
+
+# Wait until the user's physical Super key is released before dispatching.
+# xmonad's keybinding handler runs while Super is still held; xdotool's
+# --clearmodifiers only clears its own synthetic event, not the upstream
+# physical state, so without this wait the receiving app sees
+# Super+Ctrl+Shift+V → falls through to literal `^V` typed at the prompt,
+# OR subsequent letter keystrokes (j/k/l) fire xmonad's Super+letter
+# defaults (focusDown, shrink master, ...). 1s timeout — bail rather than
+# hang if Super is genuinely held longer.
+#
+# wait-for-key-release is a tiny C program (compiled by home.nix
+# stdenv.mkDerivation against libX11). ~2ms cold start, deterministic.
+# Silently skipped if not on PATH (mid-migration before next home-manager
+# switch); failure is acceptable since we still have --clearmodifiers
+# below as defence in depth.
+WAIT="${COPY_PASTE_WAIT:-wait-for-key-release}"
+if command -v "$WAIT" >/dev/null 2>&1; then
+    "$WAIT" --timeout-ms 1000 Super_L 2>/dev/null || true
+fi
+
 # Don't `exec` — it replaces the shell and skips log.sh's EXIT trap, so
 # log_finalize never runs and DEBUG events never persist when
 # LOG_KEEP_THRESHOLD=DEBUG. Cost of a fork is negligible for a one-shot
 # keystroke dispatch.
 #
-# --clearmodifiers releases the Super key (and any other modifiers) before
-# dispatching. xmonad's `spawn` fires while the user is still holding
-# Super, so without this flag xdotool sends `Super+Ctrl+Shift+V` and the
-# receiving app falls through to the literal `^V` byte (since no app has
-# that quad-modifier combo bound).
-#
-# --window <wid> targets the originally-focused window explicitly. Without
-# it `xdotool key` dispatches to whatever holds focus when the keystroke
-# is delivered — that can race if focus shifts during the spawn → xdotool
-# dance.
-#
+# --clearmodifiers releases the modifiers from xdotool's own synthetic
+# event (defence in depth alongside the wait above).
+# --window <wid> targets the originally-focused window explicitly so
+# the keystroke can't race with focus shifts during dispatch.
 if [ -n "$wid" ]; then
     "$XDOTOOL" key --clearmodifiers --window "$wid" "$combo"
 else
