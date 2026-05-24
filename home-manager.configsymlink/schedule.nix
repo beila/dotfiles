@@ -27,6 +27,11 @@ let
 
   jobType = lib.types.submodule ({ ... }: {
     options = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to schedule this job. Set to false to declare a job in shared modules but skip it on a specific host (e.g. battery-notify on a desktop with no battery).";
+      };
       description = lib.mkOption {
         type = lib.types.str;
         description = "Human-readable description.";
@@ -74,6 +79,9 @@ let
   # %h handling for the cron path: cron has no token like %h, so we expand at
   # eval time using the home directory we're configured for.
   expandHome = s: lib.replaceStrings [ "%h" ] [ config.home.homeDirectory ] s;
+
+  # Drop jobs explicitly disabled (e.g. battery-notify on a battery-less host).
+  enabledJobs = lib.filterAttrs (_: job: job.enable) cfg.jobs;
 
   # Render a single cron entry from a job spec.
   renderCronLine = name: job:
@@ -130,7 +138,7 @@ let
 
   crontabBlock =
     let
-      lines = lib.mapAttrsToList renderCronLine cfg.jobs;
+      lines = lib.mapAttrsToList renderCronLine enabledJobs;
     in
       lib.concatStringsSep "\n" (
         [ beginMarker
@@ -195,7 +203,7 @@ in
           // (lib.optionalAttrs (job.env != { }) {
                Environment = lib.mapAttrsToList (k: v: "${k}=${v}") job.env;
              });
-      }) cfg.jobs;
+      }) enabledJobs;
 
       systemd.user.timers = lib.mapAttrs (_: job: {
         Unit.Description = "${job.description} (timer)";
@@ -206,12 +214,16 @@ in
              })
           // (lib.optionalAttrs job.persistent { Persistent = true; });
         Install.WantedBy = [ "timers.target" ];
-      }) cfg.jobs;
+      }) enabledJobs;
     })
 
     # ----- cron backend ----------------------------------------------------
     (lib.mkIf (cfg.backend == "cron") {
       home.activation.dotfilesScheduleCrontab = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        # Home-manager activation runs with a minimal PATH (nix store only).
+        # crontab(1) is a system tool, almost always under /usr/bin or
+        # /usr/sbin. Prepend both so install-crontab.sh finds the binary.
+        export PATH="/usr/bin:/usr/sbin:$PATH"
         $DRY_RUN_CMD ${pkgs.bash}/bin/bash ${./install-crontab.sh} \
           ${lib.escapeShellArg beginMarker} \
           ${lib.escapeShellArg endMarker} \
