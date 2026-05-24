@@ -1,47 +1,44 @@
--- Universal Super+C / Super+V handling inside nvim.
+-- Super+C / Super+V handling inside nvim (primarily for neovide).
 --
 -- Setup chain: xmonad binds Super+C/V → ~/.dotfiles/bin/copy-paste-route →
--- xdotool emits Ctrl+Shift+C/V to the focused window class. Both ghostty
--- (terminal-nvim) and neovide are in the script's "terminal" list, so both
--- receive the same Ctrl+Shift+C/V keystroke. These mappings then make nvim
--- act on the system clipboard via the `+` register.
+-- xdotool emits the dedicated XF86Copy / XF86Paste keysyms to the focused
+-- window. We picked these keysyms over Ctrl+Shift+C/V to avoid the
+-- "Super-still-held" problem (Super+XF86Paste isn't bound anywhere, so
+-- the receiving app strips Super and acts on the bare keysym).
 --
--- Why not also `set clipboard=unnamedplus`?
+-- Where this matters:
+--   - **neovide** (GUI nvim) — has focus directly; XF86Copy/XF86Paste
+--     reach nvim. The mappings below fire and act on the `+` register.
+--   - **terminal nvim inside ghostty** — ghostty INTERCEPTS XF86Paste
+--     (its default `keybind = paste=paste_from_clipboard`) and sends
+--     bracketed paste to nvim. That works in **insert mode only** (vim's
+--     bracketed-paste handler inserts at cursor). For normal/visual
+--     mode in terminal-nvim, use `"+y` / `"+p` directly — the mappings
+--     below never fire there because ghostty already swallowed the key.
+--
+-- Why not `set clipboard=unnamedplus`?
 -- The user explicitly wants the unnamed register to stay independent —
--- `yy` and `p` should keep using buffer 0, not the system clipboard. Only
--- the explicit Super+C/V (which arrives as Ctrl+Shift+C/V) crosses over
--- to `+`.
+-- `yy` and `p` keep using register 0, not the system clipboard. Only
+-- explicit Super+C/V (= XF86Copy / XF86Paste) crosses over to `+`.
 --
--- Behaviour by mode:
+-- Behaviour by mode (when the keystroke actually reaches nvim, i.e.
+-- neovide always; terminal-nvim only in insert mode after ghostty's
+-- bracketed-paste passthrough):
 --   - normal   : Super+C copies the line under cursor (`"+yy`); Super+V
 --                pastes from `+` after cursor (`"+p`).
 --   - visual   : Super+C copies the visual selection (`"+y`); Super+V
---                replaces selection with `+` (`"+p` after `d`).
+--                replaces selection with `+` (`"_d"+P`).
 --   - insert   : Super+V inserts `+` at cursor (`<C-r>+`); Super+C is a
---                no-op (you'd switch to visual to copy).
---   - terminal : leave defaults — terminal-mode is for sub-shells, not
---                vim-buffer text.
---
--- Ghostty also intercepts Ctrl+Shift+V at the terminal layer for paste
--- (bracketed paste). nvim's bracketed-paste handling treats that
--- correctly, so terminal-nvim Super+V pasting works WITHOUT this mapping
--- ever firing inside ghostty. The mapping below is what kicks in for
--- neovide and as a fallback.
+--                no-op (switch to visual to copy).
+--   - terminal : leave defaults.
 
--- Helper: try to map a key. Some terminfo setups don't recognise the
--- exact `<C-S-c>` form; the mapping is a no-op in those cases.
 local map = vim.keymap.set
 
 -- Copy
-map({ "n" }, "<C-S-c>", '"+yy', { desc = "Copy line to system clipboard" })
-map({ "v", "x" }, "<C-S-c>", '"+y', { desc = "Copy visual selection to system clipboard" })
+map({ "n" }, "<XF86Copy>", '"+yy', { desc = "Copy line to system clipboard" })
+map({ "v", "x" }, "<XF86Copy>", '"+y', { desc = "Copy visual selection to system clipboard" })
 
 -- Paste
-map({ "n" }, "<C-S-v>", '"+p', { desc = "Paste from system clipboard (after cursor)" })
-map({ "v", "x" }, "<C-S-v>", '"_d"+P', { desc = "Replace selection with system clipboard" })
-map({ "i" }, "<C-S-v>", "<C-r>+", { desc = "Paste from system clipboard (insert mode)" })
-
--- Neovide also delivers Super-modified keys natively as <D-c>/<D-v> on
--- some platforms or <M-c>/<M-v> via its own keymap. The route-script
--- already translates Super+C/V to Ctrl+Shift+C/V before they reach
--- neovide, so the bindings above cover both paths.
+map({ "n" }, "<XF86Paste>", '"+p', { desc = "Paste from system clipboard (after cursor)" })
+map({ "v", "x" }, "<XF86Paste>", '"_d"+P', { desc = "Replace selection with system clipboard" })
+map({ "i" }, "<XF86Paste>", "<C-r>+", { desc = "Paste from system clipboard (insert mode)" })
