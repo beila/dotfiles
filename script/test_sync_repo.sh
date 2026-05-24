@@ -132,27 +132,56 @@ grep_has "repoC.*rebased"
 
 echo
 echo "=== Scenario 4: command timeout guard ==="
-# Simulate a hung remote by pointing a repo at a non-responding IP:port.
-# Real networks might treat 127.0.0.1:1 differently across kernels, so we use
-# a blackhole host-port with a short timeout.
+# Goal: verify sync_repo's timeout_cmd / classify_cmd plumbing fires when a
+# network call hangs, AND that downstream behavior (SKIP-PUSH, no cascade
+# OTHER-ERR) is correct under that failure mode.
+#
+# Earlier this was tested via a real SSH blackhole (127.0.0.1:1) plus a 30s
+# wall-clock bound — but each timed-out call still costs ~ConnectTimeout(10s)
+# + SYNC_REPO_CMD_TIMEOUT + kill-grace, and sync_repo makes ~6 ssh-bearing
+# calls per run. Real-world wall time hovered 34-37s, tripping the bound on
+# busy hosts. Replaced with a deterministic fake ssh that sleeps long past
+# any timeout — every call hits SYNC_REPO_CMD_TIMEOUT exactly. Both `git` and
+# `jj git fetch` honor $GIT_SSH_COMMAND in the versions we ship.
+cat >"$TMPDIR/fake-ssh.sh" <<'FAKESSH'
+#!/bin/bash
+# Mock ssh for sync_repo's timeout-guard test.
+# - `ssh -G ...` is git/jj's option probe; must return fast or the connection
+#   never gets attempted.
+# - All other invocations are real connection attempts; we sleep well past any
+#   SYNC_REPO_CMD_TIMEOUT so timeout_cmd will reliably kill us. `sleep`
+#   responds to SIGTERM, so the per-call wall cost equals the timeout itself.
+for a in "$@"; do
+  case "$a" in
+    -G) exit 0 ;;
+  esac
+done
+echo "fake-ssh: simulated hang to remote $*" >&2
+sleep 60
+exit 255
+FAKESSH
+chmod +x "$TMPDIR/fake-ssh.sh"
+
 setup_repo repoH "h.txt" "from H"
-# Override the backup remote to a blackhole to force a hang.
-# SYNC_REPO_CMD_TIMEOUT=3 so the test completes within a few seconds.
+# Override the backup remote to an SSH URL — the fake ssh handles the actual
+# connection, regardless of host. Use an .invalid TLD so no real DNS happens.
 (
     cd "$TMPDIR/repoH"
-    jj git remote set-url backup "ssh://git@127.0.0.1:1/repo.git"
+    jj git remote set-url backup "ssh://git@blackhole.invalid/repo.git"
 )
+# Tight bound: with SYNC_REPO_CMD_TIMEOUT=1 and ~6 ssh calls, the run completes
+# in ~6s on a typical machine. 15s gives generous headroom while still failing
+# loudly if a regression makes the timeout guard ineffective.
 start=$(date +%s)
-SYNC_REPO_CMD_TIMEOUT=3 bash "$SYNC_REPO" "$TMPDIR/repoH" >/dev/null 2>&1
+SYNC_REPO_CMD_TIMEOUT=1 \
+GIT_SSH_COMMAND="bash $TMPDIR/fake-ssh.sh" \
+    bash "$SYNC_REPO" "$TMPDIR/repoH" >/dev/null 2>&1
 elapsed=$(( $(date +%s) - start ))
-# The run MAY actually be fast if ssh fails connection-refused immediately;
-# that's fine — the important property is "it didn't hang forever". So we
-# bound by 30s rather than insisting on > 3s.
-if [ "$elapsed" -lt 30 ]; then
-    echo "PASS: repoH completed in ${elapsed}s (< 30s)"
+if [ "$elapsed" -lt 15 ]; then
+    echo "PASS: repoH completed in ${elapsed}s (< 15s)"
     pass=$((pass+1))
 else
-    echo "FAIL: repoH ran for ${elapsed}s (hang not prevented)"
+    echo "FAIL: repoH ran for ${elapsed}s (timeout guard ineffective)"
     fail=$((fail+1))
 fi
 # The log should mention either TIMEOUT or NETWORK-ERR for the failed ops.
