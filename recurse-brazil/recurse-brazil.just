@@ -451,6 +451,8 @@ ws-add package dir="": mwinit
         then
             jj git clone --colocate ssh://git.amazon.com/pkg/$p "$main_dir"
             jj --repository "$main_dir" config set --repo 'revset-aliases."trunk()"' mainline@origin
+            # https://github.com/beila/dotfiles/blob/main/script/sync_repo#L394
+            jj --repository "$main_dir" config set --repo sync.snapshot-url "ssh://git.amazon.com/pkg/$p/backup/$(whoami)"
             jj --repository "$main_dir" git remote add backup ssh://git.amazon.com/pkg/$p/backup/$(whoami)
             jj --repository "$main_dir" git remote add share ssh://git.amazon.com/pkg/$p/share/$(whoami)
         else
