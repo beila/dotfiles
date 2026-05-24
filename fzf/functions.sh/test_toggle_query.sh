@@ -159,5 +159,23 @@ assert "_gy cancelled: empty output" "" "$(_gy)"
 assert "_gyy cancelled: empty output" "" "$(_gyy)"
 
 echo
+echo "ctrl-/ preview-layout cycle (single source of truth in FZF_DEFAULT_OPTS):"
+# fzf.zsh exports the cycle binding; fzf_down() must NOT also bind ctrl-/
+# (that would either duplicate, or — if we ever swapped one for the other —
+# create a divergence between dispatcher widgets and built-in widgets).
+fzf_zsh="${0:a:h}/../fzf.zsh"
+fns="${0:a:h}/functions.sh"
+assert "fzf.zsh: ctrl-/ binds change-preview-window" \
+  "ctrl-/:change-preview-window" "$(grep -h ctrl-/ "$fzf_zsh")"
+assert "fzf.zsh: cycle includes vertical (down,50%)" \
+  "down,50%" "$(grep -h ctrl-/ "$fzf_zsh")"
+assert "fzf.zsh: cycle includes hidden state" \
+  "hidden" "$(grep -h ctrl-/ "$fzf_zsh")"
+assert_not "functions.sh: no toggle-preview (replaced by cycle)" \
+  "ctrl-/:toggle-preview" "$(cat "$fns")"
+assert_not "functions.sh: no redundant ctrl-/ binding" \
+  "ctrl-/:" "$(cat "$fns")"
+
+echo
 echo "$pass passed, $fail failed"
 (( fail == 0 ))

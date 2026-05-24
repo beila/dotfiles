@@ -1,10 +1,9 @@
 -- Super+C / Super+V handling inside nvim (primarily for neovide).
 --
--- Setup chain: xmonad binds Super+C/V → ~/.dotfiles/bin/copy-paste-route →
--- xdotool emits the dedicated XF86Copy / XF86Paste keysyms to the focused
--- window. We picked these keysyms over Ctrl+Shift+C/V to avoid the
--- "Super-still-held" problem (Super+XF86Paste isn't bound anywhere, so
--- the receiving app strips Super and acts on the bare keysym).
+-- Setup chain: keyd remaps Super+C/V at the kernel/evdev layer to bare
+-- XF86Copy / XF86Paste keysyms (see ~/.dotfiles/keyd/common's [meta] block).
+-- Apps receive a clean keysym with no Super held, so the mapping below fires
+-- reliably on the first press in neovide.
 --
 -- Where this matters:
 --   - **neovide** (GUI nvim) — has focus directly; XF86Copy/XF86Paste

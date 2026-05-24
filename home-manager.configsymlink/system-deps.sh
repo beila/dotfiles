@@ -40,6 +40,9 @@ fi
 if [ -d /dev/input ]; then
   sudo mkdir -p /etc/keyd
   sudo cp "$SCRIPT_DIR/../keyd/"*.conf /etc/keyd/
+  # `common` is included by every *.conf via keyd's `include` directive but
+  # has no .conf extension, so it's not caught by the glob above.
+  sudo cp "$SCRIPT_DIR/../keyd/common" /etc/keyd/
   sudo tee /etc/systemd/system/keyd.service > /dev/null <<EOF
 [Unit]
 Description=key remapping daemon

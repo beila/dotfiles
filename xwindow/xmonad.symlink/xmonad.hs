@@ -259,16 +259,10 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
 
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
-    -- Universal copy/paste: Super+C / Super+V dispatch to the correct
-    -- keystroke for the focused window class (ghostty → Ctrl+Shift+C/V,
-    -- everything else → Ctrl+C/V). See bin/copy-paste-route. The route
-    -- script calls `wait-for-key-release Super_L` before xdotool so the
-    -- user's still-held Super doesn't bleed into the dispatched keystroke
-    -- and trigger xmonad's Super+letter defaults (Super+j = focusDown, etc).
-    , ((mod4Mask, xK_c), spawn "$HOME/.dotfiles/bin/copy-paste-route copy")
-    , ((mod4Mask, xK_v), spawn "$HOME/.dotfiles/bin/copy-paste-route paste")
-    -- Clipboard history picker moved off Super+V (which is now paste); use
-    -- Super+Shift+V to open the copyq picker.
+    -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
+    -- (see keyd/common's [meta] layer emitting XF86Copy/XF86Paste). xmonad
+    -- doesn't see these — keyd swallows the Super and emits a bare keysym
+    -- which the focused app handles natively.
     , ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
     , ((0, xF86XK_TouchpadToggle), spawn "albert toggle") -- Super tap via keyd (prog1 = f21)
     , ((0, xF86XK_TouchpadOn), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2 = f22)

@@ -16,7 +16,10 @@ is_in_jj_repo() {
 }
 
 fzf_down() {
-  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --height 50% --min-height 20 --border --bind ctrl-/:toggle-preview "$@"
+  # ctrl-/ preview-layout cycle lives in FZF_DEFAULT_OPTS (see fzf.zsh) so
+  # both these dispatcher widgets and the built-in Ctrl-T/Alt-C/Ctrl-R
+  # widgets pick up the same binding. Don't re-bind it here.
+  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --height 50% --min-height 20 --border "$@"
 }
 
 # --- helpers (git) ---

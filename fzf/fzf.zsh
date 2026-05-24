@@ -1,4 +1,14 @@
-export FZF_DEFAULT_OPTS='--bind "ctrl-n:preview-half-page-down" --bind "ctrl-p:preview-half-page-up"'
+# ctrl-/: cycle preview layouts. Pipe-separated states rotate; empty entry
+# reverts to the original (--preview-window or fzf default). Sequence:
+#   horizontal (initial) → vertical (down,50%) → hidden → horizontal → ...
+# Lives in FZF_DEFAULT_OPTS so the binding is shared by:
+#   - dispatcher widgets via fzf_down() (_jh, _jb, _gf, ...)
+#   - built-in widgets via fzf-zellij (Ctrl-T, Alt-C, Ctrl-R, Ctrl-E)
+#   - any other plain fzf invocation
+# Keeping it here (single source of truth) means callers' own
+# --preview-window settings (e.g. right:70% in _jb) survive the cycle —
+# the empty rotation entry restores whatever each caller originally set.
+export FZF_DEFAULT_OPTS='--bind "ctrl-n:preview-half-page-down" --bind "ctrl-p:preview-half-page-up" --bind "ctrl-/:change-preview-window(down,50%|hidden|)"'
 
 # TODO fasd used to have files listed, but zoxide does not. I need list of files most likely to be used. Maybe locate?
 # Emit plain paths (NUL-separated for safety with weird filenames), one
