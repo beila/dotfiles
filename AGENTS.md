@@ -22,6 +22,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
   - options: pick a subtler border colour, or `borderWidth = 0` + picom shadow as the focus indicator
   - picom adds GPU/process overhead; only adopt if the visual win is worth it
+  - no border on the tiled window when there's only one tiled
 - [ ] share fzf config between shell (`fzf/functions.sh/functions.sh`) and nvim (`fzf.lua`)
   - fzf command-line parameters (including preview commands) are duplicated between the two
   - goal: single source of truth for shared fzf options/previews
