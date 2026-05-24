@@ -149,16 +149,17 @@ cat >"$TMPDIR/fake-ssh.sh" <<'FAKESSH'
 # - `ssh -G ...` is git/jj's option probe; must return fast or the connection
 #   never gets attempted.
 # - All other invocations are real connection attempts; we sleep well past any
-#   SYNC_REPO_CMD_TIMEOUT so timeout_cmd will reliably kill us. `sleep`
-#   responds to SIGTERM, so the per-call wall cost equals the timeout itself.
+#   SYNC_REPO_CMD_TIMEOUT so timeout_cmd will reliably kill us.
+# - `exec sleep` (not bare `sleep`) so SIGTERM from timeout(1) goes straight
+#   to the sleep process. With a wrapping bash, bash holds the foreground job
+#   open and timeout(1)'s SIGTERM is swallowed, forcing the kill-after-10
+#   grace and inflating per-call wall time from 1s to 11s.
 for a in "$@"; do
   case "$a" in
     -G) exit 0 ;;
   esac
 done
-echo "fake-ssh: simulated hang to remote $*" >&2
-sleep 60
-exit 255
+exec sleep 60
 FAKESSH
 chmod +x "$TMPDIR/fake-ssh.sh"
 
