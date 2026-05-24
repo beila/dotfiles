@@ -161,8 +161,10 @@ assert "_gyy cancelled: empty output" "" "$(_gyy)"
 echo
 echo "ctrl-/ preview-layout cycle (single source of truth in FZF_DEFAULT_OPTS):"
 # fzf.zsh exports the cycle binding; fzf_down() must NOT also bind ctrl-/
-# (that would either duplicate, or — if we ever swapped one for the other —
-# create a divergence between dispatcher widgets and built-in widgets).
+# unconditionally (that would either duplicate, or — if we ever swapped
+# one for the other — create a divergence between dispatcher widgets and
+# built-in widgets). The only ctrl-/ binding fzf_down() may add is the
+# --reverse-conditional up,50% override (last --bind wins in fzf).
 fzf_zsh="${0:a:h}/../fzf.zsh"
 fns="${0:a:h}/functions.sh"
 assert "fzf.zsh: ctrl-/ binds change-preview-window" \
@@ -173,8 +175,50 @@ assert "fzf.zsh: cycle includes hidden state" \
   "hidden" "$(grep -h ctrl-/ "$fzf_zsh")"
 assert_not "functions.sh: no toggle-preview (replaced by cycle)" \
   "ctrl-/:toggle-preview" "$(cat "$fns")"
-assert_not "functions.sh: no redundant ctrl-/ binding" \
-  "ctrl-/:" "$(cat "$fns")"
+
+echo
+echo "fzf_down --reverse: ctrl-/ overrides to up,50% (preview sits on prompt edge):"
+# Stub fzf-zellij so real fzf_down() runs but the dispatch is captured.
+# fzf_down resolves the path via _fzf_functions_sh (set at source time);
+# repointing it after sourcing redirects the call to our stub.
+source "${0:a:h}/functions.sh"
+_tmp_fzd=$(mktemp -d)
+trap "rm -rf '$_tmp_fzd'; rm -f '$_args_file'" EXIT
+mkdir -p "$_tmp_fzd/functions.sh"
+cat > "$_tmp_fzd/fzf-zellij" <<'STUB'
+#!/usr/bin/env bash
+# Capture all args (post the leading `--` separator that fzf_down adds).
+echo "$*" > "$FZF_DOWN_TEST_OUT"
+STUB
+chmod +x "$_tmp_fzd/fzf-zellij"
+_fzf_functions_sh="$_tmp_fzd/functions.sh/functions.sh"
+run_fzf_down() {
+  export FZF_DOWN_TEST_OUT
+  FZF_DOWN_TEST_OUT=$(mktemp)
+  fzf_down "$@" </dev/null
+  cat "$FZF_DOWN_TEST_OUT"
+  rm -f "$FZF_DOWN_TEST_OUT"
+}
+
+out=$(run_fzf_down --reverse --query foo)
+assert "with --reverse: up,50% in dispatch args" "up,50%" "$out"
+assert "with --reverse: ctrl-/ override binding" \
+  "ctrl-/:change-preview-window(up,50%|hidden|)" "$out"
+assert_not "with --reverse: no down,50% override" "down,50%" "$out"
+assert "with --reverse: --reverse still passed through" "--reverse" "$out"
+assert "with --reverse: user --query passed through" "--query foo" "$out"
+
+out=$(run_fzf_down --query bar)
+assert_not "without --reverse: no up,50% override (relies on FZF_DEFAULT_OPTS)" \
+  "up,50%" "$out"
+assert_not "without --reverse: no ctrl-/ override emitted" "ctrl-/:" "$out"
+assert "without --reverse: user --query passed through" "--query bar" "$out"
+
+# --tac (input order reversal) is NOT a layout flag — it must not trigger
+# the up,50% override. Only --reverse moves the prompt to the top.
+out=$(run_fzf_down --tac --multi)
+assert_not "with --tac (no --reverse): no up,50% override" "up,50%" "$out"
+assert_not "with --tac (no --reverse): no ctrl-/ override emitted" "ctrl-/:" "$out"
 
 echo
 echo "$pass passed, $fail failed"
