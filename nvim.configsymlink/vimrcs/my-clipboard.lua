@@ -1,43 +1,50 @@
 -- Super+C / Super+V handling inside nvim (primarily for neovide).
 --
--- Setup chain: keyd remaps Super+C/V at the kernel/evdev layer to bare
--- XF86Copy / XF86Paste keysyms (see ~/.dotfiles/keyd/common's [meta] block).
--- Apps receive a clean keysym with no Super held, so the mapping below fires
--- reliably on the first press in neovide.
+-- Setup chain: keyd's [meta] layer (~/.dotfiles/keyd/common) emits a TWO-token
+-- macro on Super+C / Super+V — first the bare `copy`/`paste` keysym (handled
+-- by ghostty/firefox/GTK), then a real `M-c`/`M-v` (Super+letter, which
+-- neovide's winit input layer reports to nvim as `<D-c>` / `<D-v>` per the
+-- official FAQ recipe). Apps respond to whichever keysym they're bound to;
+-- the other is silently dropped.
 --
--- Where this matters:
---   - **neovide** (GUI nvim) — has focus directly; XF86Copy/XF86Paste
---     reach nvim. The mappings below fire and act on the `+` register.
---   - **terminal nvim inside ghostty** — ghostty INTERCEPTS XF86Paste
---     (its default `keybind = paste=paste_from_clipboard`) and sends
---     bracketed paste to nvim. That works in **insert mode only** (vim's
---     bracketed-paste handler inserts at cursor). For normal/visual
---     mode in terminal-nvim, use `"+y` / `"+p` directly — the mappings
---     below never fire there because ghostty already swallowed the key.
+-- Why both keystrings:
+--   - **neovide**: drops the bare XF86Copy/XF86Paste keysym (its
+--     `get_special_key` table has no NamedKey::Copy / Paste case), so we need
+--     the `<D-c>`/`<D-v>` path. Working in all modes (n/i/v/c/t).
+--   - **terminal nvim inside ghostty**: ghostty intercepts XF86Paste before
+--     nvim sees it (`keybind = paste=paste_from_clipboard`) and sends
+--     bracketed paste — works in insert mode only. Normal/visual still
+--     requires explicit `"+y`/`"+p`. The legacy `<XF86Paste>` mapping below
+--     is kept for the rare case ghostty doesn't intercept (and as a no-op
+--     fallback if neovide ever adds NamedKey::Paste support).
 --
 -- Why not `set clipboard=unnamedplus`?
 -- The user explicitly wants the unnamed register to stay independent —
 -- `yy` and `p` keep using register 0, not the system clipboard. Only
--- explicit Super+C/V (= XF86Copy / XF86Paste) crosses over to `+`.
+-- explicit Super+C/V crosses over to `+`.
 --
--- Behaviour by mode (when the keystroke actually reaches nvim, i.e.
--- neovide always; terminal-nvim only in insert mode after ghostty's
--- bracketed-paste passthrough):
---   - normal   : Super+C copies the line under cursor (`"+yy`); Super+V
---                pastes from `+` after cursor (`"+p`).
---   - visual   : Super+C copies the visual selection (`"+y`); Super+V
---                replaces selection with `+` (`"_d"+P`).
---   - insert   : Super+V inserts `+` at cursor (`<C-r>+`); Super+C is a
---                no-op (switch to visual to copy).
---   - terminal : leave defaults.
+-- Mappings follow Neovide's official FAQ
+-- (https://neovide.dev/faq.html — "How can I use cmd-c/cmd-v…"), which
+-- uses `vim.api.nvim_paste` for paste so it handles all modes uniformly.
 
 local map = vim.keymap.set
 
--- Copy
-map({ "n" }, "<XF86Copy>", '"+yy', { desc = "Copy line to system clipboard" })
-map({ "v", "x" }, "<XF86Copy>", '"+y', { desc = "Copy visual selection to system clipboard" })
+local function copy()
+  vim.api.nvim_cmd({ cmd = "yank", reg = "+" }, {})
+end
+local function paste()
+  vim.api.nvim_paste(vim.fn.getreg("+"), true, -1)
+end
 
--- Paste
-map({ "n" }, "<XF86Paste>", '"+p', { desc = "Paste from system clipboard (after cursor)" })
-map({ "v", "x" }, "<XF86Paste>", '"_d"+P', { desc = "Replace selection with system clipboard" })
-map({ "i" }, "<XF86Paste>", "<C-r>+", { desc = "Paste from system clipboard (insert mode)" })
+-- <D-c> / <D-v> — neovide's serialization of Super+C / Super+V on Linux.
+map("v", "<D-c>", copy, { silent = true, desc = "Copy visual selection to + register" })
+map({ "n", "i", "v", "c", "t" }, "<D-v>", paste, { silent = true, desc = "Paste from + register" })
+
+-- <XF86Copy> / <XF86Paste> — fallback for any nvim host that delivers the
+-- bare keysym (terminal nvim's insert mode via ghostty bracketed paste).
+map("n", "<XF86Copy>", '"+yy', { desc = "Copy line to + register" })
+map({ "v", "x" }, "<XF86Copy>", '"+y', { desc = "Copy visual selection to + register" })
+map("n", "<XF86Paste>", '"+p', { desc = "Paste after cursor" })
+map({ "v", "x" }, "<XF86Paste>", '"_d"+P', { desc = "Replace selection with +" })
+map("i", "<XF86Paste>", "<C-r>+", { desc = "Paste from + register (insert mode)" })
+map("c", "<XF86Paste>", "<C-r>+", { desc = "Paste from + register (command-line)" })

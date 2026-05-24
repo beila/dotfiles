@@ -40,32 +40,37 @@ sysrq = mute
 pause = brightnessup
 scrolllock = brightnessdown
 
-# Super+C / Super+V → universal copy/paste, dispatched as the bare `copy`
-# / `paste` keysyms (X11: XF86Copy / XF86Paste, evdev: KEY_COPY / KEY_PASTE).
+# Super+C / Super+V → universal copy/paste.
 #
-# keyd resolves overloadt2(meta, prog1, 150) as a hold the moment C or V is
-# tapped (intervening-key rule), then this layer's explicit binding overrides
-# the default `:M` passthrough so the keysym is emitted with NO Super modifier.
-# (Note: the keyd key names are bare `copy`/`paste`, NOT `macro(XF86Paste)` —
-# `macro()` would interpret an unrecognised token as a character sequence and
-# type the literal string "XF86Paste".)
+# Emits a TWO-token macro on each press so every reasonable receiver gets
+# something it understands:
+#   1. bare `copy` / `paste` keysym (X11: XF86Copy / XF86Paste,
+#      evdev: KEY_COPY / KEY_PASTE) — handled by ghostty (default
+#      keybind = copy=copy_to_clipboard, paste=paste_from_clipboard),
+#      firefox / GTK / Qt apps, native VTE terminals.
+#   2. `M-c` / `M-v` (Super+C / Super+V proper) — neovide's input layer
+#      (winit) decodes Super as the `D-` prefix and surfaces `<D-c>` /
+#      `<D-v>` to nvim, matching Neovide's official FAQ recipe. The bare
+#      keysym alone won't reach nvim because Neovide's `get_special_key`
+#      table has no NamedKey::Copy / NamedKey::Paste case (silent drop).
 #
-# Why these keysyms over Ctrl+(Shift+)C/V:
-#   - terminals (ghostty et al.) bind copy=copy_to_clipboard / paste_from_clipboard
-#     to XF86Copy/Paste by default; ghostty intercepts XF86Paste before zellij
-#     sees it, pasting via bracketed paste — works in any zellij/zsh/nvim mode.
-#   - GTK/Qt apps (firefox, vivaldi, native) handle XF86Copy/Paste natively.
-#   - neovide receives the keysym directly; mapped in nvim-clipboard.lua to "+y/p.
+# Why both: no single keysym works everywhere on Linux. The bare keysym
+# is invisible to neovide; the Super+letter combo is invisible to GTK
+# clipboard handlers. Apps respond to whichever they're bound to and
+# silently ignore the other:
+#   - ghostty:   handles `copy`/`paste`, no default Super+c/v binding (drops M-c/M-v)
+#   - firefox:   GTK handles XF86Copy/Paste, no Super+c/v binding (drops M-c/M-v)
+#   - xmonad:    no (mod4Mask, xK_c|xK_v) bindings (drops both)
+#   - neovide:   drops bare keysym (no NamedKey case), maps <D-c>/<D-v> in nvim
 #
-# Keyd-level (vs xmonad+xdotool) eliminates the "Super still held" race that
-# previously required wait-for-key-release polling — keyd never emits a held
-# Super around the keysym, so the receiving app sees a bare XF86 keysym.
+# Note: keyd's bare key names are lowercase `copy`/`paste` — NOT XF86Copy
+# or macro(XF86Paste). `macro(<unknown>)` would type the literal string.
 [meta]
-c = copy
-v = paste
+c = macro(copy M-c)
+v = macro(paste M-v)
 
 # Super+Shift+V → copyq toggle (clipboard history picker, bound in xmonad).
-# Without this composite layer, [meta]'s explicit `v = paste` would fire even
+# Without this composite layer, [meta]'s explicit `v = ...` would fire even
 # when Shift is also held, swallowing the xmonad Super+Shift+V binding.
 [meta+shift]
 v = M-S-v
