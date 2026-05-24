@@ -487,7 +487,56 @@ snap_after=$(git -C "$TMPDIR/remote.git" rev-parse "refs/heads/${TESTHOST}/defau
 check "bookmark-only: snapshot ref unchanged (no snapshot URL set)" "$snap_before" "$snap_after"
 
 echo
-echo "=== Scenario 10: malformed sync.remote-bookmark -> ERROR + exit ==="
+echo "=== Scenario 10: non-default workspace skips local-bookmark snapshots ==="
+# Multi-workspace repo: the default workspace's local bookmarks (master)
+# are shared via the .jj store. A non-default workspace running sync_repo
+# should push its own workspace snapshot under <host>/<wsname>, but NOT
+# re-push <host>/master — that's the default workspace's job.
+mkdir -p "$TMPDIR/repoMultiWs"
+(
+    cd "$TMPDIR/repoMultiWs"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.snapshot-url "$TMPDIR/remote.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo init > README.md
+    jj commit -m "initial"
+    jj bookmark create master -r @-
+    jj git push --remote backup --bookmark master --allow-new
+    # Add a second workspace alongside the default one.
+    jj workspace add "$TMPDIR/repoMultiWs-second"
+) >/dev/null 2>&1
+
+# Wipe any leftover testhost/master from previous scenarios on the shared
+# remote, so the "did this run push it?" assertion is clean.
+git -C "$TMPDIR/remote.git" update-ref -d "refs/heads/${TESTHOST}/master" 2>/dev/null || true
+
+# Run sync_repo from the SECOND workspace (non-default). It should push
+# its own workspace snapshot but NOT testhost/master.
+echo "second" > "$TMPDIR/repoMultiWs-second/notes.txt"
+run_sync "$TMPDIR/repoMultiWs-second"
+
+# Workspace snapshot for the second workspace must land.
+second_at_minus=$(cd "$TMPDIR/repoMultiWs-second" && jj log -r "@-" --no-graph -T 'commit_id')
+second_snap=$(git -C "$TMPDIR/remote.git" rev-parse "refs/heads/${TESTHOST}/repoMultiWs-second" 2>/dev/null)
+check "non-default: workspace snapshot pushed under <host>/<wsname>" "$second_at_minus" "$second_snap"
+
+# But the local-bookmark snapshot (master) must NOT be pushed by the non-
+# default workspace — that's the default workspace's responsibility.
+master_snap_after=$(git -C "$TMPDIR/remote.git" rev-parse --verify "refs/heads/${TESTHOST}/master" 2>/dev/null || echo MISSING)
+check "non-default: <host>/master NOT pushed (gated to default workspace)" "MISSING" "$master_snap_after"
+
+# Sanity: running sync_repo from the DEFAULT workspace DOES push <host>/master.
+echo "first" > "$TMPDIR/repoMultiWs/notes.txt"
+run_sync "$TMPDIR/repoMultiWs"
+default_master_snap=$(git -C "$TMPDIR/remote.git" rev-parse --verify "refs/heads/${TESTHOST}/master" 2>/dev/null || echo MISSING)
+local_master=$(cd "$TMPDIR/repoMultiWs" && jj log -r master --no-graph -T 'commit_id')
+check "default: <host>/master pushed" "$local_master" "$default_master_snap"
+
+echo
+echo "=== Scenario 11: malformed sync.remote-bookmark -> ERROR + exit ==="
 mkdir -p "$TMPDIR/repoBadBm"
 (
     cd "$TMPDIR/repoBadBm"

@@ -145,8 +145,8 @@ timeout_cmd() {
 
 # --- jj branch helpers --------------------------------------------------------
 # Step functions read these globals (set in main):
-#   PUSH_REV, GIT_DIR, SNAPSHOT_URL, SYNC_BM, SYNC_REMOTE, MACHINE_NAME,
-#   DOTFILES_ROOT, SYNC_REPO_CMD_TIMEOUT.
+#   PUSH_REV, GIT_DIR, WORKSPACE_NAME, SNAPSHOT_URL, SYNC_BM, SYNC_REMOTE,
+#   MACHINE_NAME, DOTFILES_ROOT, SYNC_REPO_CMD_TIMEOUT.
 
 # Pick a stable single-rev change_id even when @ is an empty merge. One jj
 # call to snapshot @ avoids races with concurrent jj.
@@ -205,21 +205,23 @@ resolve_workspace_name() {
 
 step_push_workspace_snapshot() {
     [ -n "$SNAPSHOT_URL" ] || return 0
-    local current_commit at_commit workspace_name ws_branch
-    at_commit=$(jj log -r @ --no-graph -T 'commit_id' 2>/dev/null)
+    [ -n "$WORKSPACE_NAME" ] || return 0
+    local current_commit ws_branch
     current_commit=$(jj log -r "$PUSH_REV" --no-graph -T 'commit_id' 2>/dev/null)
-    workspace_name=$(jj workspace list -T 'self.name() ++ " " ++ self.target().commit_id() ++ "\n"' 2>/dev/null | awk -v c="$at_commit" '$2 == c {print $1; exit}')
-    [ -n "$workspace_name" ] && [ -n "$current_commit" ] || return 0
-    ws_branch="refs/heads/${MACHINE_NAME}/${workspace_name}"
-    push_force_replace "${MACHINE_NAME}/${workspace_name}" "$SNAPSHOT_URL" "$current_commit" "$ws_branch"
+    [ -n "$current_commit" ] || return 0
+    ws_branch="refs/heads/${MACHINE_NAME}/${WORKSPACE_NAME}"
+    push_force_replace "${MACHINE_NAME}/${WORKSPACE_NAME}" "$SNAPSHOT_URL" "$current_commit" "$ws_branch"
 }
 
 # Snapshot every non-host-prefixed local bookmark under MACHINE/<bookmark>.
-# The grep filter excludes any leftover hostname-prefixed bookmarks from old
-# sync_repo runs (the new flow doesn't create them locally, but old repos may
-# still have them lingering until they're forgotten manually).
+# Only runs in the default workspace: jj's local bookmarks are repo-scoped
+# (shared across all workspaces of a `.jj/repo`), so other workspaces would
+# just push redundant copies of the same refs the default workspace already
+# pushed. The grep filter excludes any leftover hostname-prefixed bookmarks
+# from old sync_repo runs (the new flow doesn't create them locally).
 step_push_local_bookmark_snapshots() {
     [ -n "$SNAPSHOT_URL" ] || return 0
+    [ "$WORKSPACE_NAME" = "default" ] || return 0
     local bm ref
     for bm in $(jj bookmark list -T 'name ++ "\n"' 2>/dev/null | grep -v "^${MACHINE_NAME}/" | sort -u); do
         ref=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
@@ -414,6 +416,7 @@ jj workspace update-stale 2>/dev/null || true
 
 snapshot_at_to_push_rev
 resolve_git_dir
+resolve_workspace_name
 
 # CRITICAL ORDER: snapshot push FIRST (purely additive, no local state mutation).
 # Whatever the user has in the working copy gets backed up to the snapshot URL

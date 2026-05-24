@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Adds (or replaces) a managed sync.snapshot-url scope in a user-level jj
+# config file. Re-running with the same REPO_PATH replaces the previous
+# block in place — each managed entry sits between marker comments so the
+# strip-and-append pass is idempotent.
+#
+# The target file is read from `tools.user-config-path` in jj config (any
+# layer that jj searches: user-level, repo-level, etc.). That indirection
+# keeps this script generic — callers don't need to know where the actual
+# user-config file lives, and the file can be e.g. a checkout in a separate
+# private repo.
+#
+# Usage: jj-set-snapshot-url REPO_PATH URL
+#   REPO_PATH: value for `--when.repositories`, e.g. "~/brazil-repos/IgnitionX"
+#   URL:       value for `sync.snapshot-url`,    e.g. "ssh://server/path"
+
+set -euo pipefail
+
+repo=${1:?usage: jj-set-snapshot-url REPO_PATH URL}
+url=${2:?usage: jj-set-snapshot-url REPO_PATH URL}
+
+target=$(jj config get tools.user-config-path 2>/dev/null || true)
+if [ -z "$target" ]; then
+    >&2 echo "jj-set-snapshot-url: tools.user-config-path not set in jj config"
+    exit 1
+fi
+# Expand a leading ~ since jj returns the raw string (it doesn't path-expand
+# arbitrary scalar values — only keys it knows are paths).
+target=${target/#\~\//$HOME/}
+
+if [ ! -e "$target" ]; then
+    >&2 echo "jj-set-snapshot-url: target file does not exist: $target"
+    exit 1
+fi
+config=$(readlink -f "$target") || config="$target"
+if [ ! -w "$config" ]; then
+    >&2 echo "jj-set-snapshot-url: $config is not writable"
+    exit 1
+fi
+
+# Marker tag derived from the repo path. Strip leading ~/ and replace
+# slashes with hyphens so the tag is a stable single-line ASCII string.
+tag=$(printf '%s' "$repo" | sed 's:^~/::; s:/:-:g')
+begin="# >>> jj-set-snapshot-url: $tag >>>"
+end="# <<< jj-set-snapshot-url: $tag <<<"
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+
+# Strip any prior block for this tag.
+awk -v b="$begin" -v e="$end" '
+    $0 == b { skip=1; next }
+    skip && $0 == e { skip=0; next }
+    !skip { print }
+' "$config" > "$tmp"
+
+# Append the fresh block with a single blank-line separator.
+{
+    printf '\n'
+    printf '%s\n' "$begin"
+    printf '[[--scope]]\n'
+    printf '%s\n' "--when.repositories = [\"$repo\"]"
+    printf '[--scope.sync]\n'
+    printf 'snapshot-url = "%s"\n' "$url"
+    printf '%s\n' "$end"
+} >> "$tmp"
+
+# Skip the write if nothing changed — keeps file mtime stable on no-op runs
+# and avoids dirtying the jj/git working copy unnecessarily.
+if ! cmp -s "$config" "$tmp"; then
+    cp "$tmp" "$config"
+fi
