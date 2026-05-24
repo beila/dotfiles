@@ -104,14 +104,6 @@ log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
 # is delivered — that can race if focus shifts during the spawn → xdotool
 # dance.
 #
-# Brief sleep before dispatch: xmonad's keybinding fires while the user is
-# still holding Super. --clearmodifiers releases it from xdotool's own
-# synthetic event, but the X server's view of physical Super state can
-# remain "held" until the user lets go — meaning subsequent letter
-# keypresses (j/k/l) get interpreted with the lingering Super modifier
-# and trigger xmonad bindings (Super+j = focusDown, etc). Sleeping ~50ms
-# before dispatch lets the user's release event propagate first.
-sleep 0.05
 if [ -n "$wid" ]; then
     "$XDOTOOL" key --clearmodifiers --window "$wid" "$combo"
 else
