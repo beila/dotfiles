@@ -8,7 +8,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 
 ### High impact
 - [ ] can't type hangul in zellij/ghostty
-- [ ] **universal Copy/paste key** — copy/paste keys that work the same way in x window app, terminals, zellij, neovide, (neo)vim in terminals
+- [x] **universal Copy/paste key** — Super+C / Super+V dispatched per focused window class via `bin/copy-paste-route` (xmonad-bound)
 - [x] use fzf for zsh tab completion — fzf-tab plugin routed through fzf-zellij; see `zsh/completion.zsh` end
 - [ ] remove hostname-prefixed remote bookmarks from jj without deleting them from the server
 - [x] `_gy` ↔ `_gyy` toggle via `become` produces wrong output
@@ -96,7 +96,8 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - Move mode: Alt-Shift-h/l→move tab left/right, Ctrl-Shift-h/j/k/l→move pane
 - kiro config: `~/.dotfiles/kiro.filesymlink/` (individual files symlinked into ~/.kiro/) — agents/default.json (MCP TTS server, autoAllowReadonly), agents/no-mcp.json (no MCP servers, used by commit-msg to avoid orphaned processes), agents/builder.json (local override of the AmazonBuilderCoreAIAgents `builder` agent: adds TTS MCP server, narrowed `execute_bash` allowlist for read-only operations, allows `fs_write:*AGENTS.md` so Kiro can edit this file without prompting), settings/cli.json (default agent: builder, default model: claude-opus-4.7), kiro.filesymlink/bin/kiro-response (TTS fallback), bin/mcp-tts (MCP server for say/say_ko tools, kills previous playback via `setsid` + `kill -PGID`), bin/test_mcp_tts.sh (run with `bash bin/test_mcp_tts.sh`)
 - Audio/brightness scripts: `~/.dotfiles/xwindow/bin/volume-osd`, `cycle-audio-output`, `cycle-audio-input`, `brightness-osd`
-- Clipboard history: `copyq` (nix) — systemd user service, xmonad Super+V runs `copyq toggle`
+- Clipboard history: `copyq` (nix) — systemd user service, xmonad Super+Shift+V runs `copyq toggle`
+- Universal copy/paste: `~/.dotfiles/bin/copy-paste-route copy|paste` — bound by xmonad to Super+C / Super+V. Inspects the focused window's class via `xdotool getactivewindow getwindowclassname` and emits the right keystroke for that app: ghostty (any class variant matched against `$COPY_PASTE_GHOSTTY_CLASSES`) → `Ctrl+Shift+C` / `Ctrl+Shift+V` (terminal-canonical, ghostty intercepts before forwarding to zellij/nvim — zellij itself isn't reconfigured, ghostty's selection-to-clipboard handles the in-terminal case). All other classes (firefox, vivaldi, native GTK) → `Ctrl+C` / `Ctrl+V`. Failure modes: missing xdotool → ERROR exit 127; `getactivewindow` failure (no X / no focused window) → falls back to `Ctrl+C/V` (don't strand the user); bad action → exit 2 with usage. nvim is **intentionally not special-cased** — `yy`/`p` keep using vim's unnamed register; system clipboard from inside nvim uses the existing `"+y` / `"+p` flow. Env knobs (test surface): `COPY_PASTE_XDOTOOL` (binary path), `COPY_PASTE_GHOSTTY_CLASSES` (space-separated class list). Test harness: `bin/test_copy-paste-route.sh` (11 assertions; stubbed xdotool via PATH that records argv + emits canned class names from a fixture file).
 - Weather script: `~/.dotfiles/xwindow/bin/weather-genmon` — wttr.in JSON API, python3 parser; 🌙 after sunset / before sunrise; tooltip: current + hourly + 3-day forecast
 - System monitor: `~/.dotfiles/xwindow/bin/sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode for metrics where high=good (battery); history in `/tmp/sysmon-history`, 8 samples
 - Battery indicator: `~/.dotfiles/xwindow/bin/battery-genmon` — standalone battery genmon (fallback; battery also in sysmon-genmon)
@@ -208,7 +209,8 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Super+` / Super+= → next screen
 - Super+0 → next empty workspace
 - Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)
-- Super+V → `copyq toggle` (clipboard history)
+- Super+C / Super+V → universal copy/paste via `bin/copy-paste-route` (per-app routing)
+- Super+Shift+V → `copyq toggle` (clipboard history; moved off Super+V which is now paste)
 
 ### Audio OSD System
 - Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
