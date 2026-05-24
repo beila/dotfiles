@@ -28,6 +28,22 @@ export LOG_REL_BASE="$TMPDIR"
 export LOG_NOTIFY_MODE=never
 export LOG_KEEP_THRESHOLD=DEBUG
 
+# Stub the AI commit-message providers so sync_repo's snapshot_at_to_push_rev
+# doesn't pay claude / kiro-cli / ollama latency in the test loop. Without
+# this, every scenario that has dirty working state (which is most of them)
+# pays a 30s claude timeout when claude is sluggish, making the timeout-guard
+# scenario impossible to bound tightly. commit-msg's chain falls through any
+# stub that exits 1 and ends at a deterministic file-list message.
+mkdir -p "$TMPDIR/stubs"
+for tool in claude kiro-cli ollama; do
+    cat >"$TMPDIR/stubs/$tool" <<'STUB'
+#!/bin/sh
+exit 1
+STUB
+    chmod +x "$TMPDIR/stubs/$tool"
+done
+export PATH="$TMPDIR/stubs:$PATH"
+
 # Aggregate log file for assertions: find all per-machine logs.
 find_log() {
     find "$LOG_ROOT" -name 'sync_repo.*.log' -print -quit 2>/dev/null
