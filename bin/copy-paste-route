@@ -86,14 +86,30 @@ esac
 
 log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
 
-# Don't `exec` — it replaces the shell and skips log.sh's EXIT trap, so
-# log_finalize never runs and DEBUG events never persist when
-# LOG_KEEP_THRESHOLD=DEBUG. Cost of a fork is negligible for a one-shot
-# keystroke dispatch.
+# Wait until the user's physical Super key is released before dispatching.
+# Reason: X11 modifier handling means even XF86Paste with Super-still-held
+# arrives as `Super+XF86Paste`, which apps that only bind `XF86Paste`
+# silently ignore — that's why the first Super+V press feels dead until
+# you've released Super, and subsequent presses (when Super is already
+# up) work fine.
 #
-# No wait-for-key-release step needed: XF86Copy / XF86Paste aren't
-# Super-prefixable in any app, so Super-still-held-by-the-user is benign.
-# --clearmodifiers + --window stay as cheap defence-in-depth.
+# 300ms timeout: keyd's `overloadt2(meta, prog1, 150)` already delays
+# Super-down by 150ms before xmonad sees the binding fire, so by the
+# time we get here the user's press-release cycle for V is usually
+# already complete or finishing. 300ms covers slow releases without
+# making fast presses feel laggy. Bail early if Super is still held —
+# better to dispatch a slightly-broken keystroke than visibly hang.
+#
+# wait-for-key-release is a tiny C binary (~6ms cold start). Skipped if
+# not on PATH — falls through to xdotool which still has --clearmodifiers.
+WAIT="${COPY_PASTE_WAIT:-wait-for-key-release}"
+if command -v "$WAIT" >/dev/null 2>&1; then
+    "$WAIT" --timeout-ms 300 Super_L 2>/dev/null || true
+fi
+
+# Don't `exec` — it replaces the shell and skips log.sh's EXIT trap.
+# --clearmodifiers + --window are defence-in-depth (synthetic-event
+# modifier hygiene + focus-shift race protection).
 if [ -n "$wid" ]; then
     "$XDOTOOL" key --clearmodifiers --window "$wid" "$combo"
 else

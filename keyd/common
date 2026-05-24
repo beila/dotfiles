@@ -39,3 +39,30 @@ sysrq = mute
 [alt]
 pause = brightnessup
 scrolllock = brightnessdown
+
+# Super+C / Super+V → universal copy/paste.
+#
+# Fires the dedicated XF86Copy / XF86Paste keysyms *without* a held Super
+# modifier — keyd resolves overloadt2(meta, prog1, 150) as a hold the moment
+# C or V is tapped (intervening-key rule), then this layer's explicit binding
+# overrides the default `:M` passthrough so the macro emits a clean keysym.
+#
+# Why XF86Copy/Paste over Ctrl+(Shift+)C/V:
+#   - terminals (ghostty et al.) bind copy=copy_to_clipboard / paste_from_clipboard
+#     to XF86Copy/Paste by default; ghostty intercepts XF86Paste before zellij
+#     sees it, pasting via bracketed paste — works in any zellij/zsh/nvim mode.
+#   - GTK/Qt apps (firefox, vivaldi, native) handle XF86Copy/Paste natively.
+#   - neovide receives the keysym directly; mapped in nvim-clipboard.lua to "+y/p.
+#
+# Keyd-level (vs xmonad+xdotool) eliminates the "Super still held" race that
+# previously required wait-for-key-release polling — keyd never emits a held
+# Super around the macro, so the receiving app sees a bare XF86 keysym.
+[meta]
+c = macro(XF86Copy)
+v = macro(XF86Paste)
+
+# Super+Shift+V → copyq toggle (clipboard history picker, bound in xmonad).
+# Without this composite layer, [meta]'s explicit v = macro(XF86Paste) would
+# fire even when Shift is also held, swallowing the xmonad binding.
+[meta+shift]
+v = M-S-v
