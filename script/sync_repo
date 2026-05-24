@@ -29,15 +29,14 @@ cd "$1" || {
 # under $HOME, including Brazil-managed checkouts (~/devc/, ~/.toolbox/) and
 # any other plain-git repo. We don't sync those — converting a repo to jj
 # (`jj git init --colocate`) is the explicit opt-in. No log line: matches the
-# "no backup remote" early-exit below in spirit (don't notify on no-ops).
+# "no sync config" early-exit below in spirit (don't notify on no-ops).
 jj root &>/dev/null || exit 0
 
 # Per-repo lock to prevent concurrent syncs. Must key off the BACKING repo, not
 # the workspace, because multiple jj workspaces (e.g. ~/dev/{pro,pro2,sawt}/src/IgnitionX)
 # share one .jj store + op log under ~/brazil-repos/IgnitionX/.jj. Concurrent
 # runs on different workspaces would otherwise race the shared op log (visible
-# as branching `jj workspace update-stale` ops) and clobber Step 1's shared
-# sync.bookmark (e.g. taygeta/pro), producing divergent change_ids.
+# as branching `jj workspace update-stale` ops) and clobber the snapshot pushes.
 # `jj git root` returns the shared .git path; `jj root` would return the
 # per-workspace path and miss this.
 LOCK_PATH=$(jj git root 2>/dev/null || echo "$1")
@@ -88,8 +87,8 @@ classify_cmd() {
             log WARN "TIMEOUT $tag: exceeded ${SYNC_REPO_CMD_TIMEOUT}s; killed"
         elif grep -qE 'remote ref does not exist|unable to delete.*remote ref|does not appear to be a git repository' "$err"; then
             # Benign: deleting a branch that isn't on the remote. Happens on
-            # every run for push-del of hostname-prefixed bookmarks after their
-            # first failed push, or when a bookmark was never pushed. Log at
+            # every run for push-del of hostname-prefixed snapshots after their
+            # first failed push, or when a snapshot was never pushed. Log at
             # DEBUG so we keep a trace without paging anyone.
             _LAST_CLASSIFICATION=BENIGN-DEL
             log DEBUG "BENIGN-DEL $tag: $(head -1 "$err")"
@@ -110,23 +109,24 @@ classify_cmd() {
     return $rc
 }
 
-# push_force_replace <tag> <remote> <ref> <branch>
+# push_force_replace <tag> <url> <commit> <branch>
 # Emulate force-push via delete+push for servers that reject --force (gitfarm).
 # Only push if the delete actually removed the ref OR the ref didn't exist —
 # otherwise the push would fail non-fast-forward and the bogus OTHER-ERR masks
 # the real cause (concurrent push, transient network, server hook). Next
 # sync_repo run retries the cycle cleanly.
 #
-# Pushes via the remote NAME (not URL) so git updates the local tracking refs
-# under refs/remotes/<remote>/* — Step 4's `jj git import` then sees the new
-# SHAs and jj's view of @backup bookmarks stays in sync.
+# Pushes to a URL directly (not a configured remote name) so git does NOT
+# update local refs/remotes/<remote>/* tracking refs. This keeps jj's view
+# free of hostname-prefixed remote bookmarks — they exist only on the server,
+# never in the local jj/git store.
 push_force_replace() {
-    local tag=$1 remote=$2 ref=$3 branch=$4
-    timeout_cmd "push-del $tag" git --git-dir="$GIT_DIR" push "$remote" --delete "$branch"
+    local tag=$1 url=$2 commit=$3 branch=$4
+    timeout_cmd "push-del $tag" git --git-dir="$GIT_DIR" push "$url" --delete "$branch"
     local del_class=$_LAST_CLASSIFICATION
     case "$del_class" in
         OK|BENIGN-DEL)
-            timeout_cmd "push $tag" git --git-dir="$GIT_DIR" push "$remote" "${ref}:${branch}" || true
+            timeout_cmd "push $tag" git --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}" || true
             ;;
         *)
             log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
@@ -145,8 +145,8 @@ timeout_cmd() {
 
 # --- jj branch helpers --------------------------------------------------------
 # Step functions read these globals (set in main):
-#   PUSH_REV, GIT_DIR, BACKUP_URL, CURRENT_BM, MACHINE_NAME, DOTFILES_ROOT,
-#   SYNC_REPO_CMD_TIMEOUT.
+#   PUSH_REV, GIT_DIR, SNAPSHOT_URL, SYNC_BM, SYNC_REMOTE, MACHINE_NAME,
+#   DOTFILES_ROOT, SYNC_REPO_CMD_TIMEOUT.
 
 # Pick a stable single-rev change_id even when @ is an empty merge. One jj
 # call to snapshot @ avoids races with concurrent jj.
@@ -177,42 +177,60 @@ resolve_git_dir() {
     GIT_DIR=$(jj git root 2>/dev/null)
 }
 
-# Workspace name: match current @ against `jj workspace list` — `jj op log` is
-# shared across workspaces and would return the last-active, not the current.
-step0_push_workspace_snapshot() {
-    local current_commit workspace_name ws_bm ws_branch ws_ref
-    current_commit=$(jj log -r @ --no-graph -T 'commit_id' 2>/dev/null)
-    workspace_name=$(jj workspace list -T 'self.name() ++ " " ++ self.target().commit_id() ++ "\n"' 2>/dev/null | awk -v c="$current_commit" '$2 == c {print $1; exit}')
-    [ -n "$workspace_name" ] && [ -n "$PUSH_REV" ] || return 0
-    ws_bm="${MACHINE_NAME}/${workspace_name}"
-    ws_branch="refs/heads/${ws_bm}"
-    jj bookmark create "$ws_bm" -r "$PUSH_REV" 2>/dev/null || jj bookmark set "$ws_bm" -r "$PUSH_REV" --allow-backwards 2>/dev/null || true
-    ws_ref=$(jj log -r "$ws_bm" --no-graph -T 'commit_id' 2>/dev/null)
-    if [ -n "$ws_ref" ]; then
-        push_force_replace "$ws_bm" backup "$ws_ref" "$ws_branch"
-    fi
-    jj bookmark delete "$ws_bm" 2>/dev/null || true
+# Find which workspace this run is operating on. Multiple workspaces share
+# one `.jj/repo` store + op log (e.g. ~/dev/{pro,pro2}/src/IgnitionX both
+# share ~/brazil-repos/IgnitionX/.jj), so the only signal that distinguishes
+# "which workspace am I in" is matching @'s commit_id against the per-
+# workspace target_id from `jj workspace list`. Sets WORKSPACE_NAME (empty
+# if no match — caller decides whether that's fatal).
+resolve_workspace_name() {
+    local at_commit
+    at_commit=$(jj log -r @ --no-graph -T 'commit_id' 2>/dev/null)
+    WORKSPACE_NAME=$(jj workspace list -T 'self.name() ++ " " ++ self.target().commit_id() ++ "\n"' 2>/dev/null | awk -v c="$at_commit" '$2 == c {print $1; exit}')
 }
 
-# Push hostname-prefixed refs whose tip differs from remote (raw git delete+push
-# — backup server rejects --force-with-lease). Final `jj git import` syncs
-# refs/remotes/backup/* so any later early-exit still sees the right SHAs.
-step1_advance_and_push_local_bookmarks() {
-    local remote_refs ref remote_ref bm
-    if [ -n "$CURRENT_BM" ]; then
-        jj bookmark set "$CURRENT_BM" -r "$PUSH_REV" 2>/dev/null || true
-    fi
-    remote_refs=$(timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" \
-        git --git-dir="$GIT_DIR" ls-remote "$BACKUP_URL" "refs/heads/${MACHINE_NAME}/*" 2>/dev/null)
+# --- Snapshot push (purely additive — no local changes) -----------------------
+# Writes per-host snapshots of the working state to refs/heads/<MACHINE>/<NAME>
+# on the snapshot URL via raw git. Two reasons to push directly to the URL
+# instead of through a configured remote:
+#   1. No local refs/remotes/<remote>/* tracking refs get updated, so jj never
+#      imports these snapshots as remote bookmarks. The `jj log` and
+#      `jj bookmark list` views stay clean.
+#   2. The script doesn't need a `backup` remote configured in either git or
+#      jj — sync.snapshot-url is the single source of truth.
+#
+# The snapshot is the safety net: it MUST run BEFORE step_sync_remote_bookmark
+# touches local state (rebase / bookmark advance / etc.), so a botched
+# bookmark sync never destroys work that hasn't been backed up.
+
+step_push_workspace_snapshot() {
+    [ -n "$SNAPSHOT_URL" ] || return 0
+    local current_commit at_commit workspace_name ws_branch
+    at_commit=$(jj log -r @ --no-graph -T 'commit_id' 2>/dev/null)
+    current_commit=$(jj log -r "$PUSH_REV" --no-graph -T 'commit_id' 2>/dev/null)
+    workspace_name=$(jj workspace list -T 'self.name() ++ " " ++ self.target().commit_id() ++ "\n"' 2>/dev/null | awk -v c="$at_commit" '$2 == c {print $1; exit}')
+    [ -n "$workspace_name" ] && [ -n "$current_commit" ] || return 0
+    ws_branch="refs/heads/${MACHINE_NAME}/${workspace_name}"
+    push_force_replace "${MACHINE_NAME}/${workspace_name}" "$SNAPSHOT_URL" "$current_commit" "$ws_branch"
+}
+
+# Snapshot every non-host-prefixed local bookmark under MACHINE/<bookmark>.
+# The grep filter excludes any leftover hostname-prefixed bookmarks from old
+# sync_repo runs (the new flow doesn't create them locally, but old repos may
+# still have them lingering until they're forgotten manually).
+step_push_local_bookmark_snapshots() {
+    [ -n "$SNAPSHOT_URL" ] || return 0
+    local bm ref
     for bm in $(jj bookmark list -T 'name ++ "\n"' 2>/dev/null | grep -v "^${MACHINE_NAME}/" | sort -u); do
         ref=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
-        remote_ref=$(echo "$remote_refs" | awk -v r="refs/heads/${MACHINE_NAME}/${bm}" '$2 == r {print $1}')
-        if [ "$ref" != "$remote_ref" ]; then
-            push_force_replace "${MACHINE_NAME}/${bm}" backup "$ref" "refs/heads/${MACHINE_NAME}/${bm}"
-        fi
+        push_force_replace "${MACHINE_NAME}/${bm}" "$SNAPSHOT_URL" "$ref" "refs/heads/${MACHINE_NAME}/${bm}"
     done
-    jj git import 2>/dev/null || true
 }
+
+# --- Sync-bookmark sync (jj-mediated, may modify local state) -----------------
+# Fetches ONLY the configured bookmark from the configured remote — narrow
+# refspec means hostname-prefixed snapshots from this or other hosts never
+# enter jj's view at all. Rebase/push of the local working copy follow.
 
 ancestry_class() {
     local local_rev=$1 remote_rev=$2
@@ -232,122 +250,178 @@ ancestry_class() {
 # common-ancestor / L / R), so a clean probe guarantees a clean rebase — and
 # we leave a clear retry surface on conflict.
 handle_diverged() {
-    local current_bm=$1 local_rev=$2 remote_rev=$3
-    local probe_change conflict_files rebased_rev
+    local local_rev=$1 remote_rev=$2
+    local probe_change conflict_files
     if ! jj new --no-edit "$local_rev" "$remote_rev" -m "rebase-probe" 2>/dev/null; then
-        log CRITICAL "REBASE-PROBE-FAIL $current_bm local=$local_rev remote=$remote_rev; skipping push"
-        echo "WARNING: failed to create rebase probe for $current_bm; skipping push" >&2
+        log CRITICAL "REBASE-PROBE-FAIL ${SYNC_BM} local=$local_rev remote=$remote_rev; skipping push"
+        echo "WARNING: failed to create rebase probe for $SYNC_BM; skipping push" >&2
         return 0
     fi
     probe_change=$(jj log -r 'latest("'"$local_rev"'"+ & "'"$remote_rev"'"+, 1)' --no-graph -T 'change_id' 2>/dev/null | head -1)
     if [ -z "$probe_change" ]; then
-        log CRITICAL "REBASE-PROBE-FAIL $current_bm: could not locate probe commit"
-        echo "WARNING: could not locate rebase probe for $current_bm; skipping push" >&2
+        log CRITICAL "REBASE-PROBE-FAIL ${SYNC_BM}: could not locate probe commit"
+        echo "WARNING: could not locate rebase probe for $SYNC_BM; skipping push" >&2
         return 0
     fi
     if jj log -r "$probe_change" --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
         conflict_files=$(jj resolve --list -r "$probe_change" 2>/dev/null | awk 'NF {print $1}' | paste -sd, -)
-        log ERROR "REBASE-CONFLICT $current_bm files=${conflict_files:-<unknown>} local=$local_rev remote=$remote_rev"
-        echo "WARNING: rebase has conflicts in ${conflict_files:-<unknown>}; skipping push for $current_bm" >&2
+        log ERROR "REBASE-CONFLICT ${SYNC_BM} files=${conflict_files:-<unknown>} local=$local_rev remote=$remote_rev"
+        echo "WARNING: rebase has conflicts in ${conflict_files:-<unknown>}; skipping push for $SYNC_BM" >&2
         jj abandon "$probe_change" 2>/dev/null || true
+        # Mark that the bookmark sync hit a conflict so step_rebase_local_chain
+        # doesn't follow up by rebasing the working copy onto the remote tip
+        # (that would re-introduce the conflict markers into @- and silently
+        # diverge from the snapshot we just pushed).
+        SYNC_CONFLICT=1
         return 0
     fi
     jj abandon "$probe_change" 2>/dev/null || true
     if ! jj rebase -s 'roots(::'"$local_rev"' ~ ::'"$remote_rev"')' -d "$remote_rev" 2>/dev/null; then
-        log CRITICAL "REBASE-FAIL $current_bm local=$local_rev remote=$remote_rev"
-        echo "WARNING: jj rebase failed for $current_bm; skipping push" >&2
+        log CRITICAL "REBASE-FAIL ${SYNC_BM} local=$local_rev remote=$remote_rev"
+        echo "WARNING: jj rebase failed for $SYNC_BM; skipping push" >&2
         return 0
     fi
-    rebased_rev=$(jj log -r "$current_bm" --no-graph -T 'commit_id' 2>/dev/null)
-    if timeout_cmd "push $current_bm (rebased)" jj git push --remote backup --bookmark "$current_bm"; then
-        log INFO "PUSH-OK $current_bm rev=$rebased_rev (rebased local=$local_rev remote=$remote_rev)"
+    # Push the rebased local tip. The rebased commit follows @- (since we
+    # rebased commits reachable from @-); set a transient local bookmark there
+    # for jj git push to consume, then push.
+    jj bookmark create "$SYNC_BM" -r "@-" 2>/dev/null \
+        || jj bookmark set "$SYNC_BM" -r "@-" --allow-backwards 2>/dev/null
+    # jj 0.40+ requires the local bookmark to be tracking the remote one
+    # before push — otherwise it errors "Non-tracking remote bookmark exists".
+    jj bookmark track "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
+    local rebased_rev
+    rebased_rev=$(jj log -r "@-" --no-graph -T 'commit_id' 2>/dev/null)
+    if timeout_cmd "push $SYNC_BM (rebased)" jj git push --remote "$SYNC_REMOTE" --bookmark "$SYNC_BM"; then
+        log INFO "PUSH-OK ${SYNC_BM}@${SYNC_REMOTE} rev=$rebased_rev (rebased local=$local_rev remote=$remote_rev)"
     fi
 }
 
-# After `jj git fetch`, a bare bookmark name like "master" can become
-# ambiguous when the remote diverged. Resolve LOCAL_BM_REV to a commit_id
-# BEFORE fetch and use that in all post-fetch revsets.
-step2_reconcile_sync_bookmark() {
-    [ -n "$CURRENT_BM" ] || return 0
+# Compare against the REMOTE bookmark (NAME@REMOTE) directly — no local
+# bookmark needs to exist for the comparison. We only create a transient
+# local bookmark when we're about to push, because `jj git push --bookmark X`
+# requires X to exist locally.
+#
+# After fetch, a bare bookmark name like "master" can become ambiguous if both
+# local and remote diverge. Resolving against `@-` (commit_id) before fetch
+# bypasses that — @- is always a stable revset.
+step_sync_remote_bookmark() {
+    [ -n "$SYNC_BM" ] || return 0
 
-    local local_bm_rev remote_rev
-    local_bm_rev=$(jj log -r "$CURRENT_BM" --no-graph -T 'commit_id' 2>/dev/null)
+    local local_rev remote_rev
+    local_rev=$(jj log -r "@-" --no-graph -T 'commit_id' 2>/dev/null)
 
-    if ! timeout_cmd "fetch $CURRENT_BM" jj git fetch --all-remotes; then
-        # Skip push: stale ${CURRENT_BM}@backup would route us to a wrong-path
-        # push (e.g. "new bookmark" full-history push on transient timeout).
-        log INFO "SKIP-PUSH $CURRENT_BM: fetch failed; will retry next run"
+    if ! timeout_cmd "fetch ${SYNC_BM}@${SYNC_REMOTE}" jj git fetch --remote "$SYNC_REMOTE" --branch "$SYNC_BM"; then
+        # Skip push: stale ${SYNC_BM}@${SYNC_REMOTE} would route us to a
+        # wrong-path push (e.g. "new bookmark" full-history push on transient
+        # timeout). Next sync_repo run retries from a fresh fetch.
+        log INFO "SKIP-PUSH ${SYNC_BM}: fetch failed; will retry next run"
         return 0
     fi
-    log INFO "FETCH-OK $CURRENT_BM"
+    log INFO "FETCH-OK ${SYNC_BM}@${SYNC_REMOTE}"
 
-    # jj 0.40+ rejects pushes to untracked remote bookmarks.
-    jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
-    remote_rev=$(jj log -r "${CURRENT_BM}@backup" --no-graph -T 'commit_id' 2>/dev/null)
+    remote_rev=$(jj log -r "${SYNC_BM}@${SYNC_REMOTE}" --no-graph -T 'commit_id' 2>/dev/null)
 
     if [ -z "$remote_rev" ]; then
-        if timeout_cmd "push $CURRENT_BM (new)" jj git push --remote backup --bookmark "$CURRENT_BM" --allow-new; then
-            log INFO "PUSH-OK $CURRENT_BM rev=$local_bm_rev (new)"
+        # Remote bookmark doesn't exist yet — push our local @- to create it.
+        # Need a local bookmark for jj git push.
+        jj bookmark create "$SYNC_BM" -r "@-" 2>/dev/null \
+            || jj bookmark set "$SYNC_BM" -r "@-" --allow-backwards 2>/dev/null
+        if timeout_cmd "push $SYNC_BM (new)" jj git push --remote "$SYNC_REMOTE" --bookmark "$SYNC_BM" --allow-new; then
+            log INFO "PUSH-OK ${SYNC_BM}@${SYNC_REMOTE} rev=$local_rev (new)"
+            # Track post-push so future runs see ${SYNC_BM}@${SYNC_REMOTE}
+            # as tracked and can push without --allow-new.
+            jj bookmark track "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
         fi
-    else
-        case "$(ancestry_class "$local_bm_rev" "$remote_rev")" in
-            equal)
-                log INFO "SKIP $CURRENT_BM already at $remote_rev"
-                ;;
-            local-ancestor)
-                jj bookmark set "$CURRENT_BM" -r "$remote_rev" --allow-backwards 2>/dev/null || true
-                log INFO "FAST-FORWARD $CURRENT_BM local=$local_bm_rev -> remote=$remote_rev"
-                ;;
-            remote-ancestor)
-                if timeout_cmd "push $CURRENT_BM (ahead)" jj git push --remote backup --bookmark "$CURRENT_BM"; then
-                    log INFO "PUSH-OK $CURRENT_BM rev=$local_bm_rev (ahead)"
-                fi
-                ;;
-            diverged)
-                handle_diverged "$CURRENT_BM" "$local_bm_rev" "$remote_rev"
-                ;;
-        esac
+        return 0
     fi
-    jj bookmark track "${CURRENT_BM}@backup" 2>/dev/null || true
+
+    case "$(ancestry_class "$local_rev" "$remote_rev")" in
+        equal)
+            log INFO "SKIP ${SYNC_BM}@${SYNC_REMOTE} already at $remote_rev"
+            ;;
+        local-ancestor)
+            # Remote is ahead of local. The local working copy stays where it
+            # is (don't yank @ around without user intent). step_rebase_local
+            # below moves any local mutable commits onto the new remote tip.
+            log INFO "FAST-FORWARD ${SYNC_BM}@${SYNC_REMOTE} local=$local_rev <- remote=$remote_rev"
+            ;;
+        remote-ancestor)
+            # Local is ahead of remote. Set transient local bookmark at @- and push.
+            jj bookmark create "$SYNC_BM" -r "@-" 2>/dev/null \
+                || jj bookmark set "$SYNC_BM" -r "@-" --allow-backwards 2>/dev/null
+            jj bookmark track "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
+            if timeout_cmd "push $SYNC_BM (ahead)" jj git push --remote "$SYNC_REMOTE" --bookmark "$SYNC_BM"; then
+                log INFO "PUSH-OK ${SYNC_BM}@${SYNC_REMOTE} rev=$local_rev (ahead)"
+            fi
+            ;;
+        diverged)
+            handle_diverged "$local_rev" "$remote_rev"
+            ;;
+    esac
 }
 
-step3_rebase_local_chain() {
-    [ -n "$CURRENT_BM" ] || return 0
-    jj rebase -s 'roots(mutable() & ::@ ~ ::'"$CURRENT_BM"')' -d "$CURRENT_BM" 2>/dev/null || true
-}
-
-# Untrack hostname-prefixed remote bookmarks: they're per-host snapshots, not
-# branches we want jj to follow — left tracked, they pollute `jj bookmark list`
-# and interfere with future `jj git push` operations.
-step4_jj_git_import_cleanup() {
-    local bm
-    jj git import 2>/dev/null || true
-    for bm in $(jj bookmark list --all-remotes -T 'name ++ "@" ++ remote ++ "\n"' 2>/dev/null | grep -E "^${MACHINE_NAME}/.+@backup$"); do
-        jj bookmark untrack "$bm" 2>/dev/null || true
-    done
-    jj abandon 'heads(empty() & description(exact:"")) ~ @ ~ bookmarks()' 2>/dev/null || true
+# Rebase any local mutable commits between @- and the remote bookmark onto
+# the remote bookmark tip. Keeps the local working copy parented on a current
+# remote even when the user's @- is behind a fast-forwarded remote.
+#
+# Skipped when the bookmark sync hit a conflict (SYNC_CONFLICT=1): rebasing
+# a conflicting local chain onto the remote would write conflict markers into
+# the working copy AND quietly desynchronize @- from the snapshot we already
+# pushed. The user should resolve the divergence manually.
+step_rebase_local_chain() {
+    [ -n "$SYNC_BM" ] || return 0
+    [ "${SYNC_CONFLICT:-0}" = "1" ] && return 0
+    jj rebase -s "roots(mutable() & ::@ ~ ::${SYNC_BM}@${SYNC_REMOTE})" -d "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
 }
 
 # --- main ---------------------------------------------------------------------
 log INFO "START"
 
-if ! jj git remote list 2>/dev/null | grep -q '^backup '; then
-    jj status &>/dev/null
+# Read sync configuration. Both keys are independently optional:
+#   sync.remote-bookmark = "BOOKMARK@REMOTE"   (e.g. "main@backup")
+#     Drives the bookmark-sync flow: jj git fetch --branch + jj git push.
+#   sync.snapshot-url    = "git@server:path"
+#     Drives the per-host snapshot flow: raw git push to URL with no jj
+#     remote tracking. Snapshots happen FIRST so they always land before
+#     the bookmark-sync flow makes any local changes.
+SYNC_BM=""
+SYNC_REMOTE=""
+remote_bookmark=$(jj config get sync.remote-bookmark 2>/dev/null || true)
+if [ -n "$remote_bookmark" ]; then
+    case "$remote_bookmark" in
+        *@*)
+            SYNC_BM="${remote_bookmark%@*}"
+            SYNC_REMOTE="${remote_bookmark##*@}"
+            ;;
+        *)
+            log ERROR "BAD-CONFIG sync.remote-bookmark='$remote_bookmark' must be 'BOOKMARK@REMOTE' format"
+            exit 1
+            ;;
+    esac
+    if [ -z "$SYNC_BM" ] || [ -z "$SYNC_REMOTE" ]; then
+        log ERROR "BAD-CONFIG sync.remote-bookmark='$remote_bookmark' has empty bookmark or remote"
+        exit 1
+    fi
+fi
+SNAPSHOT_URL=$(jj config get sync.snapshot-url 2>/dev/null || true)
+
+if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ]; then
+    log INFO "NO-SYNC-CONFIG: neither sync.remote-bookmark nor sync.snapshot-url set"
     exit 0
 fi
+
 jj workspace update-stale 2>/dev/null || true
 
 snapshot_at_to_push_rev
 resolve_git_dir
-BACKUP_URL=$(git --git-dir="$GIT_DIR" remote get-url backup 2>/dev/null)
-CURRENT_BM=$(jj config get sync.bookmark 2>/dev/null || true)
-if [ -z "$BACKUP_URL" ]; then
-    log INFO "NO-BACKUP-URL skipping push steps (git has no 'backup' remote)"
-    exit 0
-fi
 
-step0_push_workspace_snapshot
-step1_advance_and_push_local_bookmarks
-step2_reconcile_sync_bookmark
-step3_rebase_local_chain
-step4_jj_git_import_cleanup
+# CRITICAL ORDER: snapshot push FIRST (purely additive, no local state mutation).
+# Whatever the user has in the working copy gets backed up to the snapshot URL
+# before any rebase / bookmark advance / merge probe can possibly disturb it.
+step_push_workspace_snapshot
+step_push_local_bookmark_snapshots
+
+# Bookmark sync runs AFTER the safety-net push. May rebase local commits and
+# advance/create the local bookmark for push purposes.
+step_sync_remote_bookmark
+step_rebase_local_chain

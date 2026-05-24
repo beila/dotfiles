@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Smoke test for script/sync_repo. Creates throwaway jj/git repos sharing a
-# bare "backup" remote, drives sync_repo through:
-#   - local-ahead: push path
+# bare remote, drives sync_repo through:
+#   - local-ahead: bookmark push path
 #   - divergence (non-conflicting edits): merge+push path
-#   - dead remote (127.0.0.1:1): timeout-guard exits in bounded time
-# And asserts that the structured log contains the expected tags.
+#   - dead remote (fake ssh): timeout-guard exits in bounded time
+#   - no sync config: exits cleanly with NO-SYNC-CONFIG
+#   - conflict divergence: REBASE-CONFLICT, no push
+#   - non-jj repo: silent skip
+# And asserts the snapshot-first ordering: per-host refs/heads/<MACHINE>/...
+# always land on the snapshot URL even if the bookmark-sync step fails.
 #
 # Usage: bash script/test_sync_repo.sh
 
@@ -44,6 +48,12 @@ STUB
 done
 export PATH="$TMPDIR/stubs:$PATH"
 
+# Pretend hostname (used as the prefix for snapshot refs) is stable across the
+# test so we can grep for a known string. Without this, the actual machine's
+# hostname leaks into expected ref names.
+export HOSTNAME=testhost
+TESTHOST=testhost
+
 # Aggregate log file for assertions: find all per-machine logs.
 find_log() {
     find "$LOG_ROOT" -name 'sync_repo.*.log' -print -quit 2>/dev/null
@@ -52,9 +62,17 @@ find_log() {
 # Shared bare remote.
 git -C "$TMPDIR" init --bare -q -b master remote.git
 
-# setup_repo <dirname> <extra-content>
-# Seeds a colocated jj/git repo with an initial commit on master that is pushed to
-# the shared bare remote, then appends <extra-content> as an in-progress working change.
+# setup_repo <dirname> <extra-file> <extra-content>
+# Seeds a colocated jj/git repo with an initial commit on master pushed to the
+# shared bare remote, then appends <extra-content> as an in-progress working
+# change. Configures both sync.remote-bookmark (drives bookmark sync) and
+# sync.snapshot-url (drives per-host snapshot push) — the same bare remote
+# serves both URLs in tests.
+#
+# `hostnamectl --pretty` is what sync_repo uses for $MACHINE_NAME; override
+# via env so tests don't depend on real hostname. The fallback to
+# `hostname -s` is what runs when hostnamectl is missing (most CI envs); we
+# stub via PATH below so the result is predictable.
 setup_repo() {
     local name=$1 extra_file=$2 extra_content=$3
     mkdir -p "$TMPDIR/$name"
@@ -62,7 +80,8 @@ setup_repo() {
         cd "$TMPDIR/$name"
         jj git init --colocate
         jj git remote add backup "$TMPDIR/remote.git"
-        jj config set --repo sync.bookmark master
+        jj config set --repo sync.remote-bookmark 'master@backup'
+        jj config set --repo sync.snapshot-url "$TMPDIR/remote.git"
         jj config set --repo user.email 'test@example.com'
         jj config set --repo user.name  'Test User'
         echo "initial" > README.md
@@ -76,6 +95,21 @@ setup_repo() {
         fi
     ) >/dev/null 2>&1
 }
+
+# Stub `hostname -s` (sync_repo's fallback when hostnamectl is unavailable)
+# so $MACHINE_NAME is deterministic across test runs.
+cat >"$TMPDIR/stubs/hostname" <<STUB
+#!/bin/sh
+echo "$TESTHOST"
+STUB
+chmod +x "$TMPDIR/stubs/hostname"
+# Stub hostnamectl too — its --pretty output includes a literal newline that
+# sync_repo greps out, but on machines where it's set we'd get the real name.
+cat >"$TMPDIR/stubs/hostnamectl" <<'STUB'
+#!/bin/sh
+exit 1
+STUB
+chmod +x "$TMPDIR/stubs/hostnamectl"
 
 pass=0
 fail=0
@@ -97,13 +131,23 @@ run_sync() {
 }
 
 echo
-echo "=== Scenario 1: local ahead of remote -> push ==="
+echo "=== Scenario 1: local ahead of remote -> bookmark push + snapshot ==="
 setup_repo repoA "a.txt" "from A"
 run_sync "$TMPDIR/repoA"
-remote_head=$(git -C "$TMPDIR/remote.git" rev-parse master)
-# Fetch into jj so our local view matches the remote
-local_head=$(cd "$TMPDIR/repoA" && jj log -r master --no-graph -T 'commit_id')
-check "remote advanced to local after push" "$local_head" "$remote_head"
+remote_master=$(git -C "$TMPDIR/remote.git" rev-parse master)
+local_at_minus=$(cd "$TMPDIR/repoA" && jj log -r "@-" --no-graph -T 'commit_id')
+check "remote master advanced to local @- after push" "$local_at_minus" "$remote_master"
+
+# Snapshot push must have landed: refs/heads/<TESTHOST>/default exists on
+# the bare remote at the same commit as @-.
+snapshot_ref=$(git -C "$TMPDIR/remote.git" rev-parse "refs/heads/${TESTHOST}/default" 2>/dev/null)
+check "workspace snapshot pushed to <host>/default" "$local_at_minus" "$snapshot_ref"
+
+# The hostname-prefixed snapshot refs must NOT be visible in jj's local
+# bookmark/remote-bookmark view: pushing to a URL directly (not a configured
+# remote) skips refs/remotes/* updates, so jj never imports them.
+hostname_prefixed_in_jj=$(cd "$TMPDIR/repoA" && jj bookmark list --all-remotes -T 'name ++ "@" ++ remote ++ "\n"' 2>/dev/null | grep -E "^${TESTHOST}/" | wc -l | tr -d ' ')
+check "jj view has no hostname-prefixed remote bookmarks" "0" "$hostname_prefixed_in_jj"
 
 echo
 echo "=== Scenario 2: divergence -> rebase + push (different files -> no conflict) ==="
@@ -115,15 +159,15 @@ run_sync "$TMPDIR/repoB"
 run_sync "$TMPDIR/repoC"
 
 remote_after=$(git -C "$TMPDIR/remote.git" rev-parse master)
-local_after=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'commit_id')
-check "local and remote master match after rebase" "$local_after" "$remote_after"
+local_c_at_minus=$(cd "$TMPDIR/repoC" && jj log -r "@-" --no-graph -T 'commit_id')
+check "local @- and remote master match after rebase" "$local_c_at_minus" "$remote_after"
 
 # Verify the rebased commit has 1 parent (linear history, no merge commit)
-parent_count=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'parents.len()')
+parent_count=$(cd "$TMPDIR/repoC" && jj log -r "@-" --no-graph -T 'parents.len()')
 check "rebased commit has 1 parent (linear history)" "1" "$parent_count"
 
 # Verify the description is the original c.txt change description (not "Merge ...")
-rebased_desc=$(cd "$TMPDIR/repoC" && jj log -r master --no-graph -T 'description.first_line()')
+rebased_desc=$(cd "$TMPDIR/repoC" && jj log -r "@-" --no-graph -T 'description.first_line()')
 case "$rebased_desc" in
     Merge*) echo "FAIL: rebased description starts with 'Merge' (got: '$rebased_desc')"; fail=$((fail+1)) ;;
     "")     echo "FAIL: rebased description is empty"; fail=$((fail+1)) ;;
@@ -134,7 +178,6 @@ echo
 echo "=== Scenario 3: sync log contains expected tags ==="
 grep_has() {
     local pattern=$1
-    # Search across ALL log files under $LOG_ROOT
     if grep -rq "$pattern" "$LOG_ROOT" 2>/dev/null; then
         echo "PASS: log contains '$pattern'"
         pass=$((pass+1))
@@ -152,13 +195,9 @@ echo "=== Scenario 4: command timeout guard ==="
 # network call hangs, AND that downstream behavior (SKIP-PUSH, no cascade
 # OTHER-ERR) is correct under that failure mode.
 #
-# Earlier this was tested via a real SSH blackhole (127.0.0.1:1) plus a 30s
-# wall-clock bound — but each timed-out call still costs ~ConnectTimeout(10s)
-# + SYNC_REPO_CMD_TIMEOUT + kill-grace, and sync_repo makes ~6 ssh-bearing
-# calls per run. Real-world wall time hovered 34-37s, tripping the bound on
-# busy hosts. Replaced with a deterministic fake ssh that sleeps long past
-# any timeout — every call hits SYNC_REPO_CMD_TIMEOUT exactly. Both `git` and
-# `jj git fetch` honor $GIT_SSH_COMMAND in the versions we ship.
+# Replaced the real SSH blackhole approach with a deterministic fake ssh
+# that sleeps long past any timeout — every call hits SYNC_REPO_CMD_TIMEOUT
+# exactly. Both `git` and `jj git fetch` honor $GIT_SSH_COMMAND.
 cat >"$TMPDIR/fake-ssh.sh" <<'FAKESSH'
 #!/bin/bash
 # Mock ssh for sync_repo's timeout-guard test.
@@ -180,15 +219,18 @@ FAKESSH
 chmod +x "$TMPDIR/fake-ssh.sh"
 
 setup_repo repoH "h.txt" "from H"
-# Override the backup remote to an SSH URL — the fake ssh handles the actual
-# connection, regardless of host. Use an .invalid TLD so no real DNS happens.
+# Override BOTH config sources to ssh URLs the fake ssh handles. The .invalid
+# TLD ensures no real DNS resolution. The bookmark fetch hits the `backup`
+# remote (set via jj git remote add) — but our fake ssh handles whatever host
+# the URL points at.
 (
     cd "$TMPDIR/repoH"
     jj git remote set-url backup "ssh://git@blackhole.invalid/repo.git"
+    jj config set --repo sync.snapshot-url "ssh://git@blackhole.invalid/repo.git"
 )
-# Tight bound: with SYNC_REPO_CMD_TIMEOUT=1 and ~6 ssh calls, the run completes
-# in ~6s on a typical machine. 15s gives generous headroom while still failing
-# loudly if a regression makes the timeout guard ineffective.
+# Tight bound: with SYNC_REPO_CMD_TIMEOUT=1 and ~6 ssh-bearing calls, the run
+# completes in ~6s. 15s gives generous headroom while still failing loudly if
+# a regression makes the timeout guard ineffective.
 start=$(date +%s)
 SYNC_REPO_CMD_TIMEOUT=1 \
 GIT_SSH_COMMAND="bash $TMPDIR/fake-ssh.sh" \
@@ -201,7 +243,7 @@ else
     echo "FAIL: repoH ran for ${elapsed}s (timeout guard ineffective)"
     fail=$((fail+1))
 fi
-# The log should mention either TIMEOUT or NETWORK-ERR for the failed ops.
+# Log should mention TIMEOUT or NETWORK-ERR for the failed ops.
 if grep -rqE 'TIMEOUT|NETWORK-ERR' "$LOG_ROOT" 2>/dev/null; then
     echo "PASS: log recorded TIMEOUT or NETWORK-ERR"
     pass=$((pass+1))
@@ -219,15 +261,15 @@ else
     echo "FAIL: log missing SKIP-PUSH (push should skip when delete fails)"
     fail=$((fail+1))
 fi
-# Regression: when Step 2's fetch fails (timeout / network), Step 2 push MUST
-# be skipped. Otherwise stale ${CURRENT_BM}@backup leads to wrong-path pushes
-# (e.g. mistaking an existing remote bookmark for new and trying full-history
-# push, which fails on any no-description ancestor).
+# Regression: when bookmark fetch fails (timeout / network), the bookmark
+# push MUST be skipped. Otherwise stale ${SYNC_BM}@${SYNC_REMOTE} leads to
+# wrong-path pushes (e.g. mistaking an existing remote bookmark for new and
+# trying full-history push, which fails on any no-description ancestor).
 if grep -rqE 'SKIP-PUSH master: fetch failed' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
     echo "PASS: log recorded SKIP-PUSH master: fetch failed"
     pass=$((pass+1))
 else
-    echo "FAIL: log missing 'SKIP-PUSH master: fetch failed' (Step 2 should skip when fetch fails)"
+    echo "FAIL: log missing 'SKIP-PUSH master: fetch failed' (bookmark sync should skip when fetch fails)"
     fail=$((fail+1))
 fi
 if grep -rqE 'OTHER-ERR.*non-fast-forward' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
@@ -239,37 +281,40 @@ else
 fi
 
 echo
-echo "=== Scenario 5: empty BACKUP_URL (git/jj remote drift) exits cleanly ==="
-# Reproduce the drift: jj knows about 'backup' but git's remote get-url
-# returns empty. This is unusual but has been observed in the wild for
-# colocated repos where someone edited git config without jj noticing.
-# Note: current jj validates remote URLs aggressively, making this drift
-# hard to reproduce synthetically. The test asserts the defensive behavior
-# (no ERROR logs, clean exit) rather than the specific log tag.
-mkdir -p "$TMPDIR/repoNoBackup"
+echo "=== Scenario 5: no sync config -> NO-SYNC-CONFIG, clean exit ==="
+# Old test asserted defensive behavior on empty BACKUP_URL drift. The new
+# script reads sync.remote-bookmark and sync.snapshot-url from jj config
+# directly (no git/jj remote discovery), so the relevant defensive case is
+# "user hasn't configured either key yet".
+mkdir -p "$TMPDIR/repoNoConfig"
 (
-    cd "$TMPDIR/repoNoBackup"
+    cd "$TMPDIR/repoNoConfig"
     jj git init --colocate
-    jj git remote add backup "$TMPDIR/remote.git"
-    git config --unset-all remote.backup.url
-    git config remote.backup.url ''
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
     echo x > f; jj commit -m "init"
 ) >/dev/null 2>&1
-bash "$SYNC_REPO" "$TMPDIR/repoNoBackup" >/dev/null 2>&1
+bash "$SYNC_REPO" "$TMPDIR/repoNoConfig" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -eq 0 ]; then
-    echo "PASS: sync_repo returned 0 for empty BACKUP_URL"
+    echo "PASS: sync_repo returned 0 with no sync config"
     pass=$((pass+1))
 else
-    echo "FAIL: sync_repo returned $rc for empty BACKUP_URL"
+    echo "FAIL: sync_repo returned $rc with no sync config"
     fail=$((fail+1))
 fi
-# Crucial: no ERROR from bogus push attempts in this scenario.
-if grep -l '\[ERROR\]' "$LOG_ROOT"/*/sync_repo.repoNoBackup* 2>/dev/null | grep -q .; then
-    echo "FAIL: log has ERROR entries for empty BACKUP_URL path (should not)"
+if grep -rq 'NO-SYNC-CONFIG' "$LOG_ROOT"/*/sync_repo.*repoNoConfig* 2>/dev/null; then
+    echo "PASS: log recorded NO-SYNC-CONFIG"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing NO-SYNC-CONFIG"
+    fail=$((fail+1))
+fi
+if grep -l '\[ERROR\]' "$LOG_ROOT"/*/sync_repo.*repoNoConfig* 2>/dev/null | grep -q .; then
+    echo "FAIL: log has ERROR entries for no-config path (should not)"
     fail=$((fail+1))
 else
-    echo "PASS: no ERROR entries for empty BACKUP_URL path"
+    echo "PASS: no ERROR entries for no-config path"
     pass=$((pass+1))
 fi
 
@@ -277,13 +322,13 @@ echo
 echo "=== Scenario 6: divergence with conflict -> REBASE-CONFLICT, no push ==="
 # Fresh bare remote so prior scenarios' state doesn't interfere.
 git -C "$TMPDIR" init --bare -q -b master conflict.git
-# Build a base repo that has one shared commit and pushes it as master.
 mkdir -p "$TMPDIR/conflict-base"
 (
     cd "$TMPDIR/conflict-base"
     jj git init --colocate
     jj git remote add backup "$TMPDIR/conflict.git"
-    jj config set --repo sync.bookmark master
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.snapshot-url "$TMPDIR/conflict.git"
     jj config set --repo user.email 'test@example.com'
     jj config set --repo user.name  'Test User'
     echo "base content" > shared.txt
@@ -300,17 +345,17 @@ echo "DIFFERENT Y content" > "$TMPDIR/repoY/shared.txt"
 # repoX syncs first -> remote advances to repoX's commit
 run_sync "$TMPDIR/repoX"
 remote_after_x=$(git -C "$TMPDIR/conflict.git" rev-parse master)
-local_x=$(cd "$TMPDIR/repoX" && jj log -r master --no-graph -T 'commit_id')
-check "remote advanced to repoX's commit" "$local_x" "$remote_after_x"
+local_x=$(cd "$TMPDIR/repoX" && jj log -r "@-" --no-graph -T 'commit_id')
+check "remote advanced to repoX's @-" "$local_x" "$remote_after_x"
 
 # repoY syncs and detects rebase conflict -> remote MUST be unchanged
 run_sync "$TMPDIR/repoY"
 remote_after_y=$(git -C "$TMPDIR/conflict.git" rev-parse master)
 check "remote unchanged after repoY conflict" "$remote_after_x" "$remote_after_y"
 
-# repoY's master must NOT be a descendant of remote (rebase was blocked).
-remote_in_local_y=$(cd "$TMPDIR/repoY" && jj log -r "$remote_after_x & ::master" --no-graph -T '"y"' 2>/dev/null)
-check "remote NOT ancestor of repoY master (rebase blocked)" "" "$remote_in_local_y"
+# repoY's @- must NOT be a descendant of remote (rebase was blocked).
+remote_in_local_y=$(cd "$TMPDIR/repoY" && jj log -r "$remote_after_x & ::@-" --no-graph -T '"y"' 2>/dev/null)
+check "remote NOT ancestor of repoY @- (rebase blocked)" "" "$remote_in_local_y"
 
 if grep -rqE 'REBASE-CONFLICT.*master' "$LOG_ROOT"/*/sync_repo.*repoY* 2>/dev/null; then
     echo "PASS: log recorded REBASE-CONFLICT for repoY"
@@ -327,26 +372,26 @@ else
     pass=$((pass+1))
 fi
 
+# Critical for the snapshot-first ordering: even though repoY's bookmark sync
+# bailed out on conflict, the per-host SNAPSHOT must have landed on the
+# server (it ran BEFORE the bookmark sync, so the conflict didn't gate it).
+# The snapshot ref reflects repoY's local @-.
+local_y_at_minus=$(cd "$TMPDIR/repoY" && jj log -r "@-" --no-graph -T 'commit_id')
+y_snapshot=$(git -C "$TMPDIR/conflict.git" rev-parse "refs/heads/${TESTHOST}/default" 2>/dev/null)
+check "repoY snapshot landed despite conflict (snapshot-first guarantee)" "$local_y_at_minus" "$y_snapshot"
+
 echo
 echo "=== Scenario 7: non-jj repo is silently skipped ==="
 # sync_all blindly hands sync_repo every .git/.jj marker under $HOME, including
 # Brazil-managed checkouts (~/devc/, ~/.toolbox/) and other plain-git repos.
-# Those used to hit a git-only push flow that tried to push to whatever
-# upstream the branch tracked — typically origin/mainline (CR-protected) or
-# nothing at all — producing 14+ spurious "FAILED rc=N" lines per cycle in
-# sync_all's SUMMARY notification, plus an unintended commit-msg LLM call per
-# dirty checkout. The git-only path is now removed; sync_repo handles only jj
-# repos. Non-jj repos should return 0 with no log file persisted (INFO-only
-# runs are dropped by the logger's LOG_KEEP_THRESHOLD).
+# sync_repo's `jj root || exit 0` early-out drops these before any logging
+# infra is sourced.
 mkdir -p "$TMPDIR/repoPlainGit"
 (
     cd "$TMPDIR/repoPlainGit"
     git init -q -b mainline
     git config user.email 'test@example.com'
     git config user.name  'Test User'
-    # Set up the trap that the OLD git-only path would have fallen for: a
-    # 'backup' remote with the branch tracking origin/mainline. This is the
-    # production failure shape; the new behavior should ignore it entirely.
     git -C "$TMPDIR" init --bare -q -b mainline noop-backup.git 2>/dev/null
     git -C "$TMPDIR" init --bare -q -b mainline noop-origin.git 2>/dev/null
     git remote add origin "$TMPDIR/noop-origin.git"
@@ -357,7 +402,6 @@ mkdir -p "$TMPDIR/repoPlainGit"
     git push -q --set-upstream origin mainline
     echo "dirty" > extra.txt
 ) >/dev/null 2>&1
-# Capture log file count BEFORE the run so we can assert no new file was kept.
 log_files_before=$(find "$LOG_ROOT" -name 'sync_repo.*repoPlainGit*' 2>/dev/null | wc -l)
 bash "$SYNC_REPO" "$TMPDIR/repoPlainGit" >/dev/null 2>&1
 rc=$?
@@ -368,9 +412,6 @@ else
     echo "FAIL: sync_repo returned $rc for non-jj repo"
     fail=$((fail+1))
 fi
-
-# No log file should be persisted — the early-exit happens before log.sh is
-# sourced, so no temp file is created and no finalize moves anything to disk.
 log_files_after=$(find "$LOG_ROOT" -name 'sync_repo.*repoPlainGit*' 2>/dev/null | wc -l)
 if [ "$log_files_after" = "$log_files_before" ]; then
     echo "PASS: no log file persisted for non-jj repo"
@@ -379,11 +420,6 @@ else
     echo "FAIL: log file appeared for non-jj repo (before=$log_files_before after=$log_files_after)"
     fail=$((fail+1))
 fi
-
-# The dirty 'extra.txt' must not be committed or pushed. The old git-only
-# path would have add+commit+push'd it to origin/mainline (which would have
-# failed with rc=1 for CR-protected mainline, and also unintentionally
-# invoked commit-msg's LLM chain on the diff).
 extra_committed=$(git -C "$TMPDIR/repoPlainGit" log --all --pretty=format:%H -- extra.txt 2>/dev/null | head -1)
 if [ -z "$extra_committed" ]; then
     echo "PASS: dirty file was not committed (no auto-commit on non-jj path)"
@@ -392,17 +428,89 @@ else
     echo "FAIL: dirty file was committed: $extra_committed"
     fail=$((fail+1))
 fi
-
-# Crucially, the bare 'backup' remote must have received zero pushes — the
-# old git-only path had a `$GIT push --verbose` that targeted the upstream,
-# bypassing the backup remote entirely. Asserting the backup remote stays
-# empty is the cleanest proof that the whole git-only flow is gone.
 backup_refs=$(git -C "$TMPDIR/noop-backup.git" for-each-ref --format='%(refname)' 2>/dev/null)
 if [ -z "$backup_refs" ]; then
     echo "PASS: backup bare remote received no pushes from non-jj repo"
     pass=$((pass+1))
 else
     echo "FAIL: backup bare remote unexpectedly has refs: $backup_refs"
+    fail=$((fail+1))
+fi
+
+echo
+echo "=== Scenario 8: snapshot URL only (no remote-bookmark) ==="
+# User configures only sync.snapshot-url; bookmark sync flow is a no-op.
+mkdir -p "$TMPDIR/repoSnapOnly"
+(
+    cd "$TMPDIR/repoSnapOnly"
+    jj git init --colocate
+    jj config set --repo sync.snapshot-url "$TMPDIR/remote.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo s > snap.txt
+    jj commit -m "snapshot only"
+) >/dev/null 2>&1
+run_sync "$TMPDIR/repoSnapOnly"
+local_so=$(cd "$TMPDIR/repoSnapOnly" && jj log -r "@-" --no-graph -T 'commit_id')
+snap_pushed=$(git -C "$TMPDIR/remote.git" rev-parse "refs/heads/${TESTHOST}/default" 2>/dev/null)
+check "snapshot-only: workspace snapshot landed" "$local_so" "$snap_pushed"
+if grep -rqE 'FETCH-OK|PUSH-OK master' "$LOG_ROOT"/*/sync_repo.*repoSnapOnly* 2>/dev/null; then
+    echo "FAIL: snapshot-only flow ran the bookmark-sync path"
+    fail=$((fail+1))
+else
+    echo "PASS: snapshot-only flow skipped bookmark sync"
+    pass=$((pass+1))
+fi
+
+echo
+echo "=== Scenario 9: remote-bookmark only (no snapshot URL) ==="
+mkdir -p "$TMPDIR/repoBmOnly"
+(
+    cd "$TMPDIR/repoBmOnly"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo b > bm.txt
+    jj commit -m "bookmark only"
+    jj bookmark create master -r @-
+) >/dev/null 2>&1
+# Capture the snapshot-ref state BEFORE this run; this repo's MACHINE/default
+# snapshot must NOT change (no snapshot URL set).
+snap_before=$(git -C "$TMPDIR/remote.git" rev-parse "refs/heads/${TESTHOST}/default" 2>/dev/null || echo MISSING)
+run_sync "$TMPDIR/repoBmOnly"
+remote_master_after=$(git -C "$TMPDIR/remote.git" rev-parse master)
+local_bo=$(cd "$TMPDIR/repoBmOnly" && jj log -r "@-" --no-graph -T 'commit_id')
+check "bookmark-only: remote master advanced to local @-" "$local_bo" "$remote_master_after"
+snap_after=$(git -C "$TMPDIR/remote.git" rev-parse "refs/heads/${TESTHOST}/default" 2>/dev/null || echo MISSING)
+check "bookmark-only: snapshot ref unchanged (no snapshot URL set)" "$snap_before" "$snap_after"
+
+echo
+echo "=== Scenario 10: malformed sync.remote-bookmark -> ERROR + exit ==="
+mkdir -p "$TMPDIR/repoBadBm"
+(
+    cd "$TMPDIR/repoBadBm"
+    jj git init --colocate
+    jj config set --repo sync.remote-bookmark 'no-at-sign'
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo x > f; jj commit -m "init"
+) >/dev/null 2>&1
+bash "$SYNC_REPO" "$TMPDIR/repoBadBm" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -ne 0 ]; then
+    echo "PASS: sync_repo returned $rc for malformed sync.remote-bookmark"
+    pass=$((pass+1))
+else
+    echo "FAIL: sync_repo returned 0 for malformed config (should reject)"
+    fail=$((fail+1))
+fi
+if grep -rq 'BAD-CONFIG' "$LOG_ROOT"/*/sync_repo.*repoBadBm* 2>/dev/null; then
+    echo "PASS: log recorded BAD-CONFIG for malformed value"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing BAD-CONFIG for malformed value"
     fail=$((fail+1))
 fi
 
