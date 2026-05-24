@@ -77,4 +77,8 @@ else
 fi
 
 log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
-exec "$XDOTOOL" key "$combo"
+# Don't `exec` — it replaces the shell and skips log.sh's EXIT trap, so
+# log_finalize never runs and DEBUG events never persist when
+# LOG_KEEP_THRESHOLD=DEBUG. Cost of a fork is negligible for a one-shot
+# keystroke dispatch.
+"$XDOTOOL" key "$combo"
