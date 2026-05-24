@@ -282,6 +282,101 @@ else
 fi
 
 echo
+echo "=== Scenario 7: git-only repo whose upstream isn't backup/* exits cleanly ==="
+# Mirrors the production case: Brazil-managed checkouts under ~/devc/ and
+# toolbox tools have a 'backup' remote (so they pass sync_repo's first filter)
+# but their default branch tracks 'origin/mainline' (where pushing is
+# CR-protected) — or has no upstream. The git-only path can't produce a useful
+# result there, so sync_repo should skip with INFO and exit 0.
+git -C "$TMPDIR" init --bare -q -b mainline brazil.git
+git -C "$TMPDIR" init --bare -q -b mainline brazil-backup.git
+mkdir -p "$TMPDIR/repoBrazil"
+(
+    cd "$TMPDIR/repoBrazil"
+    git init -q -b mainline
+    git config user.email 'test@example.com'
+    git config user.name  'Test User'
+    git remote add origin "$TMPDIR/brazil.git"
+    git remote add backup "$TMPDIR/brazil-backup.git"
+    echo "x" > f
+    git add f
+    git commit -q -m "init"
+    git push -q --set-upstream origin mainline
+    # Feature branch tracking origin/mainline — the failing pattern from the field.
+    git checkout -q -b devbranch
+    git branch --set-upstream-to=origin/mainline devbranch
+    echo "y" >> f
+    git commit -q -am "diverge"
+) >/dev/null 2>&1
+bash "$SYNC_REPO" "$TMPDIR/repoBrazil" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
+    echo "PASS: sync_repo returned 0 for git-only repo tracking origin/mainline"
+    pass=$((pass+1))
+else
+    echo "FAIL: sync_repo returned $rc for git-only repo tracking origin/mainline"
+    fail=$((fail+1))
+fi
+
+# No-upstream variant: feature branch with no @{u} at all.
+mkdir -p "$TMPDIR/repoNoUpstream"
+(
+    cd "$TMPDIR/repoNoUpstream"
+    git init -q -b mainline
+    git config user.email 'test@example.com'
+    git config user.name  'Test User'
+    git remote add origin "$TMPDIR/brazil.git"
+    git remote add backup "$TMPDIR/brazil-backup.git"
+    echo "x" > f
+    git add f
+    git commit -q -m "init"
+    # No push, no upstream set.
+    git checkout -q -b detached-feature
+    echo "y" >> f
+    git commit -q -am "diverge"
+) >/dev/null 2>&1
+bash "$SYNC_REPO" "$TMPDIR/repoNoUpstream" >/dev/null 2>&1
+rc=$?
+if [ "$rc" -eq 0 ]; then
+    echo "PASS: sync_repo returned 0 for git-only repo with no upstream"
+    pass=$((pass+1))
+else
+    echo "FAIL: sync_repo returned $rc for git-only repo with no upstream"
+    fail=$((fail+1))
+fi
+
+# Force kept-log retention briefly to inspect the SKIP-GIT-ONLY tag without
+# having to error elsewhere. We re-run with LOG_KEEP_THRESHOLD=DEBUG (already
+# set globally for this test file) — the INFO line should be visible.
+if grep -rqE 'SKIP-GIT-ONLY' "$LOG_ROOT" 2>/dev/null; then
+    echo "PASS: log recorded SKIP-GIT-ONLY for upstream-mismatched repos"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing SKIP-GIT-ONLY tag"
+    fail=$((fail+1))
+fi
+
+# Crucial: the git-only skip path MUST NOT have invoked commit-msg / pushed
+# anything — those would show up as non-INFO log entries.
+if grep -l '\[ERROR\]' "$LOG_ROOT"/*/sync_repo.repoBrazil* "$LOG_ROOT"/*/sync_repo.repoNoUpstream* 2>/dev/null | grep -q .; then
+    echo "FAIL: log has ERROR entries for git-only skip path (should not)"
+    fail=$((fail+1))
+else
+    echo "PASS: no ERROR entries on git-only skip path"
+    pass=$((pass+1))
+fi
+
+# Ensure neither bare remote received any push.
+brazil_refs=$(git -C "$TMPDIR/brazil-backup.git" for-each-ref --format='%(refname)' 2>/dev/null)
+if [ -z "$brazil_refs" ]; then
+    echo "PASS: backup bare remote received no pushes from skipped repos"
+    pass=$((pass+1))
+else
+    echo "FAIL: backup bare remote unexpectedly has refs: $brazil_refs"
+    fail=$((fail+1))
+fi
+
+echo
 echo "=== Sample log file ==="
 sample=$(find "$LOG_ROOT" -name '*.log' | head -1)
 if [ -n "$sample" ]; then

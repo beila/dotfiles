@@ -352,6 +352,20 @@ else
     if ! $GIT remote | grep -qx 'backup'; then
         exit 0
     fi
+    # Brazil-managed checkouts under ~/devc/ and toolbox tools ship a 'backup'
+    # remote, but their default branch tracks 'origin/mainline' (where pushing
+    # is CR-protected) — or has no upstream at all. The git-only path below
+    # pushes to the configured upstream, not to 'backup', so there's no way for
+    # it to produce a useful result on those repos. Skip cleanly when upstream
+    # isn't backup-tracked. Detached HEAD also lands here.
+    upstream=$($GIT rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)
+    case "$upstream" in
+        backup/*) ;;
+        *)
+            log INFO "SKIP-GIT-ONLY upstream='${upstream:-<none>}' (only backup/* is supported by the git-only path)"
+            exit 0
+            ;;
+    esac
     $GIT submodule foreach bash -c "$GIT add --verbose --all .
         $GIT commit --verbose -m \"Change from ${MACHINE_NAME}\" && WILL_PUSH=yes
         $GIT pull --ff --verbose --no-edit --recurse-submodules=no
