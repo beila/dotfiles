@@ -57,18 +57,15 @@
     RestartSec=2s
   '';
 
-  # Change lock screen wallpaper daily
-  systemd.user.services.random-lockscreen = {
-    Unit.Description = "Set random lock screen wallpaper";
-    Service.ExecStart = "%h/.dotfiles/xwindow/bin/random-lockscreen";
-    Service.Type = "oneshot";
-  };
-  systemd.user.timers.random-lockscreen = {
-    Unit.Description = "Daily random lock screen wallpaper";
-    Timer = {
-      OnCalendar = "daily";
-      Persistent = true;
-    };
-    Install.WantedBy = [ "timers.target" ];
+  # Change lock screen wallpaper daily. Driven via dotfiles.schedule so the
+  # backend (systemd-user vs cron) tracks the host. Only declared from this
+  # gnome-only module, so non-GNOME hosts (electra) won't try to schedule it
+  # at all — the gsettings call needs DBUS_SESSION_BUS_ADDRESS which only
+  # exists in a graphical session.
+  dotfiles.schedule.jobs.random-lockscreen = {
+    description = "Set random lock screen wallpaper";
+    command = "%h/.dotfiles/xwindow/bin/random-lockscreen";
+    schedule = { systemd = "daily"; cron = "0 0 * * *"; };
+    persistent = true;
   };
 }

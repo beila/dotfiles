@@ -151,26 +151,22 @@ in
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  # Sync all repos every 10 minutes (with random delay to avoid clashing across machines)
-  # Uses flock in sync_all to prevent concurrent runs
-  # Low priority (nice 19, idle IO) to not interfere with interactive work
-  # No Persistent=true — avoids running immediately on home-manager switch
-  systemd.user.services.sync-repos = {
-    Unit.Description = "Sync dotfiles and docs repos";
-    Service = {
-      Type = "oneshot";
-      ExecStart = "%h/.dotfiles/script/sync_all";
-      Nice = 19;
-      IOSchedulingClass = "idle";
-    };
-  };
-  systemd.user.timers.sync-repos = {
-    Unit.Description = "Sync dotfiles and docs repos every 10 minutes";
-    Timer = {
-      OnCalendar = "*:0/10";
-      RandomizedDelaySec = "9m";
-    };
-    Install.WantedBy = [ "timers.target" ];
+  # ---- Scheduled jobs (driven by ./schedule.nix) -----------------------
+  # Each entry is backend-agnostic: schedule.nix dispatches to either
+  # systemd.user.{services,timers} (taygeta) or a managed crontab block
+  # (electra, cloud-desktop AL2 — see ./schedule.nix for why).
+
+  # Sync all repos every 10 minutes (with random delay to avoid clashing across machines).
+  # Uses flock in sync_all to prevent concurrent runs.
+  # Low priority (nice 19, idle IO) to not interfere with interactive work.
+  # No `persistent` — avoids running immediately on home-manager switch.
+  dotfiles.schedule.jobs.sync-repos = {
+    description = "Sync dotfiles and docs repos";
+    command = "%h/.dotfiles/script/sync_all";
+    schedule = { systemd = "*:0/10"; cron = "*/10 * * * *"; };
+    randomizedDelaySec = 540;          # 9m
+    nice = 19;
+    ioSchedulingClass = "idle";
   };
 
   # Update plocate database every 10 minutes (user home only).
@@ -179,22 +175,40 @@ in
   # the script itself). Runs every 10 minutes — frequent enough that
   # locate/plocate results stay fresh, infrequent enough to not compete
   # with interactive I/O when the system is busy.
-  systemd.user.services.updatedb = {
-    Unit.Description = "Update plocate database";
-    Service = {
-      Type = "oneshot";
-      ExecStart = "%h/.dotfiles/script/updatedb";
-    };
-  };
-  systemd.user.timers.updatedb = {
-    Unit.Description = "Update plocate database every 10 minutes";
-    Timer = {
-      OnCalendar = "*:0/10";
-    };
-    Install.WantedBy = [ "timers.target" ];
+  dotfiles.schedule.jobs.updatedb = {
+    description = "Update plocate database";
+    command = "%h/.dotfiles/script/updatedb";
+    schedule = { systemd = "*:0/10"; cron = "*/10 * * * *"; };
   };
 
-  # CopyQ clipboard manager daemon (persistent history at ~/.config/copyq/)
+  # Battery low-charge OSD + notification (script tracks per-stage state).
+  dotfiles.schedule.jobs.battery-notify = {
+    description = "Battery low notification";
+    command = "%h/.dotfiles/script/battery-notify";
+    schedule = { systemd = "*:0/1"; cron = "* * * * *"; };
+  };
+
+  # Weekly flake update + dry-run home-manager build. Catches breaking
+  # changes (deprecated options, schema migrations, package renames) on
+  # a Sunday morning instead of the next time the user runs `home-manager
+  # switch` for an unrelated reason. Never auto-switches — only signals.
+  # `persistent = true` lets a suspended laptop catch up on missed Sundays;
+  # under cron mode that's a best-effort no-op (cloud-desktop never
+  # suspends, so no observable difference there).
+  dotfiles.schedule.jobs.flake-update = {
+    description = "Weekly nix flake update + home-manager build dry-run";
+    command = "%h/.dotfiles/script/flake-update";
+    schedule = { systemd = "Sun 03:00"; cron = "0 3 * * 0"; };
+    randomizedDelaySec = 7200;         # 2h
+    persistent = true;
+    nice = 19;
+    ioSchedulingClass = "idle";
+  };
+
+  # CopyQ clipboard manager daemon (persistent history at ~/.config/copyq/).
+  # Long-running graphical-session.target service — not a scheduled job, so
+  # it stays a direct systemd.user.services declaration. Only relevant on
+  # hosts that run a graphical session (taygeta); electra has no display.
   systemd.user.services.copyq = {
     Unit = {
       Description = "CopyQ clipboard manager";
@@ -205,41 +219,6 @@ in
       Restart = "on-failure";
     };
     Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  systemd.user.services.battery-notify = {
-    Unit.Description = "Battery low notification";
-    Service.ExecStart = "%h/.dotfiles/script/battery-notify";
-    Service.Type = "oneshot";
-  };
-  systemd.user.timers.battery-notify = {
-    Unit.Description = "Check battery level every minute";
-    Timer.OnCalendar = "*:0/1";
-    Install.WantedBy = [ "timers.target" ];
-  };
-
-  # Weekly flake update + dry-run home-manager build. Catches breaking
-  # changes (deprecated options, schema migrations, package renames) on
-  # a Sunday morning instead of the next time the user runs `home-manager
-  # switch` for an unrelated reason. Never auto-switches — only signals.
-  # See script/flake-update for the full flow.
-  systemd.user.services.flake-update = {
-    Unit.Description = "Weekly nix flake update + home-manager build dry-run";
-    Service = {
-      Type = "oneshot";
-      ExecStart = "%h/.dotfiles/script/flake-update";
-      Nice = 19;
-      IOSchedulingClass = "idle";
-    };
-  };
-  systemd.user.timers.flake-update = {
-    Unit.Description = "Run flake-update weekly";
-    Timer = {
-      OnCalendar = "Sun 03:00";
-      RandomizedDelaySec = "2h";
-      Persistent = true;  # Catch up if laptop was off at 03:00 Sun
-    };
-    Install.WantedBy = [ "timers.target" ];
   };
 
   targets.genericLinux.enable = true;
