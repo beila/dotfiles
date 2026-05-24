@@ -66,36 +66,56 @@ clear_calls() { : > "$XDOTOOL_CALLS"; }
 last_call() { tail -1 "$XDOTOOL_CALLS"; }
 run() { PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" "$@"; echo "rc=$?"; }
 
-echo "=== Test 1: ghostty + copy → ctrl+shift+c ==="
+# Helper: assert the last key call ends with $1 (the combo) AND has
+# --clearmodifiers (which prevents xmonad-held Super from polluting the
+# dispatched keystroke). Window targeting is asserted via $2 if set.
+assert_combo() {
+    local label="$1" combo="$2" want_window="${3:-}"
+    local line; line=$(last_call)
+    if ! printf '%s' "$line" | grep -q -- "--clearmodifiers"; then
+        fail "$label" "missing --clearmodifiers in: $line"; return
+    fi
+    if [ -n "$want_window" ] && ! printf '%s' "$line" | grep -q -- "--window"; then
+        fail "$label" "missing --window targeting in: $line"; return
+    fi
+    if [[ "$line" != *"$combo" ]]; then
+        fail "$label" "expected combo '$combo' at end of: $line"; return
+    fi
+    pass "$label"
+}
+
+echo "=== Test 1: ghostty + copy → ctrl+shift+c (with --clearmodifiers + --window) ==="
 clear_calls; set_class "ghostty"
 out=$(run copy)
-[ "$(last_call)" = "key ctrl+shift+c" ] && pass "ghostty + copy" || fail "ghostty + copy" "got: $(last_call)"
+assert_combo "ghostty + copy" "ctrl+shift+c" yes
 echo "$out" | grep -q "rc=0" && pass "exit 0" || fail "exit 0" "got: $out"
 
 echo
 echo "=== Test 2: ghostty + paste → ctrl+shift+v ==="
 clear_calls; set_class "ghostty"
 run paste >/dev/null
-[ "$(last_call)" = "key ctrl+shift+v" ] && pass "ghostty + paste" || fail "ghostty + paste" "got: $(last_call)"
+assert_combo "ghostty + paste" "ctrl+shift+v" yes
 
 echo
 echo "=== Test 3: firefox + copy → ctrl+c ==="
 clear_calls; set_class "firefox"
 run copy >/dev/null
-[ "$(last_call)" = "key ctrl+c" ] && pass "firefox + copy" || fail "firefox + copy" "got: $(last_call)"
+assert_combo "firefox + copy" "ctrl+c" yes
 
 echo
 echo "=== Test 4: vivaldi + paste → ctrl+v ==="
 clear_calls; set_class "Vivaldi-stable"
 run paste >/dev/null
-[ "$(last_call)" = "key ctrl+v" ] && pass "vivaldi + paste" || fail "vivaldi + paste" "got: $(last_call)"
+assert_combo "vivaldi + paste" "ctrl+v" yes
 
 echo
-echo "=== Test 5: empty class (no focused window) → ctrl+c default ==="
+echo "=== Test 5: empty class but valid wid → ctrl+c (default routing) ==="
 clear_calls
-: > "$ACTIVE_CLASS_FILE"  # empty
+: > "$ACTIVE_CLASS_FILE"  # class lookup returns empty
 run copy >/dev/null
-[ "$(last_call)" = "key ctrl+c" ] && pass "empty class falls back" || fail "empty class falls back" "got: $(last_call)"
+# wid is still 0x42; class is empty so the ghostty match misses → ctrl+c.
+# --window is still passed because we have a wid.
+assert_combo "empty-class fallback" "ctrl+c" yes
 
 echo
 echo "=== Test 6: bad action → exit 2 ==="
@@ -105,24 +125,28 @@ echo "$out" | grep -q "rc=2" && pass "exit 2 on bad action" || fail "exit 2 on b
 [ "$(wc -l < "$XDOTOOL_CALLS")" = "0" ] && pass "no xdotool call on bad action" || fail "no xdotool call on bad action" "calls: $(cat "$XDOTOOL_CALLS")"
 
 echo
-echo "=== Test 7: getactivewindow fails → still emits ctrl+c (don't strand user) ==="
+echo "=== Test 7: getactivewindow fails → still emits ctrl+c, no --window ==="
 clear_calls
 : > "$ACTIVE_WID_FILE"  # empty → stub exits 1
 run copy >/dev/null
-[ "$(last_call)" = "key ctrl+c" ] && pass "getactivewindow fail falls back" || fail "getactivewindow fail falls back" "got: $(last_call)"
+last=$(last_call)
+# No wid → no --window flag, but --clearmodifiers still applied.
+[[ "$last" == *"ctrl+c" ]] && [[ "$last" == *"--clearmodifiers"* ]] && [[ "$last" != *"--window"* ]] \
+    && pass "getactivewindow fail falls back without --window" \
+    || fail "getactivewindow fail falls back" "got: $last"
 echo "0x42" > "$ACTIVE_WID_FILE"  # restore
 
 echo
 echo "=== Test 8: COPY_PASTE_GHOSTTY_CLASSES env override ==="
 clear_calls; set_class "MyCustomTerminal"
 COPY_PASTE_GHOSTTY_CLASSES="MyCustomTerminal AnotherTerm" run copy >/dev/null
-[ "$(last_call)" = "key ctrl+shift+c" ] && pass "env override matches" || fail "env override matches" "got: $(last_call)"
+assert_combo "env override matches" "ctrl+shift+c" yes
 
 echo
 echo "=== Test 9: multi-word class with the alternate variant ==="
 clear_calls; set_class "com.mitchellh.ghostty"
 run copy >/dev/null
-[ "$(last_call)" = "key ctrl+shift+c" ] && pass "alt ghostty class" || fail "alt ghostty class" "got: $(last_call)"
+assert_combo "alt ghostty class" "ctrl+shift+c" yes
 
 echo
 echo "=== Results: $PASS passed, $FAIL failed ==="

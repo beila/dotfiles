@@ -32,7 +32,22 @@ DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 source "$DOTFILES_ROOT/script/logger/log.sh"
 
 XDOTOOL="${COPY_PASTE_XDOTOOL:-xdotool}"
-GHOSTTY_CLASSES="${COPY_PASTE_GHOSTTY_CLASSES:-ghostty com.mitchellh.ghostty Ghostty}"
+# Terminal emulators that need Ctrl+Shift+C/V instead of Ctrl+C/V.
+# Override via $COPY_PASTE_TERMINAL_CLASSES if a new terminal is installed.
+# `$COPY_PASTE_GHOSTTY_CLASSES` kept as a back-compat alias so existing
+# tests / docs continue to work.
+TERMINAL_CLASSES="${COPY_PASTE_TERMINAL_CLASSES:-${COPY_PASTE_GHOSTTY_CLASSES:-\
+ghostty com.mitchellh.ghostty Ghostty \
+gnome-terminal-server Gnome-terminal \
+Alacritty alacritty \
+kitty kitty-shell \
+wezterm org.wezfurlong.wezterm \
+foot \
+xterm XTerm UXTerm \
+urxvt URxvt rxvt-unicode \
+konsole org.kde.konsole \
+tilix com.gexperts.Tilix \
+terminator Terminator}"
 
 action="${1:-}"
 case "$action" in
@@ -56,15 +71,15 @@ if [ -n "$wid" ]; then
     class=$("$XDOTOOL" getwindowclassname "$wid" 2>/dev/null) || class=""
 fi
 
-is_ghostty=0
-for g in $GHOSTTY_CLASSES; do
-    [ "$class" = "$g" ] && { is_ghostty=1; break; }
+is_terminal=0
+for t in $TERMINAL_CLASSES; do
+    [ "$class" = "$t" ] && { is_terminal=1; break; }
 done
 
-if [ "$is_ghostty" -eq 1 ]; then
-    # Ghostty's clipboard binding is Ctrl+Shift+C/V (terminal-canonical).
-    # Note: ghostty uses this even when something inside (zellij, nvim) is
-    # active — ghostty intercepts before forwarding to the inner program.
+if [ "$is_terminal" -eq 1 ]; then
+    # Most terminal emulators bind Ctrl+Shift+C/V for clipboard. The
+    # outer terminal intercepts the keystroke before forwarding to any
+    # inner program (zellij, nvim, etc.).
     case "$action" in
         copy)  combo="ctrl+shift+c" ;;
         paste) combo="ctrl+shift+v" ;;
@@ -81,4 +96,19 @@ log DEBUG "action=$action wid=${wid:-?} class=${class:-?} → $combo"
 # log_finalize never runs and DEBUG events never persist when
 # LOG_KEEP_THRESHOLD=DEBUG. Cost of a fork is negligible for a one-shot
 # keystroke dispatch.
-"$XDOTOOL" key "$combo"
+#
+# --clearmodifiers releases the Super key (and any other modifiers) before
+# dispatching. xmonad's `spawn` fires while the user is still holding
+# Super, so without this flag xdotool sends `Super+Ctrl+Shift+V` and the
+# receiving app falls through to the literal `^V` byte (since no app has
+# that quad-modifier combo bound).
+#
+# --window <wid> targets the originally-focused window explicitly. Without
+# it `xdotool key` dispatches to whatever holds focus when the keystroke
+# is delivered — that can race if focus shifts during the spawn → xdotool
+# dance.
+if [ -n "$wid" ]; then
+    "$XDOTOOL" key --clearmodifiers --window "$wid" "$combo"
+else
+    "$XDOTOOL" key --clearmodifiers "$combo"
+fi
