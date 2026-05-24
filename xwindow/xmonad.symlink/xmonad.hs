@@ -20,9 +20,6 @@ import XMonad.Util.EZConfig (additionalKeys)
 import XMonad.Util.NamedScratchpad
 
 import Graphics.X11.ExtraTypes.XF86
-import Graphics.X11.Xlib.Extras (queryKeymap)
-import Data.Bits ((.&.), shiftR, shiftL)
-import Control.Concurrent (threadDelay)
 
 ------------------------------------------------------------------------
 -- Main
