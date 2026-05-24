@@ -8,7 +8,6 @@ fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
 GIT=${GIT_EXECUTABLE:-git}
-GIT_SUBREPO=${GIT_SUBREPO:-git-subrepo}
 MACHINE_NAME=$(hostnamectl --pretty 2>/dev/null | grep -v '\.')
 MACHINE_NAME=${MACHINE_NAME:-$(hostname -s)}
 
@@ -26,15 +25,22 @@ cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
 
+# Silently skip non-jj repos. sync_all blindly hands us every .git/.jj marker
+# under $HOME, including Brazil-managed checkouts (~/devc/, ~/.toolbox/) and
+# any other plain-git repo. We don't sync those — converting a repo to jj
+# (`jj git init --colocate`) is the explicit opt-in. No log line: matches the
+# "no backup remote" early-exit below in spirit (don't notify on no-ops).
+jj root &>/dev/null || exit 0
+
 # Per-repo lock to prevent concurrent syncs. Must key off the BACKING repo, not
 # the workspace, because multiple jj workspaces (e.g. ~/dev/{pro,pro2,sawt}/src/IgnitionX)
 # share one .jj store + op log under ~/brazil-repos/IgnitionX/.jj. Concurrent
 # runs on different workspaces would otherwise race the shared op log (visible
 # as branching `jj workspace update-stale` ops) and clobber Step 1's shared
 # sync.bookmark (e.g. taygeta/pro), producing divergent change_ids.
-# jj git root / git rev-parse --git-dir return the shared .git path; jj root
-# would return the per-workspace path and miss this.
-LOCK_PATH=$(jj git root 2>/dev/null || git rev-parse --git-dir 2>/dev/null | xargs -I{} readlink -f {} 2>/dev/null || echo "$1")
+# `jj git root` returns the shared .git path; `jj root` would return the
+# per-workspace path and miss this.
+LOCK_PATH=$(jj git root 2>/dev/null || echo "$1")
 LOCKFILE="/tmp/sync_repo_$(echo "$LOCK_PATH" | tr / _).lock"
 exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
@@ -163,13 +169,12 @@ snapshot_at_to_push_rev() {
     fi
 }
 
-# `jj git root` can return empty/nonexistent for colocated worktrees with a
-# degraded op log; fall back to git's view so sync proceeds while jj recovers.
+# `jj git root` is authoritative now that the script only handles jj repos.
+# Step 2's `jj workspace update-stale` (run before this) ensures the op log
+# is fresh, so transient stale-view failures are rare and self-recover on the
+# next cycle.
 resolve_git_dir() {
     GIT_DIR=$(jj git root 2>/dev/null)
-    if [ -z "$GIT_DIR" ] || [ ! -d "$GIT_DIR" ] && [ ! -f "$GIT_DIR" ]; then
-        GIT_DIR=$(git rev-parse --git-dir 2>/dev/null | xargs -I{} readlink -f {} 2>/dev/null)
-    fi
 }
 
 # Workspace name: match current @ against `jj workspace list` — `jj op log` is
@@ -326,57 +331,23 @@ step4_jj_git_import_cleanup() {
 # --- main ---------------------------------------------------------------------
 log INFO "START"
 
-if jj root &>/dev/null 2>&1; then
-    if ! jj git remote list 2>/dev/null | grep -q '^backup '; then
-        jj status &>/dev/null
-        exit 0
-    fi
-    jj workspace update-stale 2>/dev/null || true
-
-    snapshot_at_to_push_rev
-    resolve_git_dir
-    BACKUP_URL=$(git --git-dir="$GIT_DIR" remote get-url backup 2>/dev/null)
-    CURRENT_BM=$(jj config get sync.bookmark 2>/dev/null || true)
-    if [ -z "$BACKUP_URL" ]; then
-        log INFO "NO-BACKUP-URL skipping push steps (git has no 'backup' remote)"
-        exit 0
-    fi
-
-    step0_push_workspace_snapshot
-    step1_advance_and_push_local_bookmarks
-    step2_reconcile_sync_bookmark
-    step3_rebase_local_chain
-    step4_jj_git_import_cleanup
-else
-    # Skip unrelated git repos discovered by sync_all
-    if ! $GIT remote | grep -qx 'backup'; then
-        exit 0
-    fi
-    # Brazil-managed checkouts under ~/devc/ and toolbox tools ship a 'backup'
-    # remote, but their default branch tracks 'origin/mainline' (where pushing
-    # is CR-protected) — or has no upstream at all. The git-only path below
-    # pushes to the configured upstream, not to 'backup', so there's no way for
-    # it to produce a useful result on those repos. Skip cleanly when upstream
-    # isn't backup-tracked. Detached HEAD also lands here.
-    upstream=$($GIT rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)
-    case "$upstream" in
-        backup/*) ;;
-        *)
-            log INFO "SKIP-GIT-ONLY upstream='${upstream:-<none>}' (only backup/* is supported by the git-only path)"
-            exit 0
-            ;;
-    esac
-    $GIT submodule foreach bash -c "$GIT add --verbose --all .
-        $GIT commit --verbose -m \"Change from ${MACHINE_NAME}\" && WILL_PUSH=yes
-        $GIT pull --ff --verbose --no-edit --recurse-submodules=no
-        test \$WILL_PUSH && $GIT push || true"
-
-    $GIT add --verbose --all .
-    MSG=$("$DOTFILES_ROOT/bin/commit-msg" 2>/dev/null) || MSG="Change from ${MACHINE_NAME}"
-    [ -z "$MSG" ] && MSG="Change from ${MACHINE_NAME}"
-    $GIT commit --verbose --no-allow-empty -m "$MSG"
-    $GIT pull --ff --verbose --no-edit
-
-    $GIT_SUBREPO pull --verbose --all || $GIT_SUBREPO clean --verbose --all
-    $GIT push --verbose
+if ! jj git remote list 2>/dev/null | grep -q '^backup '; then
+    jj status &>/dev/null
+    exit 0
 fi
+jj workspace update-stale 2>/dev/null || true
+
+snapshot_at_to_push_rev
+resolve_git_dir
+BACKUP_URL=$(git --git-dir="$GIT_DIR" remote get-url backup 2>/dev/null)
+CURRENT_BM=$(jj config get sync.bookmark 2>/dev/null || true)
+if [ -z "$BACKUP_URL" ]; then
+    log INFO "NO-BACKUP-URL skipping push steps (git has no 'backup' remote)"
+    exit 0
+fi
+
+step0_push_workspace_snapshot
+step1_advance_and_push_local_bookmarks
+step2_reconcile_sync_bookmark
+step3_rebase_local_chain
+step4_jj_git_import_cleanup

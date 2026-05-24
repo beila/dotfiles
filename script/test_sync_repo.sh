@@ -328,97 +328,81 @@ else
 fi
 
 echo
-echo "=== Scenario 7: git-only repo whose upstream isn't backup/* exits cleanly ==="
-# Mirrors the production case: Brazil-managed checkouts under ~/devc/ and
-# toolbox tools have a 'backup' remote (so they pass sync_repo's first filter)
-# but their default branch tracks 'origin/mainline' (where pushing is
-# CR-protected) — or has no upstream. The git-only path can't produce a useful
-# result there, so sync_repo should skip with INFO and exit 0.
-git -C "$TMPDIR" init --bare -q -b mainline brazil.git
-git -C "$TMPDIR" init --bare -q -b mainline brazil-backup.git
-mkdir -p "$TMPDIR/repoBrazil"
+echo "=== Scenario 7: non-jj repo is silently skipped ==="
+# sync_all blindly hands sync_repo every .git/.jj marker under $HOME, including
+# Brazil-managed checkouts (~/devc/, ~/.toolbox/) and other plain-git repos.
+# Those used to hit a git-only push flow that tried to push to whatever
+# upstream the branch tracked — typically origin/mainline (CR-protected) or
+# nothing at all — producing 14+ spurious "FAILED rc=N" lines per cycle in
+# sync_all's SUMMARY notification, plus an unintended commit-msg LLM call per
+# dirty checkout. The git-only path is now removed; sync_repo handles only jj
+# repos. Non-jj repos should return 0 with no log file persisted (INFO-only
+# runs are dropped by the logger's LOG_KEEP_THRESHOLD).
+mkdir -p "$TMPDIR/repoPlainGit"
 (
-    cd "$TMPDIR/repoBrazil"
+    cd "$TMPDIR/repoPlainGit"
     git init -q -b mainline
     git config user.email 'test@example.com'
     git config user.name  'Test User'
-    git remote add origin "$TMPDIR/brazil.git"
-    git remote add backup "$TMPDIR/brazil-backup.git"
+    # Set up the trap that the OLD git-only path would have fallen for: a
+    # 'backup' remote with the branch tracking origin/mainline. This is the
+    # production failure shape; the new behavior should ignore it entirely.
+    git -C "$TMPDIR" init --bare -q -b mainline noop-backup.git 2>/dev/null
+    git -C "$TMPDIR" init --bare -q -b mainline noop-origin.git 2>/dev/null
+    git remote add origin "$TMPDIR/noop-origin.git"
+    git remote add backup "$TMPDIR/noop-backup.git"
     echo "x" > f
     git add f
     git commit -q -m "init"
     git push -q --set-upstream origin mainline
-    # Feature branch tracking origin/mainline — the failing pattern from the field.
-    git checkout -q -b devbranch
-    git branch --set-upstream-to=origin/mainline devbranch
-    echo "y" >> f
-    git commit -q -am "diverge"
+    echo "dirty" > extra.txt
 ) >/dev/null 2>&1
-bash "$SYNC_REPO" "$TMPDIR/repoBrazil" >/dev/null 2>&1
+# Capture log file count BEFORE the run so we can assert no new file was kept.
+log_files_before=$(find "$LOG_ROOT" -name 'sync_repo.*repoPlainGit*' 2>/dev/null | wc -l)
+bash "$SYNC_REPO" "$TMPDIR/repoPlainGit" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -eq 0 ]; then
-    echo "PASS: sync_repo returned 0 for git-only repo tracking origin/mainline"
+    echo "PASS: sync_repo returned 0 for non-jj repo"
     pass=$((pass+1))
 else
-    echo "FAIL: sync_repo returned $rc for git-only repo tracking origin/mainline"
+    echo "FAIL: sync_repo returned $rc for non-jj repo"
     fail=$((fail+1))
 fi
 
-# No-upstream variant: feature branch with no @{u} at all.
-mkdir -p "$TMPDIR/repoNoUpstream"
-(
-    cd "$TMPDIR/repoNoUpstream"
-    git init -q -b mainline
-    git config user.email 'test@example.com'
-    git config user.name  'Test User'
-    git remote add origin "$TMPDIR/brazil.git"
-    git remote add backup "$TMPDIR/brazil-backup.git"
-    echo "x" > f
-    git add f
-    git commit -q -m "init"
-    # No push, no upstream set.
-    git checkout -q -b detached-feature
-    echo "y" >> f
-    git commit -q -am "diverge"
-) >/dev/null 2>&1
-bash "$SYNC_REPO" "$TMPDIR/repoNoUpstream" >/dev/null 2>&1
-rc=$?
-if [ "$rc" -eq 0 ]; then
-    echo "PASS: sync_repo returned 0 for git-only repo with no upstream"
+# No log file should be persisted — the early-exit happens before log.sh is
+# sourced, so no temp file is created and no finalize moves anything to disk.
+log_files_after=$(find "$LOG_ROOT" -name 'sync_repo.*repoPlainGit*' 2>/dev/null | wc -l)
+if [ "$log_files_after" = "$log_files_before" ]; then
+    echo "PASS: no log file persisted for non-jj repo"
     pass=$((pass+1))
 else
-    echo "FAIL: sync_repo returned $rc for git-only repo with no upstream"
+    echo "FAIL: log file appeared for non-jj repo (before=$log_files_before after=$log_files_after)"
     fail=$((fail+1))
 fi
 
-# Force kept-log retention briefly to inspect the SKIP-GIT-ONLY tag without
-# having to error elsewhere. We re-run with LOG_KEEP_THRESHOLD=DEBUG (already
-# set globally for this test file) — the INFO line should be visible.
-if grep -rqE 'SKIP-GIT-ONLY' "$LOG_ROOT" 2>/dev/null; then
-    echo "PASS: log recorded SKIP-GIT-ONLY for upstream-mismatched repos"
+# The dirty 'extra.txt' must not be committed or pushed. The old git-only
+# path would have add+commit+push'd it to origin/mainline (which would have
+# failed with rc=1 for CR-protected mainline, and also unintentionally
+# invoked commit-msg's LLM chain on the diff).
+extra_committed=$(git -C "$TMPDIR/repoPlainGit" log --all --pretty=format:%H -- extra.txt 2>/dev/null | head -1)
+if [ -z "$extra_committed" ]; then
+    echo "PASS: dirty file was not committed (no auto-commit on non-jj path)"
     pass=$((pass+1))
 else
-    echo "FAIL: log missing SKIP-GIT-ONLY tag"
+    echo "FAIL: dirty file was committed: $extra_committed"
     fail=$((fail+1))
 fi
 
-# Crucial: the git-only skip path MUST NOT have invoked commit-msg / pushed
-# anything — those would show up as non-INFO log entries.
-if grep -l '\[ERROR\]' "$LOG_ROOT"/*/sync_repo.repoBrazil* "$LOG_ROOT"/*/sync_repo.repoNoUpstream* 2>/dev/null | grep -q .; then
-    echo "FAIL: log has ERROR entries for git-only skip path (should not)"
-    fail=$((fail+1))
-else
-    echo "PASS: no ERROR entries on git-only skip path"
-    pass=$((pass+1))
-fi
-
-# Ensure neither bare remote received any push.
-brazil_refs=$(git -C "$TMPDIR/brazil-backup.git" for-each-ref --format='%(refname)' 2>/dev/null)
-if [ -z "$brazil_refs" ]; then
-    echo "PASS: backup bare remote received no pushes from skipped repos"
+# Crucially, the bare 'backup' remote must have received zero pushes — the
+# old git-only path had a `$GIT push --verbose` that targeted the upstream,
+# bypassing the backup remote entirely. Asserting the backup remote stays
+# empty is the cleanest proof that the whole git-only flow is gone.
+backup_refs=$(git -C "$TMPDIR/noop-backup.git" for-each-ref --format='%(refname)' 2>/dev/null)
+if [ -z "$backup_refs" ]; then
+    echo "PASS: backup bare remote received no pushes from non-jj repo"
     pass=$((pass+1))
 else
-    echo "FAIL: backup bare remote unexpectedly has refs: $brazil_refs"
+    echo "FAIL: backup bare remote unexpectedly has refs: $backup_refs"
     fail=$((fail+1))
 fi
 
