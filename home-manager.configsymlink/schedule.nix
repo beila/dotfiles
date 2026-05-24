@@ -170,6 +170,20 @@ in
   };
 
   config = lib.mkMerge [
+    # ----- defaults --------------------------------------------------------
+    {
+      # Cron's default PATH is /usr/bin:/bin — too narrow for our scripts,
+      # which call nix-installed tools (jj, plocate, claude, kiro-cli) and
+      # user-local helpers. Use mkDefault so a host can override if it has
+      # an unusual layout.
+      dotfiles.schedule.pathExtra = lib.mkDefault [
+        "${config.home.homeDirectory}/.nix-profile/bin"
+        "${config.home.homeDirectory}/.local/bin"
+        "/run/current-system/sw/bin"
+        "/usr/local/bin"
+      ];
+    }
+
     # ----- systemd backend -------------------------------------------------
     (lib.mkIf (cfg.backend == "systemd") {
       systemd.user.services = lib.mapAttrs (_: job: {
