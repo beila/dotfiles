@@ -1,16 +1,16 @@
 # ctrl-/: cycle preview layouts. Pipe-separated states rotate; empty entry
 # reverts to the original (--preview-window or fzf default). Sequence:
-#   horizontal (initial) → vertical (down,50%) → hidden → horizontal → ...
-# Lives in FZF_DEFAULT_OPTS so the binding is shared by:
-#   - dispatcher widgets via fzf_down() (_jh, _jb, _gf, ...)
-#   - built-in widgets via fzf-zellij (Ctrl-T, Alt-C, Ctrl-R, Ctrl-E)
-#   - any other plain fzf invocation
-# Keeping it here (single source of truth) means callers' own
-# --preview-window settings (e.g. right:70% in _jb) survive the cycle —
-# the empty rotation entry restores whatever each caller originally set.
-# Note: fzf_down() overrides this binding with up,50% when the caller
-# passes --reverse so the vertical preview sits on the same edge as the
-# prompt (top instead of bottom). Last --bind wins in fzf.
+#   horizontal (initial) → vertical → hidden → horizontal → ...
+# Vertical position varies with layout: down,50% when --reverse is set
+# (prompt at top), up,50% when not (prompt at bottom). The default here is
+# down,50% because most fzf flows ARE --reverse (built-in ctrl-t/ctrl-e
+# widgets inject --reverse via fzf's __fzf_defaults; fzf-tab uses
+# --reverse; our log dispatchers _jh/_jyy/_jy/_gs pass --reverse via
+# fzf_down). The up,50% override for the no-reverse case lives in
+# fzf-zellij so it can detect --reverse in either args (our dispatchers)
+# or FZF_DEFAULT_OPTS env (built-in widgets) — see fzf-zellij. Empty
+# rotation entry restores whatever each caller originally set as
+# --preview-window (e.g. right:70% in _jb).
 export FZF_DEFAULT_OPTS='--bind "ctrl-n:preview-half-page-down" --bind "ctrl-p:preview-half-page-up" --bind "ctrl-/:change-preview-window(down,50%|hidden|)"'
 
 # TODO fasd used to have files listed, but zoxide does not. I need list of files most likely to be used. Maybe locate?

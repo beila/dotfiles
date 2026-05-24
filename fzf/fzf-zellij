@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # fzf-zellij: starts fzf in a zellij floating pane
 # usage: fzf-zellij [LAYOUT OPTIONS] [--] [FZF OPTIONS]
+#
+# Also injects a layout-aware ctrl-/ preview-cycle binding (down,50% when
+# --reverse, up,50% otherwise) so prompt and preview always anchor opposite
+# ends of the screen — see the binding logic further down for the rationale.
 
 fail() { >&2 echo "$1"; exit 2; }
 
@@ -43,6 +47,46 @@ while [[ $# -gt 0 ]]; do
   esac
   [[ -n $skip ]] && args+=("$arg")
 done
+
+# ctrl-/ vertical preview position: place the preview on the OPPOSITE end
+# from the prompt so the list always sits between them (visual flow:
+# prompt → list → preview).
+#
+#   layout      | prompt at | preview goes
+#   ------------+-----------+--------------
+#   --reverse   | top       | bottom (down,50%)  ← FZF_DEFAULT_OPTS default
+#   default     | bottom    | top    (up,50%)    ← override added here
+#
+# FZF_DEFAULT_OPTS in fzf.zsh sets the down,50% default because the most
+# common widgets are reversed (built-in fzf-cd-widget / fzf-file-widget
+# inject --reverse via fzf's own __fzf_defaults; fzf-tab uses --reverse;
+# our log dispatchers _jh/_jhh/_jyy/_jy/_gs all pass --reverse via
+# fzf_down). When --reverse is NOT present we append a later --bind that
+# overrides the FZF_DEFAULT_OPTS one (fzf's last-bind-wins semantics).
+#
+# Detection looks at BOTH command-line args (where fzf_down callers put
+# --reverse) AND FZF_DEFAULT_OPTS env var (where fzf's built-in widgets
+# inject --reverse via __fzf_defaults before invoking us). --layout=reverse
+# and --layout=reverse-list both treated as reversed.
+reversed=0
+for a in "${args[@]}"; do
+  case "$a" in
+    --reverse|--layout=reverse|--layout=reverse-list) reversed=1; break ;;
+  esac
+done
+if (( ! reversed )); then
+  # Normalize whitespace (FZF_DEFAULT_OPTS may contain newlines from fzf's
+  # __fzf_defaults printf-based composition) and pad with spaces so the
+  # boundary checks below match whole tokens.
+  _opts=" ${FZF_DEFAULT_OPTS//[$'\n\t']/ } "
+  case "$_opts" in
+    *' --reverse '*|*' --layout=reverse'*) reversed=1 ;;
+  esac
+  unset _opts
+fi
+if (( ! reversed )); then
+  args+=("--bind=ctrl-/:change-preview-window(up,50%|hidden|)")
+fi
 
 # Outside zellij or already in a fzf-zellij pane: just run fzf directly
 if [[ -z ${ZELLIJ:-} ]] || [[ -n ${FZF_ZELLIJ:-} ]]; then

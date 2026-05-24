@@ -160,65 +160,81 @@ assert "_gyy cancelled: empty output" "" "$(_gyy)"
 
 echo
 echo "ctrl-/ preview-layout cycle (single source of truth in FZF_DEFAULT_OPTS):"
-# fzf.zsh exports the cycle binding; fzf_down() must NOT also bind ctrl-/
-# unconditionally (that would either duplicate, or — if we ever swapped
-# one for the other — create a divergence between dispatcher widgets and
-# built-in widgets). The only ctrl-/ binding fzf_down() may add is the
-# --reverse-conditional up,50% override (last --bind wins in fzf).
+# fzf.zsh exports the down,50% default in FZF_DEFAULT_OPTS; fzf_down() does
+# NOT add any ctrl-/ override (that logic moved to fzf-zellij — it needs to
+# detect --reverse from FZF_DEFAULT_OPTS env too, not just argv).
 fzf_zsh="${0:a:h}/../fzf.zsh"
+fzf_zellij="${0:a:h}/../fzf-zellij"
 fns="${0:a:h}/functions.sh"
 assert "fzf.zsh: ctrl-/ binds change-preview-window" \
   "ctrl-/:change-preview-window" "$(grep -h ctrl-/ "$fzf_zsh")"
-assert "fzf.zsh: cycle includes vertical (down,50%)" \
+assert "fzf.zsh: default vertical state is down,50% (--reverse case)" \
   "down,50%" "$(grep -h ctrl-/ "$fzf_zsh")"
 assert "fzf.zsh: cycle includes hidden state" \
   "hidden" "$(grep -h ctrl-/ "$fzf_zsh")"
 assert_not "functions.sh: no toggle-preview (replaced by cycle)" \
   "ctrl-/:toggle-preview" "$(cat "$fns")"
+assert_not "functions.sh: no ctrl-/ binding (logic moved to fzf-zellij)" \
+  "ctrl-/:" "$(cat "$fns")"
+assert "fzf-zellij: defines up,50% override for non-reverse layouts" \
+  "up,50%" "$(grep -h up,50% "$fzf_zellij")"
 
 echo
-echo "fzf_down --reverse: ctrl-/ overrides to up,50% (preview sits on prompt edge):"
-# Stub fzf-zellij so real fzf_down() runs but the dispatch is captured.
-# fzf_down resolves the path via _fzf_functions_sh (set at source time);
-# repointing it after sourcing redirects the call to our stub.
-source "${0:a:h}/functions.sh"
-_tmp_fzd=$(mktemp -d)
-trap "rm -rf '$_tmp_fzd'; rm -f '$_args_file'" EXIT
-mkdir -p "$_tmp_fzd/functions.sh"
-cat > "$_tmp_fzd/fzf-zellij" <<'STUB'
+echo "fzf-zellij: ctrl-/ override depends on --reverse:"
+# Stub fzf via PATH so fzf-zellij's plain-fzf fallback path captures argv.
+# Force the fallback by setting FZF_ZELLIJ=1 (nested mode) so we don't
+# need an actual zellij session.
+_tmp_zj=$(mktemp -d)
+trap "rm -rf '$_tmp_zj'; rm -f '$_args_file'" EXIT
+cat > "$_tmp_zj/fzf" <<'STUB'
 #!/usr/bin/env bash
-# Capture all args (post the leading `--` separator that fzf_down adds).
-echo "$*" > "$FZF_DOWN_TEST_OUT"
+echo "$*" > "$FZ_TEST_OUT"
 STUB
-chmod +x "$_tmp_fzd/fzf-zellij"
-_fzf_functions_sh="$_tmp_fzd/functions.sh/functions.sh"
-run_fzf_down() {
-  export FZF_DOWN_TEST_OUT
-  FZF_DOWN_TEST_OUT=$(mktemp)
-  fzf_down "$@" </dev/null
-  cat "$FZF_DOWN_TEST_OUT"
-  rm -f "$FZF_DOWN_TEST_OUT"
+chmod +x "$_tmp_zj/fzf"
+
+run_zellij() {
+  export FZ_TEST_OUT
+  FZ_TEST_OUT=$(mktemp)
+  PATH="$_tmp_zj:$PATH" FZF_ZELLIJ=1 "$fzf_zellij" "$@" </dev/null
+  cat "$FZ_TEST_OUT"
+  rm -f "$FZ_TEST_OUT"
 }
 
-out=$(run_fzf_down --reverse --query foo)
-assert "with --reverse: up,50% in dispatch args" "up,50%" "$out"
-assert "with --reverse: ctrl-/ override binding" \
-  "ctrl-/:change-preview-window(up,50%|hidden|)" "$out"
-assert_not "with --reverse: no down,50% override" "down,50%" "$out"
-assert "with --reverse: --reverse still passed through" "--reverse" "$out"
-assert "with --reverse: user --query passed through" "--query foo" "$out"
+# 1. --reverse in argv → no up,50% override (FZF_DEFAULT_OPTS down,50% wins)
+out=$(FZF_DEFAULT_OPTS='' run_zellij -- --reverse --query foo)
+assert_not "argv has --reverse: no up,50% override added" "up,50%" "$out"
+assert "argv has --reverse: --reverse passed through to fzf" "--reverse" "$out"
 
-out=$(run_fzf_down --query bar)
-assert_not "without --reverse: no up,50% override (relies on FZF_DEFAULT_OPTS)" \
+# 2. No --reverse anywhere → up,50% override added
+out=$(FZF_DEFAULT_OPTS='' run_zellij -- --query bar)
+assert "no --reverse: up,50% override added" "ctrl-/:change-preview-window(up,50%|hidden|)" "$out"
+assert "no --reverse: --query passed through" "--query bar" "$out"
+
+# 3. --reverse in FZF_DEFAULT_OPTS env (built-in widget pattern) → no override
+out=$(FZF_DEFAULT_OPTS='--reverse --walker=dir,follow' run_zellij -- --preview foo)
+assert_not "FZF_DEFAULT_OPTS has --reverse: no up,50% override" "up,50%" "$out"
+
+# 4. --layout=reverse in FZF_DEFAULT_OPTS → treated as reversed
+out=$(FZF_DEFAULT_OPTS='--layout=reverse --scheme=path' run_zellij -- --query baz)
+assert_not "FZF_DEFAULT_OPTS has --layout=reverse: no up,50% override" "up,50%" "$out"
+
+# 5. --layout=reverse-list also treated as reversed
+out=$(FZF_DEFAULT_OPTS='--layout=reverse-list' run_zellij -- --query qux)
+assert_not "FZF_DEFAULT_OPTS has --layout=reverse-list: no up,50% override" "up,50%" "$out"
+
+# 6. Spurious "reverse" substring elsewhere should NOT trigger the detection
+out=$(FZF_DEFAULT_OPTS='--prompt reverse>' run_zellij -- --query inv)
+assert "FZF_DEFAULT_OPTS prompt contains 'reverse' but no flag: up,50% added" \
   "up,50%" "$out"
-assert_not "without --reverse: no ctrl-/ override emitted" "ctrl-/:" "$out"
-assert "without --reverse: user --query passed through" "--query bar" "$out"
 
-# --tac (input order reversal) is NOT a layout flag — it must not trigger
-# the up,50% override. Only --reverse moves the prompt to the top.
-out=$(run_fzf_down --tac --multi)
-assert_not "with --tac (no --reverse): no up,50% override" "up,50%" "$out"
-assert_not "with --tac (no --reverse): no ctrl-/ override emitted" "ctrl-/:" "$out"
+# 7. --tac (input order, not layout) does NOT trigger reversed detection
+out=$(FZF_DEFAULT_OPTS='' run_zellij -- --tac --multi)
+assert "argv has --tac (no --reverse): up,50% override added" "up,50%" "$out"
+
+# 8. fzf-zellij does NOT add ctrl-/ override when reversed (avoids stomping
+# FZF_DEFAULT_OPTS' down,50%)
+out=$(FZF_DEFAULT_OPTS='' run_zellij -- --reverse)
+assert_not "reversed: no ctrl-/ binding emitted by fzf-zellij" "ctrl-/" "$out"
 
 echo
 echo "$pass passed, $fail failed"

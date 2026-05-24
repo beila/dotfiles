@@ -16,23 +16,14 @@ is_in_jj_repo() {
 }
 
 fzf_down() {
-  # ctrl-/ preview-layout cycle lives in FZF_DEFAULT_OPTS (see fzf.zsh) so
-  # both these dispatcher widgets and the built-in Ctrl-T/Alt-C/Ctrl-R
-  # widgets pick up the same binding (down,50%).
-  #
-  # Override for --reverse: when the caller flips the layout so the prompt
-  # sits at the top, put the vertical preview on the top edge as well so it
-  # stays adjacent to the prompt (visual reading order: preview → prompt →
-  # list). fzf applies --bind in order with last-wins semantics, so a later
-  # ctrl-/ binding here overrides FZF_DEFAULT_OPTS' down,50% one.
-  local override_bind=()
-  for arg in "$@"; do
-    if [[ "$arg" == "--reverse" ]]; then
-      override_bind=(--bind 'ctrl-/:change-preview-window(up,50%|hidden|)')
-      break
-    fi
-  done
-  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --height 50% --min-height 20 --border "${override_bind[@]}" "$@"
+  # ctrl-/ preview-layout cycle and the --reverse-aware vertical position
+  # (top vs bottom) both live in fzf-zellij — see the binding logic there.
+  # FZF_DEFAULT_OPTS provides the down,50% default for the --reverse case
+  # (the most common one: ctrl-e/ctrl-t built-in widgets, fzf-tab, and most
+  # of our log dispatchers); fzf-zellij flips that to up,50% when --reverse
+  # is absent so prompt and preview always anchor opposite ends of the
+  # screen.
+  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --height 50% --min-height 20 --border "$@"
 }
 
 # --- helpers (git) ---
