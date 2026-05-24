@@ -46,6 +46,14 @@ myConfig =
                 , fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep albert || albert"
+                , -- Rebind X11 keycodes 198/202 (= evdev F20/F24, what keyd
+                  -- emits for Super+V/C in keyd/common's [meta] block) to
+                  -- the X11 keysyms F20/F24. Default xkb 'inet' rules bind
+                  -- those keycodes to XF86AudioMicMute / unmapped, which
+                  -- winit can't translate into NamedKey::F20/F24, so neovide
+                  -- silently drops the keystroke. After this remap, neovide
+                  -- delivers <F24> / <F20> to nvim per my-clipboard.lua.
+                  spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
         , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
