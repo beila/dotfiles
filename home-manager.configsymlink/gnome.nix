@@ -1,12 +1,35 @@
-{ lib, ... }:
+{ lib, pkgs, ... }:
 {
+  # ibus-hangul, plus the GTK4 IM module so ghostty (which links the nix-store
+  # gtk4-4.22.4 closure) finds it. The system's `ibus-gtk4` package only ships
+  # `/usr/lib/x86_64-linux-gnu/gtk-4.0/.../libim-ibus.so`, which the nix gtk4
+  # never looks at — it only searches its own closure + `$GTK_PATH`. nixpkgs
+  # `ibus` builds the same module against the matching libgtk-4.so.1, so
+  # GTK_PATH=${pkgs.ibus} resolves to an ABI-compatible drop-in.
+  home.packages = [ pkgs.ibus ];
+
+  # Emit ~/.config/environment.d/30-ibus.conf via home-manager.
+  # systemd-user imports environment.d BEFORE gnome-flashback-xmonad, so xmonad
+  # and every app it spawns (ghostty, firefox, etc.) inherits these. /etc/environment
+  # already sets XMODIFIERS + QT_IM_MODULE on this Ubuntu box, but GTK_IM_MODULE
+  # is left to im-config (which doesn't run for the custom xmonad session) — hence
+  # we set it here unconditionally.
+  xdg.configFile."environment.d/30-ibus.conf".text = ''
+    GTK_IM_MODULE=ibus
+    QT_IM_MODULE=ibus
+    XMODIFIERS=@im=ibus
+    GTK_PATH=${pkgs.ibus}
+  '';
+
   dconf.settings = {
     "org/gnome/desktop/input-sources" = {
       sources = [
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
-    # ibus-hangul: use Sebeolsik 390 layout (requires: sudo apt install ibus-hangul)
+    # ibus-hangul: use Sebeolsik 390 layout. The hangul *engine* itself still comes
+    # from the system package (`sudo apt install ibus-hangul`); only the GTK4 IM
+    # client module is sourced from nix above.
     "org/freedesktop/ibus/general/hotkey" = {
       triggers = [ "<Shift>space" ];
     };

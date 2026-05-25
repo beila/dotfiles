@@ -142,6 +142,19 @@ vim.keymap.set({ "n", "v" }, "<leader> ",
     {})
 
 local actions = require "fzf-lua.actions"
+local fzf_utils = require "fzf-lua.utils"
+
+-- Toggle a flag at the END of the rg command (vs actions.toggle_flag which
+-- inserts after the binary). Required for flags that conflict with one in
+-- rg_opts: rg's "last flag wins" rule means an inserted --case-sensitive
+-- gets overridden by a later --smart-case.
+local function toggle_flag_append(flag)
+    return function(_, opts)
+        local cmd = fzf_utils.toggle_cmd_flag(assert(opts._cmd or opts.cmd), flag, nil, true)
+        local o = vim.tbl_deep_extend("keep", { cmd = cmd, resume = true }, opts.__call_opts or {})
+        opts.__call_fn(o)
+    end
+end
 fzf_lua.setup({
     keymap = {
         --[[
@@ -171,9 +184,11 @@ fzf_lua.setup({
             -- If no separator is detected will return the original query
             return (regex or query), flags
         end,
+        header_separator = "\n",
         actions = {
             ["ctrl-r"] = { actions.toggle_ignore },
-            ["ctrl-w"] = { function(_, opts) actions.toggle_flag(_, vim.tbl_extend("force", opts, { toggle_flag = '--word-regexp' })) end },
+            ["ctrl-w"] = { fn = toggle_flag_append('--word-regexp'),    header = "whole word" },
+            ["ctrl-s"] = { fn = toggle_flag_append('--case-sensitive'), header = "case sensitive" },
         }
     },
     previewers = {
