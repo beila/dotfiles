@@ -55,6 +55,7 @@ in
         pkgs.jujutsu
         pkgs.just
         pkgs.keyd
+        pkgs.lxgw-wenkai  # calligraphic CJK monospace; ghostty Hangul fallback
         pkgs.mergiraf
         pkgs.nmap  # raw JetDirect printer discovery (print-hp)
         pkgs.ollama
