@@ -309,6 +309,15 @@ handle_diverged() {
 step_sync_remote_bookmark() {
     [ -n "$SYNC_BM" ] || return 0
 
+    # Skip cleanly when the configured remote isn't set up in jj. Common case:
+    # a sub-repo inherits sync.remote-bookmark via a parent --when.repositories
+    # scope but has no `backup` (or whichever) remote of its own. Logged at
+    # INFO so it doesn't trip the ERROR notification.
+    if ! jj git remote list 2>/dev/null | awk '{print $1}' | grep -qx "$SYNC_REMOTE"; then
+        log INFO "SKIP ${SYNC_BM}@${SYNC_REMOTE}: remote '${SYNC_REMOTE}' not configured"
+        return 0
+    fi
+
     local local_rev remote_rev
     local_rev=$(jj log -r "@-" --no-graph -T 'commit_id' 2>/dev/null)
 
