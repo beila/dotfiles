@@ -45,13 +45,12 @@
 command = zsh -l
 gtk-titlebar = false
 
-# Latin first, Hangul fallback. ghostty walks the list per-glyph.
-font-family = JetBrainsMono Nerd Font
+# Latin: ghostty default. Hangul: LXGW WenKai Mono (calligraphic 楷书, fallback).
+# ghostty walks the font-family list per-glyph; an empty primary entry tells it
+# to use its built-in default Latin face, then the LXGW entry catches Hangul.
+# (font-size left at default 12 too; if rendering looks small we'll bump it.)
+font-family =
 font-family = LXGW WenKai Mono
-# Adding LXGW Mono shrinks the rendered cell height to ~76% of JBM-NF-only;
-# bumping font-size from default 12 to 16 (12 × 42/32) restores the old size.
-# Pixel-measured from a side-by-side screenshot in the dotfiles repo discussion.
-font-size = 16
 
 # Send legacy control codes for keys that leak CSI u sequences under rapid
 # key repeat in zellij, causing fzf to receive them as literal query text.
