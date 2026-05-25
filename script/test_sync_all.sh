@@ -19,6 +19,9 @@ export LOG_NOTIFY_MODE=never
 # can grep the log file. log.sh defaults LOG_KEEP_THRESHOLD=ERROR which would
 # discard all but the ERROR-summary runs.
 export LOG_KEEP_THRESHOLD=DEBUG
+# Stop sync_all from unsetting our pinned LOG_ROOT (production unsets so logs
+# land in ~/.local/state/logs instead of ~/hjdocs/logs).
+export SYNC_LOG_ROOT_KEEP=1
 export DOTFILES_ROOT
 
 # Fake HOME so ~/.cache/plocate.db points at our temp location.

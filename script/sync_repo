@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Trace mode for manual debugging: SYNC_REPO_DEBUG=1 sync_repo …
 # Off by default — systemd-driven runs are noisy enough already, and the
-# leveled logger captures everything important to ~/hjdocs/logs/.
+# leveled logger captures everything important to ~/.local/state/logs/.
 if [ "${SYNC_REPO_DEBUG:-0}" = "1" ]; then
     set -x
 fi
@@ -46,10 +46,21 @@ flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 
 
 # --- structured logging + error classification --------------------------------
 # Uses the shared leveled logger at script/logger/log.sh. It writes to
-# ~/hjdocs/logs/<machine>/sync_repo.<repo-basename>.<date>[.<time>].log and
-# dispatches notifications for ERROR and above via bin/notify-webhook.
+# ~/.local/state/logs/<machine>/sync_repo.<repo-basename>.<date>[.<time>].log
+# and dispatches notifications for ERROR and above via bin/notify-webhook.
 # Notifications auto-suppress when stderr is a TTY (interactive runs don't
 # ping the phone); override with LOG_NOTIFY_MODE={always|never}.
+#
+# Force a LOCAL log root for sync_repo specifically — the global default in
+# private-dotfiles points $LOG_ROOT at ~/hjdocs/logs so logs replicate across
+# machines, but THIS script syncs ~/hjdocs itself. Writing logs there during
+# its own run risks self-referential races (the log file would be a working-
+# copy change while sync_repo is mid-snapshot). Defer to log.sh's local
+# default by clearing the inherited overrides. Test harnesses that want to
+# pin $LOG_ROOT (e.g. into a tempdir) set $SYNC_LOG_ROOT_KEEP=1 to opt out.
+if [ "${SYNC_LOG_ROOT_KEEP:-0}" != "1" ]; then
+    unset LOG_ROOT LOG_REL_BASE LOG_NOTIFY_DEDUP_DIR
+fi
 LOG_TAG=sync_repo
 # LOG_CONTEXT disambiguates between multiple workspaces / worktrees of the
 # same repo. If we tried to use just `basename "$LOCK_PATH"` we'd get e.g.

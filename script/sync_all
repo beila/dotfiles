@@ -15,6 +15,15 @@
 
 set -u
 
+# Force a LOCAL log root for the sync wrapper too — same reasoning as sync_repo:
+# we don't want self-referential writes into ~/hjdocs (which sync_repo is about
+# to sync). Clearing here means children (sync_repo subprocess) also inherit
+# the unset env and pick up log.sh's default ~/.local/state/logs. Test harnesses
+# that want a pinned $LOG_ROOT set $SYNC_LOG_ROOT_KEEP=1.
+if [ "${SYNC_LOG_ROOT_KEEP:-0}" != "1" ]; then
+    unset LOG_ROOT LOG_REL_BASE LOG_NOTIFY_DEDUP_DIR
+fi
+
 LOG_TAG=sync_all
 DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
 # shellcheck source=/dev/null

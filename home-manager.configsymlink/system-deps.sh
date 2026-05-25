@@ -34,6 +34,31 @@ if command -v gnome-session &>/dev/null; then
   sudo cp "$SCRIPT_DIR/../xwindow/gnome-xmonad.desktop" /usr/share/xsessions/
   sudo cp "$SCRIPT_DIR/../xwindow/gnome-flashback-xmonad.session" /usr/share/gnome-session/sessions/
   sudo cp "$SCRIPT_DIR/../xwindow/xmonad.desktop" /usr/share/applications/
+
+  # xkb inet rule patch: keyd's [meta] block emits Super+C/V as `macro(copy f24)`
+  # / `macro(paste f20)` so neovide (winit drops bare XF86Copy/Paste) sees
+  # <F24>/<F20>. The kernel KEY_F20/KEY_F24 codes (X11 keycodes 198/202) get
+  # mapped by `inet(evdev)` to XF86AudioMicMute / nothing — wiping our keys
+  # whenever ibus/gsd-keyboard calls setxkbmap. Patch the inet rule directly
+  # so the F20 mapping survives every keymap rebuild. xmonad's startupHook
+  # xmodmap remains as a safety net for fresh checkouts before this runs.
+  # Reapplied here because `apt upgrade xkeyboard-config` may overwrite the
+  # file. Idempotent: only edits if XF86AudioMicMute is still on FK20.
+  INET=/usr/share/X11/xkb/symbols/inet
+  if [ -f "$INET" ] && grep -q '<FK20>.*XF86AudioMicMute' "$INET"; then
+    sudo sed -i.dotfiles-bak \
+      -e 's|key <FK20>   {      \[ XF86AudioMicMute      \]       };|key <FK20>   {      [ F20                   ]       };  // dotfiles: keyd Super+V → F20 for neovide|' \
+      "$INET"
+    # FK24 is not defined by inet(evdev), so add it. Insert after the FK20 line.
+    if ! grep -q '<FK24>.*F24' "$INET"; then
+      sudo sed -i \
+        '/key <FK20>.*F20.*dotfiles/a\    key <FK24>   {      [ F24                   ]       };  // dotfiles: keyd Super+C → F24 for neovide' \
+        "$INET"
+    fi
+    # Trigger a keymap rebuild so the change takes effect in the live session
+    # (otherwise it would only apply on next setxkbmap call from elsewhere).
+    setxkbmap "$(setxkbmap -query | awk '/^layout:/{print $2}')" 2>/dev/null || true
+  fi
 fi
 
 # keyd: system-level key remapping (skip on headless machines)
