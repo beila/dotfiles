@@ -83,7 +83,13 @@ c = macro(copy f24)
 v = macro(paste f20)
 
 # Super+Shift+V → copyq toggle (clipboard history picker, bound in xmonad).
-# Without this composite layer, [meta]'s explicit `v = ...` would fire even
-# when Shift is also held, swallowing the xmonad Super+Shift+V binding.
+# Super+Shift+C → killWindow (xmonad gnomeConfig default).
+# Without this composite layer, [meta]'s explicit `v = ...` / `c = ...` would
+# fire even when Shift is also held, swallowing the xmonad bindings: Super+
+# Shift+V would emit a paste macro, and Super+Shift+C would emit a copy macro
+# whose Shifted F24 modifier state ends up reaching xmonad as Super+Shift+C
+# unpredictably (sometimes killing the window, sometimes not, depending on
+# keysym-to-keycode resolution timing).
 [meta+shift]
 v = M-S-v
+c = M-S-c
