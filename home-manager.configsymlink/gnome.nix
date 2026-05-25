@@ -4,8 +4,8 @@
   # gtk4-4.22.4 closure) finds it. The system's `ibus-gtk4` package only ships
   # `/usr/lib/x86_64-linux-gnu/gtk-4.0/.../libim-ibus.so`, which the nix gtk4
   # never looks at — it only searches its own closure + `$GTK_PATH`. nixpkgs
-  # `ibus` builds the same module against the matching libgtk-4.so.1, so
-  # GTK_PATH=${pkgs.ibus} resolves to an ABI-compatible drop-in.
+  # `ibus` builds the same module against the matching libgtk-4.so.1, so it's
+  # an ABI-compatible drop-in.
   home.packages = [ pkgs.ibus ];
 
   # Emit ~/.config/environment.d/30-ibus.conf via home-manager.
@@ -14,11 +14,17 @@
   # already sets XMODIFIERS + QT_IM_MODULE on this Ubuntu box, but GTK_IM_MODULE
   # is left to im-config (which doesn't run for the custom xmonad session) — hence
   # we set it here unconditionally.
+  #
+  # GTK_PATH layout: GTK4 searches `<entry>/<gtk_binary_version>/<host>/immodules`
+  # for each entry (gtk_binary_version = "4.0.0"). nixpkgs ibus puts the module
+  # at `${pkgs.ibus}/lib/gtk-4.0/4.0.0/immodules/libim-ibus.so`, so the right
+  # GTK_PATH entry is `${pkgs.ibus}/lib/gtk-4.0` — NOT `${pkgs.ibus}` (which
+  # would expand to `${pkgs.ibus}/4.0.0/immodules`, a non-existent path).
   xdg.configFile."environment.d/30-ibus.conf".text = ''
     GTK_IM_MODULE=ibus
     QT_IM_MODULE=ibus
     XMODIFIERS=@im=ibus
-    GTK_PATH=${pkgs.ibus}
+    GTK_PATH=${pkgs.ibus}/lib/gtk-4.0
   '';
 
   dconf.settings = {
