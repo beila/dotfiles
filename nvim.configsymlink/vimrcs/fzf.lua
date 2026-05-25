@@ -144,13 +144,25 @@ vim.keymap.set({ "n", "v" }, "<leader> ",
 local actions = require "fzf-lua.actions"
 local fzf_utils = require "fzf-lua.utils"
 
--- Toggle a flag at the END of the rg command (vs actions.toggle_flag which
--- inserts after the binary). Required for flags that conflict with one in
--- rg_opts: rg's "last flag wins" rule means an inserted --case-sensitive
--- gets overridden by a later --smart-case.
-local function toggle_flag_append(flag)
+-- Toggle an rg flag while keeping it on the command line BEFORE rg_opts'
+-- trailing `-e` token (which consumes its next arg as the search pattern).
+-- Two behaviours we need that actions.toggle_flag doesn't give us:
+--   1. Insert at end-1 position, not after the binary, so flags that
+--      conflict with another in rg_opts (e.g. --case-sensitive vs the baked
+--      --smart-case) win via rg's "last case flag wins" rule.
+--   2. Stay on the flag side of `-e`, so the user's query remains the rg
+--      pattern instead of the toggled flag becoming the pattern.
+local function toggle_rg_flag(flag)
     return function(_, opts)
-        local cmd = fzf_utils.toggle_cmd_flag(assert(opts._cmd or opts.cmd), flag, nil, true)
+        local cmd = assert(opts._cmd or opts.cmd)
+        local pattern = "%s" .. fzf_utils.lua_regex_escape(flag)
+        if cmd:match(pattern) then
+            cmd = cmd:gsub(pattern, "")
+        else
+            -- Insert before last whitespace-separated token (e.g. `-e`).
+            local new_cmd, n = cmd:gsub("(%s+%S+%s*)$", " " .. flag .. "%1")
+            cmd = n > 0 and new_cmd or (cmd .. " " .. flag)
+        end
         local o = vim.tbl_deep_extend("keep", { cmd = cmd, resume = true }, opts.__call_opts or {})
         opts.__call_fn(o)
     end
@@ -187,8 +199,8 @@ fzf_lua.setup({
         header_separator = "\n",
         actions = {
             ["ctrl-r"] = { actions.toggle_ignore },
-            ["ctrl-w"] = { fn = toggle_flag_append('--word-regexp'),    header = "whole word" },
-            ["ctrl-s"] = { fn = toggle_flag_append('--case-sensitive'), header = "case sensitive" },
+            ["ctrl-w"] = { fn = toggle_rg_flag('--word-regexp'),    header = "whole word" },
+            ["ctrl-s"] = { fn = toggle_rg_flag('--case-sensitive'), header = "case sensitive" },
         }
     },
     previewers = {
