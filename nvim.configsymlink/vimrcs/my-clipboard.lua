@@ -1,49 +1,16 @@
--- Super+C / Super+V handling inside nvim (primarily for neovide).
+-- Super+C / Super+V handling inside nvim. keyd's [meta] layer emits a
+-- two-token macro: bare copy/paste (ghostty/firefox/GTK) + F24/F20 (neovide,
+-- whose winit get_special_key drops bare XF86Copy/Paste). Both paths are
+-- mapped below to identical mode-aware behaviour. yy/p keep the unnamed
+-- register; only explicit Super+C/V crosses to `+`. Full chain in AGENTS.md
+-- "Universal copy/paste".
 --
--- Setup chain (full path is documented in AGENTS.md "Universal copy/paste"):
---   1. keyd's [meta] layer in ~/.dotfiles/keyd/common emits a TWO-token
---      macro on Super+C / Super+V — bare `copy`/`paste` keysym FIRST (for
---      ghostty/firefox/GTK), then `f24`/`f20` SECOND (for neovide).
---   2. xmonad's startupHook runs `xmodmap -e 'keycode 198 = F20' -e
---      'keycode 202 = F24'` to override xkb's `inet` rules, which would
---      otherwise turn evdev F20/F24 into XF86AudioMicMute / unmapped at
---      the X11 layer (winit can't translate those into NamedKey::F20/F24).
---   3. winit recognises X11 keysyms F20/F24 → NamedKey::F20/F24; neovide's
---      `get_special_key` (src/window/keyboard_manager.rs) explicitly lists
---      F1–F35 → "F20"/"F24" strings, so they reach nvim as <F24>/<F20>.
---   4. The bare `copy`/`paste` keysym would map to NamedKey::Copy / Paste
---      at the winit layer, but those have no case in `get_special_key` and
---      fall through to `_ => None` — silently dropped by neovide.
---
--- That's why neovide listens on <F24>/<F20> while ghostty/firefox/GTK
--- listen on the bare keysyms; each app reacts to whichever it's bound to
--- and ignores the other. Both paths are mapped below to identical mode-
--- aware behaviour so the user doesn't have to think about which keysym
--- their host happens to deliver.
---
--- Why F24/F20 specifically: F21–F23 are already taken by prog1/2/3
--- (Albert / scratchpads) via keyd v2.6.0. KEY_F24 (194) is the kernel
--- F-key ceiling — winit lists F25–F35 in its NamedKey enum but they don't
--- exist at the evdev layer. F20 is the next free slot below the prog
--- range.
---
--- Why not Super+letter directly: neovide does serialize Super as `<D-c>`
--- / `<D-v>` per its official FAQ, but on Linux GNOME-shell intercepts
--- `<Super>v` for toggle-message-tray before any app sees it (we strip
--- that binding in gnome.nix). And more generally, Super-modified letters
--- are fragile across desktop environments / compositors. F-keys sidestep
--- all modifier-handling quirks.
---
--- Why not `set clipboard=unnamedplus`: the user wants `yy`/`p` to keep
--- using the unnamed register, not the system clipboard. Only explicit
--- Super+C/V crosses to `+`.
---
--- Mode-aware behaviour (identical for both <F24>/<F20> and <XF86Copy>/<XF86Paste>):
+-- Mode-aware behaviour (same for <F24>/<F20> and <XF86Copy>/<XF86Paste>):
 --   visual   : copy = yank selection to +;  paste = `"_d"+P` (replace selection)
 --   normal   : copy = yank <cword> to +;     paste = `"+P` (before cursor)
 --   insert   : copy = yank <cword> to +;     paste = `<C-r>+`
 --   command  : copy = yank cmdline to +;     paste = `<C-r>+`
---   terminal : copy = (no-op);               paste = `<C-\><C-n>"+pi` (drop to normal, paste, re-enter insert)
+--   terminal : copy = no-op;                 paste = `<C-\><C-n>"+pi`
 
 local map = vim.keymap.set
 

@@ -45,19 +45,9 @@ exec 9>"$LOCKFILE"
 flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
 
 # --- structured logging + error classification --------------------------------
-# Uses the shared leveled logger at script/logger/log.sh. It writes to
-# ~/.local/state/logs/<machine>/sync_repo.<repo-basename>.<date>[.<time>].log
-# and dispatches notifications for ERROR and above via bin/notify-webhook.
-# Notifications auto-suppress when stderr is a TTY (interactive runs don't
-# ping the phone); override with LOG_NOTIFY_MODE={always|never}.
-#
-# Force a LOCAL log root for sync_repo specifically — the global default in
-# private-dotfiles points $LOG_ROOT at ~/hjdocs/logs so logs replicate across
-# machines, but THIS script syncs ~/hjdocs itself. Writing logs there during
-# its own run risks self-referential races (the log file would be a working-
-# copy change while sync_repo is mid-snapshot). Defer to log.sh's local
-# default by clearing the inherited overrides. Test harnesses that want to
-# pin $LOG_ROOT (e.g. into a tempdir) set $SYNC_LOG_ROOT_KEEP=1 to opt out.
+# Use log.sh's local default (~/.local/state/logs/) instead of the inherited
+# ~/hjdocs/logs/, since this script syncs ~/hjdocs itself. Tests opt out via
+# SYNC_LOG_ROOT_KEEP=1 to pin a tempdir.
 if [ "${SYNC_LOG_ROOT_KEEP:-0}" != "1" ]; then
     unset LOG_ROOT LOG_REL_BASE LOG_NOTIFY_DEDUP_DIR
 fi

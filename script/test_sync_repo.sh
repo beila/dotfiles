@@ -22,14 +22,9 @@ trap 'rm -rf "$TMPDIR"' EXIT
 
 echo "=== test dir: $TMPDIR ==="
 
-# Point the leveled logger at an isolated dir; avoid touching the real local
-# log dir. SYNC_LOG_ROOT_KEEP=1 stops sync_repo/sync_all from clearing these
-# (production runs unset $LOG_ROOT to dodge ~/hjdocs/logs self-referential
-# writes; the test wants the pinned tempdir instead).
-# LOG_NOTIFY_MODE=never so the test never fires real Telegram webhooks even if
-# the bot is configured on this machine.
-# LOG_KEEP_THRESHOLD=DEBUG so INFO-only runs (PUSH-OK, FAST-FORWARD, SKIP) and
-# WARN-only runs (TIMEOUT, NETWORK-ERR) leave log files for grep_has assertions.
+# Pin the logger to an isolated tempdir. SYNC_LOG_ROOT_KEEP=1 keeps sync_repo
+# from unsetting it. LOG_KEEP_THRESHOLD=DEBUG so non-ERROR runs still write
+# files for grep_has assertions. LOG_NOTIFY_MODE=never to skip Telegram.
 export LOG_ROOT="$TMPDIR/logs"
 export LOG_REL_BASE="$TMPDIR"
 export LOG_NOTIFY_MODE=never

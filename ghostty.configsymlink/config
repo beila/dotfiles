@@ -45,10 +45,7 @@
 command = zsh -l
 gtk-titlebar = false
 
-# Latin: ghostty's bundled JetBrainsMono Nerd Font (the default; just naming it explicitly
-# so the LXGW fallback below works — ghostty treats repeated `font-family =` lines as
-# additive fallbacks). Hangul: LXGW WenKai Mono (calligraphic 楷书).
-# Order matters: ghostty walks the list per-glyph and picks the first font that has it.
+# Per-glyph fallback: Latin from JetBrainsMono Nerd Font, Hangul from LXGW WenKai Mono.
 font-family = JetBrainsMono Nerd Font
 font-family = LXGW WenKai Mono
 

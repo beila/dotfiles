@@ -15,12 +15,9 @@ export LOG_ROOT="$TMPDIR/logs"
 export LOG_REL_BASE="$TMPDIR"
 export LOG_MACHINE_NAME="testhost"
 export LOG_NOTIFY_MODE=never
-# Keep INFO/WARN-only runs so happy-path / discovery / per-failure assertions
-# can grep the log file. log.sh defaults LOG_KEEP_THRESHOLD=ERROR which would
-# discard all but the ERROR-summary runs.
+# Keep non-ERROR runs so per-discovery / per-failure assertions can grep them.
 export LOG_KEEP_THRESHOLD=DEBUG
-# Stop sync_all from unsetting our pinned LOG_ROOT (production unsets so logs
-# land in ~/.local/state/logs instead of ~/hjdocs/logs).
+# Keep our pinned LOG_ROOT against sync_all's unset.
 export SYNC_LOG_ROOT_KEEP=1
 export DOTFILES_ROOT
 
