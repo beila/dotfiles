@@ -43,6 +43,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] Check if I can sudo with security key https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication
 - [ ] use zmx-select locally instead of zellij
   - zmx-select should be able to switch between machines, of course without blocking
+  - can it switch between sessions as easily as zellij session manager?
 - [ ] replace absolute path from xfce settings
 
 ### Low impact
