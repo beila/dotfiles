@@ -45,6 +45,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - zmx-select should be able to switch between machines, of course without blocking
   - can it switch between sessions as easily as zellij session manager?
 - [ ] replace absolute path from xfce settings
+- [ ] xdg-open fails to open due to container issue
 
 ### Low impact
 - [ ] there's no gap between ghostty vertically
