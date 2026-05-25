@@ -190,6 +190,24 @@ resolve_workspace_name() {
     WORKSPACE_NAME=$(jj workspace list -T 'self.name() ++ " " ++ self.target().commit_id() ++ "\n"' 2>/dev/null | awk -v c="$at_commit" '$2 == c {print $1; exit}')
 }
 
+# Detect files jj refuses to snapshot (size limit). Such files silently
+# bypass the entire sync — surface as ERROR so the user can either delete
+# the file or raise snapshot.max-new-file-size for this repo.
+check_refused_snapshots() {
+    local err
+    err=$(jj status 2>&1 1>/dev/null)
+    if echo "$err" | grep -q "Refused to snapshot"; then
+        local files
+        files=$(echo "$err" | awk '
+            /Refused to snapshot/ { flag=1; next }
+            flag && /^  / && /MiB \(/ {
+                sub(/^  /, ""); sub(/:.*$/, ""); print
+            }
+        ' | tr '\n' ' ')
+        log ERROR "REFUSED-SNAPSHOT not backed up: ${files}(raise snapshot.max-new-file-size or delete the file)"
+    fi
+}
+
 # --- Snapshot push (purely additive — no local changes) -----------------------
 # Writes per-host snapshots of the working state to refs/heads/<MACHINE>/<NAME>
 # on the snapshot URL via raw git. Two reasons to push directly to the URL
@@ -423,6 +441,25 @@ if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ]; then
 fi
 
 jj workspace update-stale 2>/dev/null || true
+
+# Surface files that jj refuses to snapshot (size limit). Those files
+# silently bypass the whole sync — flag them as ERROR so the user can
+# either delete or raise snapshot.max-new-file-size per repo.
+check_refused_snapshots() {
+    local err
+    err=$(jj status 2>&1 1>/dev/null)
+    if echo "$err" | grep -q "Refused to snapshot"; then
+        local files
+        files=$(echo "$err" | awk '
+            /Refused to snapshot/ { flag=1; next }
+            flag && /^  / && /MiB \(/ {
+                sub(/^  /, ""); sub(/:.*$/, ""); print
+            }
+        ' | tr '\n' ' ')
+        log ERROR "REFUSED-SNAPSHOT not backed up: ${files}(raise snapshot.max-new-file-size or delete the file)"
+    fi
+}
+check_refused_snapshots
 
 snapshot_at_to_push_rev
 resolve_git_dir

@@ -563,6 +563,60 @@ else
 fi
 
 echo
+echo "=== Scenario 12: large file refused by jj snapshot -> ERROR + name in log ==="
+# Simulate a >5MiB file that jj refuses to snapshot. The user needs to
+# know — those files silently bypass the whole sync.
+mkdir -p "$TMPDIR/repoBigFile"
+(
+    cd "$TMPDIR/repoBigFile"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.snapshot-url "$TMPDIR/remote.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo "init" > README.md
+    jj commit -m "initial"
+    jj bookmark create master -r @-
+    jj git push --remote backup --bookmark master --allow-new
+    # Drop a >5MiB file that jj's default snapshot.max-new-file-size won't
+    # accept (5MiB hard default).
+    head -c 6000000 /dev/zero | tr '\0' 'x' > toobig.txt
+) >/dev/null 2>&1
+
+bash "$SYNC_REPO" "$TMPDIR/repoBigFile" >/dev/null 2>&1
+if grep -rqE 'REFUSED-SNAPSHOT.*toobig\.txt' "$LOG_ROOT"/*/sync_repo.*repoBigFile* 2>/dev/null; then
+    echo "PASS: log recorded REFUSED-SNAPSHOT with file name"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing REFUSED-SNAPSHOT for toobig.txt"
+    fail=$((fail+1))
+fi
+# Sanity: a clean repo without big files should NOT emit REFUSED-SNAPSHOT.
+mkdir -p "$TMPDIR/repoCleanForRefusal"
+(
+    cd "$TMPDIR/repoCleanForRefusal"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.snapshot-url "$TMPDIR/remote.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo init > README.md
+    jj commit -m "initial"
+    jj bookmark create master -r @-
+    jj git push --remote backup --bookmark master --allow-new
+) >/dev/null 2>&1
+bash "$SYNC_REPO" "$TMPDIR/repoCleanForRefusal" >/dev/null 2>&1
+if grep -rqE 'REFUSED-SNAPSHOT' "$LOG_ROOT"/*/sync_repo.*repoCleanForRefusal* 2>/dev/null; then
+    echo "FAIL: clean repo logged REFUSED-SNAPSHOT (should not)"
+    fail=$((fail+1))
+else
+    echo "PASS: clean repo did not log REFUSED-SNAPSHOT"
+    pass=$((pass+1))
+fi
+
+echo
 echo "=== Sample log file ==="
 sample=$(find "$LOG_ROOT" -name '*.log' | head -1)
 if [ -n "$sample" ]; then
