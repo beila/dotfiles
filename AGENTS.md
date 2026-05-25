@@ -28,7 +28,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - fzf command-line parameters (including preview commands) are duplicated between the two
   - goal: single source of truth for shared fzf options/previews
   - direction: whichever is simpler (e.g. shared config file, shell script that both source, or generated opts)
-- [ ] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive
+- [x] in nvim grep dialog, add a shortcut to toggle searching whole word+case sensitive — `ctrl-w` (`--word-regexp`) and `ctrl-s` (`--case-sensitive`) in `vimrcs/fzf.lua`'s grep actions; ctrl-s overrides file_split inside grep mode only.
 - [ ] review each nvim plugin and cleanup/modernise
 - [ ] switch nix neovim module to `hm-generated.lua` approach
   - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + restore own `init.lua` with `require 'hm-generated'` at top
@@ -181,7 +181,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - Indent detection: vim-sleuth (auto-detects tabstop/shiftwidth)
 - Limelight: `my-text.lua` — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit
 - Table mode: `my-markdown.lua` — `silent! TableModeEnable` on markdown FileType
-- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, ctrl-f toggles all files, query preserved), `<leader>F` all files, `<C-g><C-f>` changed files, ctrl-n/p preview scroll
+- fzf-lua: `vimrcs/fzf.lua` — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, ctrl-f toggles all files, query preserved), `<leader>F` all files, `<C-g><C-f>` changed files, ctrl-n/p preview scroll. **Grep dialog toggles** (header strip, separated by newline so it stacks instead of forming one long line): `ctrl-r` `actions.toggle_ignore` (live-labeled "Respect/Disable .gitignore"), `ctrl-g` default `actions.grep_lgrep` (live/regex), `ctrl-w` `--word-regexp`, `ctrl-s` `--case-sensitive`. The two flag toggles use a local `toggle_rg_flag` helper instead of `actions.toggle_flag`: it inserts the flag immediately before the trailing `-e` (so the user's query stays the rg pattern arg, not the toggled flag) AND keeps the flag positioned after `--smart-case` so rg's last-case-flag-wins rule lets `--case-sensitive` actually take effect. `ctrl-s` shadows the inherited `file_split` action inside grep only.
 - Font: `gvimrc` — JetBrains Mono Thin:h11 (neovide guifont); Source Code Pro must be installed for neovide fallback
 - Linting: `nvim-lint` runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save
 - Tool installation: prefer nix (nvim.nix) over Mason; Mason only for DAPs not in nixpkgs (bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy); `bash` package in nvim.nix required by Mason installer
