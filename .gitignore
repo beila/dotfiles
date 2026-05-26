@@ -9,3 +9,5 @@ private-dotfiles
 # unreproducible refs.
 /result
 /result-*
+work-dotfiles
+*.pyc

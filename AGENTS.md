@@ -9,9 +9,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ### High impact
 - [ ] 한글 입력 상태를 화면에 잘 보이게 표시
   - 영어일 땐 안 보이고 한글일 때만 보여도 될 듯
-- [ ] neovide 한글 폰트를 ghostty에서 쓰는 것과 같은 걸로 바꾸자
-  - 영문 폰트는 그대로 유지
-- [ ] a (n)vim command to change the extension of the current file and set filetype and everything
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
@@ -40,7 +37,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ### Low impact
 - [ ] there's no gap between ghostty vertically
 - [ ] make copilot key work as super
-- [ ] review remaining mini-nvim modules: mini.splitjoin (toggle single/multi-line), mini.bracketed (unified [/] nav)
 
 ## Repo conventions
 
