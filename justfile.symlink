@@ -1,6 +1,6 @@
 #!/usr/bin/env -S just --justfile
 
-import? '~/hjdocs/public-docs/recurse-brazil/justfile'
+import? '~/.dotfiles/work-dotfiles/justfile'
 
 set allow-duplicate-recipes := true
 
