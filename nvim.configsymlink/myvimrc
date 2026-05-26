@@ -56,6 +56,9 @@ set laststatus=2
 set relativenumber
 set undofile
 set history=5000
+" CursorHold delay (default 4000ms is too aggressive — autoformat fires
+" mid-thought and resets YankRing / mini.bracketed yank-cycle state).
+set updatetime=10000
 " Persist messages to file (shared across instances, survives :q)
 " Rotates to .old when >1MB, checked on VimLeave
 set verbosefile=~/.vim-messages.log
