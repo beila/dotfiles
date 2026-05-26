@@ -36,7 +36,7 @@ v = macro(paste f20)
 - **Super+Shift+V** opens the copyq history picker via a `[meta+shift]` composite layer that prevents the explicit `v` binding from swallowing the shifted variant.
 - **nvim mappings** (`nvim.configsymlink/vimrcs/my-clipboard.lua`, identical for both `<F24>`/`<F20>` and `<XF86Copy>`/`<XF86Paste>`): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`.
 - **Terminal nvim inside ghostty** still needs explicit `"+y`/`"+p` for normal/visual mode (ghostty intercepts XF86Paste before zellij/nvim see it; insert-mode pastes via bracketed paste).
-- **Stray `'` after Super+V in zellij+zsh** (now fixed): the F20 second token's `\E[19;2~` sequence got mangled inside zellij and surfaced as a leading `'`. `ghostty.configsymlink/config` swallows F20 with `keybind = f20=ignore`, so ghostty consumes it before it reaches zellij. Neovide is unaffected because it doesn't go through ghostty.
+- **F20 in terminals**: ghostty has `keybind = f20=ignore` because the F20 token corrupts zellij's input stream. Don't drop it — neovide depends on F20 and bypasses ghostty.
 
 ## input-remapper (`~/.dotfiles/input-remapper-2.configsymlink/`, mice only)
 

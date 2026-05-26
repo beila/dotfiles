@@ -56,10 +56,6 @@ keybind = ctrl+k=text:\x0b
 keybind = ctrl+n=text:\x0e
 keybind = ctrl+p=text:\x10
 
-# F20 is the second token in keyd's `macro(paste f20)` for Super+V (so neovide,
-# which doesn't see bare XF86Paste, still pastes). Inside ghostty+zellij the
-# trailing F20 sequence (\E[19;2~) leaks into zsh's input buffer and ends up
-# typing a stray `'` before the pasted text. Swallowing it in ghostty before it
-# reaches zellij keeps Super+V clean in the terminal; neovide is unaffected
-# because it doesn't go through ghostty. See keyd/common.
+# Swallow keyd's neovide-only `f20` token from `macro(paste f20)` — its
+# CSI sequence corrupts zellij's input stream. Neovide bypasses ghostty.
 keybind = f20=ignore

@@ -28,8 +28,8 @@ All plugins installed via home-manager `programs.neovim.plugins` (see `home-mana
 
 ## User commands (defined in `myvimrc`)
 
-- `:Rename {newpath}` — `saveas` + delete the old file.
-- `:Ext {ext}` — change the current file's extension (accepts `py` or `.py`); renames on disk, deletes old, runs `filetype detect` so plugins/indent re-attach.
+- `:Rename {newpath}` — rename current file.
+- `:Ext {ext}` — change current file's extension; re-runs `filetype detect`.
 
 ## Per-language setup (`vimrcs/my-<lang>.lua`)
 
@@ -45,7 +45,7 @@ Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-c
 
 ## Plugin-specific
 
-- **Autoformat** (`vimrcs/my-autoformat.lua`) — format on autosave via `CursorHold` / `BufLeave` / `FocusLost`, checks `vim.b.autoformat_fts`; per-project `.nvim.lua` sets `vim.b.autoformat_fts`. CursorHold delay set to `updatetime=10000` (10 s) in `myvimrc` — the default 4 s fires LSP format mid-thought and bumps `b:changedtick`, which resets yank-cycle plugins (YankRing's `<C-n>`/`<C-p>`, mini.bracketed's `[y`/`]y`).
+- **Autoformat** (`vimrcs/my-autoformat.lua`) — format on autosave via `CursorHold` / `BufLeave` / `FocusLost`, checks `vim.b.autoformat_fts`; per-project `.nvim.lua` sets `vim.b.autoformat_fts`. `myvimrc` sets `updatetime=10000` because CursorHold-triggered LSP format bumps `b:changedtick` and resets yank-cycle state (YankRing `<C-n>`/`<C-p>`).
 - **Completion** (`vimrcs/blink-cmp.lua`) — blink.cmp.
 - **DAP UI** (`vimrcs/nvim-dap-ui.lua`) — auto-open/close debug UI, F7 toggle.
 - **Git gutter** (`vimrcs/gitsigns.lua`) — gitsigns.nvim with jj support (diffs against `@-` via `change_base`), `]c`/`[c` hunk nav, `<leader>hp` preview, `<leader>hr` reset, `<leader>hb` blame (no staging — safe for jj).
@@ -60,7 +60,7 @@ Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-c
 - **Limelight** (`my-text.lua`) — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit.
 - **Table mode** (`my-markdown.lua`) — `silent! TableModeEnable` on markdown FileType.
 - **fzf-lua** (`vimrcs/fzf.lua`) — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, ctrl-f toggles all files, query preserved), `<leader>F` all files, `<C-g><C-f>` changed files, ctrl-n/p preview scroll. **Grep dialog toggles** (header strip, separated by newline so it stacks instead of forming one long line): `ctrl-r` `actions.toggle_ignore` (live-labelled "Respect/Disable .gitignore"), `ctrl-g` default `actions.grep_lgrep` (live/regex), `ctrl-w` `--word-regexp`, `ctrl-s` `--case-sensitive`. The two flag toggles use a local `toggle_rg_flag` helper instead of `actions.toggle_flag`: it inserts the flag immediately before the trailing `-e` (so the user's query stays the rg pattern arg, not the toggled flag) AND keeps the flag positioned after `--smart-case` so rg's last-case-flag-wins rule lets `--case-sensitive` actually take effect. `ctrl-s` shadows the inherited `file_split` action inside grep only.
-- **Font** (`gvimrc`) — neovide guifont is `JetBrains Mono Thin,LXGW WenKai Mono:h11` — Latin from the first family, Hangul/CJK falls back to the second (matches ghostty's per-glyph fallback in `ghostty.configsymlink/config`). `:hSize` goes once at the end of the comma-separated list — repeating it per font (`:h11,…:h11`) makes neovide error with "Failed to parse guifont: Invalid size". `home-manager.configsymlink/neovide.nix` copies `LXGWWenKaiMono-*.ttf` from `pkgs.lxgw-wenkai` into `~/.local/share/fonts/` (skia/dzen2 don't read nix font paths). Source Code Pro must also be installed for neovide's default fallback.
+- **Font** (`gvimrc`) — neovide guifont `JetBrains Mono Thin,LXGW WenKai Mono:h11` (Latin + Hangul/CJK fallback, matches ghostty). `:hSize` goes once at the very end; repeating it per font fails with "Invalid size". `home-manager.configsymlink/neovide.nix` copies LXGW Mono into `~/.local/share/fonts/` (skia ignores nix paths). Source Code Pro must be installed for neovide's default fallback.
 - **Linting** — `nvim-lint` runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save.
 
 ## Tool installation

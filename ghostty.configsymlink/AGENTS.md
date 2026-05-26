@@ -5,7 +5,7 @@ Symlinked to `~/.config/ghostty/`.
 ## Config knobs
 
 - `keybind = ctrl+{j,k,n,p}=text:\xNN` — sends legacy control codes; works around zellij occasionally failing to parse kitty keyboard protocol CSI u sequences under rapid key repeat (see `zellij.configsymlink/AGENTS.md`).
-- `keybind = f20=ignore` — swallows the trailing F20 in keyd's `macro(paste f20)` for Super+V so zellij+zsh doesn't end up typing a stray `'` before pasted text. F20 is only there for neovide (which can't see bare `XF86Paste`); neovide bypasses ghostty so the `ignore` doesn't break it. See `keyd/AGENTS.md`.
+- `keybind = f20=ignore` — swallows the F20 token from keyd's `macro(paste f20)` so its CSI doesn't corrupt zellij's input stream. F20 only exists for neovide, which bypasses ghostty.
 
 ## Terminfo
 

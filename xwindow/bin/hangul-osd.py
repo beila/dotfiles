@@ -116,6 +116,8 @@ def _on_engine_changed(_bus, name) -> None:
     # `name` may arrive as a GLib string or a plain str depending on the
     # binding; coerce defensively.
     n = str(name) if name is not None else ""
+    sys.stderr.write(f"hangul-osd: engine-changed → {n!r}\n")
+    sys.stderr.flush()
     if "hangul" in n.lower():
         show()
     else:
