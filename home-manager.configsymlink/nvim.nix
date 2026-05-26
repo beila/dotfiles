@@ -64,7 +64,6 @@ in
       limelight-vim
       indent-blankline-nvim
       mini-ai
-      mini-bracketed
       nvim-surround
       vim-jinja
       vim-just

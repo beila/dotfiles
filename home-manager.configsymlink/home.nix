@@ -71,6 +71,17 @@ in
           libraries = with pkgs.python3Packages; [ pycairo xlib ] ++ [ osd ];
           flakeIgnore = [ "E501" "E731" "W503" ];
         } (builtins.readFile ../xwindow/bin/battery-osd.py))
+        # hangul-osd: persistent overlay while ibus's current engine is hangul.
+        # Same osd-library pattern as battery-osd, plus PyGObject for the IBus
+        # D-Bus signal subscription (no polling). The wrapper script sources
+        # the IBus GIR typelib at runtime so PyGObject can find it.
+        (pkgs.writeShellScriptBin "hangul-osd" ''
+          export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+          exec ${pkgs.writers.writePython3Bin "hangul-osd-impl" {
+            libraries = with pkgs.python3Packages; [ pycairo xlib pygobject3 ] ++ [ osd ];
+            flakeIgnore = [ "E501" "E731" "W503" ];
+          } (builtins.readFile ../xwindow/bin/hangul-osd.py)}/bin/hangul-osd-impl "$@"
+        '')
         pkgs.alsa-utils  # aplay for say/say-ko
         pkgs.wl-clipboard
         pkgs.xclip

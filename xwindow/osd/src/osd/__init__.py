@@ -91,6 +91,18 @@ class OSDStyle:
     anchor_y: str = "center"
     offset_y_frac: float = 0.0
 
+    # Horizontal anchoring (mirror of anchor_y).
+    anchor_x: str = "center"   # "left" | "center" | "right"
+    offset_x_frac: float = 0.0
+
+    # Absolute size in millimetres. When BOTH are set, this overrides
+    # width_frac / height_frac and the rendered OSD has the same physical
+    # size across monitors with different pixel densities (uses Xrandr's
+    # reported mm dimensions; falls back to 96 DPI if unavailable). Leave
+    # None to keep the fractional-of-monitor behaviour.
+    width_mm: float | None = None
+    height_mm: float | None = None
+
     # Alpha threshold for the XShape mask (0..255). Pixels with alpha at or
     # above this become opaque; everything else is clipped.
     alpha_threshold: int = 128
@@ -118,16 +130,39 @@ DEFAULT_STYLE = OSDStyle()
 
 
 def render_surface(
-    text: str, monitor_w: int, monitor_h: int, style: OSDStyle | None = None
+    text: str,
+    monitor_w: int,
+    monitor_h: int,
+    style: OSDStyle | None = None,
+    monitor_mm: tuple[int, int] | None = None,
 ) -> cairo.ImageSurface:
-    """Render `text` to an ARGB32 cairo surface fitting `monitor_w × monitor_h`.
+    """Render `text` to an ARGB32 cairo surface.
+
+    Output size is decided by `style`:
+    - If `style.width_mm` and `style.height_mm` are both set AND `monitor_mm`
+      is provided with non-zero values, the surface is sized so its physical
+      mm dimensions match — output_px = monitor_px * style.X_mm / monitor_X_mm.
+      Same physical size on a 4K laptop and a 1080p external.
+    - If mm requested but `monitor_mm` unavailable, fall back to 96 DPI
+      (output_px = mm / 25.4 * 96) so something sensible still renders.
+    - Otherwise, use `style.width_frac` / `style.height_frac` against
+      `monitor_w` / `monitor_h` (legacy battery-osd behaviour).
 
     Auto-picks the largest font size where the text fits both the width and
     height padding constraints. Draws shadow → outline → fill in that order.
     """
     s = style or DEFAULT_STYLE
-    w = int(monitor_w * s.width_frac)
-    h = int(monitor_h * s.height_frac)
+    if s.width_mm is not None and s.height_mm is not None:
+        if monitor_mm and monitor_mm[0] > 0 and monitor_mm[1] > 0:
+            w = max(1, int(monitor_w * s.width_mm / monitor_mm[0]))
+            h = max(1, int(monitor_h * s.height_mm / monitor_mm[1]))
+        else:
+            # No EDID mm info — assume 96 DPI so we still render *something*.
+            w = max(1, int(s.width_mm / 25.4 * 96))
+            h = max(1, int(s.height_mm / 25.4 * 96))
+    else:
+        w = int(monitor_w * s.width_frac)
+        h = int(monitor_h * s.height_frac)
 
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
     ctx = cairo.Context(surface)
@@ -218,12 +253,15 @@ def _chunked_put_image(target, gc, fmt, depth, w, h, data, bytes_per_row):
         target.put_image(gc, 0, y0, w, rows, fmt, depth, 0, chunk)
 
 
-def get_monitors(d, root) -> list[tuple[int, int, int, int]]:
-    """Enumerate currently-active monitors as (x, y, w, h) rectangles.
+def get_monitors(d, root) -> list[tuple[int, int, int, int, int, int]]:
+    """Enumerate currently-active monitors as (x, y, w_px, h_px, w_mm, h_mm).
 
-    Uses RandR's CRTC list (RandR 1.2+, available on every Linux desktop
-    X server since ~2009) and filters out CRTCs with no mode set. Falls
-    back to the whole virtual screen on any RandR failure.
+    Pixel rect comes from RandR's CRTC list (RandR 1.2+, available on every
+    Linux desktop X server since ~2009). mm dimensions come from the first
+    output attached to the CRTC (a CRTC drives ≥1 outputs; mirrored outputs
+    share a CRTC and we just take the first). w_mm / h_mm are 0 when the
+    output's EDID didn't report a physical size, when RandR isn't usable,
+    or for the whole-virtual-screen fallback path.
 
     Mirrored displays naturally produce duplicate (x, y, w, h) tuples;
     we de-dup so we don't render the same OSD twice on top of itself.
@@ -231,23 +269,50 @@ def get_monitors(d, root) -> list[tuple[int, int, int, int]]:
     try:
         randr.query_version(d)
         res = root.xrandr_get_screen_resources()
+        ts = res.config_timestamp
         seen = set()
-        out: list[tuple[int, int, int, int]] = []
+        out: list[tuple[int, int, int, int, int, int]] = []
         for crtc in res.crtcs:
-            info = d.xrandr_get_crtc_info(crtc, res.config_timestamp)
+            info = d.xrandr_get_crtc_info(crtc, ts)
             if info.width <= 0 or info.height <= 0 or info.mode == 0:
                 continue
             rect = (info.x, info.y, info.width, info.height)
             if rect in seen:
                 continue
             seen.add(rect)
-            out.append(rect)
+            mm_w = mm_h = 0
+            outputs = list(getattr(info, "outputs", []) or [])
+            if outputs:
+                try:
+                    oi = d.xrandr_get_output_info(outputs[0], ts)
+                    mm_w = int(getattr(oi, "mm_width", 0) or 0)
+                    mm_h = int(getattr(oi, "mm_height", 0) or 0)
+                    # Output mm is reported relative to the panel's natural
+                    # orientation. If the CRTC rotates 90°/270°, swap.
+                    rot = int(getattr(info, "rotation", 1) or 1)
+                    # Rotation bits: 1=0°, 2=90°, 4=180°, 8=270°
+                    if rot in (2, 8):
+                        mm_w, mm_h = mm_h, mm_w
+                except Exception:
+                    pass
+            out.append(rect + (mm_w, mm_h))
         if out:
             return out
     except Exception:
         pass
     s = d.screen()
-    return [(0, 0, s.width_in_pixels, s.height_in_pixels)]
+    return [(0, 0, s.width_in_pixels, s.height_in_pixels, 0, 0)]
+
+
+def _anchor_x(monitor_w: int, win_w: int, style: OSDStyle) -> int:
+    """Compute the x-offset within a monitor for the OSD window."""
+    if style.anchor_x == "left":
+        base = 0
+    elif style.anchor_x == "right":
+        base = monitor_w - win_w
+    else:
+        base = (monitor_w - win_w) // 2
+    return base + int(monitor_w * style.offset_x_frac)
 
 
 def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
@@ -262,13 +327,13 @@ def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
 
 
 def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
-    """Create one OSD window centered (per style) on `rect`, showing
+    """Create one OSD window anchored (per style) on `rect`, showing
     `surface`. Returns the window so it can be destroyed later.
     """
-    mx, my, mw, mh = rect
+    mx, my, mw, mh = rect[:4]
     iw = surface.get_width()
     ih = surface.get_height()
-    wx = mx + (mw - iw) // 2
+    wx = mx + _anchor_x(mw, iw, style)
     wy = my + _anchor_y(mh, ih, style)
 
     win = root.create_window(
@@ -327,12 +392,18 @@ def display_on_all_monitors(
 
     if s.per_monitor_size:
         renders = [
-            (rect, render_surface(text, rect[2], rect[3], s)) for rect in monitors
+            (
+                rect,
+                render_surface(text, rect[2], rect[3], s, monitor_mm=(rect[4], rect[5])),
+            )
+            for rect in monitors
         ]
     else:
         # Use the first monitor's size for everyone (e.g. fixed-banner OSDs).
-        ref_w, ref_h = monitors[0][2], monitors[0][3]
-        shared = render_surface(text, ref_w, ref_h, s)
+        ref_rect = monitors[0]
+        ref_w, ref_h = ref_rect[2], ref_rect[3]
+        ref_mm = (ref_rect[4], ref_rect[5])
+        shared = render_surface(text, ref_w, ref_h, s, monitor_mm=ref_mm)
         renders = [(rect, shared) for rect in monitors]
 
     windows = []
