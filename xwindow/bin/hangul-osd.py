@@ -38,7 +38,7 @@ from osd import OSDStyle, display_on_all_monitors, render_surface
 # looks the same physical size everywhere.
 STYLE = OSDStyle(
     fill_rgb=(0.91, 0.64, 0.24),       # ~#E8A33D — warm amber
-    outline_rgb=(0.0, 0.0, 0.0),
+    outline_rgb=None,                  # no black ring around the glyph
     shadow_rgba=(0.0, 0.0, 0.0, 0.7),
     font_family="LXGW WenKai Mono",
     width_mm=60.0,
