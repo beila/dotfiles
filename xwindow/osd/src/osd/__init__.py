@@ -70,6 +70,11 @@ class OSDStyle:
     """
     # Colours
     fill_rgb: tuple[float, float, float] = (1.0, 0.19, 0.19)        # #ff3030
+    # Alpha for the fill, 0..1. Note: with no X11 compositor running, this
+    # acts as a brightness multiplier (cairo premultiplies; X11 strips the
+    # alpha channel) — handy for fading without picom, but not actually
+    # see-through. Pixels still inside the XShape mask if alpha ≥ threshold.
+    fill_alpha: float = 1.0
     outline_rgb: tuple[float, float, float] | None = (0.0, 0.0, 0.0)
     shadow_rgba: tuple[float, float, float, float] | None = (0.0, 0.0, 0.0, 0.7)
 
@@ -201,7 +206,7 @@ def render_surface(
         ctx.set_line_join(cairo.LINE_JOIN_ROUND)
         ctx.stroke()
 
-    ctx.set_source_rgb(*s.fill_rgb)
+    ctx.set_source_rgba(*s.fill_rgb, s.fill_alpha)
     ctx.move_to(tx, ty)
     ctx.show_text(text)
 

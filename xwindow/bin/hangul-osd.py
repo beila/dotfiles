@@ -37,9 +37,10 @@ from osd import OSDStyle, display_on_all_monitors, render_surface
 # Visual style: warm amber/mustard, top-right corner, sized in mm so it
 # looks the same physical size everywhere.
 STYLE = OSDStyle(
-    fill_rgb=(0.91, 0.64, 0.24),       # ~#E8A33D — warm amber
-    outline_rgb=None,                  # no black ring around the glyph
-    shadow_rgba=None,                  # no drop shadow either; keep just the glyph
+    fill_rgb=(0.972, 0.733, 0.239),    # LEGO Bright Light Orange #F8BB3D
+    fill_alpha=1.0,
+    outline_rgb=None,
+    shadow_rgba=None,
     font_family="LXGW WenKai Mono",
     width_mm=60.0,
     height_mm=70.0,
