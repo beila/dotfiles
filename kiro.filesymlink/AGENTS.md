@@ -20,15 +20,15 @@
 
 ## Steering files
 
-`~/.kiro/steering/` symlinks to `~/.dotfiles/kiro.filesymlink/steering/`:
+`~/.kiro/steering/` symlinks pull from two roots (bootstrap walks every `*.filesymlink/` it finds at `-maxdepth 3`):
 
-- `instructions.md` — canonical, always-loaded instruction set (Korean-TTS rule, sudo-disallow, fast-tools rules). The root AGENTS.md's "Agent Instructions" section just points here.
-- `amazon-builder-context-do-not-delete.md`
-- `amazon-production-safety-do-not-delete.md`
+- `~/.dotfiles/kiro.filesymlink/steering/instructions.md` — canonical, always-loaded instruction set (Korean-TTS rule, sudo-disallow, fast-tools rules). The root AGENTS.md's "Agent Instructions" section just points here.
+- `~/.dotfiles/work-dotfiles/kiro.filesymlink/steering/amazon-builder-context-do-not-delete.md` — Amazon-internal SDE context (Brazil/CRUX/Apollo/…); kept in work-dotfiles so the public repo stays employer-agnostic.
+- `~/.dotfiles/work-dotfiles/kiro.filesymlink/steering/amazon-production-safety-do-not-delete.md` — AWS production-safety rules; same rationale.
 
 ## Global Claude instructions
 
-`~/.claude/CLAUDE.md` is auto-loaded into every Claude Code session regardless of project. It just `@`-references the three steering files above. Replaces the previous stale references to nonexistent `~/.kiro/lessons.md` and `~/.kiro/memories.md`.
+`~/.claude/CLAUDE.md` is auto-loaded into every Claude Code session regardless of project. It just `@`-references the three steering files above (one from this repo + two from `work-dotfiles/`). On machines without the work-dotfiles checkout, the two `@`-references resolve to nothing — Claude Code handles missing referenced files quietly.
 
 ## Known issues
 
