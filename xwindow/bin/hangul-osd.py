@@ -47,20 +47,6 @@ from osd import OSDStyle, display_on_all_monitors, render_surface
 
 # Visual style: warm amber/mustard, top-right corner, sized in mm so it
 # looks the same physical size everywhere.
-#
-# JejuHallasan (the original choice) doesn't render under cairo's toy
-# font API in our session — fontconfig finds it, fc-match resolves it,
-# and pycairo reports a non-zero text width, but every Hangul codepoint
-# falls back to the same .notdef glyph (a hollow rectangle). The
-# matching fails specifically when the ToyFontFace is created inside
-# this gnome-flashback session, which prepends a huge fallback list
-# (Noto Sans + every script-specific Noto Sans + DejaVu LGC Sans)
-# before the requested family ever applies — see FC_DEBUG=4. LXGW
-# WenKai Mono works because it ships a Bold style cairo can match
-# directly without needing the fallback chain. JejuHallasan would need
-# a Pango/FreeType FontFace path; not worth the complexity for a
-# decorative OSD. If we ever want JejuHallasan back, switch the osd
-# library off the toy API.
 STYLE = OSDStyle(
     fill_rgb=(0.972, 0.733, 0.239),    # LEGO Bright Light Orange #F8BB3D
     fill_alpha=1.0,
@@ -68,6 +54,15 @@ STYLE = OSDStyle(
     shadow_rgba=None,
     font_family="LXGW WenKai Mono",
     font_weight=cairo.FONT_WEIGHT_BOLD,
+    # Pango (vs cairo's toy API) for reliable family matching. The
+    # original first-choice JejuHallasan got matched correctly by
+    # `fc-match` but was hidden from `PangoCairo.FontMap.list_families()`
+    # because the ttf is missing 20 glyphs needed for `en` language
+    # coverage — Pango's default fontmap drops display/script-only fonts
+    # from its top-level family list. To use JejuHallasan we'd need a
+    # FreeType FontFace loaded directly from the ttf path; not worth the
+    # extra deps for a decorative OSD.
+    use_pango=True,
     width_mm=60.0,
     height_mm=70.0,
     text_pad_w_frac=0.85,

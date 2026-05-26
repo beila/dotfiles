@@ -34,25 +34,21 @@ export FZF_CTRL_T_COMMAND='
 # everything on one line with `;` and `||` separators.
 export FZF_CTRL_T_OPTS='--preview "if [ -d {} ]; then command -v eza >/dev/null 2>&1 && eza --color=always --icons=auto -1 -F --group-directories-first {} || ls -1 -F --color=always {}; elif [ -f {} ]; then bat --style=numbers --color=always --line-range :500 {} 2>/dev/null || cat {} 2>/dev/null || file {}; fi 2>/dev/null"'
 
-# Emit plain paths (one per line). Earlier version piped each path through
-# `xargs ls -l` which produced `drwxr-xr-x ... <path>` rows; that worked
-# fine inline but inside the floating zellij pane the narrow list column
-# showed only metadata and clipped the names entirely. With raw paths fzf
-# can match/display them directly and we keep the preview pane for the
-# actual content listing.
+# fd's --strip-cwd-prefix output is re-absolutised so every entry has the
+# same shape as dirs/worktree/zoxide — required for the --with-nth display
+# trick in FZF_ALT_C_OPTS below.
 export FZF_ALT_C_COMMAND='
     (
         dirs -lp
         git worktree list 2>/dev/null | cut -d" " -f1
         zoxide query --list 2>/dev/null
-        fd --hidden --follow --type d --strip-cwd-prefix 2>/dev/null
+        fd --hidden --follow --type d --strip-cwd-prefix 2>/dev/null \
+            | awk -v p="$PWD/" "{print p\$0}"
     ) | awk "!d[\$0]++"'
 
-# Preview: names-first listing of the selected directory. eza if available
-# (icons + group-directories-first), otherwise `ls -1 -F`. Keeps the full
-# preview width for filenames instead of dedicating most of it to perm /
-# size / date columns. Single-line for the same reason as FZF_CTRL_T_OPTS.
-export FZF_ALT_C_OPTS='--preview "command -v eza >/dev/null 2>&1 && eza --color=always --icons=auto -1 -F --group-directories-first {} || ls -1 -F --color=always {}"'
+# `-d "$HOME/" --with-nth 2..` strips $HOME from the *display* only; the path
+# returned on accept is unchanged. Non-home paths fall through as full field 1.
+export FZF_ALT_C_OPTS='--with-nth 2.. -d "'$HOME'/" --preview "command -v eza >/dev/null 2>&1 && eza --color=always --icons=auto -1 -F --group-directories-first {} || ls -1 -F --color=always {}"'
 
 # The first printf removes the first \ from \\n.
 # The second printf prints \n as a newline.

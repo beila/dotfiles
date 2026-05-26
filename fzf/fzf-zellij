@@ -123,11 +123,9 @@ touch "$output"
   echo "export PATH=$(printf %q "$PATH")"
   echo "export FZF_ZELLIJ=1"
   echo "export FZF_DEFAULT_OPTS=$(printf %q "${FZF_DEFAULT_OPTS:-}")"
-  # Propagate FZF_DEFAULT_COMMAND. Built-in widgets (fzf-cd-widget /
-  # fzf-file-widget) set this to FZF_ALT_C_COMMAND / FZF_CTRL_T_COMMAND
-  # before invoking __fzfcmd; without forwarding, fzf inside the floating
-  # pane sees no command and falls back to its --walker, listing cwd
-  # subdirectories instead of our zoxide+dirs+worktree merged list.
+  # Built-in widgets set FZF_DEFAULT_COMMAND from FZF_ALT_C_COMMAND /
+  # FZF_CTRL_T_COMMAND before calling __fzfcmd; without forwarding, fzf
+  # falls back to its --walker.
   [[ -n ${FZF_DEFAULT_COMMAND:-} ]] && echo "export FZF_DEFAULT_COMMAND=$(printf %q "$FZF_DEFAULT_COMMAND")"
   [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
   echo "trap 'touch $(printf %q "$tmpdir/done")' EXIT"

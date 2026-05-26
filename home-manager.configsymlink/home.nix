@@ -76,7 +76,7 @@ in
         # D-Bus signal subscription (no polling). The wrapper script sources
         # the IBus GIR typelib at runtime so PyGObject can find it.
         (pkgs.writeShellScriptBin "hangul-osd" ''
-          export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+          export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
           exec ${pkgs.writers.writePython3Bin "hangul-osd-impl" {
             libraries = with pkgs.python3Packages; [ pycairo xlib pygobject3 ] ++ [ osd ];
             flakeIgnore = [ "E501" "E731" "W503" ];

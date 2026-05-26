@@ -108,6 +108,17 @@ class OSDStyle:
     width_mm: float | None = None
     height_mm: float | None = None
 
+    # Render text via Pango (PangoCairo) instead of cairo's toy font API.
+    # The toy API's family-matching can silently fall through to a fallback
+    # font when the requested family is hard to match against fontconfig's
+    # generated fallback list (we hit this with `JejuHallasan` under
+    # gnome-flashback — every Hangul codepoint became .notdef despite
+    # `fc-match` resolving the family). Pango goes through the full
+    # fontconfig + harfbuzz stack and matches reliably. Costs ~50–100 ms
+    # extra per render (negligible vs. the 700-ms cold-start of the osd
+    # library overall). Requires Pango / PangoCairo typelibs at runtime.
+    use_pango: bool = False
+
     # Alpha threshold for the XShape mask (0..255). Pixels with alpha at or
     # above this become opaque; everything else is clipped.
     alpha_threshold: int = 128
@@ -171,6 +182,20 @@ def render_surface(
 
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
     ctx = cairo.Context(surface)
+
+    if s.use_pango:
+        _render_with_pango(ctx, text, w, h, s)
+    else:
+        _render_with_toy(ctx, text, w, h, s)
+
+    surface.flush()
+    return surface
+
+
+def _render_with_toy(ctx, text, w, h, s):
+    """Cairo's toy font API path. Fast, but family matching is fragile —
+    use only when the family is well-known to fontconfig (e.g. JetBrainsMono
+    Nerd Font, LXGW WenKai Mono)."""
     ctx.select_font_face(s.font_family, s.font_slant, s.font_weight)
 
     # Linear-grow + back-off — bisection would be cleaner but this is plenty
@@ -210,8 +235,69 @@ def render_surface(
     ctx.move_to(tx, ty)
     ctx.show_text(text)
 
-    surface.flush()
-    return surface
+
+def _render_with_pango(ctx, text, w, h, s):
+    """PangoCairo path. Goes through fontconfig + harfbuzz, matches the
+    requested family reliably even with elaborate fallback chains."""
+    import gi
+    gi.require_version("Pango", "1.0")
+    gi.require_version("PangoCairo", "1.0")
+    from gi.repository import Pango, PangoCairo
+
+    desc = Pango.FontDescription()
+    desc.set_family(s.font_family)
+    if s.font_weight == cairo.FONT_WEIGHT_BOLD:
+        desc.set_weight(Pango.Weight.BOLD)
+    if s.font_slant == cairo.FONT_SLANT_ITALIC:
+        desc.set_style(Pango.Style.ITALIC)
+    elif s.font_slant == cairo.FONT_SLANT_OBLIQUE:
+        desc.set_style(Pango.Style.OBLIQUE)
+
+    def _layout_for(size_px):
+        # set_absolute_size takes pango units (1024 = 1 device unit)
+        desc.set_absolute_size(size_px * Pango.SCALE)
+        layout = PangoCairo.create_layout(ctx)
+        layout.set_font_description(desc)
+        layout.set_text(text, -1)
+        return layout
+
+    # Linear-grow + back-off, mirroring the toy-API loop.
+    size = 50
+    last_good = size
+    while size < 1000:
+        layout = _layout_for(size)
+        _ink, log = layout.get_pixel_extents()
+        if log.width <= w * s.text_pad_w_frac and log.height <= h * s.text_pad_h_frac:
+            last_good = size
+            size += 4
+        else:
+            break
+
+    layout = _layout_for(last_good)
+    ink, log = layout.get_pixel_extents()
+    # Centre using the *ink* extents so visual overhang (descenders, etc.)
+    # doesn't bias the placement.
+    tx = (w - ink.width) / 2 - ink.x
+    ty = (h - ink.height) / 2 - ink.y
+
+    if s.shadow_rgba is not None:
+        off = max(4, int(last_good * s.shadow_offset_frac))
+        ctx.set_source_rgba(*s.shadow_rgba)
+        ctx.move_to(tx + off, ty + off)
+        PangoCairo.show_layout(ctx, layout)
+
+    if s.outline_rgb is not None:
+        ow = max(2, int(last_good * s.outline_width_frac))
+        ctx.set_source_rgb(*s.outline_rgb)
+        ctx.move_to(tx, ty)
+        PangoCairo.layout_path(ctx, layout)
+        ctx.set_line_width(ow * 2)
+        ctx.set_line_join(cairo.LINE_JOIN_ROUND)
+        ctx.stroke()
+
+    ctx.set_source_rgba(*s.fill_rgb, s.fill_alpha)
+    ctx.move_to(tx, ty)
+    PangoCairo.show_layout(ctx, layout)
 
 
 # ---------------------------------------------------------------------------
