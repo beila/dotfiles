@@ -2,7 +2,7 @@
 
 `~/.dotfiles/script/`. Periodic-job scripts (sync, updatedb, flake-update, battery-notify) plus a few one-off helpers. Logging and notifications live in `script/logger/` — see `script/logger/AGENTS.md`.
 
-Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink/AGENTS.md`); the backend is systemd-user on most hosts and cron on cloud-desktop AL2.
+Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink/AGENTS.md`); the backend is systemd-user where available and cron elsewhere.
 
 ## Sync scripts
 
@@ -27,7 +27,7 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
 
 **Event logging** via `script/logger/log.sh`: `FETCH-OK`, `PUSH-OK`, `FAST-FORWARD`, `SKIP`, `SKIP-PUSH` (fetch-failed), `NO-SYNC-CONFIG`, `START` at INFO; `NETWORK-ERR`, `TIMEOUT`, `BENIGN-DEL`, `SKIP-PUSH` (delete-failed) at WARN/DEBUG (transient, not notified); `OTHER-ERR`, `REBASE-CONFLICT`, `BAD-CONFIG`, `REFUSED-SNAPSHOT` (working-copy file >`snapshot.max-new-file-size`, silently bypasses sync — message lists the offending paths) at ERROR (notified); `REBASE-PROBE-FAIL`, `REBASE-FAIL` at CRITICAL (notified). `classify_cmd` routes failures to `NETWORK-ERR` / `OTHER-ERR` / `BENIGN-DEL` based on stderr patterns.
 
-**Non-jj repos**: silently skipped (`jj root || exit 0`). No log file, no notification. Brazil checkouts and toolbox tools sit under `$HOME` and would otherwise be picked up by `sync_all`'s plocate iteration; jj is the explicit opt-in (`jj git init --colocate`).
+**Non-jj repos**: silently skipped (`jj root || exit 0`). No log file, no notification. Various build-tool checkouts and toolbox dirs sit under `$HOME` and would otherwise be picked up by `sync_all`'s plocate iteration; jj is the explicit opt-in (`jj git init --colocate`).
 
 **Old leftovers**: pre-split repos that still carry `<host>/*` remote bookmarks from the old run can be cleaned up with `jj bookmark forget --include-remotes "<host>/*"` (the new flow no longer creates them — direct `git push` skips `refs/remotes/*`).
 

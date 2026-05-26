@@ -62,9 +62,9 @@ Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-c
 
 Prefer nix (`home-manager.configsymlink/nvim.nix`) over Mason. Mason is only for DAPs not in nixpkgs (bash-debug-adapter, codelldb, kotlin-debug-adapter, java-debug-adapter, debugpy); the `bash` package in `nvim.nix` is required by the Mason installer.
 
-## Amazon-internal plugin loader
+## Site-specific plugin loader
 
-`~/.dotfiles/private-dotfiles/nvim-amazon.nix` appends a snippet to `programs.neovim.initLua` (`lib.mkAfter`) that prepends `~/hjdocs/public-docs/nvim-amazon` to `&runtimepath`. That path holds a plugin (`plugin/init.lua`, `plugin/fugitive-gitfarm.vim`) providing Barium LSP for Brazil Config files, Bemol workspace-folder support, and `:Gbrowse` integration with code.amazon.com. Kept in private-dotfiles so the public dotfiles repo doesn't leak a reference to Amazon-internal resources. Guarded on `vim.fn.isdirectory` so machines without the hjdocs checkout are unaffected.
+`~/.dotfiles/private-dotfiles/nvim-amazon.nix` appends a snippet to `programs.neovim.initLua` (`lib.mkAfter`) that prepends an extra path to `&runtimepath` for site-specific plugins. Kept in private-dotfiles so the public repo stays free of site/employer-specific references. Guarded on `vim.fn.isdirectory` so machines without that path are unaffected. See `private-dotfiles/AGENTS.md` for the actual plugin contents.
 
 ## Universal copy/paste
 

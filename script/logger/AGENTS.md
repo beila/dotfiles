@@ -20,7 +20,7 @@ The auto-installed EXIT trap is safe in subshells (trap text is inherited but do
 
 - `LOG_CONTEXT` — e.g. repo basename; appears in filename and log lines.
 - `LOG_ROOT` — default `~/.local/state/logs`; overridden to `~/hjdocs/logs` via `private-dotfiles/env.zsh` for zsh and `private-dotfiles/logger.nix` for systemd so logs replicate across machines.
-- `LOG_REL_BASE` — notification paths shown relative to this; defaults to `$LOG_ROOT`, overridden to `~/hjdocs` so notifications say e.g. `logs/taygeta/sync_repo.xxx.log`.
+- `LOG_REL_BASE` — notification paths shown relative to this; defaults to `$LOG_ROOT`, overridden so notifications say e.g. `logs/<host>/sync_repo.xxx.log`.
 - `LOG_NOTIFY_THRESHOLD` (default `ERROR`).
 - `LOG_NOTIFY_MODE` — `auto`|`always`|`never`; default `auto` suppresses notifications when stderr is a TTY so manual runs don't ping the phone.
 - `LOG_NOTIFY_CMD` — default `bin/notify-webhook`.

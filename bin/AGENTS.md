@@ -10,7 +10,7 @@ Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--f
 
 Env: `log_path` pre-sets the target path (nested recipes pass it down); `build_dir` is the default log dir if it exists, else `./build`, else `/tmp`; `LOGRUN_DECORATOR` overrides the decorator pipeline.
 
-`recurse-brazil.just`'s `run` recipe (the leaf used by every `j`/`n`/`jr`/`nijr` zsh wrapper) shells out to `logrun` — so any command funnelled through those wrappers picks up the log + decorator for free.
+An external just recipe (loaded from `private-dotfiles/`) provides a `run` recipe (the leaf used by every `j`/`n`/`jr`/`nijr` zsh wrapper) that shells out to `logrun` — so any command funnelled through those wrappers picks up the log + decorator for free.
 
 Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a different directory mid-run (preserves the filename); only works when invoked as a descendant of `logrun` since it talks to the wrapper via `$LOGRUN_PID` / `$LOGRUN_MOVE_FILE`.
 
@@ -39,11 +39,11 @@ For jj merge commits (`parents.len() > 1`) the prompt is augmented per-parent: c
 
 **Why**: openconnect installs DNS + routes pointing at the VPN concentrator. If the underlying network changes (Wi-Fi roam home → café → office) without first tearing down the tunnel, the box ends up with a dead tunnel that still claims to be the default route — every DNS lookup hangs and the network is effectively inaccessible until the user notices.
 
-`vpn-up` bundles two things into one foreground command: (1) `vpn-watch` spawned in the background, (2) the configurable VPN start command (`vpn-up CMD ARGS…` or `$VPN_START_CMD`). When the start command exits, the watcher is reaped via EXIT trap. The VPN client itself is expected to prime sudo (e.g. `amazon-vpn` does `sudo /bin/true` then `sudo openconnect …`); the watcher reuses that cache for its later `sudo -n pkill` and keeps it warm via background `sudo -nv` every `$VPN_SUDO_REFRESH` seconds (default 240).
+`vpn-up` bundles two things into one foreground command: (1) `vpn-watch` spawned in the background, (2) the configurable VPN start command (`vpn-up CMD ARGS…` or `$VPN_START_CMD`). When the start command exits, the watcher is reaped via EXIT trap. The VPN client itself is expected to prime sudo (do `sudo /bin/true` then `sudo openconnect …`); the watcher reuses that cache for its later `sudo -n pkill` and keeps it warm via background `sudo -nv` every `$VPN_SUDO_REFRESH` seconds (default 240).
 
 `vpn-watch` monitors `org.freedesktop.NetworkManager` `Connectivity` via `gdbus`; transitions out of `FULL` (4) trigger a `$VPN_DEBOUNCE_SEC` (default 5) wait, and if connectivity is still lost, `sudo -n pkill -TERM <process>` (or `kill -TERM <PID>` when `VPN_PROCESS_PID` is set).
 
-Public repo stays VPN-flavour-agnostic; Amazon-specific glue lives in `private-dotfiles/vpn.zsh` as a `vpn` shell function that calls `vpn-up amazon-vpn`.
+Public repo stays VPN-flavour-agnostic; site-specific glue (the actual VPN binary name) lives in `private-dotfiles/vpn.zsh`.
 
 Env: `VPN_PROCESS_NAME` (default `openconnect`), `VPN_PROCESS_PID` (preferred when known — name-based watch is fine for openconnect since it's a singleton in practice), `VPN_DEBOUNCE_SEC`, `VPN_SUDO_REFRESH`, `VPN_STARTUP_WAIT` (default 30).
 
