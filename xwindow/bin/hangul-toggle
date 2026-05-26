@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# hangul-toggle — flip the ibus engine between English (xkb:us) and Hangul,
+# and (re)spawn the persistent OSD child accordingly.
+#
+# Bound to Shift+Space in xmonad.hs (root grab — works regardless of which
+# application has focus, including text editors). Every press calls this:
+# we ask ibus what the current engine is, switch to the other one, and
+# show / hide the OSD.
+#
+# Why a script + xmonad keybinding rather than ibus's `general/hotkey/
+# triggers` dconf key: the latter is processed by GNOME Shell, which isn't
+# running under our xmonad+gnome-flashback session. ibus daemon itself
+# doesn't grab the keyboard; engine-internal `switch-keys` only fires when
+# the active engine is already ibus-hangul (i.e. you can't switch *into*
+# hangul that way from the English source).
+#
+# State for the OSD child is kept in $XDG_RUNTIME_DIR/hangul-osd.pid. The
+# osd library installs a SIGTERM handler that tears down its X windows
+# cleanly, so killing the recorded PID is a clean teardown.
+
+set -eu
+
+state="${XDG_RUNTIME_DIR:-/tmp}/hangul-osd.pid"
+
+show_osd() {
+  local pid
+  pid=$(cat "$state" 2>/dev/null || true)
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+    return  # already showing
+  fi
+  setsid "$HOME/.nix-profile/bin/hangul-osd" --once \
+    >/dev/null 2>&1 &
+  echo "$!" > "$state"
+}
+
+hide_osd() {
+  local pid
+  pid=$(cat "$state" 2>/dev/null || true)
+  if [ -n "$pid" ]; then
+    kill -TERM "$pid" 2>/dev/null || true
+  fi
+  rm -f "$state"
+}
+
+current=$(ibus engine 2>/dev/null || echo unknown)
+case "$current" in
+  hangul)
+    ibus engine xkb:us::eng
+    hide_osd
+    ;;
+  *)
+    ibus engine hangul
+    show_osd
+    ;;
+esac
