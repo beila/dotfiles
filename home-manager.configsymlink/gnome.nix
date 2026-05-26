@@ -15,16 +15,16 @@
   '';
 
   dconf.settings = {
-    # Two input sources: English (xkb:us) and Hangul (ibus-hangul). The
-    # ibus-level hotkey trigger (`general/hotkey/triggers`) would be the
-    # idiomatic way to switch between them, but it's processed by GNOME
-    # Shell — and we run xmonad+gnome-flashback, so there's no host for it.
-    # Instead, xmonad grabs Shift+Space at the root window and shells out
-    # to `xwindow/bin/hangul-toggle`, which calls `ibus engine ...` and
-    # also drives the OSD lifecycle.
+    # Single source: ibus-hangul. Hangul/English toggle happens *inside* the
+    # engine via its `switch-keys`, not via IBus's source-switching hotkey.
+    # The two-source pattern (xkb:us + ibus:hangul) is what GNOME Shell
+    # offers, but xmonad+gnome-flashback doesn't run GNOME Shell — and the
+    # ibus daemon itself doesn't grab the keyboard, so there's no neutral
+    # actor to trigger source switches. Engine-internal toggling works
+    # because application keystrokes are forwarded to the active engine
+    # through the ibus IM client lib regardless of WM.
     "org/gnome/desktop/input-sources" = {
       sources = [
-        (lib.gvariant.mkTuple [ "xkb" "us" ])
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
@@ -34,13 +34,7 @@
     "org/freedesktop/ibus/engine/hangul" = {
       hangul-keyboard = "39";
       hanja-keys = "F9";
-      # Engine-internal hangul/english toggle is disabled because xmonad
-      # already grabs Shift+Space and toggles at the *source* level. If we
-      # left this set, pressing Shift+Space inside an app would still get
-      # grabbed first by xmonad (root grab wins), so it'd be a no-op anyway,
-      # but blanking it makes the absence of an engine-internal toggle
-      # explicit.
-      switch-keys = "";
+      switch-keys = "Shift+space";
     };
     "org/gnome/desktop/peripherals/keyboard" = {
       delay = lib.gvariant.mkUint32 200;
@@ -103,8 +97,23 @@
     persistent = true;
   };
 
-  # hangul-osd is no longer a long-lived service — the toggle script
-  # (xwindow/bin/hangul-toggle, bound to Shift+Space in xmonad.hs) spawns
-  # the OSD as a child of itself when entering hangul, and SIGTERMs it
-  # when leaving. See `xwindow/AGENTS.md`.
+  # hangul-osd: persistent OSD shown while ibus-hangul is in Hangul mode.
+  # Long-lived daemon — listens to gnome-flashback's InputSources `Changed`
+  # D-Bus signal (push, no polling). PartOf=graphical-session.target so it
+  # comes up with xmonad+gnome-flashback and dies when the session ends.
+  systemd.user.services.hangul-osd = {
+    Unit = {
+      Description = "Hangul (Korean input) OSD indicator";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${config.home.profileDirectory}/bin/hangul-osd";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
 }

@@ -284,12 +284,6 @@ myKeys =
     , ((mod4Mask, xK_equal), nextScreen)
     , ((mod4Mask, xK_0), moveTo Next (emptyWS :&: Not (WSIs $ return (\w -> W.tag w == "NSP")))) -- find a free workspace (skip NSP)
     , ((mod4Mask, xK_s), spawn "scrot -s - | xclip -selection clipboard -t image/png") -- screenshot selection to clipboard
-    -- Shift+Space → toggle ibus source (xkb:us ↔ ibus-hangul) and the OSD.
-    -- We grab at the WM level because xmonad+gnome-flashback has no host that
-    -- handles ibus's `general/hotkey/triggers` (that's GNOME Shell's job, and
-    -- it's not running). The hangul-osd CLI both flips the engine and shows
-    -- or hides the persistent OSD child.
-    , ((shiftMask, xK_space), spawn "$HOME/.dotfiles/xwindow/bin/hangul-toggle")
     ]
         ++
         -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
