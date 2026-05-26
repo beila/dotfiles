@@ -1,6 +1,14 @@
 { config, pkgs, ... }:
 
 let
+  # JejuHallasan: hand-brushed display font from Jeju (SIL OFL 1.1, Google Fonts).
+  # Fetched directly from google/fonts so we don't pull in the 2.3 GB google-fonts
+  # mega-package just for one glyph.
+  jejuhallasan-ttf = pkgs.fetchurl {
+    url = "https://github.com/google/fonts/raw/main/ofl/jejuhallasan/JejuHallasan-Regular.ttf";
+    sha256 = "1sa88xp6dn8p0dan80s90zr9c6d1mhfi7ibql7b7w5yp4y61klbi";
+  };
+
   # Local Python package providing reusable OSD primitives (cairo render +
   # XShape window). battery-osd uses it; future volume/brightness/audio
   # OSD migrations will too.
@@ -77,6 +85,11 @@ in
         # the IBus GIR typelib at runtime so PyGObject can find it.
         (pkgs.writeShellScriptBin "hangul-osd" ''
           export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+          # Path to JejuHallasan ttf — passed straight to fontconfig's
+          # app-font set at startup so Pango sees it even though its English
+          # coverage is incomplete (Pango hides such fonts from its default
+          # family list).
+          export HANGUL_OSD_FONT_FILE=${jejuhallasan-ttf}
           exec ${pkgs.writers.writePython3Bin "hangul-osd-impl" {
             libraries = with pkgs.python3Packages; [ pycairo xlib pygobject3 ] ++ [ osd ];
             flakeIgnore = [ "E501" "E731" "W503" ];

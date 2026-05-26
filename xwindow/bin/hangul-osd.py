@@ -52,17 +52,17 @@ STYLE = OSDStyle(
     fill_alpha=1.0,
     outline_rgb=None,
     shadow_rgba=None,
-    font_family="LXGW WenKai Mono",
-    font_weight=cairo.FONT_WEIGHT_BOLD,
-    # Pango (vs cairo's toy API) for reliable family matching. The
-    # original first-choice JejuHallasan got matched correctly by
-    # `fc-match` but was hidden from `PangoCairo.FontMap.list_families()`
-    # because the ttf is missing 20 glyphs needed for `en` language
-    # coverage — Pango's default fontmap drops display/script-only fonts
-    # from its top-level family list. To use JejuHallasan we'd need a
-    # FreeType FontFace loaded directly from the ttf path; not worth the
-    # extra deps for a decorative OSD.
+    font_family="JejuHallasan",
+    # JejuHallasan only ships Regular — keep cairo weight at NORMAL.
+    font_weight=cairo.FONT_WEIGHT_NORMAL,
+    # Pango (vs cairo's toy API) for reliable family matching. JejuHallasan
+    # itself doesn't appear in PangoCairo.FontMap.list_families() because
+    # its English glyph coverage is incomplete (the ttf is missing 20
+    # ASCII glyphs and gets dropped from the default fontmap). The
+    # `font_file` below registers the ttf with fontconfig as an
+    # application-private font, which bypasses that filter.
     use_pango=True,
+    font_file=os.environ.get("HANGUL_OSD_FONT_FILE"),
     width_mm=60.0,
     height_mm=70.0,
     text_pad_w_frac=0.85,

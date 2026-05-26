@@ -119,6 +119,15 @@ class OSDStyle:
     # library overall). Requires Pango / PangoCairo typelibs at runtime.
     use_pango: bool = False
 
+    # Optional path to a ttf/otf file to register with fontconfig as an
+    # application-private font (FcConfigAppFontAddFile) at render time.
+    # Use this for fonts Pango's default fontmap hides — e.g. display
+    # fonts whose `en` language coverage is incomplete (JejuHallasan is
+    # missing 20 ASCII glyphs and gets dropped from
+    # PangoCairo.FontMap.list_families() as a result, even though
+    # fc-match resolves it). Only consulted when use_pango=True.
+    font_file: str | None = None
+
     # Alpha threshold for the XShape mask (0..255). Pixels with alpha at or
     # above this become opaque; everything else is clipped.
     alpha_threshold: int = 128
@@ -243,6 +252,9 @@ def _render_with_pango(ctx, text, w, h, s):
     gi.require_version("Pango", "1.0")
     gi.require_version("PangoCairo", "1.0")
     from gi.repository import Pango, PangoCairo
+
+    if s.font_file is not None:
+        _fc_app_font_add(s.font_file)
 
     desc = Pango.FontDescription()
     desc.set_family(s.font_family)
@@ -543,3 +555,48 @@ __all__ = [
     "get_monitors",
     "display_on_all_monitors",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Application-private fontconfig registration
+# ---------------------------------------------------------------------------
+
+
+_fc_app_font_added: set[str] = set()
+
+
+def _fc_app_font_add(path: str) -> None:
+    """Register `path` with the current fontconfig session as an
+    application-private font, so Pango sees it via its default fontmap.
+
+    Why bother: PangoCairo.FontMap.list_families() drops fonts whose
+    `en` language coverage is incomplete (e.g. JejuHallasan is missing
+    20 ASCII glyphs). fontconfig still resolves them via fc-match, but
+    Pango's matcher won't pick them. FcConfigAppFontAddFile bypasses
+    the global fontset's lang-coverage filter — application fonts are
+    visible to Pango's matcher regardless.
+
+    Implemented via ctypes to avoid pulling in another Python binding.
+    Idempotent (fontconfig returns true even on duplicate adds, and we
+    short-circuit to skip the syscall).
+    """
+    if path in _fc_app_font_added:
+        return
+    import ctypes
+    import ctypes.util
+    libname = ctypes.util.find_library("fontconfig")
+    if libname is None:
+        sys.stderr.write("osd: libfontconfig not found; skipping app-font add\n")
+        return
+    fc = ctypes.CDLL(libname)
+    fc.FcConfigGetCurrent.restype = ctypes.c_void_p
+    fc.FcConfigAppFontAddFile.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
+    fc.FcConfigAppFontAddFile.restype = ctypes.c_int
+    config = fc.FcConfigGetCurrent()
+    if not fc.FcConfigAppFontAddFile(config, path.encode("utf-8")):
+        sys.stderr.write(f"osd: FcConfigAppFontAddFile failed for {path}\n")
+        return
+    _fc_app_font_added.add(path)
+
+
+# ---------------------------------------------------------------------------
