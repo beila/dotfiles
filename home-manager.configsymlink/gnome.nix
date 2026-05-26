@@ -15,20 +15,40 @@
   '';
 
   dconf.settings = {
+    # Two input sources so that Shift+Space switches between English (xkb:us)
+    # and Hangul (ibus-hangul) at the IBus level — this fires the
+    # GlobalEngineChanged D-Bus signal, which `hangul-osd` subscribes to.
+    # The single-source setup (only ibus:hangul, with Shift+Space toggling
+    # within the engine) was indistinguishable from the outside; ibus-hangul's
+    # internal mode flips don't surface on D-Bus.
     "org/gnome/desktop/input-sources" = {
       sources = [
+        (lib.gvariant.mkTuple [ "xkb" "us" ])
         (lib.gvariant.mkTuple [ "ibus" "hangul" ])
       ];
     };
-    # ibus-hangul: Sebeolsik 390. The hangul engine comes from the system package
-    # (apt install ibus-hangul); only the GTK4 client module is sourced from nix.
-    "org/freedesktop/ibus/general/hotkey" = {
+    # ibus-hangul: Sebeolsik 390. The hangul engine comes from the system
+    # package (apt install ibus-hangul); only the GTK4 client module is
+    # sourced from nix.
+    #
+    # Hotkey trigger Shift+Space is the IBus-level source switcher (preferred
+    # over GNOME's `switch-input-source` because it works under xmonad/
+    # gnome-flashback too — GNOME Shell's keybinding handler is not running).
+    # NOTE: schema path is /desktop/ibus/general/hotkey/, NOT
+    # /org/freedesktop/ibus/general/hotkey/ — the latter writes to dconf but
+    # the gsettings schema doesn't read from there, so it silently no-ops.
+    "desktop/ibus/general/hotkey" = {
       triggers = [ "<Shift>space" ];
     };
     "org/freedesktop/ibus/engine/hangul" = {
       hangul-keyboard = "39";
       hanja-keys = "F9";
-      switch-keys = "Shift+space";
+      # Empty: don't toggle within the hangul engine — the source switch
+      # above does the English/Hangul flip and emits a D-Bus signal we can
+      # observe. Leaving Shift+space here would still work (IBus consumes
+      # the hotkey before the engine sees it) but blanking it avoids future
+      # confusion if the source list shrinks back to one.
+      switch-keys = "";
     };
     "org/gnome/desktop/peripherals/keyboard" = {
       delay = lib.gvariant.mkUint32 200;
