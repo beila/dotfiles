@@ -1,6 +1,17 @@
 { config, pkgs, ... }:
 
 let
+  # JejuHallasan: hand-brushed display font from Jeju (SIL OFL 1.1, Google Fonts).
+  # Fetched directly from google/fonts so we don't pull in the 2.3 GB google-fonts
+  # mega-package just for one glyph (used by hangul-osd).
+  jejuhallasan = pkgs.runCommand "jejuhallasan" { } ''
+    mkdir -p $out/share/fonts/truetype
+    cp ${pkgs.fetchurl {
+      url = "https://github.com/google/fonts/raw/main/ofl/jejuhallasan/JejuHallasan-Regular.ttf";
+      sha256 = "1sa88xp6dn8p0dan80s90zr9c6d1mhfi7ibql7b7w5yp4y61klbi";
+    }} $out/share/fonts/truetype/JejuHallasan-Regular.ttf
+  '';
+
   # Local Python package providing reusable OSD primitives (cairo render +
   # XShape window). battery-osd uses it; future volume/brightness/audio
   # OSD migrations will too.
@@ -56,6 +67,7 @@ in
         pkgs.just
         pkgs.keyd
         pkgs.lxgw-wenkai  # calligraphic CJK monospace; ghostty Hangul fallback
+        jejuhallasan      # brushed Hangul display font; used by hangul-osd
         pkgs.mergiraf
         pkgs.nmap  # raw JetDirect printer discovery (print-hp)
         pkgs.ollama

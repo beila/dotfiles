@@ -7,8 +7,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ## TODO List
 
 ### High impact
-- [ ] 한글 입력 상태를 화면에 잘 보이게 표시
-  - 영어일 땐 안 보이고 한글일 때만 보여도 될 듯
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
