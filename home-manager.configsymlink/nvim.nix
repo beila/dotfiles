@@ -65,7 +65,6 @@ in
       indent-blankline-nvim
       mini-ai
       mini-bracketed
-      mini-splitjoin
       nvim-surround
       vim-jinja
       vim-just
