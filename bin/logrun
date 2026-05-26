@@ -2,9 +2,9 @@
 # logrun — run a command, tee its output to a timestamped log file (ANSI
 # stripped), and pipe the live stream through a decorator (spacer + watchlog).
 #
-# Extracted from the ~/dev/pro/src/IgnitionX and ~/hjdocs/public-docs/
-# recurse-brazil justfiles so multiple projects (and ad-hoc commands) can
-# share the same log + decorator pipeline.
+# Extracted from the recurse-brazil justfile (now under
+# ~/.dotfiles/work-dotfiles/recurse-brazil) so multiple projects (and ad-hoc
+# commands) can share the same log + decorator pipeline.
 #
 # Usage:
 #   logrun [OPTIONS] <command> [args...]

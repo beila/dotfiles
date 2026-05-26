@@ -36,7 +36,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] there's no gap between ghostty vertically
 - [ ] make copilot key work as super
 - [ ] say-en과 say-ko에서 목소리를 랜덤하게 나오게 하자.
-  - 한 프로세스에서 호출 할 때는 계속 같은 목소리로 유지
+  - 한 프로세스에서 호출 할 때는 계속 같은 목소리로 유지 (parent pid를 key로?)
 
 ## Repo conventions
 
