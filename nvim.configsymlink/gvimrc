@@ -12,7 +12,8 @@ if has("gui_running") || exists("g:neovide")
         "set guifont=JetBrains\ Mono\ Thin:h14
         " Latin from JetBrains Mono Thin, Hangul fallback from LXGW WenKai Mono
         " (matches ghostty's per-glyph fallback in ghostty.configsymlink/config).
-        set guifont=JetBrains\ Mono\ Thin:h11,LXGW\ WenKai\ Mono:h11
+        " :hSize goes once at the end — applies to every comma-separated font.
+        set guifont=JetBrains\ Mono\ Thin,LXGW\ WenKai\ Mono:h11
     else
         "set guifont=Anonymous\ Pro\ 11
         "set guifont=Ubuntu\ Mono\ 10

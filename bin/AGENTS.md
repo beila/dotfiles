@@ -1,0 +1,75 @@
+# bin — Context for AI Agent
+
+`~/.dotfiles/bin/`. Added to `$PATH`. Standalone CLIs/wrappers used both interactively and by scripts/timers.
+
+## Output writer / decorator
+
+`logrun` — wraps a command to tee its combined stdout/stderr into a timestamped log file (ANSI stripped) AND pipe the live stream through a decorator (`spacer` → visual break on output pauses, then `watchlog` → "idle for Ns" indicator; both fall back to `cat` if not installed).
+
+Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--fail-suffix` (default `FAILED.txt`; empty disables rename), `-c`/`--command` (run via `bash -c`).
+
+Env: `log_path` pre-sets the target path (nested recipes pass it down); `build_dir` is the default log dir if it exists, else `./build`, else `/tmp`; `LOGRUN_DECORATOR` overrides the decorator pipeline.
+
+`recurse-brazil.just`'s `run` recipe (the leaf used by every `j`/`n`/`jr`/`nijr` zsh wrapper) shells out to `logrun` — so any command funnelled through those wrappers picks up the log + decorator for free.
+
+Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a different directory mid-run (preserves the filename); only works when invoked as a descendant of `logrun` since it talks to the wrapper via `$LOGRUN_PID` / `$LOGRUN_MOVE_FILE`.
+
+Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors).
+
+## Commit message generator
+
+`commit-msg` — provider chain: claude (`--print --tools "" --no-session-persistence`, skipped when `$CLAUDECODE` is set so a `claude` session never spawns a child claude) → kiro-cli (`--agent no-mcp`, stdin piping) → ollama + qwen2.5-coder:3b fallback (5s health check, started on demand) → capped file-list final fallback (first 3 files + `and N more`, 200-char hard cap; includes deleted files). jj-first / git-fallback. `VERBOSE=1` enables detailed output.
+
+For jj merge commits (`parents.len() > 1`) the prompt is augmented per-parent: compute `unique_revset = (::P ~ ::others) ~ ::(merges() & (::P ~ ::others) ~ P)` (linear run on P's side since the previous merge), take the cumulative diff from `roots(unique_revset)-` (parent of the oldest unique commit = previous merge on that side) to P via `jj diff --from START --to P --git`. If that side diff is ≤ `MAX_MERGE_DIFF_LINES` (default 500, env-overridable) it goes into the prompt; else fall back to a per-commit description list. This gives the LLM code-level context for merges instead of commit-subject boilerplate.
+
+## TTS dispatcher and backends
+
+- **`say`** — routes by content language. Hangul (U+AC00–U+D7A3) → `say-ko`, otherwise → `say-en`. Accepts text as args or stdin. **Preempts** still-playing audio: spawns the backend under `setsid` (PID==PGID), records the PGID at `${SAY_STATE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say.pgid}`, and `TERM`s the previous PGID on the next call. A `TERM`/`INT`/`HUP` trap forwards to the backend session so external preemption (e.g. by `mcp-tts`) tears down the whole audio pipeline instead of orphaning aplay. Bypass with `SAY_NO_PREEMPT=1`. Test: `bash bin/test_say_preempt.sh`.
+- **`say-en`** — piper-tts with `en_GB-alba-medium` voice, auto-downloads model; override voice with `$PIPER_MODEL`.
+- **`say-ko`** — edge-tts with `ko-KR-SunHiNeural` voice (requires internet). Default rate `+50%`, override with `$EDGE_TTS_RATE`; override voice with `$EDGE_TTS_VOICE`.
+
+## Claude Code hooks
+
+- **`claude-stop-tts`** — Stop hook. Reads `last_assistant_message` from the Stop hook stdin JSON (authoritative current-turn text; the `transcript_path` file lags Stop firing by several seconds and would replay the *previous* turn). Picks the last paragraph starting with `요약:`, strips that prefix so TTS speaks only the summary content (the user doesn't want "summary" announced every turn), strips markdown, caps to `$CLAUDE_TTS_MAX_CHARS` (default 500), and pipes to `say` (which routes by language). Falls back to the last non-empty paragraph when no `요약` marker exists, and falls back to parsing `transcript_path` if `last_assistant_message` is missing (older Claude Code). Spawns via `setsid` so audio outlives the turn. Debug log at `~/.local/state/claude-stop-tts.log` (override via `$CLAUDE_TTS_LOG`; auto-trimmed to 1000 lines when over 2000). Wired into `~/.claude/settings.json` `hooks.Stop`.
+- **`claude-notification-tts`** — Notification hook. Fires when Claude Code asks for permission to use a tool, or when the prompt has been idle. Reads `.message` from the hook's stdin JSON, classifies on `permission/idle/other` substring match, and speaks via `say`. Permission asks → `"도구 실행합니다. <tool> 사용 권한을 요청합니다."` (extracts the tool name from the standard message). Idle → `"입력을 기다리고 있습니다."` Replaces the previous flow where the assistant manually called `say_ko` before each tool call (it forgot, the hook never forgets). Returns `{"continue": true, "suppressOutput": true}` so the transcript stays clean. Debug log at `~/.local/state/claude-notification-tts.log` (override via `$CLAUDE_NOTIFY_TTS_LOG`; auto-trimmed). Wired into `~/.claude/settings.json` `hooks.Notification`.
+
+## VPN supervisor
+
+`vpn-up` + `vpn-watch` — generic openconnect-VPN supervision.
+
+**Why**: openconnect installs DNS + routes pointing at the VPN concentrator. If the underlying network changes (Wi-Fi roam home → café → office) without first tearing down the tunnel, the box ends up with a dead tunnel that still claims to be the default route — every DNS lookup hangs and the network is effectively inaccessible until the user notices.
+
+`vpn-up` bundles two things into one foreground command: (1) `vpn-watch` spawned in the background, (2) the configurable VPN start command (`vpn-up CMD ARGS…` or `$VPN_START_CMD`). When the start command exits, the watcher is reaped via EXIT trap. The VPN client itself is expected to prime sudo (e.g. `amazon-vpn` does `sudo /bin/true` then `sudo openconnect …`); the watcher reuses that cache for its later `sudo -n pkill` and keeps it warm via background `sudo -nv` every `$VPN_SUDO_REFRESH` seconds (default 240).
+
+`vpn-watch` monitors `org.freedesktop.NetworkManager` `Connectivity` via `gdbus`; transitions out of `FULL` (4) trigger a `$VPN_DEBOUNCE_SEC` (default 5) wait, and if connectivity is still lost, `sudo -n pkill -TERM <process>` (or `kill -TERM <PID>` when `VPN_PROCESS_PID` is set).
+
+Public repo stays VPN-flavour-agnostic; Amazon-specific glue lives in `private-dotfiles/vpn.zsh` as a `vpn` shell function that calls `vpn-up amazon-vpn`.
+
+Env: `VPN_PROCESS_NAME` (default `openconnect`), `VPN_PROCESS_PID` (preferred when known — name-based watch is fine for openconnect since it's a singleton in practice), `VPN_DEBOUNCE_SEC`, `VPN_SUDO_REFRESH`, `VPN_STARTUP_WAIT` (default 30).
+
+No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own), watcher inherits the cache.
+
+## Zellij session cycler
+
+`zellij-cycle` — wraps `zellij attach --create` in a loop. On detach, cycles to the next active session. Supports session names with spaces. Numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one (used by xmonad scratchpads — see `xwindow/AGENTS.md`).
+
+## zmx session picker
+
+`zmx-select` — fzf picker over `zmx list`. Enter attaches highlighted, Ctrl-N creates a new session with the typed name (auto-suffixes `-2`, `-3`... if the name is already in use), Ctrl-C exits. Skips the picker and attaches directly to a default session (CLI arg, `$ZMX_DEFAULT_SESSION`, or `main`) when no sessions exist.
+
+## Notify-webhook dispatcher
+
+`notify-webhook` — dispatcher for structured alerts. Flags: `-t TITLE`, `-p {low|normal|high|urgent}`, `-u URL`. Backends live in `~/.dotfiles/script/logger/backends/<name>.sh` and must define `notify_send TITLE PRIORITY URL MESSAGE`. Selection priority: explicit `$NOTIFY_BACKEND` env var → auto-detect (`telegram.env` present → `telegram`) → `none`. Missing credentials or unknown backend = silent no-op (exit 0) so machines without configuration don't fail. See `script/logger/AGENTS.md` for backend details.
+
+## MCP TTS server
+
+`mcp-tts` — MCP server exposing `say` / `say_ko` tools to Kiro/Claude. Kills previous playback via `setsid` + `kill -PGID`. See `kiro.filesymlink/AGENTS.md` for the agent wiring. Test: `bash bin/test_mcp_tts.sh`.
+
+## Other
+
+- `jj-untrack-files` — selectively untrack files in jj while keeping the working copy.
+
+## Known issues
+
+- **kiro-cli** can't receive prompts as command-line arguments (hangs on large input) — `commit-msg` pipes via stdin.
+- **kiro-cli `--agent default`** spawns MCP servers that become orphaned on exit — `commit-msg` uses `--agent no-mcp` to avoid this.
