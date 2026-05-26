@@ -17,6 +17,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - fzf command-line parameters (including preview commands) are duplicated between the two
   - goal: single source of truth for shared fzf options/previews
   - direction: whichever is simpler (e.g. shared config file, shell script that both source, or generated opts)
+  - 양쪽에서 어떤 단축키를 뭐에 쓰는지 먼저 정리해봐야겠다
 - [ ] review each nvim plugin and cleanup/modernise
 - [ ] switch nix neovim module to `hm-generated.lua` approach
   - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + restore own `init.lua` with `require 'hm-generated'` at top
@@ -30,13 +31,13 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - zmx-select should be able to switch between machines, of course without blocking
   - can it switch between sessions as easily as zellij session manager?
 - [ ] replace absolute path from xfce settings
-- [ ] xdg-open fails to open due to container issue
+- [ ] xdg-open fails to open html files due to container issue
+- [ ] make copilot key work as super
 
 ### Low impact
 - [ ] there's no gap between ghostty vertically
-- [ ] make copilot key work as super
 - [ ] say-en과 say-ko에서 목소리를 랜덤하게 나오게 하자.
-  - 한 프로세스에서 호출 할 때는 계속 같은 목소리로 유지 (parent pid를 key로?)
+  - 한 프로세스에서 호출 할 때는 계속 같은 목소리로 유지 (parent pid mod # voices?)
 
 ## Repo conventions
 
