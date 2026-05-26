@@ -202,6 +202,30 @@ set nofixendofline
 " https://stackoverflow.com/a/8752690
 command! -bang -complete=file -nargs=+ Rename saveas<bang> <args> | call delete(expand('#'))`
 
+" Change extension of current file: :Ext py  or  :Ext .py
+" Renames on disk, deletes old, re-runs filetype detection so plugins/indent re-attach.
+function! s:ChangeExtension(bang, ext) abort
+    let l:ext = substitute(a:ext, '^\.\+', '', '')
+    if empty(l:ext)
+        echoerr 'Ext: extension required'
+        return
+    endif
+    let l:old = expand('%:p')
+    if empty(l:old)
+        echoerr 'Ext: buffer has no file name'
+        return
+    endif
+    let l:new = expand('%:p:r') . '.' . l:ext
+    if l:new ==# l:old
+        echo 'Ext: extension unchanged'
+        return
+    endif
+    execute 'saveas' . a:bang . ' ' . fnameescape(l:new)
+    call delete(l:old)
+    filetype detect
+endfunction
+command! -bang -nargs=1 Ext call s:ChangeExtension('<bang>', <q-args>)
+
 set noautoread
 
 " Load project-local .nvim.lua from cwd or ancestors (works with :lcd)
