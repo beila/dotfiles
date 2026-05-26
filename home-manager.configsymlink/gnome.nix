@@ -1,4 +1,4 @@
-{ lib, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 {
   # GTK4 IM module for ibus, ABI-matched against the gtk4 closure ghostty links.
   # The system's ibus-gtk4 lives outside that closure so the nix gtk4 can't see it.
@@ -81,13 +81,35 @@
 
   # Change lock screen wallpaper daily. Driven via dotfiles.schedule so the
   # backend (systemd-user vs cron) tracks the host. Only declared from this
-  # gnome-only module, so non-GNOME hosts (electra) won't try to schedule it
-  # at all — the gsettings call needs DBUS_SESSION_BUS_ADDRESS which only
-  # exists in a graphical session.
+  # gnome-only module, so non-GNOME hosts won't try to schedule it at all —
+  # the gsettings call needs DBUS_SESSION_BUS_ADDRESS which only exists in
+  # a graphical session.
   dotfiles.schedule.jobs.random-lockscreen = {
     description = "Set random lock screen wallpaper";
     command = "%h/.dotfiles/xwindow/bin/random-lockscreen";
     schedule = { systemd = "daily"; cron = "0 0 * * *"; };
     persistent = true;
+  };
+
+  # hangul-osd: persistent OSD shown on every monitor while ibus's current
+  # engine is hangul. Long-lived daemon (subscribes to ibus's
+  # global-engine-changed D-Bus signal). Tied to the graphical session so
+  # it starts when xmonad+gnome-flashback comes up and dies when the
+  # session ends. Only declared from gnome.nix because hangul-osd is
+  # useless without ibus, and ibus only runs in this module's hosts.
+  systemd.user.services.hangul-osd = {
+    Unit = {
+      Description = "Hangul (Korean input) OSD indicator";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" "ibus-daemon.service" ];
+    };
+    Service = {
+      ExecStart = "${config.home.profileDirectory}/bin/hangul-osd";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
   };
 }
