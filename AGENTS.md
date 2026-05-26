@@ -61,7 +61,8 @@ Detailed design and rationale live in per-directory `AGENTS.md`. Pick the one cl
 | `script/logger/AGENTS.md` | `log.sh` (level + retention + dedup), notification backends, Telegram setup, push-notification rationale. |
 | `bin/AGENTS.md` | `logrun`, `commit-msg`, `say`/`say-en`/`say-ko` TTS, Claude Code Stop/Notification hooks, `vpn-up`/`vpn-watch`, `zellij-cycle`, `zmx-select`, `notify-webhook`, `mcp-tts`. |
 | `kiro.filesymlink/AGENTS.md` | Kiro agents (default/no-mcp/builder), `settings/cli.json`, MCP TTS server, steering files, global `~/.claude/CLAUDE.md`. |
-| `private-dotfiles/AGENTS.md` | Site/employer-specific JDK setup, impure-eval rationale, per-host `homeConfigurations`, host-onboarding recipe. |
+| `private-dotfiles/AGENTS.md` | Per-host `homeConfigurations`, secrets (telegram, GitHub tokens), SSH aliases, host-onboarding recipe. |
+| `work-dotfiles/AGENTS.md` | Site/employer-specific home-manager modules and zsh glue (Brazil JDK setup, Amazon nvim plugin, VPN wrapper, toolbox aliases). |
 
 ## Cross-cutting notes
 

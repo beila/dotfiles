@@ -29,6 +29,10 @@
         if home != "" && builtins.pathExists (home + "/.dotfiles/private-dotfiles")
         then /. + (home + "/.dotfiles/private-dotfiles")
         else /. + "/var/empty/private-dotfiles-not-resolved";
+      workRoot =
+        if home != "" && builtins.pathExists (home + "/.dotfiles/work-dotfiles")
+        then /. + (home + "/.dotfiles/work-dotfiles")
+        else /. + "/var/empty/work-dotfiles-not-resolved";
       nixFilesFrom = dir:
         if builtins.pathExists dir then
           builtins.filter (f: f != null)
@@ -42,7 +46,8 @@
           ++ [ ./home.nix ./neovide.nix ./nvim.nix ./schedule.nix ./xdg.nix ./xmonad.nix ./zmx.nix
                { targets.genericLinux.nixGL.packages = nixgl.packages; } ]
           ++ (if gnome then [ ./gnome.nix ] else [])
-          ++ nixFilesFrom privateRoot;
+          ++ nixFilesFrom privateRoot
+          ++ nixFilesFrom workRoot;
       };
       allHosts = builtins.foldl' (a: b: a // b) {}
         (map (f: import f { inherit mkHost; }) (nixFilesFrom hostsDir));
