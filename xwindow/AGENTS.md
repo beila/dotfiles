@@ -59,18 +59,51 @@ Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: Jet
 - `osd/` — local Python package (`pyproject.toml` + `src/osd/__init__.py`) providing the cairo + XShape OSD primitives. Built via `pkgs.python3Packages.buildPythonPackage` in `home.nix`. Public API: `OSDStyle` (dataclass: colours, font, layout, anchor, multi-monitor sizing), `render_surface(text, w, h, style, monitor_mm=None)` → `cairo.ImageSurface`, `display_on_all_monitors(text, duration, style)` → one-shot show, `get_monitors(d, root)` → active monitor rects (now 6-tuple `(x, y, w_px, h_px, w_mm, h_mm)`; mm is 0 when EDID didn't report it). Renders text with cairo (configurable fill / outline / drop shadow), then displays in override-redirect X windows whose XShape mask is derived from the rendered alpha channel — the "background" is genuinely transparent (XShape clips). Works without a compositor. Multi-monitor: shows one window per active CRTC. Splits cairo→X `PutImage` calls into row chunks because python-xlib doesn't use `BIG-REQUESTS` for those ops (16-bit length cap → ~256 KB per request). Catches `SIGTERM`/`SIGINT` for clean window teardown.
   - **Sizing**: `width_frac`/`height_frac` (fraction of monitor, default) OR `width_mm`/`height_mm` (absolute mm — same physical size across monitors with different pixel densities; falls back to 96 DPI when EDID mm isn't available). hangul-osd uses mm; battery-osd uses frac.
   - **Anchoring**: `anchor_y` (`top|center|bottom`) + `offset_y_frac`, mirrored by `anchor_x` (`left|center|right`) + `offset_x_frac`.
+  - **Font backend**: `use_pango=False` (default) uses cairo's toy font API — fast but family matching is fragile in sessions with elaborate fontconfig fallback chains. `use_pango=True` routes through Pango/PangoCairo for reliable fontconfig + harfbuzz matching, ~50–100 ms slower per render. Set `font_file=<path>` together with `use_pango=True` to register a ttf as an application-private font via `FcConfigAppFontAddFile` — this is what makes JejuHallasan visible to Pango despite incomplete `en` glyph coverage.
   - **Alpha caveat**: `fill_alpha` < 1.0 is a brightness multiplier under X11 without a compositor (cairo premultiplies; X11 strips alpha). Real translucency needs picom or similar.
   - **XShape threshold**: pixels with alpha ≥ `style.alpha_threshold` (default 128) become opaque; everything below is clipped. Drop shadows at α=0.7 therefore appear as solid colored regions, not transparent fades — set `shadow_rgba=None` for a glyph-only look.
 
 ## Hangul (Korean input) OSD
 
-`bin/hangul-osd.py` — persistent overlay shown on every monitor while ibus's current engine is hangul. Built as `hangul-osd` via `pkgs.writers.writePython3Bin` in `home.nix` (wrapped in a `writeShellScriptBin` that exports `GI_TYPELIB_PATH=${pkgs.ibus}/lib/girepository-1.0` so PyGObject finds the IBus typelib at runtime). Long-lived systemd user service declared in `gnome.nix` (`systemd.user.services.hangul-osd`, `PartOf=graphical-session.target`).
+`bin/hangul-osd.py` — persistent overlay shown on every monitor while ibus-hangul is in Hangul mode. Long-lived systemd user service (`systemd.user.services.hangul-osd` in `gnome.nix`, `PartOf=graphical-session.target`). Built as a `writeShellScriptBin` wrapper that exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from nix store + gobject-introspection wrapper) and `HANGUL_OSD_FONT_FILE` (path to the JejuHallasan ttf), then execs the inner `writePython3Bin` impl. See `home-manager.configsymlink/AGENTS.md` for the wrapper assembly.
 
-- **Wakeup**: PyGObject + `gi.repository.IBus.Bus().connect("global-engine-changed", …)` — no polling, fires on engine switch.
-- **Display**: on transition into hangul, `os.fork()` a child that calls `display_on_all_monitors("한", duration=10**9, style)`; on transition out, `SIGTERM` the child (the osd library tears windows down on SIGTERM). Initial state read via `bus.get_global_engine()` for the boot-already-in-hangul case. SIGCHLD handler reaps if the child dies on its own (e.g. X server restart).
-- **Style**: LEGO Bright Light Orange `#F8BB3D` fill, JejuHallasan font, 60×70mm, top-right (anchor_x=right + offset_x_frac=-0.015, anchor_y=top + offset_y_frac=0.02), no outline / no shadow. mm-based sizing means it stays the same physical size on a 4K external + 1080p laptop. **GNOME 100%/200% display-scale is irrelevant** — that scaling only affects GTK apps; xmonad-spawned X windows render in native pixels regardless.
-- **Font source**: JejuHallasan ttf is fetched directly via `pkgs.fetchurl` from `google/fonts` (SIL OFL 1.1) into a tiny derivation, not the 2.3 GB `pkgs.google-fonts` mega-package. See `home-manager.configsymlink/AGENTS.md`.
-- **Test modes**: `hangul-osd --once` shows the OSD on every monitor without watching ibus (Ctrl-C / SIGTERM to exit — this is what `timeout N hangul-osd --once` uses for visual checks). `hangul-osd --render-png PATH` renders an offline PNG preview.
+### Mode-change source: `org.gnome.Flashback.InputSources`
+
+Subscribes to the D-Bus signal `org.gnome.Flashback.InputSources.Changed` (path `/org/gnome/Flashback/InputSources`) via `Gio.DBusConnection.signal_subscribe`. Push, no polling. Each notification triggers `GetInputSources()` whose returned `current_source` dict contains `icon-text` — `'한'` when the engine is in Hangul mode, `'EN'` otherwise.
+
+**Why this signal source and not ibus directly**:
+
+- IBus daemon doesn't grab the keyboard. Source-level hotkeys (`org.freedesktop.IBus.general.hotkey.triggers`) are processed by GNOME Shell — which is not running under xmonad+gnome-flashback. So a two-source `xkb:us` + `ibus:hangul` pattern with Shift+Space at the source level doesn't switch at all.
+- ibus-hangul's engine-internal `switch-keys` (Shift+Space) DOES toggle Hangul/English, because IBus IM clients forward keystrokes to the active engine regardless of WM. But IBus does not broadcast the engine-internal mode change on D-Bus (verified with `dbus-monitor`), and `IBus.Bus.connect("global-engine-changed", ...)` raises `unknown signal name` in this PyGObject binding.
+- `gnome-flashback` is running and watches ibus engine state out-of-band; its `InputSources` D-Bus interface emits `Changed` on every engine-internal mode flip and on every source switch. That's the only push signal that fires reliably here.
+
+Implementation requires that `gnome-session=gnome-flashback-xmonad` is the session — the alternative (a custom IBus PanelService) would also work and would remove the gnome-flashback dependency, but adds a lot of code for no functional gain.
+
+### Style
+
+LEGO Bright Light Orange `#F8BB3D`, JejuHallasan, 60×70mm, top-right (`anchor_x=right`, `offset_x_frac=-0.015`, `anchor_y=top`, `offset_y_frac=0.02`), no outline, no shadow.
+
+- **mm sizing** chosen so the OSD looks the same physical size on monitors with different pixel densities (4K external + 1080p laptop). GNOME's display-scale (100% / 200%) is *irrelevant*: that scaling only affects GTK applications; X windows we paint via Xlib in native pixels are unaffected.
+- **No outline / no shadow** because XShape mask thresholds at `alpha_threshold=128` — drop shadows at α=0.7 (= 178) end up *inside* the mask and render as a solid coloured region, not a faded shadow. Pure-glyph look only.
+
+### Font matching: JejuHallasan via Pango + fontconfig app-font
+
+JejuHallasan reaches cairo through three indirections, none of which work in isolation in our session:
+
+1. **cairo's toy font API (`select_font_face`) silently falls back** when the requested family is hard to match against fontconfig's generated fallback chain (this session's fontconfig prepends Noto Sans + every script-specific Noto Sans + DejaVu LGC Sans before any user family). Hangul codepoints render as `.notdef` rectangles even though `fc-match` resolves the family correctly.
+2. **PangoCairo's default fontmap also fails**: it filters out fonts that don't satisfy `en` language coverage. JejuHallasan is missing 20 ASCII glyphs (`fc-validate` confirms), so it's hidden from `PangoCairo.FontMap.list_families()` and `set_family("JejuHallasan")` matches some fallback.
+3. **fontconfig's app-font set bypasses the lang-coverage filter**: `FcConfigAppFontAddFile(current_config, ttf_path)` registers the font privately for our process, after which Pango's matcher sees it.
+
+So the working stack is: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing at the ttf**. The osd library's `_render_with_pango` calls `_fc_app_font_add(font_file)` once before creating the layout. ctypes is used to call `FcConfigAppFontAddFile` directly so we don't pull in a separate Python binding.
+
+### Why a long-lived daemon, not a per-toggle script
+
+A previous design wired Shift+Space to xmonad's keybinding map and shelled out per-press, but xmonad's grab swallows the keystroke before it reaches ibus-hangul, so Hangul mode itself stops working. The daemon listening to gnome-flashback's signal sidesteps that — the user keeps using `Shift+Space` exactly as before, ibus-hangul handles the actual toggle, and we just observe.
+
+### Test modes
+
+- `hangul-osd --once` — shows the OSD on every monitor unconditionally; Ctrl-C / SIGTERM to clear. Used for visual sanity checks (`timeout 10 hangul-osd --once`).
+- `hangul-osd --render-png PATH` — renders an offline preview PNG.
 
 ## Scratchpad system
 

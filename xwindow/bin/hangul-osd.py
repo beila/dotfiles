@@ -29,9 +29,13 @@ display_on_all_monitors("한", duration=∞, style); on transition out,
 SIGTERM the child (the osd library installs a SIGTERM handler that
 tears its X windows down cleanly). Idle when no toggles happen.
 
-Deps (via home-manager: writers.writePython3Bin with libraries=[osd, pygobject3]):
+Deps (via home-manager wrapper):
     osd (pycairo + python-xlib transitively)
     pygobject3
+    GI typelibs: Pango, PangoCairo, cairo (gobject-introspection),
+        IBus, harfbuzz — set on GI_TYPELIB_PATH by the wrapper
+    libfontconfig at runtime (loaded via ctypes for app-font
+        registration; HANGUL_OSD_FONT_FILE points at the ttf)
 """
 
 from __future__ import annotations
