@@ -32,6 +32,7 @@ import signal
 import sys
 
 from osd import OSDStyle, display_on_all_monitors, render_surface
+import cairo
 
 
 # Visual style: warm amber/mustard, top-right corner, sized in mm so it
@@ -42,6 +43,11 @@ STYLE = OSDStyle(
     outline_rgb=None,
     shadow_rgba=None,
     font_family="JejuHallasan",
+    # JejuHallasan ships only Regular — keep the cairo weight at NORMAL so
+    # fontconfig matches it. The OSDStyle default is BOLD (good for fonts
+    # like JetBrainsMono Nerd Font that have a real Bold cut) but here it
+    # would silently fall through to .notdef glyphs (rectangle "tofu").
+    font_weight=cairo.FONT_WEIGHT_NORMAL,
     width_mm=60.0,
     height_mm=70.0,
     text_pad_w_frac=0.85,
