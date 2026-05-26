@@ -69,7 +69,7 @@ Prefer nix (`home-manager.configsymlink/nvim.nix`) over Mason. Mason is only for
 
 ## Site-specific plugin loader
 
-`~/.dotfiles/private-dotfiles/nvim-amazon.nix` appends a snippet to `programs.neovim.initLua` (`lib.mkAfter`) that prepends an extra path to `&runtimepath` for site-specific plugins. Kept in private-dotfiles so the public repo stays free of site/employer-specific references. Guarded on `vim.fn.isdirectory` so machines without that path are unaffected. See `private-dotfiles/AGENTS.md` for the actual plugin contents.
+A sibling-repo home-manager module appends a snippet to `programs.neovim.initLua` (`lib.mkAfter`) that prepends an extra path to `&runtimepath` for site-specific plugins. Auto-loaded by the main flake's sibling-repo resolution (see `home-manager.configsymlink/AGENTS.md`). Guarded on `vim.fn.isdirectory` so machines without that path are unaffected.
 
 ## Universal copy/paste
 

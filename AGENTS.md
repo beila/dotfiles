@@ -61,12 +61,13 @@ Detailed design and rationale live in per-directory `AGENTS.md`. Pick the one cl
 | `script/logger/AGENTS.md` | `log.sh` (level + retention + dedup), notification backends, Telegram setup, push-notification rationale. |
 | `bin/AGENTS.md` | `logrun`, `commit-msg`, `say`/`say-en`/`say-ko` TTS, Claude Code Stop/Notification hooks, `vpn-up`/`vpn-watch`, `zellij-cycle`, `zmx-select`, `notify-webhook`, `mcp-tts`. |
 | `kiro.filesymlink/AGENTS.md` | Kiro agents (default/no-mcp/builder), `settings/cli.json`, MCP TTS server, steering files, global `~/.claude/CLAUDE.md`. |
-| `private-dotfiles/AGENTS.md` | Per-host `homeConfigurations`, secrets (telegram, GitHub tokens), SSH aliases, host-onboarding recipe. |
-| `work-dotfiles/AGENTS.md` | Site/employer-specific home-manager modules and zsh glue (Brazil JDK setup, Amazon nvim plugin, VPN wrapper, toolbox aliases). |
+| `private-dotfiles/AGENTS.md` | Companion repo (gitignored). See its own AGENTS.md for layout. |
+| `work-dotfiles/AGENTS.md` | Companion repo (gitignored). See its own AGENTS.md for layout. |
 
 ## Cross-cutting notes
 
 - **User on LDAP** — can't `chsh`, so `$SHELL` is bash; zsh is started via `exec` from `.bashrc`. Affects every shell-feature decision.
 - **JDK on PATH** — when `apt` resolves to the JDK's Annotation Processing Tool (not Debian apt), `home-manager.configsymlink/system-deps.sh` checks dnf/yum first. linuxbrew's `dbus-run-session` has a broken config, so `gnome.nix` is conditionally skipped when `/usr/bin/dconf` is absent.
 - **Hosts without per-user systemd** — when nix systemd ≥256 can't run (cgroup v1 hosts that can't be rebooted with `systemd.unified_cgroup_hierarchy=1`), `dotfiles.schedule` provides a cron backend instead — see `home-manager.configsymlink/AGENTS.md`.
-- **Private dotfiles** (`private-dotfiles/`) — gitignored colocated jj/git repo; resolved at flake eval time via `builtins.getEnv "HOME"` (requires `home-manager switch --impure`). Stores machine-specific config (host configs, tokens, webhook URLs), site/employer-specific JDK setup, and per-host `homeConfigurations`. zsh `**/*.zsh` glob auto-sources; `install.sh` files run by `script/install`; `ssh.filesymlink/` provides SSH host aliases; `telegram.env` holds bot creds for the Telegram backend; `logger.nix` writes `~/.config/environment.d/20-logger.conf` so systemd-launched jobs inherit `LOG_ROOT`/`LOG_REL_BASE`.
+- **Private dotfiles** (`private-dotfiles/`) — gitignored sibling jj/git repo, resolved at flake eval time via `builtins.getEnv "HOME"` (requires `home-manager switch --impure`). Auto-loaded `*.nix` and auto-sourced `*.zsh`. Falls back to empty when absent. See `private-dotfiles/AGENTS.md`.
+- **Work dotfiles** (`work-dotfiles/`) — gitignored sibling jj/git repo, same `getEnv "HOME"` resolution. Auto-loaded `*.nix` and auto-sourced `*.zsh`. Falls back to empty when absent. See `work-dotfiles/AGENTS.md`.

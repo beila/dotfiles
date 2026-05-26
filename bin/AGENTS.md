@@ -10,7 +10,7 @@ Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--f
 
 Env: `log_path` pre-sets the target path (nested recipes pass it down); `build_dir` is the default log dir if it exists, else `./build`, else `/tmp`; `LOGRUN_DECORATOR` overrides the decorator pipeline.
 
-An external just recipe (loaded from `private-dotfiles/`) provides a `run` recipe (the leaf used by every `j`/`n`/`jr`/`nijr` zsh wrapper) that shells out to `logrun` — so any command funnelled through those wrappers picks up the log + decorator for free.
+An external just recipe (loaded from a sibling repo via the main `justfile.symlink`'s `import?`) provides a `run` recipe (the leaf used by every `j`/`n`/`jr`/`nijr` zsh wrapper) that shells out to `logrun` — so any command funnelled through those wrappers picks up the log + decorator for free.
 
 Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a different directory mid-run (preserves the filename); only works when invoked as a descendant of `logrun` since it talks to the wrapper via `$LOGRUN_PID` / `$LOGRUN_MOVE_FILE`.
 
@@ -43,7 +43,7 @@ For jj merge commits (`parents.len() > 1`) the prompt is augmented per-parent: c
 
 `vpn-watch` monitors `org.freedesktop.NetworkManager` `Connectivity` via `gdbus`; transitions out of `FULL` (4) trigger a `$VPN_DEBOUNCE_SEC` (default 5) wait, and if connectivity is still lost, `sudo -n pkill -TERM <process>` (or `kill -TERM <PID>` when `VPN_PROCESS_PID` is set).
 
-Public repo stays VPN-flavour-agnostic; site-specific glue (the actual VPN binary name) lives in `private-dotfiles/vpn.zsh`.
+Public repo stays VPN-flavour-agnostic; site-specific glue (the actual VPN binary name) lives in a sibling repo's `vpn.zsh`.
 
 Env: `VPN_PROCESS_NAME` (default `openconnect`), `VPN_PROCESS_PID` (preferred when known — name-based watch is fine for openconnect since it's a singleton in practice), `VPN_DEBOUNCE_SEC`, `VPN_SUDO_REFRESH`, `VPN_STARTUP_WAIT` (default 30).
 
