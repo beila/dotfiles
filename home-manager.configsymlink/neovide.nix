@@ -29,10 +29,11 @@
   # can't overwrite stale copies after a nix upgrade.
   home.activation.copyFonts = ''
     mkdir -p ~/.local/share/fonts
-    rm -f ~/.local/share/fonts/JetBrainsMono*.ttf ~/.local/share/fonts/SourceCodePro*.otf 2>/dev/null || true
+    rm -f ~/.local/share/fonts/JetBrainsMono*.ttf ~/.local/share/fonts/SourceCodePro*.otf ~/.local/share/fonts/LXGWWenKaiMono-*.ttf 2>/dev/null || true
     cp ${pkgs.jetbrains-mono}/share/fonts/truetype/JetBrainsMono-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
     cp ${pkgs.nerd-fonts.jetbrains-mono}/share/fonts/truetype/NerdFonts/JetBrainsMono/JetBrainsMonoNerdFont-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
     cp ${pkgs.source-code-pro}/share/fonts/opentype/SourceCodePro-*.otf ~/.local/share/fonts/ 2>/dev/null || true
+    cp ${pkgs.lxgw-wenkai}/share/fonts/truetype/LXGWWenKaiMono-*.ttf ~/.local/share/fonts/ 2>/dev/null || true
     fc-cache -f 2>/dev/null || true
   '';
 }

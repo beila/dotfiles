@@ -10,7 +10,9 @@ if has("gui_running") || exists("g:neovide")
         "set guifont=Ubuntu\ Mono:h10
         "set guifont=NanumGothicCoding:h11
         "set guifont=JetBrains\ Mono\ Thin:h14
-        set guifont=JetBrains\ Mono\ Thin:h11
+        " Latin from JetBrains Mono Thin, Hangul fallback from LXGW WenKai Mono
+        " (matches ghostty's per-glyph fallback in ghostty.configsymlink/config).
+        set guifont=JetBrains\ Mono\ Thin:h11,LXGW\ WenKai\ Mono:h11
     else
         "set guifont=Anonymous\ Pro\ 11
         "set guifont=Ubuntu\ Mono\ 10
