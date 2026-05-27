@@ -202,6 +202,7 @@ discover() {
 
 # ─── Prepare payload ───────────────────────────────────────────────────────
 PAYLOAD=""
+PAYLOAD_IS_PS=0   # 1 when PAYLOAD is PostScript and safe to wrap with PJL
 CLEANUP=()
 
 cleanup() {
@@ -233,6 +234,7 @@ prepare_payload() {
   case "$ext" in
     ps|eps)
       PAYLOAD="$file"
+      PAYLOAD_IS_PS=1
       ;;
     pdf)
       if ! command -v pdftops &>/dev/null; then
@@ -250,6 +252,7 @@ prepare_payload() {
         info "Converting PDF → PostScript ($PAPER)..."
       fi
       pdftops "${pdftops_args[@]}" "$file" "$PAYLOAD"
+      PAYLOAD_IS_PS=1
       ok "Converted: $(du -h "$PAYLOAD" | cut -f1)"
       ;;
     *)
@@ -266,13 +269,47 @@ prepare_payload() {
           warn "enscript failed — falling back to raw text"
           PAYLOAD="$file"
         }
-        [[ -s "$PAYLOAD" ]] && ok "Prepared: $(du -h "$PAYLOAD" | cut -f1)"
+        if [[ -s "$PAYLOAD" ]] && [[ "$PAYLOAD" != "$file" ]]; then
+          PAYLOAD_IS_PS=1
+          ok "Prepared: $(du -h "$PAYLOAD" | cut -f1)"
+        fi
       else
         warn "enscript not installed — sending raw text (no margins/font)"
         PAYLOAD="$file"
       fi
       ;;
   esac
+}
+
+# Wrap a PostScript payload with PJL DUPLEX directives so the printer honours
+# the duplex setting regardless of its panel default. Raw JetDirect (port 9100)
+# bypasses CUPS, so duplex flags from pdftops/enscript inside the PS aren't
+# enough — we need PJL, which overrides the device default for this job only
+# and resets at @PJL RESET.
+wrap_with_pjl_duplex() {
+  local in="$1" want_duplex="$2"
+  local out
+  out=$(mktemp --suffix=.ps)
+  CLEANUP+=("$out")
+
+  # PJL header / trailer use UEL (<ESC>%-12345X) per HP's PJL spec.
+  local uel=$'\x1b%-12345X'
+  {
+    printf '%s@PJL\n' "$uel"
+    if [[ "$want_duplex" -eq 1 ]]; then
+      printf '@PJL SET DUPLEX=ON\n'
+      printf '@PJL SET BINDING=LONGEDGE\n'
+    else
+      printf '@PJL SET DUPLEX=OFF\n'
+    fi
+    printf '@PJL ENTER LANGUAGE=POSTSCRIPT\n'
+    cat "$in"
+    printf '%s' "$uel"
+    printf '@PJL RESET\n'
+    printf '%s' "$uel"
+  } > "$out"
+
+  PAYLOAD="$out"
 }
 
 # ─── Send to printer ───────────────────────────────────────────────────────
@@ -327,4 +364,7 @@ fi
 
 discover
 prepare_payload "$FILE"
+if [[ "$PAYLOAD_IS_PS" -eq 1 ]]; then
+  wrap_with_pjl_duplex "$PAYLOAD" "$DUPLEX"
+fi
 send_to_printer "$PAYLOAD" "$HP_IP"
