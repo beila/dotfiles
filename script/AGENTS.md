@@ -72,6 +72,8 @@ Discovery order: `--ip`/`$PRINT_HP_IP` → cached IP verified via 8s `/dev/tcp` 
 
 Accepts `.pdf` (converted via `pdftops`), `.ps`/`.eps` (sent as-is), and text (via `enscript` if installed, raw otherwise). Defaults: A4, duplex long-edge, subnet `192.168.1.0/24` (override with `$PRINT_HP_SUBNET` — e.g. set to `192.168.4.0/22` in `private-dotfiles/env.zsh` for Hojin's home LAN).
 
+**Duplex enforcement via PJL**: PostScript-bearing payloads (PDF/PS/EPS, plus enscript-rendered text) are wrapped with a PJL header (`@PJL SET DUPLEX=ON` + `@PJL SET BINDING=LONGEDGE`, or `DUPLEX=OFF` for `--simplex`) before send. Raw text payloads (no enscript) skip the wrapping. Without PJL, duplex flags inside the PS aren't honoured by every HP firmware over raw JetDirect — PJL overrides the device default for the job and resets at `@PJL RESET`. Header/trailer use UEL (`<ESC>%-12345X`) per HP's PJL spec.
+
 Flags: `-d`/`--discover` (print IP and exit), `-i`/`--ip` (skip discovery), `-s`/`--simplex`, `-n`/`--no-cache` (force rescan), `--pages RANGE` (PDF-only; `N`, `N-M`, `N-`, or `-M` → passed to `pdftops -f/-l`), `--dry-run` (skip sending; leaves the converted payload at a printed path).
 
 Requires `nmap` (installed via `home.nix`, with `nix run nixpkgs#nmap` fallback), `ncat`/`nc`, `pdftops` (poppler).
