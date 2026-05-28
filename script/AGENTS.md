@@ -80,6 +80,19 @@ Always exits 0 (best-effort helper). `sync_repo` calls it twice in `handle_diver
 
 Test harness: `script/test_resolve-by-attrs.sh` (32 assertions across 14 scenarios — theirs/ours/union/text/binary/custom-driver/unknown/mixed-batch/path-with-spaces/non-colocated/conflicted-`.gitattributes`/cwd-default/count-reporting).
 
+## Path generalization (jj fix-driven)
+
+Two pure stream filters, exact inverses of each other, that swap absolute home-directory paths between machine-local and portable forms:
+
+- **`script/bin/generalize-paths`** — `$HOME` literal → `$USER_HOME` placeholder. Wired into jj via `[fix.tools.generalize-paths]` in `jj.configsymlink/config.toml`, applied to all tracked files except `xfce4-panel.xml` (xfconf doesn't expand `$USER_HOME` in its values; that file needs a separate fix listed in the `AGENTS.md` TODO).
+- **`script/bin/localize-paths`** — `$USER_HOME` placeholder → `$HOME` literal. Called by `script/bootstrap` once per machine to expand placeholders in tracked files. Skips the same exclusion list as the generalize side.
+
+`USER_HOME` (not `$HOME` or `DOTFILES_HOME`) is the placeholder because tracked shell scripts contain literal `$HOME` that's meant to be expanded by the shell at run time — using `$HOME` as the placeholder would hard-code those at bootstrap. `USER_HOME` is set via `home.sessionVariables` (visible to systemd user units, cron, and login shells) and `zshenv.symlink` (interactive zsh fast path) so apps that interpolate env vars resolve it natively even before bootstrap runs. The localize step is for the holdouts (Amazon `claude` binary writing settings.json with literal absolute paths, xfconf).
+
+`sync_repo` runs `jj fix -s <revset>` after `snapshot_at_to_push_rev` and before any push. The revset is `<bookmark>@<remote>..@-` when a remote bookmark is configured (only generalizes the local-only chain — never rewrites commits already on the remote, which would create divergence on push), otherwise just `@-`. jj fix preserves change IDs and rebases descendants automatically; idempotent runs are no-ops.
+
+Why not git's `clean`/`smudge` filters: jj treats files as raw bytes and ignores `.gitattributes filter=` directives. The asymmetric design (jj fix on commit, bootstrap on clone) is the jj-native equivalent.
+
 ## Network printer CLI
 
 `script/bin/print-hp` — sends a file to an HP network printer via raw JetDirect (TCP port 9100), bypassing CUPS entirely. Exists because some CUPS print servers (seen with Synology bundled CUPS 1.5 + `rastertogutenprint`) silently drop PDF jobs.

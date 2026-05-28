@@ -202,6 +202,54 @@ setup_pbcopy_from_ssh () {
   echo '    RemoteForward 2224 127.0.0.1:2224'
 }
 
+# Expand `$USER_HOME` placeholders in tracked files to this machine's
+# actual $HOME. Counterpart to `jj fix`'s generalize-paths scrub: jj fix
+# generalizes $HOME → $USER_HOME on commit; this restores them on a
+# fresh clone for tools that don't interpolate env vars themselves (Amazon
+# `claude` binary, xfconf). Idempotent — re-running on a localized tree
+# is a no-op (no $USER_HOME literals left to expand).
+#
+# Walks `git ls-files` so we never touch generated/ignored output.
+# Excludes globs that should keep the literal placeholder (xfce4-panel.xml
+# isn't actually scrubbed today either, but checking the same exclusion
+# both ways keeps the symmetry obvious).
+localize_paths () {
+  info 'localizing $USER_HOME placeholders'
+  local filter="$DOTFILES_ROOT/script/bin/localize-paths"
+  if [ ! -x "$filter" ]; then
+    fail "localize-paths not found at $filter"
+    return
+  fi
+  local repo
+  for repo in "$DOTFILES_ROOT" "$DOTFILES_ROOT/private-dotfiles"; do
+    [ -d "$repo/.git" ] || [ -f "$repo/.git" ] || continue
+    local path
+    while IFS= read -r path; do
+      [ -n "$path" ] || continue
+      case "$path" in
+        */xfce4-panel.xml) continue ;;
+      esac
+      local full="$repo/$path"
+      [ -f "$full" ] || continue
+      grep -q '\$USER_HOME' "$full" 2>/dev/null || continue
+      local tmp; tmp=$(mktemp)
+      if "$filter" < "$full" > "$tmp"; then
+        # Only touch the file if content actually changed (preserves mtime
+        # for the no-op case, even though grep above also gates this).
+        if ! cmp -s "$tmp" "$full"; then
+          mv "$tmp" "$full"
+          success "localized $path"
+        else
+          rm -f "$tmp"
+        fi
+      else
+        rm -f "$tmp"
+        fail "localize-paths failed on $path"
+      fi
+    done < <(git -C "$repo" ls-files 2>/dev/null)
+  done
+}
+
 setup_gitconfig
 #git submodule update --init --remote
 
@@ -234,6 +282,7 @@ clone_private_dotfiles
 install_dotfiles
 #setup_dotfiles_sync    # replaced with systemd servie set up by home manager
 setup_pbcopy_from_ssh
+localize_paths
 
 bash -x $DOTFILES_ROOT/script/install
 

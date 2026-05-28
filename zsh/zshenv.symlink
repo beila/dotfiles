@@ -2,6 +2,14 @@
 # ${(%):-%N} = this file's path (works in sourced files and zsh -c), :A = resolve symlink, :h:h = up two dirs
 export DOTFILES_ROOT="${${(%):-%N}:A:h:h}"
 
+# USER_HOME — placeholder used by generalize-paths / localize-paths
+# (script/bin/). Setting it as an env var means tools that interpolate
+# env vars resolve `$USER_HOME` to the right value at runtime even
+# when files haven't been bootstrap-localized. Also set in
+# home.sessionVariables; this entry exists so interactive zsh has it
+# before profile sources kick in.
+export USER_HOME="$HOME"
+
 # Home Manager session variables (not auto-sourced since zsh isn't managed by HM)
 [[ -f ~/.nix-profile/etc/profile.d/hm-session-vars.sh ]] && source ~/.nix-profile/etc/profile.d/hm-session-vars.sh
 

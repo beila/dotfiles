@@ -86,3 +86,19 @@ if(root, format_root_commit(self),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
       bookmarks, tags) ++ "\n"))
 '''
+
+# `jj fix` tool that generalizes absolute home-directory paths to a
+# portable placeholder before commits leave the machine. See
+# script/bin/generalize-paths for what it does and why it's a stream
+# filter (and not git's clean/smudge — jj ignores gitattributes filters).
+# Bootstrap calls localize-paths on a fresh clone to expand placeholders
+# for tools that don't interpolate env vars themselves (Amazon `claude`
+# binary, xfconf).
+#
+# Pattern: every tracked file EXCEPT xfce4-panel.xml. xfconf doesn't expand
+# $USER_HOME in its values, so the file is checked in with absolute
+# paths and needs a different fix (see AGENTS.md TODO "replace absolute
+# path from xfce settings"). Until that's resolved, exclude it here.
+[fix.tools.generalize-paths]
+command = ["sh", "-c", '"$DOTFILES_ROOT/script/bin/generalize-paths"', "_"]
+patterns = ["all() ~ glob:'**/xfce4-panel.xml'"]

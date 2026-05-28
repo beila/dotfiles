@@ -171,6 +171,18 @@ in
   #  /etc/profiles/per-user/hojin/etc/profile.d/hm-session-vars.sh
   #
   home.sessionVariables = {
+    # DOTFILES_ROOT — absolute path to ~/.dotfiles. Also computed in
+    # zsh/zshenv.symlink (more flexibly, by resolving the zshenv symlink
+    # itself), but exporting here makes it visible to systemd user units,
+    # cron jobs, and anything else that doesn't source zshenv. jj fix
+    # invocations and bootstrap rely on this.
+    DOTFILES_ROOT = "$HOME/.dotfiles";
+    # USER_HOME — placeholder for $HOME used by generalize-paths /
+    # localize-paths (script/bin/). Setting it as an env var means apps
+    # that interpolate env vars resolve `$USER_HOME` at runtime even
+    # when the file hasn't been localized yet (e.g. fresh clone before
+    # bootstrap, files outside the localize walk).
+    USER_HOME = "$HOME";
   };
 
   # Let Home Manager install and manage itself.

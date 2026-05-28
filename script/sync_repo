@@ -505,6 +505,29 @@ snapshot_at_to_push_rev
 resolve_git_dir
 resolve_workspace_name
 
+# Generalize absolute home-directory paths to portable placeholders before
+# push. `jj fix` runs whatever fix tools are configured globally (see
+# jj.configsymlink/config.toml — currently `generalize-paths`); this is
+# generic plumbing, not specific to that one tool. Restricted to local-only
+# commits (`<bookmark>@<remote>..@-` when a remote bookmark is configured,
+# else just `@-`) so we never rewrite commits that are already on the
+# remote — that would create divergence on push.
+step_run_jj_fix() {
+    local revset="@-"
+    if [ -n "$SYNC_BM" ]; then
+        # Confirm the remote bookmark exists locally before using it as
+        # an ancestor anchor. If fetch hasn't run yet (e.g. first sync on
+        # a new clone) it might not, so fall back to just @-.
+        if jj log -r "${SYNC_BM}@${SYNC_REMOTE}" --no-graph -T '"y"' 2>/dev/null | grep -q y; then
+            revset="${SYNC_BM}@${SYNC_REMOTE}..@-"
+        fi
+    fi
+    # Quiet unless something changed; jj fix prints "Nothing changed."
+    # when the tools were no-ops, which is the steady-state expectation.
+    jj fix -s "$revset" 2>/dev/null || true
+}
+step_run_jj_fix
+
 # CRITICAL ORDER: snapshot push FIRST (purely additive, no local state mutation).
 # Whatever the user has in the working copy gets backed up to the snapshot URL
 # before any rebase / bookmark advance / merge probe can possibly disturb it.
