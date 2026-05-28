@@ -2,6 +2,7 @@ git/gitconfig.local.symlink
 
 zprezto.symlink
 .kiro/agents/builder.json
+.claude/settings.local.json
 private-dotfiles
 
 # `home-manager build` / `nix build` output symlinks. Targets are machine-
