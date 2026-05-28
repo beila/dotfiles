@@ -7,6 +7,8 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ## TODO List
 
 ### High impact
+- [ ] automatically use logrun in long-duration or long-output commands
+  - maybe run it always and it can hide its behaviour until it reaches some time or lines of output
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)

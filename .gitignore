@@ -2,13 +2,12 @@ git/gitconfig.local.symlink
 
 zprezto.symlink
 .kiro/agents/builder.json
-.claude/settings.local.json
 private-dotfiles
+work-dotfiles
 
 # `home-manager build` / `nix build` output symlinks. Targets are machine-
 # specific (/nix/store hashes), so committing them just churns history with
 # unreproducible refs.
 /result
 /result-*
-work-dotfiles
 *.pyc

@@ -13,3 +13,4 @@ CMakeUserPresets.json
 .cache/
 .jj/
 __cmake_systeminformation
+.claude/settings.local.json
