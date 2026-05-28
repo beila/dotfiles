@@ -32,6 +32,16 @@
 [merge "ours"]
 	name = Keep our version
 	driver = true
+# `mergiraf-then-theirs`: syntax-aware merge first (mergiraf understands
+# JSON / TOML / Java / Rust / etc. via tree-sitter); on hunks mergiraf
+# can't reconcile, fall back to taking theirs. Structurally additive
+# changes from both sides merge cleanly (e.g. distinct entries appended
+# to a JSON array from two machines); genuine semantic conflicts collapse
+# to theirs. Logic lives in `script/bin/git-merge-mergiraf-then-theirs`
+# because the snapshot-and-restore dance was too gnarly to inline here.
+[merge "mergiraf-then-theirs"]
+	name = mergiraf first, theirs on conflict
+	driver = ~/.dotfiles/script/bin/git-merge-mergiraf-then-theirs %O %A %B %P %L
 [rerere]
 	enabled = true
 [alias]
