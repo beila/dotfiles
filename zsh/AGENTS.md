@@ -21,6 +21,7 @@
 - `git.zsh` — git aliases, no git-flow.
 - `gnu-utility.zsh` — g-prefixed GNU utils on macOS, no-op on Linux.
 - `p10k.zsh` — powerlevel10k (nix) + user config.
+- `zz-logrun-auto.zsh` — `accept-line` widget that auto-wraps interactive prompt commands in `logrun --auto`. Loaded last (the `zz-` prefix wins the alphabetical glob sort) so the widget sits OUTSIDE `zsh-syntax-highlighting`'s and `zsh-autosuggestions`' own `accept-line` wrappers. See "logrun-auto widget" below.
 
 ## Functions (`zsh/functions/`)
 
@@ -50,6 +51,22 @@ Previews: a generic `:fzf-tab:complete:*:*' fzf-preview` rule branches at runtim
 **Required `:completion:*:descriptions' format` change**: the colorful `' %F{yellow}-- %d --%f'` form leaked literal escape codes into the picker as candidates because fzf-tab doesn't expand zsh prompt escapes; switched to plain `'[%d]'` bracketed form.
 
 Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget registered, fzf-command unset (intentional — verifies we don't accidentally re-introduce the fzf-zellij integration), compinit cold + warm OK, plugin loads cleanly even when fzf-zellij missing from PATH).
+
+## logrun-auto widget
+
+`zz-logrun-auto.zsh` overrides the `accept-line` widget so every interactive prompt command runs through `logrun --auto`. The widget classifies the typed buffer and rewrites it before `zle .accept-line`:
+
+- **Externals** (`whence -w` says `command` or `alias`) → `logrun --auto --no-zshrc -- $BUFFER`. The widget pre-expands aliases up to 8 hops in pure shell (no fork) so `gst` reaches `logrun` as `git status`. Per-prompt overhead ≈ 10ms (no `zsh -ic` replay).
+- **Functions in `LOGRUN_AUTO_FUNCTIONS`** → `logrun --auto -c "<orig-buffer>"`. Slow path (~800ms `zsh -ic` startup), but only for the wrapper-style functions you've explicitly opted in. Defaults empty; populate with the long-running ones (`j n ji ni jr njr nijr sync-rsync sync-ssh docker_here*`).
+- **Functions NOT in the list, builtins, reserved words, `cd`** → no rewrite. Wrapping these would either be wasteful (short utility functions) or break parent-shell side effects (`cd`, `export`, `source`).
+- **TUIs** (first word in `LOGRUN_TUI_SKIPLIST`) → no rewrite. Curses-style apps break under any stdout pipe; canonical list is in `home-manager.configsymlink/home.nix` so it tracks what's actually installed.
+- **`logrun` re-entry / `NOLOG=1` prefix** → no rewrite (idempotency / per-call opt-out).
+
+History: a `zshaddhistory` hook restores the user-typed buffer before zsh records the line, so `↑` recalls `gst` (not `logrun --auto --no-zshrc -- git status`).
+
+Composes correctly with `zsh-syntax-highlighting` and `zsh-autosuggestions`: those wrap `accept-line` themselves on load; the `zz-` filename prefix guarantees our widget loads after them so we run first and rewrite before they re-execute the saved chain.
+
+Test harness: `zsh/test_logrun-auto.sh` (15 classifier cases, 7 rewrite cases, history hook). Drive: `bash zsh/test_logrun-auto.sh`.
 
 ## Known issues
 

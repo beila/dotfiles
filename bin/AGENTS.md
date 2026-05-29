@@ -6,15 +6,24 @@
 
 `logrun` — wraps a command to tee its combined stdout/stderr into a timestamped log file (ANSI stripped) AND pipe the live stream through a decorator (`spacer` → visual break on output pauses, then `watchlog` → "idle for Ns" indicator; both fall back to `cat` if not installed).
 
-Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--fail-suffix` (default `FAILED.txt`; empty disables rename), `-c`/`--command` (run via `bash -c`).
+Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--fail-suffix` (default `FAILED.txt`; empty disables rename), `-c`/`--command` (run via `bash -c`), `--auto`, `--no-zshrc`.
 
-Env: `log_path` pre-sets the target path (nested recipes pass it down); `build_dir` is the default log dir if it exists, else `./build`, else `/tmp`; `LOGRUN_DECORATOR` overrides the decorator pipeline.
+`--auto` keeps logrun's chrome invisible until a threshold trips:
+- No startup `Log:` banner; decorator is pinned to `cat` (zero-overhead passthrough); the strip-ansi side-pipeline is replaced with an `awk` filter that counts lines and watches for alt-screen entry.
+- On either `≥LOGRUN_AUTO_SECONDS` (default 10s, wall-clock) or `≥LOGRUN_AUTO_LINES` (default 100) the parent prints `Log: <path>` to stderr exactly once. Threshold marker is a side-channel file (`/tmp/logrun-lines.*`), checked synchronously after the pipeline returns to bypass bash's async signal-trap timing.
+- On under-threshold + exit==0: log file is `rm -f`'d so the prompt looks identical to a bare command.
+- On exit≠0: failure always reveals — banner is reset and re-emitted with the post-rename `*.FAILED.txt` path so the user has the right path to debug.
+- Alt-screen detection: if the awk filter saw `\x1b[?1049h` AND the resolved command name isn't in `LOGRUN_TUI_SKIPLIST`, logrun emits one `logrun: '<cmd>' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST` line on exit. The escape bytes are stripped from the log either way.
 
-An external just recipe (loaded from a sibling repo via the main `justfile.symlink`'s `import?`) provides a `run` recipe (the leaf used by every `j`/`n`/`jr`/`nijr` zsh wrapper) that shells out to `logrun` — so any command funnelled through those wrappers picks up the log + decorator for free.
+`--no-zshrc` (paired with positional argv) makes logrun exec the command directly instead of via `zsh -ic`. The widget passes this for resolved external binaries to avoid ~800ms of zshrc replay per prompt. Aliases/functions wouldn't survive a fresh process anyway, so omitting `zsh -ic` is harmless for that case.
+
+Env: `log_path` pre-sets the target path (nested recipes pass it down); `build_dir` is the default log dir if it exists, else `./build`, else `/tmp`; `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SECONDS` / `LOGRUN_AUTO_LINES` tune the `--auto` thresholds; `LOGRUN_TUI_SKIPLIST` (defined in `home-manager.configsymlink/home.nix` so it tracks installed TUI packages) suppresses the alt-screen hint for known-OK commands.
+
+The accept-line widget at `zsh/zz-logrun-auto.zsh` is the user-facing entry point — it auto-wraps interactive prompt commands in `logrun --auto`. See `zsh/AGENTS.md` for widget details.
 
 Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a different directory mid-run (preserves the filename); only works when invoked as a descendant of `logrun` since it talks to the wrapper via `$LOGRUN_PID` / `$LOGRUN_MOVE_FILE`.
 
-Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors).
+Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors, `--auto` thresholds + invisibility + reveal + FAILED rename + alt-screen hint, `--no-zshrc` fast path).
 
 ## Commit message generator
 

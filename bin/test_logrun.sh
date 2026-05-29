@@ -229,20 +229,24 @@ orig_count=$(ls "$d" 2>/dev/null | grep -cE '^log-relocate-' || true)
 check "case13d: original log moved away"           "0" "$orig_count"
 
 # -----------------------------------------------------------------------------
-# Case 14: end-to-end through real nix flake + just + zsh `j` wrapper.
-# Validates that LOGRUN_PID / LOGRUN_MOVE_FILE survive `nix develop
-# --ignore-env` (via --keep) and that a justfile recipe can relocate the
-# log mid-run using the raw SIGUSR1 idiom (no PATH dependency).
+# Case 14: end-to-end through real nix flake + just. Validates that
+# LOGRUN_PID / LOGRUN_MOVE_FILE survive `nix develop --ignore-env` (via
+# --keep) and that a justfile recipe can relocate the log mid-run using
+# the raw SIGUSR1 idiom (no PATH dependency).
 #
-# Skips gracefully when any of nix/just/git/zsh is unavailable, or when
+# (Originally exercised via the zsh `j` wrapper. Since the wrapper no
+# longer calls logrun directly — that's now the accept-line widget's
+# job in interactive shells — we invoke logrun explicitly here so the
+# test still covers the relevant integration surface.)
+#
+# Skips gracefully when any of nix/just/git is unavailable, or when
 # LOGRUN_TEST_NIX=skip is set (first nix develop on a fresh flake can
 # take ~10s while resolving nixpkgs).
 # -----------------------------------------------------------------------------
 if ! command -v nix  >/dev/null 2>&1 \
   || ! command -v just >/dev/null 2>&1 \
-  || ! command -v git  >/dev/null 2>&1 \
-  || ! command -v zsh  >/dev/null 2>&1; then
-    printf 'SKIP: case14 (requires nix, just, git, zsh)\n'
+  || ! command -v git  >/dev/null 2>&1; then
+    printf 'SKIP: case14 (requires nix, just, git)\n'
 elif [[ "${LOGRUN_TEST_NIX:-}" == "skip" ]]; then
     printf 'SKIP: case14 (LOGRUN_TEST_NIX=skip)\n'
 else
@@ -274,14 +278,15 @@ hello:
 JUSTFILE
     ( cd "$d" && git init -q && git add . && git -c user.email=t@t -c user.name=t commit -q -m t )
 
-    # Invoke `j hello` from zsh so the autoloaded function runs.
-    # Keep build_dir pointed at an "initial" dir so we can verify the
-    # later move lands somewhere different.
-    build_dir="$d/initial" zsh -c "
-        fpath=(\"$DOTFILES_ROOT/zsh/functions\" \$fpath)
-        autoload -U j
-        cd \"$d\"
-        j hello
+    # Drive the integration directly through logrun so we don't depend
+    # on shell wrappers. nix develop --keep propagates LOGRUN_PID and
+    # LOGRUN_MOVE_FILE into the devshell so the justfile recipe can
+    # send SIGUSR1 from inside.
+    "$UNDER_TEST" --log-dir "$d/initial" --name "j hello" -c "
+        cd '$d'
+        nix develop path:. --ignore-env --impure \
+            --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE \
+            --command just hello
     " >/dev/null 2>&1 || true
 
     moved=$(ls "$d"/final/log-*.txt 2>/dev/null | head -1)
