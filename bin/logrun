@@ -19,6 +19,15 @@
 #   --decorator "CMD"    Custom decorator pipeline (shell pipe syntax OK)
 #   --fail-suffix EXT    Rename log to "<name>.${EXT}" on non-zero exit
 #                        (default: "FAILED.txt"). Empty disables.
+#   --auto               Stay invisible until threshold is crossed (no startup
+#                        banner; decorator=cat; output passes through). On
+#                        ≥LOGRUN_AUTO_SECONDS (10) wall-clock OR ≥LOGRUN_AUTO_LINES
+#                        (100) output lines, print "Log: <path>" to stderr and
+#                        switch to spacer+watchlog. If neither tripped and exit
+#                        code is 0, the log file is removed on exit.
+#   --no-zshrc           With positional argv, exec the command directly
+#                        instead of via `zsh -ic`. Skips ~800ms zshrc startup
+#                        for plain externals (the widget passes this).
 #   -c, --command STR    Run STR via `bash -c` instead of positional args.
 #   -h, --help           Show this help.
 #
@@ -26,6 +35,11 @@
 #   log_path             Pre-set log file path (nested recipes pass this down)
 #   build_dir            Preferred default log directory
 #   LOGRUN_DECORATOR     Default decorator pipeline
+#   LOGRUN_AUTO_SECONDS  --auto wall-clock threshold (default 10)
+#   LOGRUN_AUTO_LINES    --auto line-count threshold (default 100)
+#   LOGRUN_TUI_SKIPLIST  Space-separated TUI command names; if --auto is set
+#                        and the captured log shows alt-screen entry from a
+#                        command not in this list, print a hint to add it.
 #
 # Exit status: the wrapped command's exit status.
 set -uo pipefail
@@ -39,6 +53,8 @@ decorator=""
 fail_suffix="FAILED.txt"
 shell_mode=0
 shell_cmd=""
+auto_mode=0
+no_zshrc=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -48,6 +64,8 @@ while [[ $# -gt 0 ]]; do
         --no-decorator)  decorator="cat"; shift ;;
         --decorator)     decorator="$2"; shift 2 ;;
         --fail-suffix)   fail_suffix="$2"; shift 2 ;;
+        --auto)          auto_mode=1; shift ;;
+        --no-zshrc)      no_zshrc=1; shift ;;
         -c|--command)    shell_mode=1; shell_cmd="$2"; shift 2 ;;
         -h|--help)       show_help; exit 0 ;;
         --)              shift; break ;;
@@ -55,6 +73,18 @@ while [[ $# -gt 0 ]]; do
         *)               break ;;
     esac
 done
+
+# Capture the user-typed first word (for the alt-screen TUI hint and for
+# auto-suggestion logic). `name` may already be set by the caller; fall
+# back to first positional or the first word of the shell command.
+if [[ -n "$name" ]]; then
+    cmd_name="$name"
+elif (( shell_mode )); then
+    cmd_name="${shell_cmd%% *}"
+else
+    cmd_name="${1:-}"
+fi
+cmd_name="${cmd_name##*/}"
 
 if (( shell_mode )); then
     # Use interactive zsh so the body sees the user's aliases/functions
@@ -64,16 +94,24 @@ if (( shell_mode )); then
     # positional params -c <body>" and silently drops the body.
     set -- zsh -ic "$shell_cmd"
 elif [[ $# -gt 0 ]]; then
-    # Positional argv (e.g. `logrun la`): rebuild as a shell-safe command
-    # string and pipe it through zsh -ic so aliases/functions resolve. With
-    # bash exec the alias `la` would just be "command not found".
-    # printf %q quotes each arg so paths-with-spaces and other specials
-    # round-trip correctly through zsh's word splitter.
-    cmdline=""
-    for arg in "$@"; do
-        cmdline+=" $(printf '%q' "$arg")"
-    done
-    set -- zsh -ic "$cmdline"
+    if (( no_zshrc )); then
+        # Fast path: exec the command directly, no shell startup. The
+        # widget passes this for resolved external binaries — aliases /
+        # functions would not be visible to a fresh process anyway, so
+        # we don't need `zsh -ic` here. Saves ~800ms per prompt.
+        :
+    else
+        # Positional argv (e.g. `logrun la`): rebuild as a shell-safe
+        # command string and pipe it through zsh -ic so aliases/functions
+        # resolve. With bash exec the alias `la` would just be "command
+        # not found". printf %q quotes each arg so paths-with-spaces and
+        # other specials round-trip correctly through zsh's word splitter.
+        cmdline=""
+        for arg in "$@"; do
+            cmdline+=" $(printf '%q' "$arg")"
+        done
+        set -- zsh -ic "$cmdline"
+    fi
 fi
 
 if [[ $# -eq 0 ]]; then
@@ -120,7 +158,13 @@ else
 fi
 
 # ------------------------------------------------------------------- decorator
-if [[ -z "$decorator" ]]; then
+if (( auto_mode )); then
+    # In --auto mode the user wants the terminal to look identical to a
+    # bare command for short runs. spacer/watchlog would print idle
+    # indicators and visual breaks even when nothing's interesting.
+    # Pin to cat for the entire run.
+    decorator="cat"
+elif [[ -z "$decorator" ]]; then
     if [[ -n "${LOGRUN_DECORATOR:-}" ]]; then
         decorator="$LOGRUN_DECORATOR"
     else
@@ -146,6 +190,32 @@ fi
 # lets `tee` flush in real time when piping the live stream.
 strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g')
 
+# --------------------------------------------------------------- auto-mode IPC
+# In --auto mode, the strip-ansi side branch counts lines and watches for
+# the alt-screen entry sequence. Two side-channel files coordinate with
+# the parent (this script):
+#   $LOGRUN_LINES_FILE   strip-ansi 'tickles' SIGUSR2 once line threshold hits
+#   $LOGRUN_TUI_FILE     strip-ansi creates this if it sees \x1b[?1049h
+# These get cleaned up on EXIT.
+auto_seconds="${LOGRUN_AUTO_SECONDS:-10}"
+auto_lines="${LOGRUN_AUTO_LINES:-100}"
+revealed=0
+auto_lines_file=""
+auto_tui_file=""
+auto_timer_pid=""
+if (( auto_mode )); then
+    auto_lines_file=$(mktemp "/tmp/logrun-lines.XXXXXX")
+    auto_tui_file="/tmp/logrun-tui.$$"
+    rm -f "$auto_tui_file"
+fi
+
+_logrun_on_reveal() {
+    (( revealed )) && return
+    revealed=1
+    echo "Log: $log_path" >&2
+}
+trap _logrun_on_reveal USR2
+
 # --------------------------------------------------------- mid-run relocation
 # Let the wrapped command ask us to move the log file to a different
 # directory partway through, by writing the target DIR to
@@ -159,8 +229,10 @@ strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g')
 LOGRUN_MOVE_FILE=$(mktemp "/tmp/logrun-move.XXXXXX")
 export LOGRUN_PID=$$
 export LOGRUN_MOVE_FILE
-# Extend EXIT trap to also clean the move file.
-trap 'rm -f "$LOGRUN_MOVE_FILE"' EXIT
+# Clean side-channel files on exit. The auto_lines_file/auto_tui_file are
+# empty strings outside --auto mode so `rm -f ""` is a no-op.
+trap 'rm -f "$LOGRUN_MOVE_FILE" "$auto_lines_file" "$auto_tui_file"; \
+      [[ -n "$auto_timer_pid" ]] && kill "$auto_timer_pid" 2>/dev/null; :' EXIT
 
 _logrun_on_move() {
     local new_dir target
@@ -179,11 +251,23 @@ _logrun_on_move() {
 trap _logrun_on_move USR1
 
 # ------------------------------------------------------------------- run it
-echo "Log: $log_path" >&2
+# The startup banner is suppressed in --auto mode: it gets printed
+# retroactively if/when a threshold is crossed (see _logrun_on_reveal),
+# or once at the end if the run exited non-zero.
+if ! (( auto_mode )); then
+    echo "Log: $log_path" >&2
+fi
+
+# In --auto mode, kick off the wall-clock timer that signals SIGUSR2 to
+# this script after $auto_seconds. The timer is reaped via the EXIT trap.
+if (( auto_mode )); then
+    ( sleep "$auto_seconds" 2>/dev/null && kill -USR2 $$ 2>/dev/null ) &
+    auto_timer_pid=$!
+fi
 
 # Pipeline:
 #   cmd 2>&1                            — merge stderr into stdout
-#   | tee >(strip_ansi > "$log_path")   — write a clean copy to the file
+#   | tee >(filter > "$log_path")       — write a clean copy to the file
 #   | eval "$decorator"                 — show the decorated stream on the tty
 #
 # `PIPESTATUS[0]` preserves the wrapped command's exit code regardless of
@@ -193,10 +277,91 @@ echo "Log: $log_path" >&2
 # `unbuffer`/`stdbuf` aren't needed here because both spacer and watchlog
 # implement their own periodic timers — the decorator flushes on a timer,
 # not on input.
-"$@" 2>&1 \
-    | tee >("${strip_ansi[@]}" > "$log_path") \
-    | eval "$decorator"
-exit_code=${PIPESTATUS[0]}
+#
+# In --auto mode, the file-side filter is awk instead of sed: it strips
+# the same ANSI sequences AND counts lines (signalling SIGUSR2 to the
+# parent on reaching $auto_lines) AND flags alt-screen entry by touching
+# $auto_tui_file.
+if (( auto_mode )); then
+    parent_pid=$$
+    "$@" 2>&1 \
+        | tee >(awk -v line_thr="$auto_lines" \
+                    -v lines_file="$auto_lines_file" \
+                    -v tui_file="$auto_tui_file" \
+                    -v parent="$parent_pid" '
+            BEGIN { hit_lines=0; hit_tui=0 }
+            {
+                # Detect alt-screen entry before stripping it.
+                if (!hit_tui && index($0, "\033[?1049h") > 0) {
+                    hit_tui=1
+                    # Touch the marker file; ignore failure.
+                    cmd = "touch " tui_file " 2>/dev/null"
+                    system(cmd)
+                }
+                # Strip CSI SGR / cursor-move / erase sequences (same set
+                # the sed pipeline handles outside --auto). awk ERE has
+                # no {m,n} bounded repetition in older implementations,
+                # so we use unbounded [0-9]+ — close enough for ANSI.
+                gsub(/\033\[[0-9]+(;[0-9]+)*;?[mGK]/, "")
+                gsub(/\033\[[mGK]/, "")
+                gsub(/\033\[\?1049[hl]/, "")
+                gsub(/\033\[\?25[hl]/, "")
+                print
+                fflush()
+                if (!hit_lines && NR >= line_thr) {
+                    hit_lines=1
+                    cmd = "kill -USR2 " parent " 2>/dev/null"
+                    system(cmd)
+                }
+            }' > "$log_path") \
+        | eval "$decorator"
+    exit_code=${PIPESTATUS[0]}
+else
+    "$@" 2>&1 \
+        | tee >("${strip_ansi[@]}" > "$log_path") \
+        | eval "$decorator"
+    exit_code=${PIPESTATUS[0]}
+fi
+
+# Stop the wall-clock timer; we no longer need it.
+if [[ -n "$auto_timer_pid" ]]; then
+    kill "$auto_timer_pid" 2>/dev/null
+    auto_timer_pid=""
+fi
+
+# ------------------------------------------------------- auto-mode disposition
+if (( auto_mode )); then
+    if (( exit_code != 0 )); then
+        # Failure always reveals: user needs the log path to debug.
+        _logrun_on_reveal
+        if [[ -n "$fail_suffix" ]]; then
+            failed_path="${log_path%.txt}.${fail_suffix}"
+            if mv "$log_path" "$failed_path" 2>/dev/null; then
+                log_path="$failed_path"
+            fi
+        fi
+        echo "Log: $log_path" >&2
+    elif (( revealed )); then
+        # Threshold tripped during the run; we already printed the
+        # banner. Print the final path again in case it changed (move).
+        echo "Log: $log_path" >&2
+    else
+        # Quiet, successful run: nothing crossed the threshold. Erase
+        # the log so the prompt looks identical to a bare command.
+        rm -f "$log_path"
+    fi
+
+    # Alt-screen hint: we saw a TUI we don't know about. Print once so
+    # the user can tune LOGRUN_TUI_SKIPLIST.
+    if [[ -f "$auto_tui_file" && -n "$cmd_name" ]]; then
+        skiplist=" ${LOGRUN_TUI_SKIPLIST:-} "
+        if [[ "$skiplist" != *" $cmd_name "* ]]; then
+            echo "logrun: '$cmd_name' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST" >&2
+        fi
+    fi
+
+    exit "$exit_code"
+fi
 
 # ------------------------------------------------------------------- fail tag
 if (( exit_code != 0 )) && [[ -n "$fail_suffix" ]]; then
