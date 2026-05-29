@@ -1,6 +1,9 @@
 #!env zsh
-# Run project's just inside a nix devshell, wrapped by `logrun` so output is
-# teed to a timestamped log and piped through the spacer/watchlog decorator.
+# Run project's just inside a nix devshell. Logging is handled by the
+# zz-logrun-auto.zsh accept-line widget on the outer prompt invocation
+# (when `j` is in LOGRUN_AUTO_FUNCTIONS); this function no longer calls
+# logrun itself.
+#
 # First arg may be one of:
 #   +name / #name          — shortcut for .#name in the current-dir flake
 #   .#name, XXX#YYY        — full nix installable (the "usual nix arg")
@@ -28,7 +31,5 @@ nix_develop_command() {
     echo "nix develop ${(q-)i} --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
 }
 
-logrun --name "just ${*:-list}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
-    set -x
-    time $(nix_develop_command) just ${(j: :)${(q-)@}}
-"
+set -x
+time $(nix_develop_command) just ${(j: :)${(q-)@}}

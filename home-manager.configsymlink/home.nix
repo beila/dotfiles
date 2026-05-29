@@ -184,6 +184,18 @@ in
     # when the file hasn't been localized yet (e.g. fresh clone before
     # bootstrap, files outside the localize walk).
     USER_HOME = "$HOME";
+    # LOGRUN_TUI_SKIPLIST — space-separated list of curses-style apps
+    # whose terminal handling breaks under any stdout pipe. The
+    # zz-logrun-auto.zsh widget skips these so they run untouched
+    # (no logrun wrap). Membership is derived from what's actually
+    # installed on this machine: TUIs declared above (nvim, btop, fzf,
+    # zellij, zmx, glow) plus system-default TUIs that ship with any
+    # base distro (less, more, ssh, man, top, nano, watch). Add to this
+    # list when you `home.packages` a new TUI; the auto-suggestion in
+    # `bin/logrun --auto` will tell you when something it saw should be
+    # added.
+    # See bin/AGENTS.md "Output writer / decorator".
+    LOGRUN_TUI_SKIPLIST = "nvim btop fzf zellij zmx glow less more ssh man top nano watch";
   };
 
   # Let Home Manager install and manage itself.

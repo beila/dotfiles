@@ -12,12 +12,14 @@
 
 # ----------------------------------------------------------------- config
 
-# TUI skiplist: hard-wired UI tools whose terminal handling breaks under
-# any stdout pipe. Defined canonically in home-manager (see
-# home-manager.configsymlink/home.nix sessionVariables); when nix isn't
-# the source, fall back to a sensible default.
+# TUI skiplist: UI tools whose terminal handling breaks under any
+# stdout pipe. Defined canonically in home-manager (see
+# home-manager.configsymlink/home.nix sessionVariables) so the list
+# tracks what's actually installed on this machine. The fallback below
+# only runs when home-manager hasn't been activated yet (fresh clone)
+# and lists the system-default TUIs every base distro ships with.
 if [[ -z "${LOGRUN_TUI_SKIPLIST-}" ]]; then
-    export LOGRUN_TUI_SKIPLIST="vim nvim view less more most htop btop top fzf ssh man watch lazygit ranger nano emacs tig ncdu tmux zellij zmx"
+    export LOGRUN_TUI_SKIPLIST="less more ssh man top nano watch"
 fi
 
 # Functions opt-in for wrapping. Default empty — most user functions

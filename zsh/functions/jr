@@ -1,6 +1,6 @@
 #!env zsh
-# Run an arbitrary shell command through `logrun` (no nix devshell, no just).
-logrun --name "${*:-jr}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
-    set -x
-    time ${(j: :)${(q-)@}}
-"
+# Run an arbitrary shell command with set -x and time. Logging is handled
+# by the zz-logrun-auto.zsh widget on the outer prompt invocation
+# (when `jr` is in LOGRUN_AUTO_FUNCTIONS).
+set -x
+time ${(j: :)${(q-)@}}

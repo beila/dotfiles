@@ -1,5 +1,7 @@
 #!env zsh
-# Run an arbitrary command inside a nix devshell, wrapped by `logrun`.
+# Run an arbitrary command inside a nix devshell. Logging is handled by
+# the zz-logrun-auto.zsh widget on the outer prompt invocation (when `n`
+# is in LOGRUN_AUTO_FUNCTIONS).
 # First arg may be one of:
 #   +name / #name          — shortcut for .#name in the current-dir flake
 #   .#name, XXX#YYY        — full nix installable (the "usual nix arg")
@@ -27,7 +29,5 @@ nix_develop_command() {
     echo "nix develop ${(q-)i} --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
 }
 
-logrun --name "${*:-nix}" --log-dir "${build_dir:-/tmp/logrun/${${PWD#$HOME/}//\//-}}" -c "
-    set -x
-    time $(nix_develop_command) ${(j: :)${(q-)@}}
-"
+set -x
+time $(nix_develop_command) ${(j: :)${(q-)@}}
