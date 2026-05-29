@@ -305,8 +305,8 @@ fi
 new_logdir; d=$LOG_DIR
 out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" -- echo hello 2>"$d/stderr")
 check "case15a: short --auto stdout"           "hello" "$out"
-file_count=$(ls -A "$d" 2>/dev/null | grep -c '^log-' || true)
-check "case15b: short --auto leaves no log"    "0"     "$file_count"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+check "case15b: short --auto leaves no log"    "0"     "${#logs[@]}"
 banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case15c: short --auto prints no banner" "0"     "$banner_count"
 
@@ -318,8 +318,8 @@ LOGRUN_AUTO_LINES=3 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c 'for i in 1 2 3 4 5; do echo line$i; done' >/dev/null 2>"$d/stderr"
 banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case16a: line-threshold prints exactly 1 banner" "1" "$banner_count"
-file_count=$(ls -A "$d" 2>/dev/null | grep -c '^log-' || true)
-check "case16b: line-threshold log retained"            "1" "$file_count"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+check "case16b: line-threshold log retained"            "1" "${#logs[@]}"
 
 # -----------------------------------------------------------------------------
 # Case 17: --auto + wallclock threshold → banner, log retained
@@ -329,8 +329,8 @@ LOGRUN_AUTO_SECONDS=1 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c 'sleep 2; echo done' >/dev/null 2>"$d/stderr"
 banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case17a: wallclock prints 1 banner"     "1" "$banner_count"
-file_count=$(ls -A "$d" 2>/dev/null | grep -c '^log-' || true)
-check "case17b: wallclock log retained"        "1" "$file_count"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+check "case17b: wallclock log retained"        "1" "${#logs[@]}"
 
 # -----------------------------------------------------------------------------
 # Case 18: --auto + non-zero exit → FAILED rename + banner shows FAILED path
@@ -340,12 +340,11 @@ new_logdir; d=$LOG_DIR
     -- bash -c 'echo oops; exit 7' >/dev/null 2>"$d/stderr"
 rc=$?
 check "case18a: failure exit propagated"       "7" "$rc"
-fail_count=$(ls "$d" | grep -cE '\.FAILED\.txt$' || true)
-check "case18b: FAILED.txt rename applied"     "1" "$fail_count"
+shopt -s nullglob; failed=("$d"/*.FAILED.txt); plain=("$d"/log-*.txt); shopt -u nullglob
+check "case18b: FAILED.txt rename applied"     "1" "${#failed[@]}"
 # Plain log-*.txt files (not the .FAILED.txt variant) should be gone
 # after the failure rename.
-plain_count=$(ls "$d" | grep -E '^log-' | grep -cvE '\.FAILED\.txt$' || true)
-check "case18c: no plain .txt remains"         "0" "$plain_count"
+check "case18c: no plain .txt remains"         "0" "${#plain[@]}"
 banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case18d: banner mentions FAILED.txt"    "1" "$banner_failed"
 
@@ -399,8 +398,8 @@ LOGRUN_AUTO_LINES=2 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c 'echo a; echo b; echo c; exit 5' >/dev/null 2>"$d/stderr"
 rc=$?
 check "case22a: combo exit propagated"         "5" "$rc"
-fail_count=$(ls "$d" | grep -cE '\.FAILED\.txt$' || true)
-check "case22b: combo FAILED rename applied"   "1" "$fail_count"
+shopt -s nullglob; failed=("$d"/*.FAILED.txt); shopt -u nullglob
+check "case22b: combo FAILED rename applied"   "1" "${#failed[@]}"
 banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case22c: combo banner mentions FAILED"  "1" "$banner_failed"
 

@@ -114,7 +114,10 @@ _e2e_run() {
 TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
 out=$(_e2e_run "echo hello-world" "build_dir=$TMP")
 _check "e2e/short: stdout"          "hello-world"  "$out"
-_check "e2e/short: no log retained" "0"            "$(ls -A "$TMP" 2>/dev/null | wc -l)"
+# (N) is zsh's per-glob NULL_GLOB qualifier — empty match expands to nothing
+# instead of erroring. Cheaper and safer than `ls | wc -l`.
+files=("$TMP"/*(N))
+_check "e2e/short: no log retained" "0"            "${#files[@]}"
 rm -rf "$TMP"
 
 # E2E #2: line-threshold reveal — banner once, log retained
@@ -122,7 +125,8 @@ TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
 out=$(_e2e_run "seq 1 6" "build_dir=$TMP" "LOGRUN_AUTO_LINES=3")
 banner=$(printf '%s\n' "$out" | grep -c '^Log: '; true)
 _check "e2e/lines: 1 banner"        "1" "$banner"
-_check "e2e/lines: log retained"    "1" "$(ls -A "$TMP" 2>/dev/null | grep -c '^log-')"
+logs=("$TMP"/log-*(N))
+_check "e2e/lines: log retained"    "1" "${#logs[@]}"
 rm -rf "$TMP"
 
 # E2E #3: failing external — non-zero exit yields FAILED.txt + banner.
@@ -133,7 +137,8 @@ TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
 out=$(_e2e_run "/usr/bin/env bash -c 'exit 7'" "build_dir=$TMP")
 rc=$?
 _check "e2e/fail: rc preserved"     "7" "$rc"
-_check "e2e/fail: FAILED file"      "1" "$(ls -A "$TMP" 2>/dev/null | grep -c 'FAILED.txt$')"
+failed=("$TMP"/*FAILED.txt(N))
+_check "e2e/fail: FAILED file"      "1" "${#failed[@]}"
 banner=$(printf '%s\n' "$out" | grep -c '^Log: '; true)
 _check "e2e/fail: 1 banner"         "1" "$banner"
 rm -rf "$TMP"
