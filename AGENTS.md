@@ -9,6 +9,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ### High impact
 - [ ] automatically use logrun in long-duration or long-output commands
   - maybe run it always and it can hide its behaviour until it reaches some time or lines of output
+- [ ] make copilot key work as super
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
@@ -34,7 +35,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - can it switch between sessions as easily as zellij session manager?
 - [ ] replace absolute path from xfce settings
 - [ ] xdg-open fails to open html files due to container issue
-- [ ] make copilot key work as super
+- [ ] detect if I'm in a meeting before `say` actually say something
 
 ### Low impact
 - [ ] there's no gap between ghostty vertically
