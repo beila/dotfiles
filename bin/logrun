@@ -210,10 +210,15 @@ if (( auto_mode )); then
 fi
 
 _logrun_on_reveal() {
-    (( revealed )) && return
-    revealed=1
+    [[ -e "$auto_lines_file.shown" ]] && return
+    : > "$auto_lines_file.shown"
     echo "Log: $log_path" >&2
 }
+# Use a marker file rather than a shell variable for the "did we reveal?"
+# state, because bash signal traps run async with respect to the main
+# pipeline — a `revealed=1` set in the trap may not be visible to the
+# post-run code. The marker file is checked synchronously after the
+# pipeline returns.
 trap _logrun_on_reveal USR2
 
 # --------------------------------------------------------- mid-run relocation
@@ -231,7 +236,7 @@ export LOGRUN_PID=$$
 export LOGRUN_MOVE_FILE
 # Clean side-channel files on exit. The auto_lines_file/auto_tui_file are
 # empty strings outside --auto mode so `rm -f ""` is a no-op.
-trap 'rm -f "$LOGRUN_MOVE_FILE" "$auto_lines_file" "$auto_tui_file"; \
+trap 'rm -f "$LOGRUN_MOVE_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_tui_file"; \
       [[ -n "$auto_timer_pid" ]] && kill "$auto_timer_pid" 2>/dev/null; :' EXIT
 
 _logrun_on_move() {
@@ -261,7 +266,9 @@ fi
 # In --auto mode, kick off the wall-clock timer that signals SIGUSR2 to
 # this script after $auto_seconds. The timer is reaped via the EXIT trap.
 if (( auto_mode )); then
-    ( sleep "$auto_seconds" 2>/dev/null && kill -USR2 $$ 2>/dev/null ) &
+    ( sleep "$auto_seconds" 2>/dev/null \
+        && echo "wallclock" >> "$auto_lines_file" \
+        && kill -USR2 $$ 2>/dev/null ) &
     auto_timer_pid=$!
 fi
 
@@ -283,37 +290,35 @@ fi
 # parent on reaching $auto_lines) AND flags alt-screen entry by touching
 # $auto_tui_file.
 if (( auto_mode )); then
+    # In --auto mode, awk sits on the foreground side of the pipeline so
+    # it's part of the wait set (process substitutions are not waited
+    # on, which races with our marker-file checks). Stream contract:
+    #   cmd 2>&1 | tee >(strip > log) | awk-counter | cat
+    # awk passes lines through unchanged for the user; it only counts
+    # them and pokes side-channel files when thresholds trip. We use the
+    # same strip-ansi sed pass on the file-side as the non-auto path,
+    # so log contents stay identical between modes.
     parent_pid=$$
     "$@" 2>&1 \
-        | tee >(awk -v line_thr="$auto_lines" \
-                    -v lines_file="$auto_lines_file" \
-                    -v tui_file="$auto_tui_file" \
-                    -v parent="$parent_pid" '
+        | tee >("${strip_ansi[@]}" > "$log_path") \
+        | awk -v line_thr="$auto_lines" \
+              -v lines_file="$auto_lines_file" \
+              -v tui_file="$auto_tui_file" \
+              -v parent="$parent_pid" '
             BEGIN { hit_lines=0; hit_tui=0 }
             {
-                # Detect alt-screen entry before stripping it.
                 if (!hit_tui && index($0, "\033[?1049h") > 0) {
                     hit_tui=1
-                    # Touch the marker file; ignore failure.
-                    cmd = "touch " tui_file " 2>/dev/null"
-                    system(cmd)
+                    cmd = "touch " tui_file " 2>/dev/null"; system(cmd); close(cmd)
                 }
-                # Strip CSI SGR / cursor-move / erase sequences (same set
-                # the sed pipeline handles outside --auto). awk ERE has
-                # no {m,n} bounded repetition in older implementations,
-                # so we use unbounded [0-9]+ — close enough for ANSI.
-                gsub(/\033\[[0-9]+(;[0-9]+)*;?[mGK]/, "")
-                gsub(/\033\[[mGK]/, "")
-                gsub(/\033\[\?1049[hl]/, "")
-                gsub(/\033\[\?25[hl]/, "")
                 print
                 fflush()
                 if (!hit_lines && NR >= line_thr) {
                     hit_lines=1
-                    cmd = "kill -USR2 " parent " 2>/dev/null"
-                    system(cmd)
+                    cmd = "printf lines >> " lines_file; system(cmd); close(cmd)
+                    cmd = "kill -USR2 " parent " 2>/dev/null"; system(cmd); close(cmd)
                 }
-            }' > "$log_path") \
+            }' \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}
 else
@@ -331,6 +336,12 @@ fi
 
 # ------------------------------------------------------- auto-mode disposition
 if (( auto_mode )); then
+    # Threshold-tripped iff the marker file is non-empty (set
+    # synchronously by either the awk filter on line-count or the
+    # wallclock timer). Don't rely on the in-trap variable — bash
+    # async signal handling makes that flag unreliable here.
+    [[ -s "$auto_lines_file" ]] && revealed=1
+
     if (( exit_code != 0 )); then
         # Failure always reveals: user needs the log path to debug.
         _logrun_on_reveal
@@ -342,8 +353,10 @@ if (( auto_mode )); then
         fi
         echo "Log: $log_path" >&2
     elif (( revealed )); then
-        # Threshold tripped during the run; we already printed the
-        # banner. Print the final path again in case it changed (move).
+        # Threshold tripped during the run. Make sure the banner was
+        # printed (no-op if the trap already did it), and print the
+        # final path again in case it changed (e.g. logrun-move).
+        _logrun_on_reveal
         echo "Log: $log_path" >&2
     else
         # Quiet, successful run: nothing crossed the threshold. Erase
