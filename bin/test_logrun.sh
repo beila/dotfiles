@@ -302,7 +302,7 @@ out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" -- echo hello 2>"$d/stderr"
 check "case15a: short --auto stdout"           "hello" "$out"
 file_count=$(ls -A "$d" 2>/dev/null | grep -c '^log-' || true)
 check "case15b: short --auto leaves no log"    "0"     "$file_count"
-banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null || echo 0)
+banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case15c: short --auto prints no banner" "0"     "$banner_count"
 
 # -----------------------------------------------------------------------------
@@ -311,7 +311,7 @@ check "case15c: short --auto prints no banner" "0"     "$banner_count"
 new_logdir; d=$LOG_DIR
 LOGRUN_AUTO_LINES=3 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c 'for i in 1 2 3 4 5; do echo line$i; done' >/dev/null 2>"$d/stderr"
-banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null || echo 0)
+banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case16a: line-threshold prints exactly 1 banner" "1" "$banner_count"
 file_count=$(ls -A "$d" 2>/dev/null | grep -c '^log-' || true)
 check "case16b: line-threshold log retained"            "1" "$file_count"
@@ -322,7 +322,7 @@ check "case16b: line-threshold log retained"            "1" "$file_count"
 new_logdir; d=$LOG_DIR
 LOGRUN_AUTO_SECONDS=1 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c 'sleep 2; echo done' >/dev/null 2>"$d/stderr"
-banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null || echo 0)
+banner_count=$(grep -c '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case17a: wallclock prints 1 banner"     "1" "$banner_count"
 file_count=$(ls -A "$d" 2>/dev/null | grep -c '^log-' || true)
 check "case17b: wallclock log retained"        "1" "$file_count"
@@ -337,9 +337,11 @@ rc=$?
 check "case18a: failure exit propagated"       "7" "$rc"
 fail_count=$(ls "$d" | grep -cE '\.FAILED\.txt$' || true)
 check "case18b: FAILED.txt rename applied"     "1" "$fail_count"
-plain_count=$(ls "$d" | grep -cE '^log-.*\.txt$' || true)
+# Plain log-*.txt files (not the .FAILED.txt variant) should be gone
+# after the failure rename.
+plain_count=$(ls "$d" | grep -E '^log-' | grep -cvE '\.FAILED\.txt$' || true)
 check "case18c: no plain .txt remains"         "0" "$plain_count"
-banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null || echo 0)
+banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case18d: banner mentions FAILED.txt"    "1" "$banner_failed"
 
 # -----------------------------------------------------------------------------
@@ -348,7 +350,7 @@ check "case18d: banner mentions FAILED.txt"    "1" "$banner_failed"
 new_logdir; d=$LOG_DIR
 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c $'printf "\e[?1049h"; echo hi' >/dev/null 2>"$d/stderr"
-hint_count=$(grep -c 'looks like a TUI' "$d/stderr" 2>/dev/null || echo 0)
+hint_count=$(grep -c 'looks like a TUI' "$d/stderr" 2>/dev/null; true)
 check "case19a: alt-screen produces hint"      "1" "$hint_count"
 # And the captured log should NOT contain the bare alt-screen sequence
 # (the auto-mode awk strips it).
@@ -368,7 +370,7 @@ new_logdir; d=$LOG_DIR
 LOGRUN_TUI_SKIPLIST="bash other-tui" "$UNDER_TEST" --auto --no-zshrc \
     --log-dir "$d" -- bash -c $'printf "\e[?1049h"; echo hi' \
     >/dev/null 2>"$d/stderr"
-hint_count=$(grep -c 'looks like a TUI' "$d/stderr" 2>/dev/null || echo 0)
+hint_count=$(grep -c 'looks like a TUI' "$d/stderr" 2>/dev/null; true)
 check "case20: skiplisted TUI suppresses hint" "0" "$hint_count"
 
 # -----------------------------------------------------------------------------
@@ -394,7 +396,7 @@ rc=$?
 check "case22a: combo exit propagated"         "5" "$rc"
 fail_count=$(ls "$d" | grep -cE '\.FAILED\.txt$' || true)
 check "case22b: combo FAILED rename applied"   "1" "$fail_count"
-banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null || echo 0)
+banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case22c: combo banner mentions FAILED"  "1" "$banner_failed"
 
 # -----------------------------------------------------------------------------
