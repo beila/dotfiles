@@ -72,6 +72,7 @@ in
         pkgs.plocate
         pkgs.ripgrep
         pkgs.scrot
+        pkgs.spacer
         pkgs.uv  # edge-tts runner for say-ko
         # battery-osd: invocation wrapper around the local `osd` library.
         # Single binary in PATH; no full Python (would conflict with awscli2).
