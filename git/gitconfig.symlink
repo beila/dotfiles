@@ -42,6 +42,14 @@
 [merge "mergiraf-then-theirs"]
 	name = mergiraf first, theirs on conflict
 	driver = ~/.dotfiles/script/bin/git-merge-mergiraf-then-theirs %O %A %B %P %L
+# `mergiraf-then-ours`: same shape as -theirs but keeps OUR side on
+# conflict. Use when the local machine's value is the source of truth
+# (e.g. Claude Code settings.json fields like awsCredentialExport that
+# each machine fills in with its own absolute $HOME — never accept the
+# incoming value, it's from another machine). Sibling driver script.
+[merge "mergiraf-then-ours"]
+	name = mergiraf first, ours on conflict
+	driver = ~/.dotfiles/script/bin/git-merge-mergiraf-then-ours %O %A %B %P %L
 [rerere]
 	enabled = true
 [alias]
