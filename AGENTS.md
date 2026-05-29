@@ -8,7 +8,16 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 
 ### High impact
 - [ ] automatically use logrun in long-duration or long-output commands
-  - maybe run it always and it can hide its behaviour until it reaches some time or lines of output
+  - goal: every interactive command at the zsh prompt runs through `logrun`, but `logrun`'s own chrome (the `Log:` banner) and its log-file artifact stay invisible for short, low-output commands. Only "long" commands reveal that they were logged.
+  - **Trigger surface**: zsh `accept-line` widget override (preexec is too late to rewrite `$BUFFER`). Buffer rewrite injects `logrun --auto -c <orig>` right before zsh submits the line; original line still goes into history unmodified.
+  - **Reveal threshold (either condition)**: `≥10s` wall-clock or `≥100` output lines. Configurable via `LOGRUN_AUTO_SECONDS` and `LOGRUN_AUTO_LINES`.
+  - **Under threshold**: no `Log:` banner printed; log file is deleted on exit. Terminal output is identical to running the bare command.
+  - **Over threshold**: `Log: <path>` printed retroactively to stderr; log retained; `*.FAILED.txt` rename still applies on non-zero exit.
+  - **Functions/aliases**: wrap them too — `logrun` already runs the body via `zsh -ic`, so `gco`, custom funcs, etc. work.
+  - **Existing wrappers**: drop the `logrun` call from the just `run` recipe (and the `j`/`n`/`jr`/`nijr` chain that depends on it). The preexec/accept-line path becomes the only entry point, so we don't double-wrap.
+  - **TUI skiplist** (`LOGRUN_TUI_SKIPLIST`): hard-coded list of curses-style apps that break under any stdout pipe — `vim nvim view less more most htop btop top fzf ssh man watch lazygit ranger nano emacs tig ncdu tmux zellij`. First word match against `whence -p` resolution; skiplisted commands bypass `logrun` entirely.
+  - **Unknown-TUI detection**: on exit, if the captured log contains the alt-screen entry sequence `\x1b[?1049h` and the command name wasn't in the skiplist, `logrun` prints a one-line hint to stderr: `logrun: '<cmd>' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST`. The bytes are stripped from the log either way.
+  - **Opt-out per-call**: `NOLOG=1 cmd …` skips the wrap (handy for one-off pipelines or when the skiplist hint hasn't been actioned yet).
 - [ ] make copilot key work as super
 
 ### Medium impact
