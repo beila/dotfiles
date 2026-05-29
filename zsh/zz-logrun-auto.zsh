@@ -22,10 +22,20 @@ if [[ -z "${LOGRUN_TUI_SKIPLIST-}" ]]; then
     export LOGRUN_TUI_SKIPLIST="less more ssh man top nano watch"
 fi
 
-# Functions opt-in for wrapping. Default empty — most user functions
-# (l, c, p, o, jj wrappers, git helpers) are short. Long-running
-# wrappers like j/n/jr/nijr/sync-* should be added by the user.
-typeset -ga LOGRUN_AUTO_FUNCTIONS=( "${LOGRUN_AUTO_FUNCTIONS[@]:-}" )
+# Functions opt-in for wrapping. Pre-populated with the wrapper-style
+# functions in zsh/functions/ that shell out to long-running tools (nix
+# develop chains, rsync, docker run); short utility functions (l, c, p,
+# o, jj wrappers, git helpers) are intentionally absent so they stay
+# fast. Append to this list (don't overwrite) from private-dotfiles to
+# add machine- or work-specific entries:
+#     LOGRUN_AUTO_FUNCTIONS+=( my_long_func )
+typeset -ga LOGRUN_AUTO_FUNCTIONS
+LOGRUN_AUTO_FUNCTIONS=(
+    j n ji ni jr njr nijr
+    sync-rsync sync-ssh
+    docker_here docker_here_t docker_here_with_t
+    "${LOGRUN_AUTO_FUNCTIONS[@]:-}"
+)
 
 # Per-shell session memo: warned about which functions for the
 # bidirectional auto-suggestion ("add to / remove from list"). Prevents

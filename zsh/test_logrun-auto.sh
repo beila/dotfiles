@@ -92,6 +92,74 @@ _check "history: orig captured"     "ls -la"                                  "$
 _logrun_auto_zshaddhistory "ignored"
 _check "history: orig cleared after hook"   ""                                "$_logrun_orig_buffer"
 
+# ---- end-to-end: widget rewrite + actually invoke the resulting logrun ----
+# These cases run the rewritten BUFFER in the same shell and observe the
+# real side effects (log file presence, banner, exit code). Locks down
+# the integration between the widget and bin/logrun.
+
+# Make sure logrun is on PATH for the eval calls below.
+PATH="$DOTFILES/bin:$PATH"
+
+_e2e_run() {
+    # $1 = BUFFER to rewrite-and-run; remaining args are env vars to set.
+    local input=$1; shift
+    BUFFER="$input"
+    _logrun_auto_accept_line
+    local cmd="$BUFFER"
+    eval "$@ $cmd" 2>&1
+    return $?
+}
+
+# E2E #1: short external — invisible (no banner, no log left)
+TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
+out=$(_e2e_run "echo hello-world" "build_dir=$TMP")
+_check "e2e/short: stdout"          "hello-world"  "$out"
+_check "e2e/short: no log retained" "0"            "$(ls -A "$TMP" 2>/dev/null | wc -l)"
+rm -rf "$TMP"
+
+# E2E #2: line-threshold reveal — banner once, log retained
+TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
+out=$(_e2e_run "seq 1 6" "build_dir=$TMP" "LOGRUN_AUTO_LINES=3")
+banner=$(printf '%s\n' "$out" | grep -c '^Log: '; true)
+_check "e2e/lines: 1 banner"        "1" "$banner"
+_check "e2e/lines: log retained"    "1" "$(ls -A "$TMP" 2>/dev/null | grep -c '^log-')"
+rm -rf "$TMP"
+
+# E2E #3: failing external — non-zero exit yields FAILED.txt + banner.
+# Uses /usr/bin/env bash to run an external (zsh's `false` is a builtin
+# so the widget would skip it; we want to exercise the failure branch
+# of logrun --auto, which only runs for wrapped commands).
+TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
+out=$(_e2e_run "/usr/bin/env bash -c 'exit 7'" "build_dir=$TMP")
+rc=$?
+_check "e2e/fail: rc preserved"     "7" "$rc"
+_check "e2e/fail: FAILED file"      "1" "$(ls -A "$TMP" 2>/dev/null | grep -c 'FAILED.txt$')"
+banner=$(printf '%s\n' "$out" | grep -c '^Log: '; true)
+_check "e2e/fail: 1 banner"         "1" "$banner"
+rm -rf "$TMP"
+
+# E2E #4: builtin `false` is correctly skipped (NOT wrapped). Confirms
+# the widget doesn't accidentally try to run builtins through logrun
+# (which would lose builtin-only semantics like `cd`).
+BUFFER="false"
+_logrun_auto_accept_line
+_check "e2e/builtin: not rewritten" "false" "$BUFFER"
+
+# E2E #5: alias -> external still routes to fast path (`--no-zshrc`).
+alias gst='git status'
+TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
+BUFFER="gst"
+_logrun_auto_accept_line
+[[ "$BUFFER" == "logrun --auto --no-zshrc -- git status" ]] && ok=1 || ok=0
+_check "e2e/alias: --no-zshrc form" "1" "$ok"
+unalias gst
+rm -rf "$TMP"
+
+# E2E #6: NOLOG=1 prefix means the buffer is not rewritten.
+BUFFER="NOLOG=1 echo unwrapped"
+_logrun_auto_accept_line
+_check "e2e/nolog: passthrough"     "NOLOG=1 echo unwrapped" "$BUFFER"
+
 echo
 echo "PASS: $PASS  FAIL: $FAIL"
 [[ $FAIL -eq 0 ]] || exit 1

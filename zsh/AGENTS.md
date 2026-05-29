@@ -66,7 +66,7 @@ History: a `zshaddhistory` hook restores the user-typed buffer before zsh record
 
 Composes correctly with `zsh-syntax-highlighting` and `zsh-autosuggestions`: those wrap `accept-line` themselves on load; the `zz-` filename prefix guarantees our widget loads after them so we run first and rewrite before they re-execute the saved chain.
 
-Test harness: `zsh/test_logrun-auto.sh` (15 classifier cases, 7 rewrite cases, history hook). Drive: `bash zsh/test_logrun-auto.sh`.
+Test harness: `zsh/test_logrun-auto.sh` — 35 assertions: classifier (15), rewrite (7), history (2), end-to-end where the widget rewrites a buffer and we actually invoke the resulting `logrun --auto` command and observe behavior (11). Drive: `bash zsh/test_logrun-auto.sh`.
 
 ## Known issues
 
