@@ -340,7 +340,17 @@ new_logdir; d=$LOG_DIR
     -- bash -c 'echo oops; exit 7' >/dev/null 2>"$d/stderr"
 rc=$?
 check "case18a: failure exit propagated"       "7" "$rc"
-shopt -s nullglob; failed=("$d"/*.FAILED.txt); plain=("$d"/log-*.txt); shopt -u nullglob
+# *.FAILED.txt counts the renamed log; "plain" must exclude that suffix.
+# bash globs can't easily express "ends in .txt but NOT .FAILED.txt", so
+# we filter the array after the fact.
+shopt -s nullglob
+failed=("$d"/*.FAILED.txt)
+all_txt=("$d"/log-*.txt)
+plain=()
+for f in "${all_txt[@]}"; do
+    [[ "$f" == *.FAILED.txt ]] || plain+=("$f")
+done
+shopt -u nullglob
 check "case18b: FAILED.txt rename applied"     "1" "${#failed[@]}"
 # Plain log-*.txt files (not the .FAILED.txt variant) should be gone
 # after the failure rename.
