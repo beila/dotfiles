@@ -344,20 +344,21 @@ if (( auto_mode )); then
 
     if (( exit_code != 0 )); then
         # Failure always reveals: user needs the log path to debug.
-        _logrun_on_reveal
+        # Apply FAILED rename FIRST so the banner shows the renamed path.
         if [[ -n "$fail_suffix" ]]; then
             failed_path="${log_path%.txt}.${fail_suffix}"
             if mv "$log_path" "$failed_path" 2>/dev/null; then
                 log_path="$failed_path"
             fi
         fi
-        echo "Log: $log_path" >&2
-    elif (( revealed )); then
-        # Threshold tripped during the run. Make sure the banner was
-        # printed (no-op if the trap already did it), and print the
-        # final path again in case it changed (e.g. logrun-move).
+        # Reset the .shown marker if the in-run trap already printed —
+        # we want one final banner with the renamed path.
+        rm -f "$auto_lines_file.shown"
         _logrun_on_reveal
-        echo "Log: $log_path" >&2
+    elif (( revealed )); then
+        # Threshold tripped during the run; the trap already printed
+        # the banner. Nothing to do unless the path changed.
+        :
     else
         # Quiet, successful run: nothing crossed the threshold. Erase
         # the log so the prompt looks identical to a bare command.
