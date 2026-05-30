@@ -3,4 +3,4 @@
 # by the zz-logrun-auto.zsh widget on the outer prompt invocation
 # (when `jr` is in LOGRUN_AUTO_FUNCTIONS).
 set -x
-time ${(j: :)${(q-)@}}
+time "$@"

@@ -416,8 +416,9 @@ check_grep "case21b: --no-zshrc log content"   "^direct\$" "$log"
 
 # -----------------------------------------------------------------------------
 # Case 22: --auto + threshold tripped AND non-zero exit. Failure branch
-# applies the FAILED rename and prints a final banner with the renamed
-# path (the in-run trap may also have printed once before the rename).
+# applies the FAILED rename. The in-run reveal already printed `Log: <orig>`,
+# so the final banner is `Log renamed: <FAILED path>` instead of a second
+# `Log:` line — keeps the user from thinking two separate logs were created.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
 LOGRUN_AUTO_LINES=2 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
@@ -428,6 +429,10 @@ shopt -s nullglob; failed=("$d"/*.FAILED.txt); shopt -u nullglob
 check "case22b: combo FAILED rename applied"   "1" "${#failed[@]}"
 banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case22c: combo banner mentions FAILED"  "1" "$banner_failed"
+log_count=$(grep -cE '^Log: ' "$d/stderr" 2>/dev/null; true)
+check "case22d: only one 'Log:' banner"        "1" "$log_count"
+renamed_count=$(grep -cE '^Log renamed: ' "$d/stderr" 2>/dev/null; true)
+check "case22e: 'Log renamed:' line emitted"   "1" "$renamed_count"
 
 # -----------------------------------------------------------------------------
 # Case 23: --auto + -c does not buffer first line until later commands

@@ -26,8 +26,8 @@ nix_develop_command() {
             i="path:."
         fi
     fi
-    echo "nix develop ${(q-)i} --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
+    echo "nix develop $i --ignore-env --impure --keep VERBOSE --keep LOGRUN_PID --keep LOGRUN_MOVE_FILE --command"
 }
 
 set -x
-time $(nix_develop_command) ${(j: :)${(q-)@}}
+time $(nix_develop_command) "$@"

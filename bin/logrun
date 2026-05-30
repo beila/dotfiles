@@ -413,10 +413,15 @@ if (( auto_mode )); then
                 log_path="$failed_path"
             fi
         fi
-        # Reset the .shown marker if the in-run trap already printed —
-        # we want one final banner with the renamed path.
-        rm -f "$auto_lines_file.shown"
-        _logrun_on_reveal
+        # If the in-run trap already printed the (now-stale) original
+        # path, label the second banner as a rename so the user doesn't
+        # think two separate logs were created. If no in-run banner
+        # printed yet, just print the normal "Log:" line.
+        if [[ -e "$auto_lines_file.shown" ]]; then
+            echo "Log renamed: $log_path" >&2
+        else
+            _logrun_on_reveal
+        fi
     elif (( revealed )); then
         # Threshold tripped during the run; the trap already printed
         # the banner. Nothing to do unless the path changed.

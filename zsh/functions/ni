@@ -20,8 +20,8 @@ nix_develop_command() {
             i="path:."
         fi
     fi
-    echo "nix develop ${(q-)i} --impure --command"
+    echo "nix develop $i --impure --command"
 }
 
 set -x
-time $(nix_develop_command) ${(j: :)${(q-)@}}
+time $(nix_develop_command) "$@"
