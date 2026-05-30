@@ -137,7 +137,21 @@ elif [[ $# -gt 0 ]]; then
         # widget passes this for resolved external binaries — aliases /
         # functions would not be visible to a fresh process anyway, so
         # we don't need `zsh -ic` here. Saves ~800ms per prompt.
-        :
+        #
+        # In --auto mode we still wrap in `script -qefc` so the inner
+        # binary's stdout is a PTY — this is what gives `eza`, `ls
+        # --color=auto`, `git`, `grep --color=auto`, etc. their
+        # isatty(stdout)==true check, so they emit color and use
+        # multi-column layout. Without this, `logrun --auto --no-zshrc
+        # -- eza` looks worse than a bare `eza` (single column, no color).
+        pty_prefix=$(_logrun_pty_wrap)
+        if [[ -n "$pty_prefix" ]]; then
+            cmdline=""
+            for arg in "$@"; do
+                cmdline+=" $(printf '%q' "$arg")"
+            done
+            set -- script -qefc "$cmdline" /dev/null
+        fi
     else
         # Positional argv (e.g. `logrun la`): rebuild as a shell-safe
         # command string and pipe it through zsh -ic so aliases/functions
@@ -405,7 +419,17 @@ if (( auto_mode )); then
         }')
     parent_pid=$$
     awk_pid=$!
-    "$@" 2>&1 \
+    # `4>&-` on the inner command closes fd 4 in the wrapped process
+    # before exec, so it isn't inherited by descendants. Without this,
+    # interactive-zsh helpers (gitstatus daemon, zsh-async workers)
+    # forked from `zsh -ic` keep fd 4 open after the user's command
+    # exits — they're reparented to systemd but retain the pipe
+    # writer end, blocking awk on EOF for several seconds. Result:
+    # `logrun --auto -c "sleep 6; date"` would idle ~4s after `date`
+    # printed, before the wallclock timer's 10s elapsed and we gave
+    # up. tee's own fd 4 (used by `tee /dev/fd/4`) is unaffected
+    # because the redirection only applies to "$@", not to tee.
+    "$@" 2>&1 4>&- \
         | tee /dev/fd/4 \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}

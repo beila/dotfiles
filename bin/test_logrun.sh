@@ -315,9 +315,12 @@ fi
 
 # -----------------------------------------------------------------------------
 # Case 15: --auto, short cmd → invisible (no banner, no log left behind)
+# --auto wraps in `script -qefc` for color/column support, which adds a
+# trailing \r before \n on every line (PTY canonical mode); strip it
+# before comparing so the test reflects what the user sees on a real tty.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" -- echo hello 2>"$d/stderr")
+out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" -- echo hello 2>"$d/stderr" | tr -d '\r')
 check "case15a: short --auto stdout"           "hello" "$out"
 shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
 check "case15b: short --auto leaves no log"    "0"     "${#logs[@]}"
@@ -482,6 +485,46 @@ log="${logs[0]:-}"
 if [[ -f "$log" ]]; then
     cr_count=$(tr -cd '\r' < "$log" | wc -c)
     check "case25: log has no carriage returns" "0" "$cr_count"
+fi
+
+# -----------------------------------------------------------------------------
+# Case 26: --auto -c short command does not hang on awk-EOF wait. Regression
+# for the bug where interactive zsh helpers (gitstatus daemon, zsh-async
+# workers) forked from `zsh -ic` inherited fd 4 and kept the awk pipe
+# writer open after the user's command exited. The wait would then idle
+# until those helpers self-terminated (~5s) or the wallclock timer fired
+# (auto_seconds=10s). Fix: pass `4>&-` to the inner command so fd 4 is
+# closed before exec.
+#
+# Test with auto_seconds=10 (default) and run `sleep 1; date`. Total
+# wall time MUST stay under 5s — generous bound that catches the bug
+# (which would push it to ~6s on this machine, ~10s under load) without
+# being flaky on slow CI.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+t0=$(date +%s)
+"$UNDER_TEST" --auto --log-dir "$d" -c 'sleep 1; date' >/dev/null 2>/dev/null
+elapsed=$(( $(date +%s) - t0 ))
+check "case26: sleep 1 + date completes in <5s" \
+      "1" "$([ "$elapsed" -lt 5 ] && echo 1 || echo 0)"
+
+# -----------------------------------------------------------------------------
+# Case 27: --auto + --no-zshrc inherits the PTY wrapper, so color-aware
+# tools see a tty on stdout and emit ANSI. Without the wrapper, eza/ls
+# --color=auto/git etc. fall back to monochrome and single-column when
+# logrun pipes their output. We emit a fake ANSI sequence in a tiny
+# Python one-liner that only writes color when isatty(stdout)==True;
+# the captured stream MUST contain the escape byte.
+# -----------------------------------------------------------------------------
+if command -v python3 >/dev/null 2>&1; then
+    new_logdir; d=$LOG_DIR
+    out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
+        -- python3 -c $'import sys\nif sys.stdout.isatty(): print("\\x1b[31mRED\\x1b[0m")\nelse: print("plain")' \
+        2>/dev/null | tr -d '\r')
+    check "case27: --no-zshrc + --auto exposes a tty to the child" \
+          $'\e[31mRED\e[0m' "$out"
+else
+    printf 'SKIP: case27 (python3 unavailable)\n'
 fi
 
 # -----------------------------------------------------------------------------
