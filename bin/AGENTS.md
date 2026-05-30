@@ -9,7 +9,7 @@
 Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--fail-suffix` (default `FAILED.txt`; empty disables rename), `-c`/`--command` (run via `bash -c`), `--auto`, `--no-zshrc`.
 
 `--auto` keeps logrun's chrome invisible until a threshold trips:
-- No startup `Log:` banner. The decorator (spacer→watchlog) runs from the start; both only print under interesting conditions (spacer at output-pause, watchlog at idle) so the visual stays clean for short cmds — but spacer's main loop ticks once per `--after` (default 1s), so every `--auto` run pays a ~1s tail at end-of-stream. Set `LOGRUN_DECORATOR=cat` to opt out. The strip-ansi + line-count + alt-screen-detect awk filter sits inside the `tee >(…)` side-branch (NOT on the foreground side, where gawk's block-buffered stdin would delay the first line of `cmd1; sleep N; cmd2` until the sleep ends).
+- No startup `Log:` banner. The decorator is `bin/logrun-decorator`: pure passthrough until a marker file (touched by the awk side-branch on threshold trip) appears, then prints spacer-style breaks at output pauses + an `idle Ns` indicator on stderr. Short `--auto` runs feel like a bare cmd; long ones get the visual aids. The strip-ansi + line-count + alt-screen-detect awk filter sits inside the `tee >(…)` side-branch (NOT on the foreground side, where gawk's block-buffered stdin would delay the first line of `cmd1; sleep N; cmd2` until the sleep ends). awk runs with `-W interactive` on mawk to defeat its 4KB block buffering — without it, threshold detection would be deferred until enough bytes accumulated, e.g. `echo a; echo b; sleep 3; echo done` (LOGRUN_AUTO_LINES=2) wouldn't trip until the post-sleep `done` arrived.
 - The foreground stream is plain `cmd | tee /dev/fd/4 | cat`, with the side awk attached to fd 4 — so the user sees output the instant the inner shell flushes it.
 - On either `≥LOGRUN_AUTO_SECONDS` (default 10s, wall-clock) or `≥LOGRUN_AUTO_LINES` (default 100) the parent prints `Log: <path>` to stderr exactly once. Threshold marker is a side-channel file (`/tmp/logrun-lines.*`), checked synchronously after the pipeline returns to bypass bash's async signal-trap timing.
 - On under-threshold + exit==0: log file is `rm -f`'d so the prompt looks identical to a bare command.
@@ -35,6 +35,8 @@ Other env: `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SEC
 The accept-line widget at `zsh/zz-logrun-auto.zsh` is the user-facing entry point — it auto-wraps interactive prompt commands in `logrun --auto`. See `zsh/AGENTS.md` for widget details.
 
 Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a different directory mid-run (preserves the filename); only works when invoked as a descendant of `logrun` since it talks to the wrapper via `$LOGRUN_PID` / `$LOGRUN_MOVE_FILE`.
+
+Companion `bin/logrun-decorator` (Python stdlib only) is the `--auto` decorator: stays as plain `cat` until `--activate-when-exists <marker>` becomes truthy (or it receives `SIGUSR2`), then emits spacer-style horizontal lines at output pauses + an `idle Ns` stderr indicator. logrun's awk filter touches the marker synchronously when the threshold trips so the decorator activates mid-run (relying on bash's USR2 trap would defer activation until after the pipeline ends).
 
 Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors, `--auto` thresholds + invisibility + reveal + FAILED rename + alt-screen hint, `--no-zshrc` fast path).
 
