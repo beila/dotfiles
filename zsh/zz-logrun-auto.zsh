@@ -13,14 +13,49 @@
 # ----------------------------------------------------------------- config
 
 # TUI skiplist: UI tools whose terminal handling breaks under any
-# stdout pipe. Defined canonically in home-manager (see
-# home-manager.configsymlink/home.nix sessionVariables) so the list
-# tracks what's actually installed on this machine. The fallback below
-# only runs when home-manager hasn't been activated yet (fresh clone)
-# and lists the system-default TUIs every base distro ships with.
+# stdout pipe. Two layers, merged at classification time:
+#
+#   $LOGRUN_TUI_SKIPLIST          machine-default, set in
+#                                 home-manager.configsymlink/home.nix
+#                                 (tracks what's installed via nix).
+#   $LOGRUN_TUI_SKIPLIST_FILE     user delta, default
+#                                 ${XDG_CONFIG_HOME:-~/.config}/logrun/tui-skiplist.
+#                                 logrun auto-appends here when its
+#                                 alt-screen hint fires; the next prompt
+#                                 picks it up via _logrun_user_skiplist
+#                                 (mtime-cached so no per-prompt I/O).
+#
+# Fallback below seeds $LOGRUN_TUI_SKIPLIST with the universal-distro TUIs
+# when home-manager hasn't been activated yet (fresh clone).
 if [[ -z "${LOGRUN_TUI_SKIPLIST-}" ]]; then
     export LOGRUN_TUI_SKIPLIST="less more ssh man top nano watch"
 fi
+
+# zstat from zsh/stat: mtime probe without forking. Falls through to
+# stat(1) below when zstat isn't loadable.
+zmodload -F zsh/stat b:zstat 2>/dev/null
+
+# Memoised reader for the user-skiplist file. Cache key: file mtime.
+typeset -g _logrun_user_skiplist_cache=""
+typeset -g _logrun_user_skiplist_mtime=""
+_logrun_user_skiplist() {
+    local f="${LOGRUN_TUI_SKIPLIST_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/logrun/tui-skiplist}"
+    if [[ ! -f "$f" ]]; then
+        _logrun_user_skiplist_cache=""
+        _logrun_user_skiplist_mtime=""
+        print -r -- ""
+        return
+    fi
+    local mt
+    mt=$(zstat +mtime "$f" 2>/dev/null) || mt=$(stat -c %Y "$f" 2>/dev/null)
+    if [[ "$mt" == "$_logrun_user_skiplist_mtime" ]]; then
+        print -r -- "$_logrun_user_skiplist_cache"
+        return
+    fi
+    _logrun_user_skiplist_mtime="$mt"
+    _logrun_user_skiplist_cache=$(grep -v '^#' "$f" 2>/dev/null | tr '\n' ' ')
+    print -r -- "$_logrun_user_skiplist_cache"
+}
 
 # Functions opt-in for wrapping. Pre-populated with the wrapper-style
 # functions in zsh/functions/ that shell out to long-running tools (nix
@@ -170,9 +205,9 @@ _logrun_classify() {
     [[ "$first" == "logrun" ]] && return
     [[ -n "${LOGRUN_PID-}" ]] && return
 
-    # TUI skiplist match.
+    # TUI skiplist match — env-var (machine default) ∪ user file (auto-managed).
     local tui
-    for tui in ${=LOGRUN_TUI_SKIPLIST}; do
+    for tui in ${=LOGRUN_TUI_SKIPLIST} ${=$(_logrun_user_skiplist)}; do
         [[ "$first" == "$tui" ]] && return
     done
 
