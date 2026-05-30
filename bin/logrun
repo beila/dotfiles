@@ -97,29 +97,16 @@ else
     orig_argv_joined=""
 fi
 
-# Decide how to run the wrapped command:
-#   --no-zshrc             → exec directly. Fastest, no shell startup
-#                            (widget uses this for plain externals).
-#   shell_mode (-c body)   → run via `zsh -ic 'body'` so the user's
-#                            aliases/functions resolve. In --auto mode
-#                            we additionally wrap in `script -qefc` so
-#                            the inner zsh's stdout is a PTY — that way
-#                            color-aware tools (`ls --color=auto`,
-#                            `git`, `grep --color=auto`) emit colour
-#                            because their isatty(stdout) check inside
-#                            the body sees a real tty, not logrun's
-#                            tee pipe. util-linux script is universal
-#                            on Linux; if absent, fall back to bare
-#                            zsh -ic (color disappears but everything
-#                            else still works).
-#   positional argv        → if ! --no-zshrc, rebuild as a quoted
-#                            string and route through the same shell
-#                            path so aliases resolve.
+# Decide how to run the wrapped command. In --auto, every path wraps
+# in `script -qefc` (PTY) when available so color-aware tools see a
+# real tty on stdout. See AGENTS.md "PTY layer for color".
+#   --no-zshrc        → exec the command directly (fast path, no zshrc replay).
+#   shell_mode (-c)   → `zsh -ic '<body>'` so aliases/functions resolve.
+#   positional argv   → rebuild as a quoted string + `zsh -ic` (same reason).
 _logrun_pty_wrap() {
+    # script -q quiet, -e propagate exit, -f flush after writes,
+    # -c run command, /dev/null = no typescript file (we have our own log).
     if (( auto_mode )) && command -v script >/dev/null 2>&1; then
-        # script -q quiet, -e propagate exit code, -f flush after writes,
-        # -c run command, /dev/null skips the typescript file (we have
-        # our own log path).
         echo "script -qefc"
     fi
 }
@@ -133,17 +120,6 @@ if (( shell_mode )); then
     fi
 elif [[ $# -gt 0 ]]; then
     if (( no_zshrc )); then
-        # Fast path: exec the command directly, no shell startup. The
-        # widget passes this for resolved external binaries — aliases /
-        # functions would not be visible to a fresh process anyway, so
-        # we don't need `zsh -ic` here. Saves ~800ms per prompt.
-        #
-        # In --auto mode we still wrap in `script -qefc` so the inner
-        # binary's stdout is a PTY — this is what gives `eza`, `ls
-        # --color=auto`, `git`, `grep --color=auto`, etc. their
-        # isatty(stdout)==true check, so they emit color and use
-        # multi-column layout. Without this, `logrun --auto --no-zshrc
-        # -- eza` looks worse than a bare `eza` (single column, no color).
         pty_prefix=$(_logrun_pty_wrap)
         if [[ -n "$pty_prefix" ]]; then
             cmdline=""
@@ -153,11 +129,8 @@ elif [[ $# -gt 0 ]]; then
             set -- script -qefc "$cmdline" /dev/null
         fi
     else
-        # Positional argv (e.g. `logrun la`): rebuild as a shell-safe
-        # command string and pipe it through zsh -ic so aliases/functions
-        # resolve. With bash exec the alias `la` would just be "command
-        # not found". printf %q quotes each arg so paths-with-spaces and
-        # other specials round-trip correctly through zsh's word splitter.
+        # printf %q quotes each arg so paths-with-spaces round-trip
+        # correctly through zsh's word splitter.
         cmdline=""
         for arg in "$@"; do
             cmdline+=" $(printf '%q' "$arg")"
@@ -334,16 +307,10 @@ fi
 
 # In --auto mode, kick off the wall-clock timer that signals SIGUSR2 to
 # this script after $auto_seconds. The timer is reaped via the EXIT trap.
-#
-# `exec </dev/null >/dev/null 2>&1` inside the subshell detaches it
-# (and the `sleep` it forks) from the parent's stdio. Without this,
-# `kill $auto_timer_pid` only terminates the bash subshell — the inner
-# `sleep` keeps running as an orphan reparented to systemd, and it
-# still holds the parent's stdout/stderr fds. When the parent's stdout
-# is a pipe (e.g. `logrun … | cat`), the downstream reader sits idle
-# until the sleep finishes, making short --auto runs feel like they
-# took $auto_seconds. With stdio redirected to /dev/null, the orphan
-# can outlive us harmlessly.
+# Subshell stdio goes to /dev/null so the inner `sleep`, which `kill
+# $auto_timer_pid` can't reach (it kills the bash subshell, not its
+# child), can't hold the parent's stdio open after we exit. See AGENTS.md
+# "Wallclock timer detached stdio".
 if (( auto_mode )); then
     ( exec </dev/null >/dev/null 2>&1
       sleep "$auto_seconds" \
@@ -358,49 +325,23 @@ fi
 #   | eval "$decorator"                 — show the decorated stream on the tty
 #
 # `PIPESTATUS[0]` preserves the wrapped command's exit code regardless of
-# what tee/decorator return. `set +e` isn't needed because we removed `-e`
-# at the top (we rely on explicit checks below).
+# what tee/decorator return. `unbuffer`/`stdbuf` aren't needed because
+# both spacer and watchlog implement their own periodic timers.
 #
-# `unbuffer`/`stdbuf` aren't needed here because both spacer and watchlog
-# implement their own periodic timers — the decorator flushes on a timer,
-# not on input.
-#
-# In --auto mode, the file-side filter is awk instead of sed: it strips
-# the same ANSI sequences AND counts lines (signalling SIGUSR2 to the
-# parent on reaching $auto_lines) AND flags alt-screen entry by touching
-# $auto_tui_file.
+# In --auto mode the file-side filter is awk (not sed): one pass strips
+# ANSI for the log, counts lines (signalling SIGUSR2 + writing the
+# marker file once $auto_lines is crossed), and flags alt-screen entry
+# into $auto_tui_file. Awk runs on the SIDE branch (via fd 4), not the
+# foreground — gawk's block-buffered stdin would otherwise delay the
+# first line of output until enough bytes accumulate.
 if (( auto_mode )); then
-    # --auto contract:
-    #   cmd 2>&1 | tee >(awk-analyze > log) | $decorator
-    #
-    # The user-visible stream goes through tee | $decorator (= cat in
-    # auto mode) and inherits whatever buffering tee/cat does on the
-    # tty side, which is line-buffered when stdout is a tty — so the
-    # first line of output appears immediately, before any later
-    # `sleep` blocks the second.
-    #
-    # The file-side process substitution does triple duty in one awk
-    # pass: strip ANSI for the on-disk log, count lines (signalling
-    # USR2 + writing the marker file once line_thr is crossed), and
-    # flag alt-screen entry into the TUI marker file.
-    #
-    # Why this layout vs. awk on the foreground side: gawk reads its
-    # stdin in block-buffered chunks even with `fflush()`, so an awk
-    # in the foreground would hold the first line until enough bytes
-    # accumulated — exactly the bug the user hit on `ls; sleep 12; ls`.
-    # On the side branch the user sees raw stdout right away.
     parent_pid=$$
-    # Pre-create the log file so the failure-path FAILED rename has
-    # something to rename even when the command produced no output
-    # (e.g. `bash -c 'exit 7'` — awk never sees an input line and
-    # never opens log_path on its side).
+    # Pre-create the log so the FAILED-rename path has something to
+    # rename when the command produces no output (e.g. `bash -c 'exit 7'`).
     : > "$log_path"
-    # Open the process substitution as fd 4 first so we can capture
-    # its pid in $! and `wait` for just that one (not the auto-mode
-    # wallclock timer which is also a background job). Without this,
-    # bare `wait` blocks until the timer's `sleep $auto_seconds`
-    # finishes — which is exactly what --auto was supposed to avoid
-    # for short commands.
+    # Open the awk process substitution as fd 4 so $! captures its pid
+    # for a targeted `wait` later (bare `wait` would also block on the
+    # wallclock timer).
     exec 4> >(awk -v line_thr="$auto_lines" \
                   -v lines_file="$auto_lines_file" \
                   -v tui_file="$auto_tui_file" \
@@ -430,16 +371,10 @@ if (( auto_mode )); then
         }')
     parent_pid=$$
     awk_pid=$!
-    # `4>&-` on the inner command closes fd 4 in the wrapped process
-    # before exec, so it isn't inherited by descendants. Without this,
-    # interactive-zsh helpers (gitstatus daemon, zsh-async workers)
-    # forked from `zsh -ic` keep fd 4 open after the user's command
-    # exits — they're reparented to systemd but retain the pipe
-    # writer end, blocking awk on EOF for several seconds. Result:
-    # `logrun --auto -c "sleep 6; date"` would idle ~4s after `date`
-    # printed, before the wallclock timer's 10s elapsed and we gave
-    # up. tee's own fd 4 (used by `tee /dev/fd/4`) is unaffected
-    # because the redirection only applies to "$@", not to tee.
+    # `4>&-` closes fd 4 in the wrapped process so descendants (notably
+    # zsh helpers like gitstatus / zsh-async) don't inherit it and
+    # block awk's EOF after we exit. tee's own fd 4 is unaffected —
+    # the redirection only applies to "$@". See AGENTS.md "fd 4 isolation".
     "$@" 2>&1 4>&- \
         | tee /dev/fd/4 \
         | eval "$decorator"

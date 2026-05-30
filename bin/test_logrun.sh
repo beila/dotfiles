@@ -314,10 +314,9 @@ JUSTFILE
 fi
 
 # -----------------------------------------------------------------------------
-# Case 15: --auto, short cmd → invisible (no banner, no log left behind)
-# --auto wraps in `script -qefc` for color/column support, which adds a
-# trailing \r before \n on every line (PTY canonical mode); strip it
-# before comparing so the test reflects what the user sees on a real tty.
+# Case 15: --auto, short cmd → invisible (no banner, no log left behind).
+# Strip \r from output: --auto's PTY wrap (canonical mode) adds \r before
+# every \n, harmless on a real tty but trips strict string equality.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
 out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" -- echo hello 2>"$d/stderr" | tr -d '\r')
@@ -488,26 +487,11 @@ if [[ -f "$log" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
-# Case 26: --auto -c short command does not hang on awk-EOF wait. Regression
-# for two related bugs that caused short --auto runs to feel like they
-# took the full $auto_seconds (default 10):
-#
-#   (a) Interactive zsh helpers (gitstatus daemon, zsh-async workers)
-#       forked from `zsh -ic` inherited fd 4 and kept the awk pipe
-#       writer open after the user's command exited. wait $awk_pid
-#       idled until those helpers self-terminated. Fix: `4>&-` on the
-#       inner command so fd 4 is closed before exec.
-#
-#   (b) The wallclock-timer subshell forked `sleep $auto_seconds` as
-#       a child. `kill $auto_timer_pid` only signaled the subshell,
-#       leaving sleep orphaned with the parent's stdout/stderr fds.
-#       When the parent's stdout was a pipe (`logrun … | cat`), the
-#       downstream reader sat idle until sleep finished. Fix: redirect
-#       the timer subshell's stdio to /dev/null so the orphaned sleep
-#       can't hold our pipes.
-#
-# Test both: bare run and piped run. Total wall time MUST stay under
-# 5s (generous bound — bug would push it to 7-10s).
+# Case 26: --auto short command does not hang on awk-EOF wait or on a pipe
+# reader. Regression for two related bugs (fd 4 leaked into zsh helpers,
+# wallclock-timer's orphan sleep held parent stdio); see AGENTS.md
+# "fd 4 isolation" and "Wallclock timer detached stdio". 5s bound is
+# generous — bug pushed it to 7-10s.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
 t0=$(date +%s)
@@ -524,12 +508,9 @@ check "case26b: sleep 1 + date completes in <5s (piped)" \
       "1" "$([ "$elapsed" -lt 5 ] && echo 1 || echo 0)"
 
 # -----------------------------------------------------------------------------
-# Case 27: --auto + --no-zshrc inherits the PTY wrapper, so color-aware
-# tools see a tty on stdout and emit ANSI. Without the wrapper, eza/ls
-# --color=auto/git etc. fall back to monochrome and single-column when
-# logrun pipes their output. We emit a fake ANSI sequence in a tiny
-# Python one-liner that only writes color when isatty(stdout)==True;
-# the captured stream MUST contain the escape byte.
+# Case 27: --auto + --no-zshrc still PTY-wraps the child, so isatty(stdout)
+# returns true inside it and color-aware tools (eza, ls --color=auto, git)
+# emit color + multi-column. Probe via Python's sys.stdout.isatty().
 # -----------------------------------------------------------------------------
 if command -v python3 >/dev/null 2>&1; then
     new_logdir; d=$LOG_DIR

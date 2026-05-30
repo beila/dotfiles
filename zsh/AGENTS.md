@@ -62,13 +62,11 @@ Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget r
 - **TUIs** (first word in `LOGRUN_TUI_SKIPLIST`) → no rewrite. Curses-style apps break under any stdout pipe; canonical list is in `home-manager.configsymlink/home.nix` so it tracks what's actually installed.
 - **`logrun` re-entry / `NOLOG=1` prefix** → no rewrite (idempotency / per-call opt-out).
 
-History: a `zshaddhistory` hook restores the user-typed buffer before zsh records the line, so `↑` recalls `gst` (not `logrun --auto --no-zshrc -- git status`).
-
-Display TODO: scrollback shows the rewritten `logrun --auto …` text on the command line, not what the user originally typed. A previous attempt added a `preexec` hook to repaint the line via `\e[F\e[2K${(%)PS1}<orig>` — but `${(%)PS1}` doesn't trigger powerlevel10k's deferred-render hooks, so unexpanded `${(_b)pm__l_…}` placeholders dumped to the terminal as raw text. Reverted; needs a prompt-system-aware redraw (e.g. ask p10k to re-render via its own API, or capture the rendered prompt at zle-line-init time).
+History: a `zshaddhistory` hook restores the user-typed buffer before zsh records the line, so `↑` recalls `gst` (not `logrun --auto --no-zshrc -- git status`). Side effect: the visible command line shown in scrollback above the output is the rewritten wrapper, not the original — copy-paste from scrollback is suboptimal but execution and history are correct.
 
 Composes correctly with `zsh-syntax-highlighting` and `zsh-autosuggestions`: those wrap `accept-line` themselves on load; the `zz-` filename prefix guarantees our widget loads after them so we run first and rewrite before they re-execute the saved chain.
 
-Test harness: `zsh/test_logrun-auto.sh` — 42 assertions: classifier (26), rewrite (9), history (2), end-to-end where the widget rewrites a buffer and we actually invoke the resulting `logrun --auto` command and observe behavior (6). Drive: `bash zsh/test_logrun-auto.sh`.
+Test harness: `zsh/test_logrun-auto.sh` — classifier, rewrite, history, end-to-end where the widget rewrites a buffer and we actually invoke the resulting `logrun --auto` command and observe behavior. Drive: `bash zsh/test_logrun-auto.sh`.
 
 ## Known issues
 
