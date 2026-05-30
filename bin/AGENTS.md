@@ -9,11 +9,13 @@
 Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--fail-suffix` (default `FAILED.txt`; empty disables rename), `-c`/`--command` (run via `bash -c`), `--auto`, `--no-zshrc`.
 
 `--auto` keeps logrun's chrome invisible until a threshold trips:
-- No startup `Log:` banner; decorator is pinned to `cat` (zero-overhead passthrough); the strip-ansi side-pipeline is replaced with an `awk` filter that counts lines and watches for alt-screen entry.
+- No startup `Log:` banner; decorator is pinned to `cat` (zero-overhead passthrough); the strip-ansi + line-count + alt-screen-detect awk filter sits inside the `tee >(…)` side-branch (NOT on the foreground side, where gawk's block-buffered stdin would delay the first line of `cmd1; sleep N; cmd2` until the sleep ends).
+- The foreground stream is plain `cmd | tee /dev/fd/4 | cat`, with the side awk attached to fd 4 — so the user sees output the instant the inner shell flushes it.
 - On either `≥LOGRUN_AUTO_SECONDS` (default 10s, wall-clock) or `≥LOGRUN_AUTO_LINES` (default 100) the parent prints `Log: <path>` to stderr exactly once. Threshold marker is a side-channel file (`/tmp/logrun-lines.*`), checked synchronously after the pipeline returns to bypass bash's async signal-trap timing.
 - On under-threshold + exit==0: log file is `rm -f`'d so the prompt looks identical to a bare command.
 - On exit≠0: failure always reveals — banner is reset and re-emitted with the post-rename `*.FAILED.txt` path so the user has the right path to debug.
 - Alt-screen detection: if the awk filter saw `\x1b[?1049h` AND the resolved command name isn't in `LOGRUN_TUI_SKIPLIST`, logrun emits one `logrun: '<cmd>' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST` line on exit. The escape bytes are stripped from the log either way.
+- **PTY layer for color** (`-c` / positional path only): in `--auto` mode the inner `zsh -ic '<body>'` is wrapped in `script -qefc` so the inner shell's stdout is a real PTY. Color-aware tools (`ls --color=auto`, `git`, `grep --color=auto`) inside the body see `isatty(stdout) == true` and emit color, which logrun then ferries through tee to the user's terminal. `script` is in util-linux (universal on Linux); if absent, falls back to bare `zsh -ic` and color is lost. The PTY's canonical mode adds `\r` before `\n`; the side awk strips it from the on-disk log so files match the non-PTY representation. Original command name is captured pre-rewrite so log filenames stay readable (e.g. `log-echo-hi-...txt`, not `log-script-qefc-zsh-ic-...`).
 
 `--no-zshrc` (paired with positional argv) makes logrun exec the command directly instead of via `zsh -ic`. The widget passes this for resolved external binaries to avoid ~800ms of zshrc replay per prompt. Aliases/functions wouldn't survive a fresh process anyway, so omitting `zsh -ic` is harmless for that case.
 

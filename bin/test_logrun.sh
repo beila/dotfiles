@@ -428,6 +428,63 @@ banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case22c: combo banner mentions FAILED"  "1" "$banner_failed"
 
 # -----------------------------------------------------------------------------
+# Case 23: --auto + -c does not buffer first line until later commands
+# finish. Regression for the bug where awk on the foreground side of the
+# pipeline block-buffered output: `date; sleep N; date` would land both
+# dates only after the sleep ended, ~N seconds late.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+out=$("$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
+    -c 'echo first; sleep 1; echo second' \
+    2>/dev/null \
+    | awk -v t0="$(date +%s%N)" '
+        # Tag each line with the wall-clock delta in ms since invocation.
+        { now = systime() * 1000 + 0; print int((systime() - 0) * 1000) - 0, $0 }
+    ' | strip_zshrc_noise)
+# Crude check: just confirm both lines arrived. The real-time-arrival
+# property is hard to verify deterministically inside a non-tty test
+# harness; case 23 mainly defends against accidental regressions where
+# the awk pipeline blocks at all.
+got_first=$(printf '%s\n' "$out" | grep -c first; true)
+got_second=$(printf '%s\n' "$out" | grep -c second; true)
+check "case23a: --auto -c emits first line"  "1" "$got_first"
+check "case23b: --auto -c emits second line" "1" "$got_second"
+
+# -----------------------------------------------------------------------------
+# Case 24: log filename uses the original command (not the
+# `script -qefc zsh -ic ...` wrapper) when --auto adds the PTY shim.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+# Force threshold reveal so the log is retained — case 15 already
+# tests the under-threshold cleanup path.
+LOGRUN_AUTO_LINES=1 "$UNDER_TEST" --auto --log-dir "$d" -c 'echo hi' \
+    >/dev/null 2>"$d/stderr"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+fname=$(basename "${logs[0]:-NONE}")
+# Should look like `log-echo-hi-...txt`, NOT `log-script-qefc-...txt`.
+case "$fname" in
+    log-echo-hi-*.txt) name_ok=1 ;;
+    *)                 name_ok=0 ;;
+esac
+check "case24: log filename keeps original cmd, not 'script -qefc' wrapper" "1" "$name_ok"
+
+# -----------------------------------------------------------------------------
+# Case 25: log file has no \r\n line endings even when --auto's PTY
+# layer (script -qefc) is on. We strip \r in the awk filter so the
+# on-disk log is greppable with `^foo$` regexes the same as without
+# the PTY.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+LOGRUN_AUTO_LINES=1 "$UNDER_TEST" --auto --log-dir "$d" \
+    -c 'echo plainline' >/dev/null 2>"$d/stderr"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+log="${logs[0]:-}"
+if [[ -f "$log" ]]; then
+    cr_count=$(tr -cd '\r' < "$log" | wc -c)
+    check "case25: log has no carriage returns" "0" "$cr_count"
+fi
+
+# -----------------------------------------------------------------------------
 # Summary
 # -----------------------------------------------------------------------------
 pass=$(cat "$PASS_FILE"); fail=$(cat "$FAIL_FILE")

@@ -86,6 +86,17 @@ else
 fi
 cmd_name="${cmd_name##*/}"
 
+# Capture original positional argv joined (used as the log-name default
+# when the caller didn't pass --name). This must run BEFORE the
+# `set -- script -qefc ...` rewrite below clobbers $@ with the PTY
+# wrapper invocation, otherwise the log filename would carry
+# "script-qefc-zsh-ic-..." instead of the user's actual command.
+if [[ $# -gt 0 ]]; then
+    orig_argv_joined="$*"
+else
+    orig_argv_joined=""
+fi
+
 # Decide how to run the wrapped command:
 #   --no-zshrc             → exec directly. Fastest, no shell startup
 #                            (widget uses this for plain externals).
@@ -155,12 +166,18 @@ fi
 if [[ -n "$log_path_explicit" ]]; then
     log_path="$log_path_explicit"
 else
-    # Derive a filesystem-safe name. If caller didn't pass --name, use the
-    # full argv joined. The sanitisation (replace whitespace/special chars
-    # with `-`, drop quotes, truncate to 200 chars) matches the existing
-    # justfile pattern.
+    # Derive a filesystem-safe name. If caller didn't pass --name, prefer
+    # the original command body (captured before we rewrote $@ to wrap
+    # in `script`/`zsh -ic`). Falls back to the live $* for legacy
+    # callers that bypass the captured forms.
     if [[ -z "$name" ]]; then
-        name="$*"
+        if [[ -n "$shell_cmd" ]]; then
+            name="$shell_cmd"
+        elif [[ -n "$orig_argv_joined" ]]; then
+            name="$orig_argv_joined"
+        else
+            name="$*"
+        fi
     fi
     sanitized="$name"
     sanitized=${sanitized//$'\n'/-}
@@ -374,6 +391,10 @@ if (( auto_mode )); then
             gsub(/\033\[[mGK]/, "")
             gsub(/\033\[\?1049[hl]/, "")
             gsub(/\033\[\?25[hl]/, "")
+            # script(1) adds \r before \n on every line because the
+            # PTY runs in canonical mode. Drop it from the log so the
+            # file matches the non-PTY representation.
+            sub(/\r$/, "")
             print > log_path
             fflush(log_path)
             if (!hit_lines && NR >= line_thr) {
