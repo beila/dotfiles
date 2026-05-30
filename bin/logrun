@@ -111,10 +111,28 @@ _logrun_pty_wrap() {
     fi
 }
 
+# Probe the controlling tty's size and emit a `stty` prefix that resizes
+# the PTY `script` will create. util-linux's `script` doesn't expose a
+# size flag and only inherits the size from its STDIN, but logrun's stdin
+# in the auto pipeline isn't always the user's tty (e.g. when invoked
+# from a wrapper or sub-shell). Without this, ls/eza/git inside the PTY
+# see the default 80x24 (or worse) and lay out content at the wrong
+# width. Emits an empty string when no tty is reachable.
+_logrun_pty_size_prefix() {
+    local sz
+    sz=$(stty size </dev/tty 2>/dev/null) || return
+    [[ -n "$sz" ]] || return
+    # sz is "ROWS COLS"; stty wants `rows R cols C`.
+    set -- $sz
+    [[ "$1" -gt 0 && "$2" -gt 0 ]] || return
+    printf 'stty rows %s cols %s 2>/dev/null; ' "$1" "$2"
+}
+
 if (( shell_mode )); then
     pty_prefix=$(_logrun_pty_wrap)
     if [[ -n "$pty_prefix" ]]; then
-        set -- script -qefc "zsh -ic $(printf '%q' "$shell_cmd")" /dev/null
+        sz=$(_logrun_pty_size_prefix)
+        set -- script -qefc "${sz}zsh -ic $(printf '%q' "$shell_cmd")" /dev/null
     else
         set -- zsh -ic "$shell_cmd"
     fi
@@ -126,7 +144,8 @@ elif [[ $# -gt 0 ]]; then
             for arg in "$@"; do
                 cmdline+=" $(printf '%q' "$arg")"
             done
-            set -- script -qefc "$cmdline" /dev/null
+            sz=$(_logrun_pty_size_prefix)
+            set -- script -qefc "${sz}${cmdline}" /dev/null
         fi
     else
         # printf %q quotes each arg so paths-with-spaces round-trip
@@ -137,7 +156,8 @@ elif [[ $# -gt 0 ]]; then
         done
         pty_prefix=$(_logrun_pty_wrap)
         if [[ -n "$pty_prefix" ]]; then
-            set -- script -qefc "zsh -ic $(printf '%q' "$cmdline")" /dev/null
+            sz=$(_logrun_pty_size_prefix)
+            set -- script -qefc "${sz}zsh -ic $(printf '%q' "$cmdline")" /dev/null
         else
             set -- zsh -ic "$cmdline"
         fi
