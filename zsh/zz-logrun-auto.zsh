@@ -59,19 +59,21 @@ _logrun_strip_env_prefix() {
 
 # Walk one level of alias expansion. Returns 0 if expansion happened
 # (and rewrites BUFFER to the expansion); 1 otherwise. Bounded by the
-# caller via a hop counter.
+# caller via a hop counter and by an "already-expanded" tracker that
+# matches zsh's own no-loop semantics.
 #
-# Self-referential aliases (e.g. `ls='ls --color=auto'`) terminate
-# correctly: when the expansion's first word equals the current first
-# word, we treat it as fully-expanded and stop. zsh itself does the
-# same — that's why typing `ls` doesn't loop forever.
+# Self-referential aliases (e.g. `ls='ls --color=auto'`) must substitute
+# exactly once — so the flags get injected — and then stop. Without the
+# tracker, we'd re-expand `ls` on every iteration and accumulate
+# `--color=auto` 8 times.
+typeset -gA _logrun_alias_seen
 _logrun_expand_alias() {
     local buf="${BUFFER-}"
     local first="${buf%%[[:space:]]*}"
+    [[ -n "${_logrun_alias_seen[$first]-}" ]] && return 1
     local expansion="${aliases[$first]-}"
     [[ -z "$expansion" ]] && return 1
-    local expanded_first="${expansion%%[[:space:]]*}"
-    [[ "$expanded_first" == "$first" ]] && return 1
+    _logrun_alias_seen[$first]=1
     local rest=""
     if [[ "$buf" = *[[:space:]]* ]]; then
         rest="${buf#*[[:space:]]}"
@@ -82,6 +84,44 @@ _logrun_expand_alias() {
         BUFFER="${expansion}"
     fi
     return 0
+}
+
+# Scan a buffer for shell metacharacters that are NOT inside single or
+# double quotes and NOT preceded by a backslash. Used to decide whether
+# to route the whole buffer through `logrun --auto -c` (real shell
+# parser) rather than treating it as a simple `cmd args...` invocation.
+#
+# Tracked metachars: ; | & < > ` newline, plus the digraph "$(".
+# We don't try to be a full lexer — we only need to distinguish "the
+# user typed a real shell operator" from "they typed `bat 'foo;bar'`".
+_logrun_has_unquoted_metachar() {
+    local s="$1" i=1 ch state="" len=${#s}
+    while (( i <= len )); do
+        ch="${s[i]}"
+        case "$state" in
+            "")
+                case "$ch" in
+                    \\) (( i += 2 )); continue ;;       # escaped char — skip pair
+                    \') state=sq ;;
+                    \") state=dq ;;
+                    ';'|'|'|'&'|'<'|'>'|'`'|$'\n') return 0 ;;
+                    '$')
+                        # "$(" is command substitution; "$x", "$1", etc. are not.
+                        (( i + 1 <= len )) && [[ "${s[i+1]}" == '(' ]] && return 0
+                        ;;
+                esac
+                ;;
+            sq) [[ "$ch" == \' ]] && state="" ;;
+            dq)
+                case "$ch" in
+                    \\) (( i += 2 )); continue ;;
+                    \") state="" ;;
+                esac
+                ;;
+        esac
+        (( i++ ))
+    done
+    return 1
 }
 
 # Decide what to do with the current $BUFFER. Sets `_logrun_decision`
@@ -106,14 +146,16 @@ _logrun_classify() {
     # through `logrun --auto -c` (slow path: zsh -ic) so every shell
     # operator works exactly as the user typed it. Skip alias
     # pre-expansion in this case — the inner shell does its own.
-    if [[ "$buf" == *[';|&<>'$'\n''`']* ]] || [[ "$buf" == *'$('* ]]; then
+    if _logrun_has_unquoted_metachar "$buf"; then
         _logrun_decision="function"
         _logrun_first="${buf%%[[:space:]]*}"
         return
     fi
 
-    # First word, post-alias-expansion (capped at 8 hops to stop runaway
-    # mutual aliases).
+    # First word, post-alias-expansion. The hop cap is a safety net; the
+    # real termination comes from _logrun_alias_seen (one substitution
+    # per alias name, mirroring zsh's own no-loop behavior).
+    _logrun_alias_seen=()
     local hops=0
     while (( hops < 8 )) && _logrun_expand_alias; do
         (( hops++ ))

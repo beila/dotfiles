@@ -18,6 +18,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
     - **Aliases**: pre-expanded in the parent zsh (string ops on `$aliases[$first]`, no fork). After expansion, dispatch as if the user typed the expansion. Cost: ~0ms in the parent.
     - **Functions**: opt-in via `LOGRUN_AUTO_FUNCTIONS`. The widget pre-populates this with the wrapper-style functions in `zsh/functions/` that shell out to long-running tools (`j n ji ni jr njr nijr sync-rsync sync-ssh docker_here docker_here_t docker_here_with_t`). Functions in the list go through `logrun --auto -c "$BUFFER"` (slow path, `zsh -ic`). Functions NOT in the list run unwrapped via normal zle dispatch. Short utility functions (`l`, `c`, `p`, `o`, jj wrappers like `ju`/`jda`/`jj`, git helpers) are intentionally absent. Append (don't overwrite) from `private-dotfiles/` for machine-specific entries: `LOGRUN_AUTO_FUNCTIONS+=( my_long_func )`.
     - **Builtins / reserved words / `cd`** (per `whence -w`): never wrapped — wrapping breaks parent-shell side effects (cwd changes, var exports, etc.).
+    - **Compound buffers** (containing `;`, `|`, `&&`, `||`, `>`, `<`, `` ` ``, `$(`, newline): routed to the slow path (`logrun --auto -c "$BUFFER"`) regardless of the first word. Trying to classify `ls; sleep 12; ls b*` by its first token fails (`ls;sleep` isn't a resolvable name); routing the whole buffer to a real shell parser via `-c` is the only correct option. Compound-command latency cost is acceptable because pipelines/sequences are rarely the per-prompt hot path.
   - **Existing wrappers**: drop the `logrun` call from the just `run` recipe (and any `j`/`n`/`jr`/`nijr` chain that calls it). With the widget as the single entry point, the recipe just `exec`s the command directly.
   - **TUI skiplist** (`LOGRUN_TUI_SKIPLIST`): hard-coded list of curses-style apps whose UI breaks under any stdout pipe. **Defined in home-manager** (single source of truth, version-controlled, machine-specific overrides possible) and exported into the shell as a zsh array. Defaults: `vim nvim view less more most htop btop top fzf ssh man watch lazygit ranger nano emacs tig ncdu tmux zellij zmx`. First-word match; skiplisted commands bypass the widget entirely.
   - **Unknown-TUI detection**: in `--auto` mode, the strip-ansi pass also looks for the alt-screen entry sequence `\x1b[?1049h`. If found AND the command name wasn't in `LOGRUN_TUI_SKIPLIST`, `logrun` prints once on exit: `logrun: '<cmd>' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST`. Bytes are stripped from the log either way.
@@ -58,6 +59,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] use zmx-select locally instead of zellij
   - zmx-select should be able to switch between machines, of course without blocking
   - can it switch between sessions as easily as zellij session manager?
+  - I like fzf-zellij. Can something similar be introduced?
 - [ ] replace absolute path from xfce settings
 - [ ] xdg-open fails to open html files due to container issue
 - [ ] detect if I'm in a meeting before `say` actually say something

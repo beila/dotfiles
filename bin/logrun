@@ -140,6 +140,12 @@ else
     sanitized=${sanitized//\*/-}
     sanitized=${sanitized//\$/-}
     sanitized=${sanitized//\\/-}
+    sanitized=${sanitized//;/-}
+    sanitized=${sanitized//(/-}
+    sanitized=${sanitized//)/-}
+    sanitized=${sanitized//</-}
+    sanitized=${sanitized//>/-}
+    sanitized=${sanitized//\`/-}
     sanitized=${sanitized//\'/}
     sanitized=${sanitized//\"/}
     sanitized=${sanitized:0:200}    # ext4/xfs filename limit is 255 bytes
