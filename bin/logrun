@@ -296,37 +296,70 @@ fi
 # parent on reaching $auto_lines) AND flags alt-screen entry by touching
 # $auto_tui_file.
 if (( auto_mode )); then
-    # In --auto mode, awk sits on the foreground side of the pipeline so
-    # it's part of the wait set (process substitutions are not waited
-    # on, which races with our marker-file checks). Stream contract:
-    #   cmd 2>&1 | tee >(strip > log) | awk-counter | cat
-    # awk passes lines through unchanged for the user; it only counts
-    # them and pokes side-channel files when thresholds trip. We use the
-    # same strip-ansi sed pass on the file-side as the non-auto path,
-    # so log contents stay identical between modes.
+    # --auto contract:
+    #   cmd 2>&1 | tee >(awk-analyze > log) | $decorator
+    #
+    # The user-visible stream goes through tee | $decorator (= cat in
+    # auto mode) and inherits whatever buffering tee/cat does on the
+    # tty side, which is line-buffered when stdout is a tty — so the
+    # first line of output appears immediately, before any later
+    # `sleep` blocks the second.
+    #
+    # The file-side process substitution does triple duty in one awk
+    # pass: strip ANSI for the on-disk log, count lines (signalling
+    # USR2 + writing the marker file once line_thr is crossed), and
+    # flag alt-screen entry into the TUI marker file.
+    #
+    # Why this layout vs. awk on the foreground side: gawk reads its
+    # stdin in block-buffered chunks even with `fflush()`, so an awk
+    # in the foreground would hold the first line until enough bytes
+    # accumulated — exactly the bug the user hit on `ls; sleep 12; ls`.
+    # On the side branch the user sees raw stdout right away.
     parent_pid=$$
+    # Pre-create the log file so the failure-path FAILED rename has
+    # something to rename even when the command produced no output
+    # (e.g. `bash -c 'exit 7'` — awk never sees an input line and
+    # never opens log_path on its side).
+    : > "$log_path"
+    # Open the process substitution as fd 4 first so we can capture
+    # its pid in $! and `wait` for just that one (not the auto-mode
+    # wallclock timer which is also a background job). Without this,
+    # bare `wait` blocks until the timer's `sleep $auto_seconds`
+    # finishes — which is exactly what --auto was supposed to avoid
+    # for short commands.
+    exec 4> >(awk -v line_thr="$auto_lines" \
+                  -v lines_file="$auto_lines_file" \
+                  -v tui_file="$auto_tui_file" \
+                  -v parent="$parent_pid" \
+                  -v log_path="$log_path" '
+        BEGIN { hit_lines=0; hit_tui=0 }
+        {
+            if (!hit_tui && index($0, "\033[?1049h") > 0) {
+                hit_tui=1
+                cmd = "touch " tui_file " 2>/dev/null"; system(cmd); close(cmd)
+            }
+            gsub(/\033\[[0-9]+(;[0-9]+)*;?[mGK]/, "")
+            gsub(/\033\[[mGK]/, "")
+            gsub(/\033\[\?1049[hl]/, "")
+            gsub(/\033\[\?25[hl]/, "")
+            print > log_path
+            fflush(log_path)
+            if (!hit_lines && NR >= line_thr) {
+                hit_lines=1
+                cmd = "printf lines >> " lines_file; system(cmd); close(cmd)
+                cmd = "kill -USR2 " parent " 2>/dev/null"; system(cmd); close(cmd)
+            }
+        }')
+    parent_pid=$$
+    awk_pid=$!
     "$@" 2>&1 \
-        | tee >("${strip_ansi[@]}" > "$log_path") \
-        | awk -v line_thr="$auto_lines" \
-              -v lines_file="$auto_lines_file" \
-              -v tui_file="$auto_tui_file" \
-              -v parent="$parent_pid" '
-            BEGIN { hit_lines=0; hit_tui=0 }
-            {
-                if (!hit_tui && index($0, "\033[?1049h") > 0) {
-                    hit_tui=1
-                    cmd = "touch " tui_file " 2>/dev/null"; system(cmd); close(cmd)
-                }
-                print
-                fflush()
-                if (!hit_lines && NR >= line_thr) {
-                    hit_lines=1
-                    cmd = "printf lines >> " lines_file; system(cmd); close(cmd)
-                    cmd = "kill -USR2 " parent " 2>/dev/null"; system(cmd); close(cmd)
-                }
-            }' \
+        | tee /dev/fd/4 \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}
+    # Close fd 4 so awk sees EOF and exits, then wait specifically for
+    # it. Targeted wait avoids blocking on the wallclock timer.
+    exec 4>&-
+    [[ -n "$awk_pid" ]] && wait "$awk_pid" 2>/dev/null
 else
     "$@" 2>&1 \
         | tee >("${strip_ansi[@]}" > "$log_path") \
