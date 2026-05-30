@@ -30,4 +30,4 @@ nix_develop_command() {
 }
 
 set -x
-time $(nix_develop_command) "$@"
+$(nix_develop_command) "$@"

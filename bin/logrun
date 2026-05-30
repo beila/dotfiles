@@ -382,7 +382,20 @@ if (( auto_mode )); then
     # Open the awk process substitution as fd 4 so $! captures its pid
     # for a targeted `wait` later (bare `wait` would also block on the
     # wallclock timer).
-    exec 4> >(awk -v line_thr="$auto_lines" \
+    # mawk (Debian default) block-buffers stdin in 4KB chunks, which
+    # delays threshold detection: with `echo a; echo b; sleep 3; echo done`
+    # (LOGRUN_AUTO_LINES=2), mawk wouldn't process the b that crosses the
+    # threshold until the post-sleep `done` brings the buffer to flush
+    # size. By then the pipeline has effectively ended and the decorator
+    # has already closed its stdin. `-W interactive` puts mawk in
+    # line-buffered mode. gawk doesn't need the flag (it's already
+    # line-buffered when stdin is a pipe), but the flag is a no-op there.
+    _awk_interactive=""
+    if awk --version 2>&1 | grep -q '^mawk'; then
+        _awk_interactive="-W interactive"
+    fi
+    exec 4> >(awk $_awk_interactive \
+                  -v line_thr="$auto_lines" \
                   -v lines_file="$auto_lines_file" \
                   -v shown_file="$auto_lines_file.shown" \
                   -v tui_file="$auto_tui_file" \
@@ -480,11 +493,16 @@ if (( auto_mode )); then
     fi
 
     # Alt-screen hint: we saw a TUI we don't know about. Print once so
-    # the user can tune LOGRUN_TUI_SKIPLIST.
+    # the user can tune LOGRUN_TUI_SKIPLIST. Suggests a copy-paste
+    # one-liner that sets the env var for the current shell — for
+    # persistence the user adds the name to home-manager.configsymlink/home.nix.
     if [[ -f "$auto_tui_file" && -n "$cmd_name" ]]; then
         skiplist=" ${LOGRUN_TUI_SKIPLIST:-} "
         if [[ "$skiplist" != *" $cmd_name "* ]]; then
-            echo "logrun: '$cmd_name' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST" >&2
+            {
+                echo "logrun: '$cmd_name' looks like a TUI (alt-screen detected). Skiplist:"
+                echo "    export LOGRUN_TUI_SKIPLIST=\"\${LOGRUN_TUI_SKIPLIST} $cmd_name\""
+            } >&2
         fi
     fi
 

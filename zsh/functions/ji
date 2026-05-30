@@ -24,4 +24,4 @@ nix_develop_command() {
 }
 
 set -x
-time $(nix_develop_command) just "$@"
+$(nix_develop_command) just "$@"

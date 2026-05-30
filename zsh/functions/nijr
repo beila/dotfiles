@@ -26,4 +26,4 @@ nix_develop_command() {
 }
 
 set -x
-time $(nix_develop_command) just --justfile ~/.justfile run "$@"
+$(nix_develop_command) just --justfile ~/.justfile run "$@"
