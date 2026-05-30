@@ -489,23 +489,38 @@ fi
 
 # -----------------------------------------------------------------------------
 # Case 26: --auto -c short command does not hang on awk-EOF wait. Regression
-# for the bug where interactive zsh helpers (gitstatus daemon, zsh-async
-# workers) forked from `zsh -ic` inherited fd 4 and kept the awk pipe
-# writer open after the user's command exited. The wait would then idle
-# until those helpers self-terminated (~5s) or the wallclock timer fired
-# (auto_seconds=10s). Fix: pass `4>&-` to the inner command so fd 4 is
-# closed before exec.
+# for two related bugs that caused short --auto runs to feel like they
+# took the full $auto_seconds (default 10):
 #
-# Test with auto_seconds=10 (default) and run `sleep 1; date`. Total
-# wall time MUST stay under 5s — generous bound that catches the bug
-# (which would push it to ~6s on this machine, ~10s under load) without
-# being flaky on slow CI.
+#   (a) Interactive zsh helpers (gitstatus daemon, zsh-async workers)
+#       forked from `zsh -ic` inherited fd 4 and kept the awk pipe
+#       writer open after the user's command exited. wait $awk_pid
+#       idled until those helpers self-terminated. Fix: `4>&-` on the
+#       inner command so fd 4 is closed before exec.
+#
+#   (b) The wallclock-timer subshell forked `sleep $auto_seconds` as
+#       a child. `kill $auto_timer_pid` only signaled the subshell,
+#       leaving sleep orphaned with the parent's stdout/stderr fds.
+#       When the parent's stdout was a pipe (`logrun … | cat`), the
+#       downstream reader sat idle until sleep finished. Fix: redirect
+#       the timer subshell's stdio to /dev/null so the orphaned sleep
+#       can't hold our pipes.
+#
+# Test both: bare run and piped run. Total wall time MUST stay under
+# 5s (generous bound — bug would push it to 7-10s).
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
 t0=$(date +%s)
 "$UNDER_TEST" --auto --log-dir "$d" -c 'sleep 1; date' >/dev/null 2>/dev/null
 elapsed=$(( $(date +%s) - t0 ))
-check "case26: sleep 1 + date completes in <5s" \
+check "case26a: sleep 1 + date completes in <5s (bare)" \
+      "1" "$([ "$elapsed" -lt 5 ] && echo 1 || echo 0)"
+
+new_logdir; d=$LOG_DIR
+t0=$(date +%s)
+"$UNDER_TEST" --auto --log-dir "$d" -c 'sleep 1; date' 2>/dev/null | cat >/dev/null
+elapsed=$(( $(date +%s) - t0 ))
+check "case26b: sleep 1 + date completes in <5s (piped)" \
       "1" "$([ "$elapsed" -lt 5 ] && echo 1 || echo 0)"
 
 # -----------------------------------------------------------------------------

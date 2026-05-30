@@ -64,9 +64,11 @@ Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget r
 
 History: a `zshaddhistory` hook restores the user-typed buffer before zsh records the line, so `↑` recalls `gst` (not `logrun --auto --no-zshrc -- git status`).
 
+Display TODO: scrollback shows the rewritten `logrun --auto …` text on the command line, not what the user originally typed. A previous attempt added a `preexec` hook to repaint the line via `\e[F\e[2K${(%)PS1}<orig>` — but `${(%)PS1}` doesn't trigger powerlevel10k's deferred-render hooks, so unexpanded `${(_b)pm__l_…}` placeholders dumped to the terminal as raw text. Reverted; needs a prompt-system-aware redraw (e.g. ask p10k to re-render via its own API, or capture the rendered prompt at zle-line-init time).
+
 Composes correctly with `zsh-syntax-highlighting` and `zsh-autosuggestions`: those wrap `accept-line` themselves on load; the `zz-` filename prefix guarantees our widget loads after them so we run first and rewrite before they re-execute the saved chain.
 
-Test harness: `zsh/test_logrun-auto.sh` — 35 assertions: classifier (15), rewrite (7), history (2), end-to-end where the widget rewrites a buffer and we actually invoke the resulting `logrun --auto` command and observe behavior (11). Drive: `bash zsh/test_logrun-auto.sh`.
+Test harness: `zsh/test_logrun-auto.sh` — 42 assertions: classifier (26), rewrite (9), history (2), end-to-end where the widget rewrites a buffer and we actually invoke the resulting `logrun --auto` command and observe behavior (6). Drive: `bash zsh/test_logrun-auto.sh`.
 
 ## Known issues
 

@@ -334,8 +334,19 @@ fi
 
 # In --auto mode, kick off the wall-clock timer that signals SIGUSR2 to
 # this script after $auto_seconds. The timer is reaped via the EXIT trap.
+#
+# `exec </dev/null >/dev/null 2>&1` inside the subshell detaches it
+# (and the `sleep` it forks) from the parent's stdio. Without this,
+# `kill $auto_timer_pid` only terminates the bash subshell — the inner
+# `sleep` keeps running as an orphan reparented to systemd, and it
+# still holds the parent's stdout/stderr fds. When the parent's stdout
+# is a pipe (e.g. `logrun … | cat`), the downstream reader sits idle
+# until the sleep finishes, making short --auto runs feel like they
+# took $auto_seconds. With stdio redirected to /dev/null, the orphan
+# can outlive us harmlessly.
 if (( auto_mode )); then
-    ( sleep "$auto_seconds" 2>/dev/null \
+    ( exec </dev/null >/dev/null 2>&1
+      sleep "$auto_seconds" \
         && echo "wallclock" >> "$auto_lines_file" \
         && kill -USR2 $$ 2>/dev/null ) &
     auto_timer_pid=$!

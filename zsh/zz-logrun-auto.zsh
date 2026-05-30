@@ -250,6 +250,17 @@ _logrun_auto_zshaddhistory() {
     return 0
 }
 
+# Note: a previous version added a preexec hook that tried to repaint
+# the displayed line with the user's original buffer (so terminal
+# scrollback shows `eza` instead of `logrun --auto --no-zshrc -- eza`).
+# The repaint used `${(%)PS1}` to re-render the prompt, which works for
+# simple prompts but fails for powerlevel10k — p10k builds the prompt
+# via deferred-render hooks that the (%) flag doesn't trigger, so
+# unexpanded `${(_b)pm__l_…}` placeholders dumped to the terminal as
+# raw text. Reverted; leaves the wrapper text in scrollback (cosmetic,
+# minor) until a robust prompt-aware redraw is figured out. Tracking
+# as TODO in bin/AGENTS.md.
+
 # ----------------------------------------------------------------- install
 # Only wire the widget / history hook into an interactive zle session.
 # Function definitions above are unconditional so non-interactive
