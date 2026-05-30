@@ -375,33 +375,61 @@ banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case18d: banner mentions FAILED.txt"    "1" "$banner_failed"
 
 # -----------------------------------------------------------------------------
-# Case 19: --auto + alt-screen entry → "looks like a TUI" hint
+# Case 19: --auto + alt-screen entry → hint printed AND command name
+# auto-appended to the user-skiplist file. Each subtest gets its own
+# LOGRUN_TUI_SKIPLIST_FILE under $TMPDIR so they don't pollute the
+# user's real ~/.config/logrun/tui-skiplist.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-"$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
-    -- bash -c $'printf "\e[?1049h"; echo hi' >/dev/null 2>"$d/stderr"
-hint_count=$(grep -c 'looks like a TUI' "$d/stderr" 2>/dev/null; true)
-check "case19a: alt-screen produces hint"      "1" "$hint_count"
+LOGRUN_TUI_SKIPLIST_FILE="$d/tui-skiplist" "$UNDER_TEST" --auto --no-zshrc \
+    --log-dir "$d" -- bash -c $'printf "\e[?1049h"; echo hi' \
+    >/dev/null 2>"$d/stderr"
+hint_count=$(grep -cE 'detected TUI|looks like a TUI' "$d/stderr" 2>/dev/null; true)
+check "case19a: alt-screen produces hint"          "1" "$hint_count"
+appended=$(grep -cx 'bash' "$d/tui-skiplist" 2>/dev/null; true)
+check "case19b: TUI auto-appended to skiplist file" "1" "$appended"
 # And the captured log should NOT contain the bare alt-screen sequence
 # (the auto-mode awk strips it).
 log=$(ls "$d"/log-*.txt 2>/dev/null | head -1)
 if [[ -f "$log" ]]; then
-    check_nogrep "case19b: alt-screen stripped from log" $'\033\\[\\?1049h' "$log"
+    check_nogrep "case19c: alt-screen stripped from log" $'\033\\[\\?1049h' "$log"
 else
     # Log was deleted (under threshold + zero exit) — still a pass for stripping.
-    printf 'PASS: %s\n' "case19b: alt-screen stripped from log (log already deleted)"
+    printf 'PASS: %s\n' "case19c: alt-screen stripped from log (log already deleted)"
     _bump "$PASS_FILE"
 fi
 
 # -----------------------------------------------------------------------------
-# Case 20: --auto + alt-screen, command IS in LOGRUN_TUI_SKIPLIST → no hint
+# Case 20: --auto + alt-screen, command IS in LOGRUN_TUI_SKIPLIST → no hint,
+# nothing appended.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-LOGRUN_TUI_SKIPLIST="bash other-tui" "$UNDER_TEST" --auto --no-zshrc \
-    --log-dir "$d" -- bash -c $'printf "\e[?1049h"; echo hi' \
+LOGRUN_TUI_SKIPLIST="bash other-tui" \
+LOGRUN_TUI_SKIPLIST_FILE="$d/tui-skiplist" \
+"$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
+    -- bash -c $'printf "\e[?1049h"; echo hi' \
     >/dev/null 2>"$d/stderr"
-hint_count=$(grep -c 'looks like a TUI' "$d/stderr" 2>/dev/null; true)
-check "case20: skiplisted TUI suppresses hint" "0" "$hint_count"
+hint_count=$(grep -cE 'detected TUI|looks like a TUI' "$d/stderr" 2>/dev/null; true)
+check "case20a: skiplisted TUI suppresses hint" "0" "$hint_count"
+[[ -f "$d/tui-skiplist" ]] && created=1 || created=0
+check "case20b: skiplisted TUI does not create file" "0" "$created"
+
+# -----------------------------------------------------------------------------
+# Case 20c: a name already present in the user-skiplist file is also
+# treated as known — second run of the same TUI does not duplicate the
+# entry and emits no second hint.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+LOGRUN_TUI_SKIPLIST_FILE="$d/tui-skiplist" "$UNDER_TEST" --auto --no-zshrc \
+    --log-dir "$d" -- bash -c $'printf "\e[?1049h"; echo first' \
+    >/dev/null 2>"$d/stderr1"
+LOGRUN_TUI_SKIPLIST_FILE="$d/tui-skiplist" "$UNDER_TEST" --auto --no-zshrc \
+    --log-dir "$d" -- bash -c $'printf "\e[?1049h"; echo second' \
+    >/dev/null 2>"$d/stderr2"
+appended=$(grep -cx 'bash' "$d/tui-skiplist" 2>/dev/null; true)
+check "case20c: second run does not duplicate entry" "1" "$appended"
+hint_count=$(grep -cE 'detected TUI|looks like a TUI' "$d/stderr2" 2>/dev/null; true)
+check "case20d: second run emits no hint"            "0" "$hint_count"
 
 # -----------------------------------------------------------------------------
 # Case 21: --no-zshrc fast path skips zsh startup. Verify by setting

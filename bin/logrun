@@ -493,14 +493,16 @@ if (( auto_mode )); then
     fi
 
     # Alt-screen hint: we saw a TUI we don't know about. Append it to
-    # the user-skiplist file (default ~/.config/logrun/tui-skiplist; the
-    # widget at zsh/zz-logrun-auto.zsh reads this on every prompt with an
-    # mtime-cache, so the next command sees the new entry without a shell
-    # restart). $LOGRUN_TUI_SKIPLIST stays the canonical machine-default
-    # source (set in home-manager); the file is the user-adjustable
-    # delta. The hint just confirms what we did.
+    # the user-skiplist file (default $HOME/.dotfiles/bin/logrun-tui-skiplist
+    # — kept inside the dotfiles repo so entries sync across machines via
+    # the same git/jj flow as everything else; .gitattributes maps it to
+    # `merge=union` so concurrent appends auto-merge). The widget at
+    # zsh/zz-logrun-auto.zsh reads it on every prompt with an mtime-cache,
+    # so the next command sees the new entry without a shell restart.
+    # $LOGRUN_TUI_SKIPLIST stays the canonical machine-default source
+    # (set in home-manager); the file is the cross-machine user delta.
     if [[ -f "$auto_tui_file" && -n "$cmd_name" ]]; then
-        skiplist_file="${LOGRUN_TUI_SKIPLIST_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/logrun/tui-skiplist}"
+        skiplist_file="${LOGRUN_TUI_SKIPLIST_FILE:-$HOME/.dotfiles/bin/logrun-tui-skiplist}"
         skiplist_env=" ${LOGRUN_TUI_SKIPLIST:-} "
         skiplist_user=""
         [[ -f "$skiplist_file" ]] && skiplist_user=" $(grep -v '^#' "$skiplist_file" 2>/dev/null | tr '\n' ' ') "

@@ -19,10 +19,12 @@
 #                                 home-manager.configsymlink/home.nix
 #                                 (tracks what's installed via nix).
 #   $LOGRUN_TUI_SKIPLIST_FILE     user delta, default
-#                                 ${XDG_CONFIG_HOME:-~/.config}/logrun/tui-skiplist.
-#                                 logrun auto-appends here when its
-#                                 alt-screen hint fires; the next prompt
-#                                 picks it up via _logrun_user_skiplist
+#                                 ~/.dotfiles/bin/logrun-tui-skiplist
+#                                 — committed to the dotfiles repo with
+#                                 .gitattributes `merge=union` so
+#                                 cross-machine appends auto-merge.
+#                                 logrun --auto auto-appends to it; the
+#                                 widget reads it via _logrun_user_skiplist
 #                                 (mtime-cached so no per-prompt I/O).
 #
 # Fallback below seeds $LOGRUN_TUI_SKIPLIST with the universal-distro TUIs
@@ -39,7 +41,7 @@ zmodload -F zsh/stat b:zstat 2>/dev/null
 typeset -g _logrun_user_skiplist_cache=""
 typeset -g _logrun_user_skiplist_mtime=""
 _logrun_user_skiplist() {
-    local f="${LOGRUN_TUI_SKIPLIST_FILE:-${XDG_CONFIG_HOME:-$HOME/.config}/logrun/tui-skiplist}"
+    local f="${LOGRUN_TUI_SKIPLIST_FILE:-$HOME/.dotfiles/bin/logrun-tui-skiplist}"
     if [[ ! -f "$f" ]]; then
         _logrun_user_skiplist_cache=""
         _logrun_user_skiplist_mtime=""

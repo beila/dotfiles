@@ -1,0 +1,5 @@
+# logrun TUI skiplist (auto-managed). One command name per line.
+# Appended to whenever `logrun --auto` detects an alt-screen TUI not
+# already in $LOGRUN_TUI_SKIPLIST or this file. .gitattributes maps this
+# path to `merge=union` so concurrent appends from multiple machines
+# auto-merge instead of conflicting.

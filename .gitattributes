@@ -1,0 +1,8 @@
+# bin/logrun-tui-skiplist is a per-user, per-machine append-only list:
+# logrun appends a new line whenever it detects an unknown TUI (alt-screen
+# escape sequence). Different machines append different names; we want
+# the union of all entries on merge, never a "manual conflict resolution"
+# step. `merge=union` is a git built-in; resolve-by-attrs (script/bin/)
+# applies the same semantics to jj's conflict format so sync_repo can
+# auto-resolve.
+bin/logrun-tui-skiplist merge=union

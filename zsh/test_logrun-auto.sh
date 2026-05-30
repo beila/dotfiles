@@ -68,6 +68,19 @@ _check "classify: TUI less"                  "skip"       "$(_classify 'less foo
 _check "classify: TUI ssh"                   "skip"       "$(_classify 'ssh host')"
 _check "classify: TUI man"                   "skip"       "$(_classify 'man bash')"
 
+# User-skiplist file: an entry there should classify-as-skip just like
+# entries in $LOGRUN_TUI_SKIPLIST. The reader strips lines starting with
+# `#` so the auto-managed file's header comment doesn't accidentally
+# skiplist a literal "#" command.
+_TUI_FILE=$(mktemp /tmp/test_logrun-auto-tuifile.XXXXXX)
+print -r -- "myfancytui" > "$_TUI_FILE"
+LOGRUN_TUI_SKIPLIST_FILE="$_TUI_FILE" \
+    _check "classify: TUI from user file"     "skip"   "$(_classify 'myfancytui --start')"
+rm -f "$_TUI_FILE"
+# Reset memoised cache so the next classify calls don't see the deleted file.
+_logrun_user_skiplist_cache=""
+_logrun_user_skiplist_mtime=""
+
 # Compound buffers route to `function` (logrun --auto -c) so the inner
 # zsh parses the whole script body, including operators.
 _check "classify: pipeline"                  "function"   "$(_classify 'ls | wc -l')"
