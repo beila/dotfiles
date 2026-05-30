@@ -7,9 +7,14 @@ sends SIGUSR2 when it crosses --auto's line/wallclock threshold. Until
 that signal arrives we behave as plain `cat`.
 
 Activated mode behavior (after SIGUSR2):
-  - prints a thin "──────── HH:MM:SS" line each time stdout has been
-    silent for `--after` seconds (default 1.0), in dim grey + right-
-    aligned timestamp; mimics `spacer --right --force-color`.
+  - prints a thin "──── HH:MM:SS Xs" line each time stdout has been
+    silent for `--after` seconds (default 1.0). Format mirrors
+    `spacer --right --force-color` minus the date (always today in an
+    interactive run, so it's just noise): dim dashes (left), yellow
+    time, blue elapsed-since-previous-spacer (right). The elapsed
+    value is wall time since the last spacer line (or program start),
+    per spacer's source — NOT the just-finished idle gap; it shows
+    you how long it's been since you last saw activity flagged.
   - lightweight idle indicator on stderr ("idle 5s", overwriting in
     place) when no output for `--idle` seconds (default 3); cleared on
     next byte. Mimics `watchlog`.
@@ -39,8 +44,15 @@ PARSER.add_argument("--activate-when-exists",
                          "Equivalent to receiving SIGUSR2.")
 args = PARSER.parse_args()
 
-DIM = "" if args.no_color else "\x1b[2m"
-RESET = "" if args.no_color else "\x1b[0m"
+def _ansi(code: str) -> str:
+    return "" if args.no_color else f"\x1b[{code}m"
+
+
+DIM = _ansi("2")
+RESET = _ansi("0")
+YELLOW = _ansi("33")  # time
+BLUE = _ansi("34")  # elapsed
+DEFAULT_FG = _ansi("39")
 ERASE_LINE = "\x1b[2K\r"
 
 _active = False
@@ -61,11 +73,45 @@ def _term_width():
         return 80
 
 
-def _spacer_line():
+def _format_elapsed(seconds: float) -> str:
+    # Match spacer's format: under a minute → "1.5s", at-or-over → "1m 5s",
+    # at-or-over hour → "1h 5m 30s". Spacer omits sub-second elapsed
+    # entirely (we suppress in the caller).
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    if seconds < 3600:
+        m, s = divmod(int(seconds), 60)
+        return f"{m}m {s}s"
+    h, rem = divmod(int(seconds), 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}h {m}m {s}s"
+
+
+_ELAPSED_WIDTH = 9  # fits "1h 5m 30s" — the widest format we emit
+
+
+def _spacer_line(elapsed: float):
+    # Layout: dim dashes (left) · yellow time · blue elapsed (right). Date
+    # is omitted — always today in interactive runs, just noise. Elapsed
+    # is right-justified in a fixed 9-char slot so the time column lines
+    # up across spacer lines regardless of elapsed's natural length.
     cols = _term_width()
-    ts = time.strftime("%H:%M:%S")
-    dashes = max(1, cols - len(ts) - 1)
-    sys.stdout.write(f"{DIM}{'─' * dashes} {ts}{RESET}\n")
+    time_str = time.strftime("%H:%M:%S")
+    elapsed_raw = _format_elapsed(elapsed) if elapsed > 0.1 else ""
+    elapsed_padded = elapsed_raw.rjust(_ELAPSED_WIDTH)
+    # Always reserve the elapsed slot so the time column doesn't shift
+    # on lines where elapsed was suppressed (sub-0.1s gap).
+    tail_visible = f"{time_str} {elapsed_padded}"
+    dashes = max(1, cols - len(tail_visible) - 1)
+    if elapsed_raw:
+        tail_colored = (
+            f"{YELLOW}{time_str}{DEFAULT_FG} "
+            f"{BLUE}{elapsed_padded}{DEFAULT_FG}"
+        )
+    else:
+        # Pad with plain spaces; no color escapes so the slot stays empty.
+        tail_colored = f"{YELLOW}{time_str}{DEFAULT_FG} {' ' * _ELAPSED_WIDTH}"
+    sys.stdout.write(f"{DIM}{'─' * dashes}{RESET} {tail_colored}\n")
     sys.stdout.flush()
 
 
@@ -82,7 +128,9 @@ def _idle_clear():
 def main():
     global _active
     stdin_fd = sys.stdin.fileno()
-    last_output = time.monotonic()
+    start = time.monotonic()
+    last_output = start
+    last_spacer = start  # for the "elapsed since last spacer" value
     spacer_pending = False
     idle_shown = False
     marker = args.activate_when_exists
@@ -118,7 +166,8 @@ def main():
         # Print a spacer line once after the gap crosses --after, but only
         # when there's been output since the last spacer.
         if spacer_pending and idle_for >= args.after:
-            _spacer_line()
+            _spacer_line(now - last_spacer)
+            last_spacer = now
             spacer_pending = False
             last_output = now  # reset so the indicator timer doesn't double-count
             continue
