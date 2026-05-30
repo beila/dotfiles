@@ -20,11 +20,12 @@
 #   --fail-suffix EXT    Rename log to "<name>.${EXT}" on non-zero exit
 #                        (default: "FAILED.txt"). Empty disables.
 #   --auto               Stay invisible until threshold is crossed (no startup
-#                        banner; decorator=cat; output passes through). On
+#                        banner; decorator is plain passthrough). On
 #                        ≥LOGRUN_AUTO_SECONDS (10) wall-clock OR ≥LOGRUN_AUTO_LINES
 #                        (100) output lines, print "Log: <path>" to stderr and
-#                        switch to spacer+watchlog. If neither tripped and exit
-#                        code is 0, the log file is removed on exit.
+#                        the decorator (bin/logrun-decorator) starts emitting
+#                        idle indicators. If neither tripped and exit code is 0,
+#                        the log file is removed on exit.
 #   --no-zshrc           With positional argv, exec the command directly
 #                        instead of via `zsh -ic`. Skips ~800ms zshrc startup
 #                        for plain externals (the widget passes this).
@@ -40,6 +41,12 @@
 #   LOGRUN_TUI_SKIPLIST  Space-separated TUI command names; if --auto is set
 #                        and the captured log shows alt-screen entry from a
 #                        command not in this list, print a hint to add it.
+#
+# Per-call opt-out: prefix the prompt command with `NOLOG=1` (e.g.
+# `NOLOG=1 my-cmd`). That's interpreted by the zsh accept-line widget at
+# zsh/zz-logrun-auto.zsh, NOT by logrun itself — logrun has no NOLOG
+# handling because by the time logrun is invoked, the user already wanted
+# logging. See zsh/AGENTS.md "logrun-auto widget".
 #
 # Exit status: the wrapped command's exit status.
 set -uo pipefail
@@ -277,8 +284,15 @@ fi
 strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g')
 
 _logrun_on_reveal() {
-    [[ -e "$auto_lines_file.shown" ]] && return
-    : > "$auto_lines_file.shown"
+    # Two markers, two purposes:
+    #   "$auto_lines_file.shown"   touched by awk/timer so logrun-decorator
+    #                              activates mid-run (synchronous; can't wait
+    #                              for the deferred USR2 trap below).
+    #   "$auto_lines_file.banner"  this trap's once-flag; controls whether
+    #                              we've already emitted the "Log:" line.
+    [[ -e "$auto_lines_file.banner" ]] && return
+    : > "$auto_lines_file.banner"
+    : > "$auto_lines_file.shown"   # idempotent; in case awk hasn't run
     echo "Log: $log_path" >&2
 }
 # Use a marker file rather than a shell variable for the "did we reveal?"
@@ -303,7 +317,7 @@ export LOGRUN_PID=$$
 export LOGRUN_MOVE_FILE
 # Clean side-channel files on exit. The auto_lines_file/auto_tui_file are
 # empty strings outside --auto mode so `rm -f ""` is a no-op.
-trap 'rm -f "$LOGRUN_MOVE_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_tui_file"; \
+trap 'rm -f "$LOGRUN_MOVE_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_lines_file.banner" "$auto_tui_file"; \
       [[ -n "$auto_timer_pid" ]] && kill "$auto_timer_pid" 2>/dev/null; :' EXIT
 
 _logrun_on_move() {
@@ -340,6 +354,7 @@ if (( auto_mode )); then
     ( exec </dev/null >/dev/null 2>&1
       sleep "$auto_seconds" \
         && echo "wallclock" >> "$auto_lines_file" \
+        && touch "$auto_lines_file.shown" 2>/dev/null \
         && kill -USR2 $$ 2>/dev/null ) &
     auto_timer_pid=$!
 fi
@@ -369,6 +384,7 @@ if (( auto_mode )); then
     # wallclock timer).
     exec 4> >(awk -v line_thr="$auto_lines" \
                   -v lines_file="$auto_lines_file" \
+                  -v shown_file="$auto_lines_file.shown" \
                   -v tui_file="$auto_tui_file" \
                   -v parent="$parent_pid" \
                   -v log_path="$log_path" '
@@ -390,6 +406,12 @@ if (( auto_mode )); then
             fflush(log_path)
             if (!hit_lines && NR >= line_thr) {
                 hit_lines=1
+                # Touch the .shown marker IMMEDIATELY so logrun-decorator
+                # (which polls it) activates mid-run. The parent USR2 trap
+                # also touches it, but bash defers the trap until the
+                # foreground pipeline returns — way too late for the
+                # decorator, which has already closed its stdin by then.
+                cmd = "touch " shown_file " 2>/dev/null"; system(cmd); close(cmd)
                 cmd = "printf lines >> " lines_file; system(cmd); close(cmd)
                 cmd = "kill -USR2 " parent " 2>/dev/null"; system(cmd); close(cmd)
             }
@@ -442,7 +464,7 @@ if (( auto_mode )); then
         # path, label the second banner as a rename so the user doesn't
         # think two separate logs were created. If no in-run banner
         # printed yet, just print the normal "Log:" line.
-        if [[ -e "$auto_lines_file.shown" ]]; then
+        if [[ -e "$auto_lines_file.banner" ]]; then
             echo "Log renamed: $log_path" >&2
         else
             _logrun_on_reveal
