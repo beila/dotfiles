@@ -36,7 +36,6 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - zmx-select should be able to switch between machines, of course without blocking
   - can it switch between sessions as easily as zellij session manager?
   - I like fzf-zellij. Can something similar be introduced?
-- [ ] replace absolute path from xfce settings
 - [ ] xdg-open fails to open html files due to container issue
 - [ ] detect if I'm in a meeting before `say` actually say something
 
