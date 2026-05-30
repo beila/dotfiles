@@ -74,20 +74,22 @@ def _term_width():
 
 
 def _format_elapsed(seconds: float) -> str:
-    # Match spacer's format: under a minute → "1.5s", at-or-over → "1m 5s",
-    # at-or-over hour → "1h 5m 30s". Spacer omits sub-second elapsed
-    # entirely (we suppress in the caller).
+    # Compact, fixed-max-width formats so the time column aligns:
+    #   < 60s   "1.5s" / "59.9s"      (≤ 5 chars)
+    #   < 1h    "1m05s"               (5 chars; minutes 0-pad seconds)
+    #   ≥ 1h    "1h05m"               (5 chars; drop seconds — at this
+    #                                  scale, second-precision is noise)
     if seconds < 60:
         return f"{seconds:.1f}s"
     if seconds < 3600:
         m, s = divmod(int(seconds), 60)
-        return f"{m}m {s}s"
+        return f"{m}m{s:02d}s"
     h, rem = divmod(int(seconds), 3600)
-    m, s = divmod(rem, 60)
-    return f"{h}h {m}m {s}s"
+    m, _ = divmod(rem, 60)
+    return f"{h}h{m:02d}m"
 
 
-_ELAPSED_WIDTH = 9  # fits "1h 5m 30s" — the widest format we emit
+_ELAPSED_WIDTH = 5  # fits "59.9s", "9m59s", "9h59m" — practical ceiling
 
 
 def _spacer_line(elapsed: float):
