@@ -76,7 +76,22 @@ _check "classify: AND-chain"                 "function"   "$(_classify 'make && 
 _check "classify: OR-chain"                  "function"   "$(_classify 'make || echo failed')"
 _check "classify: redirect"                  "function"   "$(_classify 'ls > /tmp/out')"
 _check "classify: command substitution"      "function"   "$(_classify 'echo $(date)')"
-_check "classify: backtick substitution"     "function"   "$(_classify 'echo \`date\`')"
+# Bare backticks (no escapes) — real command substitution → compound.
+_check "classify: backtick substitution"     "function"   "$(_classify 'cat `date`')"
+
+# Metacharacters inside quotes are NOT operators; the buffer should be
+# treated as a normal `cmd args...` invocation. Without quote-aware
+# scanning, `bat 'foo;bar.txt'` would wrongly route through `-c` and
+# logrun would also end up with `;` baked into the log filename.
+# (Uses `bat`/`grep`/`cat` because zsh's `echo` is a builtin → classify
+# always says skip for those, regardless of arg quoting.)
+_check "classify: ';' inside single quotes"  "external"   "$(_classify "bat 'foo;bar.txt'")"
+_check "classify: '|' inside single quotes"  "external"   "$(_classify "grep 'a|b' file")"
+_check "classify: '\$(' inside single quotes" "external"  "$(_classify "grep 'a\$(b)c' file")"
+_check "classify: '&' inside double quotes"  "external"   "$(_classify 'cat "a&b"')"
+_check "classify: '\`' inside single quotes" "external"   "$(_classify "grep 'a\`b' file")"
+# Backslash-escaped metachar in unquoted context is also NOT an operator.
+_check "classify: backslash-escaped ';'"     "external"   "$(_classify 'grep a\;b file')"
 _check "classify: logrun re-entry"           "skip"       "$(_classify 'logrun ls')"
 _check "classify: NOLOG opt-out"             "skip"       "$(_classify 'NOLOG=1 sleep 30')"
 _check "classify: empty buffer"              "skip"       "$(_classify '')"

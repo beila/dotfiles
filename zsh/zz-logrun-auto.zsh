@@ -95,7 +95,13 @@ _logrun_expand_alias() {
 # We don't try to be a full lexer — we only need to distinguish "the
 # user typed a real shell operator" from "they typed `bat 'foo;bar'`".
 _logrun_has_unquoted_metachar() {
-    local s="$1" i=1 ch state="" len=${#s}
+    # Don't combine these into one `local` statement: zsh evaluates
+    # right-hand-sides left-to-right but the parameter substitution
+    # `${#s}` reads the OLD value of $s (before this `local`'s
+    # assignment to s takes effect), giving 0. Splitting the assignment
+    # makes len reflect the just-set s.
+    local s="$1"
+    local i=1 ch state="" len=${#s}
     while (( i <= len )); do
         ch="${s[i]}"
         case "$state" in

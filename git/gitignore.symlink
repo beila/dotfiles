@@ -14,3 +14,5 @@ CMakeUserPresets.json
 .jj/
 __cmake_systeminformation
 .claude/settings.local.json
+# Per-repo scratch dir for AI-agent temporary work (see steering rule).
+/tmp/
