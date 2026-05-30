@@ -60,16 +60,22 @@ _logrun_strip_env_prefix() {
 # Walk one level of alias expansion. Returns 0 if expansion happened
 # (and rewrites BUFFER to the expansion); 1 otherwise. Bounded by the
 # caller via a hop counter.
+#
+# Self-referential aliases (e.g. `ls='ls --color=auto'`) terminate
+# correctly: when the expansion's first word equals the current first
+# word, we treat it as fully-expanded and stop. zsh itself does the
+# same — that's why typing `ls` doesn't loop forever.
 _logrun_expand_alias() {
     local buf="${BUFFER-}"
-    # Split on first run of whitespace; handles spaces and tabs.
     local first="${buf%%[[:space:]]*}"
+    local expansion="${aliases[$first]-}"
+    [[ -z "$expansion" ]] && return 1
+    local expanded_first="${expansion%%[[:space:]]*}"
+    [[ "$expanded_first" == "$first" ]] && return 1
     local rest=""
     if [[ "$buf" = *[[:space:]]* ]]; then
         rest="${buf#*[[:space:]]}"
     fi
-    local expansion="${aliases[$first]-}"
-    [[ -z "$expansion" ]] && return 1
     if [[ -n "$rest" ]]; then
         BUFFER="${expansion} ${rest}"
     else
@@ -91,6 +97,18 @@ _logrun_classify() {
 
     # NOLOG=1 ... → opt-out.
     if [[ "$buf" == NOLOG=* ]] || [[ "$buf" == *' NOLOG='* ]]; then
+        return
+    fi
+
+    # Compound commands (pipelines, &&/||, redirects, command-substitution,
+    # sequences, multi-line) can't be classified by their first word and
+    # must run through a real shell parser. Route the whole buffer
+    # through `logrun --auto -c` (slow path: zsh -ic) so every shell
+    # operator works exactly as the user typed it. Skip alias
+    # pre-expansion in this case — the inner shell does its own.
+    if [[ "$buf" == *[';|&<>'$'\n''`']* ]] || [[ "$buf" == *'$('* ]]; then
+        _logrun_decision="function"
+        _logrun_first="${buf%%[[:space:]]*}"
         return
     fi
 

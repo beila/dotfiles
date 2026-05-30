@@ -61,6 +61,20 @@ check_file_exists() {
 # it explicitly where we want to suppress auto-detect behaviour under test.
 BASE_FLAGS=(--decorator cat)
 
+# Strip the user's interactive-zshrc init noise. logrun's positional and
+# `-c` paths run the wrapped command via `zsh -ic '...'` so user aliases
+# and functions resolve. On a real interactive shell that's silent, but
+# under `bash -c "$(zsh -ic …)"` (which the harness ends up doing
+# implicitly) the prompt/gitstatus/zle plugins don't have a tty and
+# print warnings into the captured stream — drowning the actual command
+# output. The test_fzf-tab.sh harness uses the same filter for the same
+# reason.
+strip_zshrc_noise() {
+    # -i so case 9's `tr a-z A-Z` decorator (which uppercases everything,
+    # including the init-noise lines) still gets filtered.
+    grep -ivE "can't change option: (zle|monitor)|gitstatus failed|Add the following|GITSTATUS_LOG_LEVEL|Restart Zsh|exec.*zsh|^[[:space:]]*\$"
+}
+
 run_count=0
 new_logdir() {
     # Assign to a global instead of echoing — `d=$(new_logdir)` would run
@@ -75,8 +89,8 @@ new_logdir() {
 # Case 1: basic run — output goes to both stdout and a file; exit status 0
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-out=$("$UNDER_TEST" "${BASE_FLAGS[@]}" --log-dir "$d" -- echo "hello world" 2>"$d/stderr")
-rc=$?
+out=$("$UNDER_TEST" "${BASE_FLAGS[@]}" --log-dir "$d" -- echo "hello world" 2>"$d/stderr" | strip_zshrc_noise)
+rc=${PIPESTATUS[0]}
 check "case1: exit status 0"        "0"              "$rc"
 check "case1: decorated stdout"     "hello world"    "$out"
 log=$(ls "$d"/log-*.txt 2>/dev/null | head -1)
@@ -118,7 +132,7 @@ check "case3b: empty fail-suffix keeps .txt"   "1" "$plain"
 # Case 4: -c / --command shell mode
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-out=$("$UNDER_TEST" "${BASE_FLAGS[@]}" --name shelly --log-dir "$d" -c 'echo A; echo B' 2>/dev/null)
+out=$("$UNDER_TEST" "${BASE_FLAGS[@]}" --name shelly --log-dir "$d" -c 'echo A; echo B' 2>/dev/null | strip_zshrc_noise)
 check "case4a: shell mode output lines"        $'A\nB' "$out"
 log=$(ls "$d"/log-shelly-*.txt 2>/dev/null | head -1)
 check_file_exists "case4b: --name used in filename" "$log"
@@ -132,7 +146,7 @@ new_logdir; d=$LOG_DIR
 # \e[31m...\e[0m must appear on the tty (decorator=cat passes it through) but
 # must NOT appear in the log file.
 out=$("$UNDER_TEST" "${BASE_FLAGS[@]}" --name ansi --log-dir "$d" \
-    -c 'printf "\e[31mRED\e[0m plain\n"' 2>/dev/null)
+    -c 'printf "\e[31mRED\e[0m plain\n"' 2>/dev/null | strip_zshrc_noise)
 check "case5a: decorated stream retains ANSI"  $'\e[31mRED\e[0m plain' "$out"
 log=$(ls "$d"/log-ansi-*.txt 2>/dev/null | head -1)
 check_grep        "case5b: log has stripped text"       "^RED plain\$" "$log"
@@ -177,7 +191,7 @@ check "case8b: long name truncated"            "1" "$([ "${#fname}" -le 255 ] &&
 # Case 9: --decorator custom pipeline transforms live stream
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-out=$("$UNDER_TEST" --log-dir "$d" --decorator 'tr a-z A-Z' --name deco -c 'echo hello' 2>/dev/null)
+out=$("$UNDER_TEST" --log-dir "$d" --decorator 'tr a-z A-Z' --name deco -c 'echo hello' 2>/dev/null | strip_zshrc_noise)
 check "case9a: custom decorator applied"       "HELLO" "$out"
 # The log itself should be untouched (decorator only affects the displayed copy).
 log=$(ls "$d"/log-deco-*.txt | head -1)

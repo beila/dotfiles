@@ -63,6 +63,16 @@ _check "classify: reserved for"              "skip"       "$(_classify 'for i in
 _check "classify: TUI less"                  "skip"       "$(_classify 'less foo.txt')"
 _check "classify: TUI ssh"                   "skip"       "$(_classify 'ssh host')"
 _check "classify: TUI man"                   "skip"       "$(_classify 'man bash')"
+
+# Compound buffers route to `function` (logrun --auto -c) so the inner
+# zsh parses the whole script body, including operators.
+_check "classify: pipeline"                  "function"   "$(_classify 'ls | wc -l')"
+_check "classify: sequence"                  "function"   "$(_classify 'ls; sleep 12; ls')"
+_check "classify: AND-chain"                 "function"   "$(_classify 'make && ./run')"
+_check "classify: OR-chain"                  "function"   "$(_classify 'make || echo failed')"
+_check "classify: redirect"                  "function"   "$(_classify 'ls > /tmp/out')"
+_check "classify: command substitution"      "function"   "$(_classify 'echo $(date)')"
+_check "classify: backtick substitution"     "function"   "$(_classify 'echo \`date\`')"
 _check "classify: logrun re-entry"           "skip"       "$(_classify 'logrun ls')"
 _check "classify: NOLOG opt-out"             "skip"       "$(_classify 'NOLOG=1 sleep 30')"
 _check "classify: empty buffer"              "skip"       "$(_classify '')"
@@ -77,6 +87,19 @@ _rewrite() {
 }
 _check "rewrite: external"          "logrun --auto --no-zshrc -- ls -la"      "$(_rewrite 'ls -la')"
 _check "rewrite: alias->external"   "logrun --auto --no-zshrc -- git status"  "$(_rewrite 'gst')"
+
+# Self-referential alias (`ls='ls --color=auto'`) used to expand 8 times
+# until the hop cap kicked in, repeating the flags. Must terminate at
+# fixed point and inject the flags exactly once.
+alias ls_self='ls_self --group-directories-first --color=auto'
+_check "rewrite: self-referential alias once" \
+    "logrun --auto --no-zshrc -- ls_self --group-directories-first --color=auto a*" \
+    "$(_rewrite 'ls_self a*')"
+unalias ls_self
+
+# Compound buffer wraps via `-c` (the inner shell handles operators).
+_check "rewrite: pipeline via -c"   "logrun --auto -c 'ls | wc -l'"           "$(_rewrite 'ls | wc -l')"
+_check "rewrite: sequence via -c"   "logrun --auto -c 'ls; sleep 1; ls'"      "$(_rewrite 'ls; sleep 1; ls')"
 _check "rewrite: function in list"  "logrun --auto -c my_long_func"           "$(_rewrite 'my_long_func')"
 _check "rewrite: function not list" "gco main"                                "$(_rewrite 'gco main')"
 _check "rewrite: TUI"               "less foo.txt"                            "$(_rewrite 'less foo.txt')"
