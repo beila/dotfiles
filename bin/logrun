@@ -201,9 +201,9 @@ fi
 
 # ------------------------------------------------------------------- decorator
 # spacer inserts a visual break when output stops; watchlog adds a
-# "time since last output" indicator when a command goes idle. Both
-# implement their own periodic timers, so they only print under interesting
-# conditions — running them on short --auto commands is harmless.
+# "time since last output" indicator when a command goes idle. spacer's
+# main loop ticks once per `--after` (default 1s), so even short commands
+# pay a ~1s tail at end-of-stream. Set LOGRUN_DECORATOR=cat to opt out.
 if [[ -z "$decorator" ]]; then
     if [[ -n "${LOGRUN_DECORATOR:-}" ]]; then
         decorator="$LOGRUN_DECORATOR"
