@@ -86,13 +86,40 @@ else
 fi
 cmd_name="${cmd_name##*/}"
 
+# Decide how to run the wrapped command:
+#   --no-zshrc             → exec directly. Fastest, no shell startup
+#                            (widget uses this for plain externals).
+#   shell_mode (-c body)   → run via `zsh -ic 'body'` so the user's
+#                            aliases/functions resolve. In --auto mode
+#                            we additionally wrap in `script -qefc` so
+#                            the inner zsh's stdout is a PTY — that way
+#                            color-aware tools (`ls --color=auto`,
+#                            `git`, `grep --color=auto`) emit colour
+#                            because their isatty(stdout) check inside
+#                            the body sees a real tty, not logrun's
+#                            tee pipe. util-linux script is universal
+#                            on Linux; if absent, fall back to bare
+#                            zsh -ic (color disappears but everything
+#                            else still works).
+#   positional argv        → if ! --no-zshrc, rebuild as a quoted
+#                            string and route through the same shell
+#                            path so aliases resolve.
+_logrun_pty_wrap() {
+    if (( auto_mode )) && command -v script >/dev/null 2>&1; then
+        # script -q quiet, -e propagate exit code, -f flush after writes,
+        # -c run command, /dev/null skips the typescript file (we have
+        # our own log path).
+        echo "script -qefc"
+    fi
+}
+
 if (( shell_mode )); then
-    # Use interactive zsh so the body sees the user's aliases/functions
-    # (the original justfile pattern relied on this). Note: "$@" must end
-    # up as a single token for `zsh -ic`, not the buggy form
-    # `zsh -ic bash -c "<body>"` which parses as "run command 'bash' with
-    # positional params -c <body>" and silently drops the body.
-    set -- zsh -ic "$shell_cmd"
+    pty_prefix=$(_logrun_pty_wrap)
+    if [[ -n "$pty_prefix" ]]; then
+        set -- script -qefc "zsh -ic $(printf '%q' "$shell_cmd")" /dev/null
+    else
+        set -- zsh -ic "$shell_cmd"
+    fi
 elif [[ $# -gt 0 ]]; then
     if (( no_zshrc )); then
         # Fast path: exec the command directly, no shell startup. The
@@ -110,7 +137,12 @@ elif [[ $# -gt 0 ]]; then
         for arg in "$@"; do
             cmdline+=" $(printf '%q' "$arg")"
         done
-        set -- zsh -ic "$cmdline"
+        pty_prefix=$(_logrun_pty_wrap)
+        if [[ -n "$pty_prefix" ]]; then
+            set -- script -qefc "zsh -ic $(printf '%q' "$cmdline")" /dev/null
+        else
+            set -- zsh -ic "$cmdline"
+        fi
     fi
 fi
 
