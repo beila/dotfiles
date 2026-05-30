@@ -37,11 +37,6 @@ LOGRUN_AUTO_FUNCTIONS=(
     "${LOGRUN_AUTO_FUNCTIONS[@]:-}"
 )
 
-# Per-shell session memo: warned about which functions for the
-# bidirectional auto-suggestion ("add to / remove from list"). Prevents
-# spamming the same hint every prompt.
-typeset -gA _logrun_warned
-
 # ----------------------------------------------------------------- helpers
 
 # Strip a leading `NAME=value` env-prefix run from a command string.

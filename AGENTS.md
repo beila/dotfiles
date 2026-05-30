@@ -7,36 +7,11 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ## TODO List
 
 ### High impact
-- [ ] automatically use logrun in long-duration or long-output commands
-  - goal: every interactive command at the zsh prompt runs through `logrun`, but `logrun`'s own chrome (the `Log:` banner) and its log-file artifact stay invisible for short, low-output commands. Only "long" commands reveal that they were logged.
-  - **Trigger surface**: zsh `accept-line` widget override in a new `zsh/logrun-auto.zsh`. Widget pre-expands aliases in the parent shell, classifies the first word via `whence -w`, and dispatches to `logrun` with the right flags. Buffer rewrite injects `logrun --auto …` right before zsh submits the line; the original line goes into history unmodified via a `zshaddhistory` hook.
-  - **Reveal threshold (either condition)**: `≥10s` wall-clock or `≥100` output lines. Configurable via `LOGRUN_AUTO_SECONDS` and `LOGRUN_AUTO_LINES`.
-  - **Under threshold**: no `Log:` banner printed; log file is deleted on exit. Terminal output is identical to running the bare command.
-  - **Over threshold**: `Log: <path>` printed retroactively to stderr; log retained; `*.FAILED.txt` rename still applies on non-zero exit.
-  - **Latency budget**: short commands must add ≤20ms vs bare. `zsh -ic` adds ~800ms (full zshrc replay), so the widget must avoid it for the prompt path:
-    - **External commands** (e.g. `ls`, `git`, `cargo`): widget passes `logrun --auto --no-zshrc --` and `logrun` execs the binary directly. ~10ms overhead.
-    - **Aliases**: pre-expanded in the parent zsh (string ops on `$aliases[$first]`, no fork). After expansion, dispatch as if the user typed the expansion. Cost: ~0ms in the parent.
-    - **Functions**: opt-in via `LOGRUN_AUTO_FUNCTIONS`. The widget pre-populates this with the wrapper-style functions in `zsh/functions/` that shell out to long-running tools (`j n ji ni jr njr nijr sync-rsync sync-ssh docker_here docker_here_t docker_here_with_t`). Functions in the list go through `logrun --auto -c "$BUFFER"` (slow path, `zsh -ic`). Functions NOT in the list run unwrapped via normal zle dispatch. Short utility functions (`l`, `c`, `p`, `o`, jj wrappers like `ju`/`jda`/`jj`, git helpers) are intentionally absent. Append (don't overwrite) from `private-dotfiles/` for machine-specific entries: `LOGRUN_AUTO_FUNCTIONS+=( my_long_func )`.
-    - **Builtins / reserved words / `cd`** (per `whence -w`): never wrapped — wrapping breaks parent-shell side effects (cwd changes, var exports, etc.).
-    - **Compound buffers** (containing `;`, `|`, `&&`, `||`, `>`, `<`, `` ` ``, `$(`, newline): routed to the slow path (`logrun --auto -c "$BUFFER"`) regardless of the first word. Trying to classify `ls; sleep 12; ls b*` by its first token fails (`ls;sleep` isn't a resolvable name); routing the whole buffer to a real shell parser via `-c` is the only correct option. Compound-command latency cost is acceptable because pipelines/sequences are rarely the per-prompt hot path.
-  - **Existing wrappers**: drop the `logrun` call from the just `run` recipe (and any `j`/`n`/`jr`/`nijr` chain that calls it). With the widget as the single entry point, the recipe just `exec`s the command directly.
-  - **TUI skiplist** (`LOGRUN_TUI_SKIPLIST`): hard-coded list of curses-style apps whose UI breaks under any stdout pipe. **Defined in home-manager** (single source of truth, version-controlled, machine-specific overrides possible) and exported into the shell as a zsh array. Defaults: `vim nvim view less more most htop btop top fzf ssh man watch lazygit ranger nano emacs tig ncdu tmux zellij zmx`. First-word match; skiplisted commands bypass the widget entirely.
-  - **Unknown-TUI detection**: in `--auto` mode, the strip-ansi pass also looks for the alt-screen entry sequence `\x1b[?1049h`. If found AND the command name wasn't in `LOGRUN_TUI_SKIPLIST`, `logrun` prints once on exit: `logrun: '<cmd>' looks like a TUI (alt-screen detected); add to LOGRUN_TUI_SKIPLIST`. Bytes are stripped from the log either way.
-  - **Bidirectional auto-suggestion** for `LOGRUN_AUTO_FUNCTIONS` tuning, once per shell session per name (deduped via a `_logrun_warned` assoc array in the widget):
-    - Wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → `logrun: '<fn>' had <N>ms of shell-startup overhead; consider removing from LOGRUN_AUTO_FUNCTIONS`.
-    - Non-wrapped function exceeded threshold (≥10s or ≥100 lines, measured by a lightweight preexec/precmd timer + line counter that runs even when not wrapping) → `logrun: '<fn>' ran <N>s; consider adding to LOGRUN_AUTO_FUNCTIONS`.
-  - **Two separate skiplists** — different purposes, different defaults, do not merge:
-    - `LOGRUN_TUI_SKIPLIST` — *correctness*. Ships populated. Removal causes visible breakage (vim renders garbage).
-    - `LOGRUN_AUTO_FUNCTIONS` — *opt-in for logging*. Ships pre-populated with the long-running wrappers in `zsh/functions/`. Wrong contents only cost latency (functions you forgot to add) or missing logs (functions you didn't add).
-  - **Opt-out per-call**: `NOLOG=1 cmd …` skips the wrap (handy for one-off pipelines or when a skiplist hint hasn't been actioned yet). Detected by checking for a leading `NOLOG=…` env-prefix in `$BUFFER`.
-  - **`bin/logrun` changes**:
-    - New `--auto` flag: suppresses startup `Log:` banner, runs decorator as plain `cat` until threshold, switches to spacer+watchlog on reveal.
-    - New `--no-zshrc` flag: when paired with positional argv, exec the command directly (no `zsh -ic`). Widget passes this for externals.
-    - Existing standalone `logrun foo` call sites keep working unchanged (they still get `zsh -ic` so user aliases/functions resolve, matching today's behavior).
-    - Threshold logic: a backgrounded `(sleep $LOGRUN_AUTO_SECONDS; kill -USR2 $$) &` watcher + a line counter in the strip-ansi sed pass that signals USR2 once it crosses the line threshold. USR2 trap prints the banner and flips a `revealed=1` flag. On exit: if `revealed=0` and exit==0, `rm -f "$log_path"`.
-  - **Tests** (extend `bin/test_logrun.sh`): `--auto` short fast cmd → no banner, no log left; `--auto` long cmd (sleep 11) → banner once, log retained; `--auto` chatty cmd → banner once at line threshold; `--auto` failing short cmd → banner + FAILED.txt; alt-screen detection produces hint; `--no-zshrc` skips `zsh -ic` (assert by timing or by setting an alias the run shouldn't see).
 - [ ] make copilot key work as super
-- [ ] use watchlog and spacer from logrun
+- [ ] bidirectional auto-suggestion for `LOGRUN_AUTO_FUNCTIONS` tuning:
+  - wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → suggest removing from list (it's adding shell-startup overhead for nothing)
+  - unwrapped function exceeded threshold → suggest adding to list (its output should be captured)
+  - dedup once per shell session per name (assoc array in the widget)
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)

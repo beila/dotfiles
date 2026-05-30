@@ -9,7 +9,7 @@
 Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--fail-suffix` (default `FAILED.txt`; empty disables rename), `-c`/`--command` (run via `bash -c`), `--auto`, `--no-zshrc`.
 
 `--auto` keeps logrun's chrome invisible until a threshold trips:
-- No startup `Log:` banner; decorator is pinned to `cat` (zero-overhead passthrough); the strip-ansi + line-count + alt-screen-detect awk filter sits inside the `tee >(…)` side-branch (NOT on the foreground side, where gawk's block-buffered stdin would delay the first line of `cmd1; sleep N; cmd2` until the sleep ends).
+- No startup `Log:` banner. The decorator (spacer→watchlog) runs from the start because both tools only print under interesting conditions — spacer waits for an output pause, watchlog waits for idle — so short --auto runs see nothing extra. The strip-ansi + line-count + alt-screen-detect awk filter sits inside the `tee >(…)` side-branch (NOT on the foreground side, where gawk's block-buffered stdin would delay the first line of `cmd1; sleep N; cmd2` until the sleep ends).
 - The foreground stream is plain `cmd | tee /dev/fd/4 | cat`, with the side awk attached to fd 4 — so the user sees output the instant the inner shell flushes it.
 - On either `≥LOGRUN_AUTO_SECONDS` (default 10s, wall-clock) or `≥LOGRUN_AUTO_LINES` (default 100) the parent prints `Log: <path>` to stderr exactly once. Threshold marker is a side-channel file (`/tmp/logrun-lines.*`), checked synchronously after the pipeline returns to bypass bash's async signal-trap timing.
 - On under-threshold + exit==0: log file is `rm -f`'d so the prompt looks identical to a bare command.
@@ -21,7 +21,16 @@ Flags: `--name`, `--log-dir`, `--log-path`, `--decorator`/`--no-decorator`, `--f
 
 `--no-zshrc` (paired with positional argv) makes logrun exec the command directly instead of via `zsh -ic`. The widget passes this for resolved external binaries to avoid ~800ms of zshrc replay per prompt. Aliases/functions wouldn't survive a fresh process anyway, so omitting `zsh -ic` is harmless for that case. In `--auto` mode the command is still wrapped in `script -qefc` (see "PTY layer for color" above).
 
-Env: `log_path` pre-sets the target path (nested recipes pass it down); `build_dir` is the default log dir if it exists, else `./build`, else `/tmp`; `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SECONDS` / `LOGRUN_AUTO_LINES` tune the `--auto` thresholds; `LOGRUN_TUI_SKIPLIST` (defined in `home-manager.configsymlink/home.nix` so it tracks installed TUI packages) suppresses the alt-screen hint for known-OK commands.
+Log path resolution (first match wins):
+1. `--log-path PATH` flag or `log_path` env var → exact file path; skips name/dir derivation. Lets nested recipes inherit a parent's path.
+2. `--log-dir DIR` flag → directory only; filename auto-derived as `log-<sanitized-cmd>-<YYYY-MM-DD-HH-MM-SS>.txt`.
+3. `$build_dir` env var, if set and is an existing dir.
+4. `./build/` if it exists in cwd.
+5. `/tmp/` (last-resort fallback).
+
+Filename sanitisation in cases 2-5: spaces, slashes, pipes, semicolons, etc. → `-`; truncated to 200 bytes (ext4/xfs filename limit is 255). On non-zero exit (and non-empty `--fail-suffix`, default `FAILED.txt`), the `.txt` is renamed to `.FAILED.txt`.
+
+Other env: `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SECONDS` / `LOGRUN_AUTO_LINES` tune the `--auto` thresholds; `LOGRUN_TUI_SKIPLIST` (defined in `home-manager.configsymlink/home.nix` so it tracks installed TUI packages) suppresses the alt-screen hint for known-OK commands.
 
 The accept-line widget at `zsh/zz-logrun-auto.zsh` is the user-facing entry point — it auto-wraps interactive prompt commands in `logrun --auto`. See `zsh/AGENTS.md` for widget details.
 

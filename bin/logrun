@@ -200,19 +200,15 @@ else
 fi
 
 # ------------------------------------------------------------------- decorator
-if (( auto_mode )); then
-    # In --auto mode the user wants the terminal to look identical to a
-    # bare command for short runs. spacer/watchlog would print idle
-    # indicators and visual breaks even when nothing's interesting.
-    # Pin to cat for the entire run.
-    decorator="cat"
-elif [[ -z "$decorator" ]]; then
+# spacer inserts a visual break when output stops; watchlog adds a
+# "time since last output" indicator when a command goes idle. Both
+# implement their own periodic timers, so they only print under interesting
+# conditions — running them on short --auto commands is harmless.
+if [[ -z "$decorator" ]]; then
     if [[ -n "${LOGRUN_DECORATOR:-}" ]]; then
         decorator="$LOGRUN_DECORATOR"
     else
         parts=()
-        # spacer inserts a visual break when output stops; watchlog adds a
-        # "time since last output" indicator when a command goes idle.
         command -v spacer   >/dev/null 2>&1 && parts+=("spacer --right --force-color")
         if   command -v watchlog >/dev/null 2>&1; then parts+=("watchlog")
         elif command -v wl       >/dev/null 2>&1; then parts+=("wl")
