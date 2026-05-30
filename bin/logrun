@@ -263,10 +263,13 @@ if [[ -z "$decorator" ]]; then
     elif (( auto_mode )) && command -v logrun-decorator >/dev/null 2>&1; then
         decorator="logrun-decorator --activate-when-exists $(printf '%q' "$auto_lines_file.shown")"
     else
+        # `watchlog` is the package; the binary it ships is `wl` (per its
+        # README: "put | wl after your command"). Older builds may have
+        # exposed it under the package name; check that as a fallback.
         parts=()
-        command -v spacer   >/dev/null 2>&1 && parts+=("spacer --right --force-color")
-        if   command -v watchlog >/dev/null 2>&1; then parts+=("watchlog")
-        elif command -v wl       >/dev/null 2>&1; then parts+=("wl")
+        command -v spacer >/dev/null 2>&1 && parts+=("spacer --right --force-color")
+        if   command -v wl       >/dev/null 2>&1; then parts+=("wl")
+        elif command -v watchlog >/dev/null 2>&1; then parts+=("watchlog")
         fi
         if [[ ${#parts[@]} -eq 0 ]]; then
             decorator="cat"

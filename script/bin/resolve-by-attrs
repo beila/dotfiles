@@ -119,19 +119,16 @@ merge-args = ["\$left", "\$right", "\$base", "\$output"]
 EOF
 
 # The shim. RESOLVER_ACTION says what to do; RESOLVER_DRIVER carries the git
-# driver template if applicable. For union, we run a 3-way merge with
-# `git merge-file --union`: it merges left + right against the base and
-# unions overlapping hunks rather than naive-cat'ing the whole file. This
-# matches git's built-in `merge=union` driver — the common-ancestor lines
-# appear once, both branches' unique additions appear in order.
+# driver template if applicable. For union, we use `git merge-file --union`:
+# 3-way merge against the base, unions overlapping hunks (matches git's
+# built-in `merge=union` semantics — common-ancestor lines appear once,
+# unique additions from each side preserved in order).
 cat > "$WORK/shim" <<'SHIM'
 #!/usr/bin/env bash
 set -u
 left=$1; right=$2; base=$3; output=$4
 case "${RESOLVER_ACTION:-}" in
   union)
-    # 3-way merge with --union; left = ours, right = theirs, base = ancestor.
-    # Result is written to a copy of left, so seed output with left first.
     cp -- "$left" "$output"
     git merge-file --union -- "$output" "$base" "$right" >/dev/null 2>&1 || true
     ;;

@@ -50,6 +50,13 @@
 [merge "mergiraf-then-ours"]
 	name = mergiraf first, ours on conflict
 	driver = ~/.dotfiles/script/bin/git-merge-mergiraf-then-ours %O %A %B %P %L
+# `union-dedupe`: 3-way union merge with line dedupe. Used for append-only
+# files written from multiple machines (e.g. bin/logrun-tui-skiplist).
+# Built-in `merge=union` would let independent appends of the same line
+# from two machines coexist as duplicates after sync.
+[merge "union-dedupe"]
+	name = 3-way union with line dedupe
+	driver = ~/.dotfiles/script/bin/merge-union-dedupe %A %O %B
 [rerere]
 	enabled = true
 [alias]

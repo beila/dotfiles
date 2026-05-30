@@ -69,17 +69,27 @@ _check "classify: TUI ssh"                   "skip"       "$(_classify 'ssh host
 _check "classify: TUI man"                   "skip"       "$(_classify 'man bash')"
 
 # User-skiplist file: an entry there should classify-as-skip just like
-# entries in $LOGRUN_TUI_SKIPLIST. The reader strips lines starting with
-# `#` so the auto-managed file's header comment doesn't accidentally
-# skiplist a literal "#" command.
+# entries in $LOGRUN_TUI_SKIPLIST. The reader strips `#`-comment lines so
+# the auto-managed file's header doesn't accidentally skiplist a literal
+# "#" command.
 _TUI_FILE=$(mktemp /tmp/test_logrun-auto-tuifile.XXXXXX)
 print -r -- "myfancytui" > "$_TUI_FILE"
-LOGRUN_TUI_SKIPLIST_FILE="$_TUI_FILE" \
-    _check "classify: TUI from user file"     "skip"   "$(_classify 'myfancytui --start')"
+LOGRUN_TUI_SKIPLIST_FILE=$_TUI_FILE
+_check "classify: TUI from user file"     "skip"   "$(_classify 'myfancytui --start')"
 rm -f "$_TUI_FILE"
-# Reset memoised cache so the next classify calls don't see the deleted file.
-_logrun_user_skiplist_cache=""
-_logrun_user_skiplist_mtime=""
+unset "_logrun_file_cache[$_TUI_FILE]" "_logrun_file_mtime[$_TUI_FILE]"
+unset LOGRUN_TUI_SKIPLIST_FILE
+
+# User-functions file: a name listed there should classify as `function`,
+# same as if it were in $LOGRUN_AUTO_FUNCTIONS.
+my_user_file_fn() { :; }
+_FN_FILE=$(mktemp /tmp/test_logrun-auto-fnfile.XXXXXX)
+print -r -- "my_user_file_fn" > "$_FN_FILE"
+LOGRUN_AUTO_FUNCTIONS_FILE=$_FN_FILE
+_check "classify: function from user file" "function" "$(_classify 'my_user_file_fn')"
+rm -f "$_FN_FILE"
+unset "_logrun_file_cache[$_FN_FILE]" "_logrun_file_mtime[$_FN_FILE]"
+unset LOGRUN_AUTO_FUNCTIONS_FILE
 
 # Compound buffers route to `function` (logrun --auto -c) so the inner
 # zsh parses the whole script body, including operators.

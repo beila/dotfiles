@@ -37,35 +37,54 @@ fi
 # stat(1) below when zstat isn't loadable.
 zmodload -F zsh/stat b:zstat 2>/dev/null
 
-# Memoised reader for the user-skiplist file. Cache key: file mtime.
-typeset -g _logrun_user_skiplist_cache=""
-typeset -g _logrun_user_skiplist_mtime=""
-_logrun_user_skiplist() {
-    local f="${LOGRUN_TUI_SKIPLIST_FILE:-$HOME/.dotfiles/bin/logrun-tui-skiplist}"
+# Memoised reader for a line-oriented user file (one entry per line,
+# `#`-comment lines ignored). Returns the entries as a space-separated
+# string. Cache key per-path: file mtime — re-read on change, no I/O on
+# unchanged prompts.
+typeset -gA _logrun_file_cache _logrun_file_mtime
+_logrun_read_user_file() {
+    local f=$1
     if [[ ! -f "$f" ]]; then
-        _logrun_user_skiplist_cache=""
-        _logrun_user_skiplist_mtime=""
+        _logrun_file_cache[$f]=""
+        _logrun_file_mtime[$f]=""
         print -r -- ""
         return
     fi
     local mt
     mt=$(zstat +mtime "$f" 2>/dev/null) || mt=$(stat -c %Y "$f" 2>/dev/null)
-    if [[ "$mt" == "$_logrun_user_skiplist_mtime" ]]; then
-        print -r -- "$_logrun_user_skiplist_cache"
+    if [[ "$mt" == "${_logrun_file_mtime[$f]-}" ]]; then
+        print -r -- "${_logrun_file_cache[$f]-}"
         return
     fi
-    _logrun_user_skiplist_mtime="$mt"
-    _logrun_user_skiplist_cache=$(grep -v '^#' "$f" 2>/dev/null | tr '\n' ' ')
-    print -r -- "$_logrun_user_skiplist_cache"
+    _logrun_file_mtime[$f]=$mt
+    _logrun_file_cache[$f]=$(grep -v '^#' "$f" 2>/dev/null | tr '\n' ' ')
+    print -r -- "${_logrun_file_cache[$f]-}"
+}
+_logrun_user_skiplist() {
+    _logrun_read_user_file "${LOGRUN_TUI_SKIPLIST_FILE:-$HOME/.dotfiles/bin/logrun-tui-skiplist}"
+}
+_logrun_user_functions() {
+    _logrun_read_user_file "${LOGRUN_AUTO_FUNCTIONS_FILE:-$HOME/.dotfiles/bin/logrun-auto-functions}"
 }
 
-# Functions opt-in for wrapping. Pre-populated with the wrapper-style
-# functions in zsh/functions/ that shell out to long-running tools (nix
-# develop chains, rsync, docker run); short utility functions (l, c, p,
-# o, jj wrappers, git helpers) are intentionally absent so they stay
-# fast. Append to this list (don't overwrite) from private-dotfiles to
-# add machine- or work-specific entries:
-#     LOGRUN_AUTO_FUNCTIONS+=( my_long_func )
+# Functions opt-in for wrapping. Two layers, additive:
+#
+#   $LOGRUN_AUTO_FUNCTIONS              the array seeded below — the
+#                                       wrapper-style functions in
+#                                       zsh/functions/ that shell out to
+#                                       long-running tools. Short utility
+#                                       fns (l, c, p, o, jj/git helpers)
+#                                       are intentionally absent.
+#                                       Append from private-dotfiles for
+#                                       machine-specific entries:
+#                                         LOGRUN_AUTO_FUNCTIONS+=( my_long_fn )
+#   $LOGRUN_AUTO_FUNCTIONS_FILE         user delta file, default
+#                                       ~/.dotfiles/bin/logrun-auto-functions
+#                                       — committed to the dotfiles repo
+#                                       with .gitattributes merge=union-dedupe
+#                                       so cross-machine adds auto-merge.
+#                                       Read on every prompt via
+#                                       _logrun_user_functions (mtime-cached).
 typeset -ga LOGRUN_AUTO_FUNCTIONS
 LOGRUN_AUTO_FUNCTIONS=(
     j n ji ni jr njr nijr
@@ -223,9 +242,9 @@ _logrun_classify() {
     case "$kind" in
         builtin|reserved|none|"") return ;;
         function)
-            # Opt-in only for functions in LOGRUN_AUTO_FUNCTIONS.
+            # Opt-in only — array (machine default) ∪ user file.
             local fn
-            for fn in "${LOGRUN_AUTO_FUNCTIONS[@]}"; do
+            for fn in "${LOGRUN_AUTO_FUNCTIONS[@]}" ${=$(_logrun_user_functions)}; do
                 [[ "$first" == "$fn" ]] && { _logrun_decision="function"; return ; }
             done
             return
