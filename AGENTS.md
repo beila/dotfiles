@@ -36,6 +36,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
     - Threshold logic: a backgrounded `(sleep $LOGRUN_AUTO_SECONDS; kill -USR2 $$) &` watcher + a line counter in the strip-ansi sed pass that signals USR2 once it crosses the line threshold. USR2 trap prints the banner and flips a `revealed=1` flag. On exit: if `revealed=0` and exit==0, `rm -f "$log_path"`.
   - **Tests** (extend `bin/test_logrun.sh`): `--auto` short fast cmd → no banner, no log left; `--auto` long cmd (sleep 11) → banner once, log retained; `--auto` chatty cmd → banner once at line threshold; `--auto` failing short cmd → banner + FAILED.txt; alt-screen detection produces hint; `--no-zshrc` skips `zsh -ic` (assert by timing or by setting an alias the run shouldn't see).
 - [ ] make copilot key work as super
+- [ ] use watchlog and spacer from logrun
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
