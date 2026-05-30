@@ -119,8 +119,11 @@ _logrun_pty_wrap() {
 # see the default 80x24 (or worse) and lay out content at the wrong
 # width. Emits an empty string when no tty is reachable.
 _logrun_pty_size_prefix() {
+    # `</dev/tty` and its error if /dev/tty is missing both go through the
+    # outer command; redirect bash's own redirection-error to /dev/null
+    # by wrapping in a subshell with all stderr suppressed.
     local sz
-    sz=$(stty size </dev/tty 2>/dev/null) || return
+    sz=$( { stty size </dev/tty; } 2>/dev/null ) || return
     [[ -n "$sz" ]] || return
     # sz is "ROWS COLS"; stty wants `rows R cols C`.
     set -- $sz
@@ -219,14 +222,39 @@ else
     log_path="$log_dir/log-${sanitized}-$(date +%F-%H-%M-%S).txt"
 fi
 
+# --------------------------------------------------------------- auto-mode IPC
+# In --auto mode, the strip-ansi side branch counts lines and watches for
+# the alt-screen entry sequence. Side-channel files coordinate with the
+# parent: $auto_lines_file (threshold marker) + $auto_tui_file (alt-screen
+# detected). Allocated here (before the decorator block) so the decorator
+# can poll $auto_lines_file.shown to know when to switch out of cat mode.
+# These get cleaned up on EXIT.
+auto_seconds="${LOGRUN_AUTO_SECONDS:-10}"
+auto_lines="${LOGRUN_AUTO_LINES:-100}"
+revealed=0
+auto_lines_file=""
+auto_tui_file=""
+auto_timer_pid=""
+if (( auto_mode )); then
+    auto_lines_file=$(mktemp "/tmp/logrun-lines.XXXXXX")
+    auto_tui_file="/tmp/logrun-tui.$$"
+    rm -f "$auto_tui_file"
+fi
+
 # ------------------------------------------------------------------- decorator
-# spacer inserts a visual break when output stops; watchlog adds a
-# "time since last output" indicator when a command goes idle. spacer's
-# main loop ticks once per `--after` (default 1s), so even short commands
-# pay a ~1s tail at end-of-stream. Set LOGRUN_DECORATOR=cat to opt out.
+# In --auto mode: bin/logrun-decorator is plain cat until the reveal
+# marker file appears, then prints spacer-style breaks + idle indicators.
+# This avoids the ~1s tail spacer/watchlog adds to every short --auto run
+# while still surfacing idle hints on long ones. Marker file is touched by
+# _logrun_on_reveal (threshold-trip or failure).
+#
+# Outside --auto: spacer | watchlog stack (always-on visual breaks).
+# In both cases LOGRUN_DECORATOR overrides everything.
 if [[ -z "$decorator" ]]; then
     if [[ -n "${LOGRUN_DECORATOR:-}" ]]; then
         decorator="$LOGRUN_DECORATOR"
+    elif (( auto_mode )) && command -v logrun-decorator >/dev/null 2>&1; then
+        decorator="logrun-decorator --activate-when-exists $(printf '%q' "$auto_lines_file.shown")"
     else
         parts=()
         command -v spacer   >/dev/null 2>&1 && parts+=("spacer --right --force-color")
@@ -247,25 +275,6 @@ fi
 # original justfile pattern). `-u` is GNU sed's line-buffered mode; it
 # lets `tee` flush in real time when piping the live stream.
 strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g')
-
-# --------------------------------------------------------------- auto-mode IPC
-# In --auto mode, the strip-ansi side branch counts lines and watches for
-# the alt-screen entry sequence. Two side-channel files coordinate with
-# the parent (this script):
-#   $LOGRUN_LINES_FILE   strip-ansi 'tickles' SIGUSR2 once line threshold hits
-#   $LOGRUN_TUI_FILE     strip-ansi creates this if it sees \x1b[?1049h
-# These get cleaned up on EXIT.
-auto_seconds="${LOGRUN_AUTO_SECONDS:-10}"
-auto_lines="${LOGRUN_AUTO_LINES:-100}"
-revealed=0
-auto_lines_file=""
-auto_tui_file=""
-auto_timer_pid=""
-if (( auto_mode )); then
-    auto_lines_file=$(mktemp "/tmp/logrun-lines.XXXXXX")
-    auto_tui_file="/tmp/logrun-tui.$$"
-    rm -f "$auto_tui_file"
-fi
 
 _logrun_on_reveal() {
     [[ -e "$auto_lines_file.shown" ]] && return
