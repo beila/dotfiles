@@ -74,6 +74,7 @@ in
         pkgs.scrot
         pkgs.spacer
         pkgs.uv  # edge-tts runner for say-ko
+        pkgs.watchlog
         # battery-osd: invocation wrapper around the local `osd` library.
         # Single binary in PATH; no full Python (would conflict with awscli2).
         (pkgs.writers.writePython3Bin "battery-osd" {
