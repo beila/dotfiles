@@ -1,6 +1,6 @@
 # xwindow / xmonad — Context for AI Agent
 
-xmonad is the window manager. `~/.dotfiles/xwindow/xmonad.symlink/xmonad.hs` is symlinked to `~/.xmonad/`. xfce4-panel runs along it (built via `home-manager.configsymlink/xmonad.nix`).
+xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to `~/.xmonad/`. xfce4-panel runs alongside it (built via `home-manager.configsymlink/xmonad.nix`).
 
 ## Build
 
@@ -17,7 +17,7 @@ Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarR
 ## Hooks
 
 - `rescueOffscreenHook` — catches floating windows that move themselves offscreen (e.g. Zoom bug) via `ConfigureEvent` and snaps them back.
-- `stripZoomFullscreenHook` — forces Zoom "Meeting" windows to stay tiled. Zoom renames the window to "Meeting" *after* ManageHook runs, so the event hook watches `PropertyNotify` on `_NET_WM_STATE`, `_NET_WM_NAME`, and `WM_NAME`; strips `_NET_WM_STATE_FULLSCREEN` and re-sinks via `W.sink`. Paired with `setEwmhFullscreenHooks`: fullscreen hook returns `idHook` for zoom+Meeting (default `doFullFloat` otherwise).
+- `stripZoomFullscreenHook` — forces Zoom "Meeting" windows to stay tiled. Zoom renames the window to "Meeting" *after* ManageHook runs, so the event hook watches `PropertyNotify` on `_NET_WM_STATE`, `_NET_WM_NAME`, `WM_NAME`; strips `_NET_WM_STATE_FULLSCREEN` and re-sinks via `W.sink`. Paired with `setEwmhFullscreenHooks`: fullscreen hook returns `idHook` for zoom+Meeting (default `doFullFloat` otherwise).
 - `monitorHotplugCfg` / `hideNSPWorkspace` — swaps NSP off visible screens after monitor hotplug.
 - `greedyViewNoSwap` — workspace switch variant that swaps visible screens but not hidden.
 
@@ -37,35 +37,43 @@ Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarR
 - Super+0 → next empty workspace
 - Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)
 - Super+C / Super+V → universal copy/paste, dispatched by keyd as `macro(copy f24)` / `macro(paste f20)` (xmonad doesn't see them — see `keyd/AGENTS.md`)
-- Super+Shift+V → `copyq toggle` (clipboard history; moved off Super+V which is now paste)
+- Super+Shift+V → `copyq toggle` (clipboard history)
 
-## Audio OSD system
+## OSD library (`xwindow/osd/`)
+
+Local Python package built via `pkgs.python3Packages.buildPythonPackage` in `home.nix`. Provides cairo + XShape primitives:
+
+- `OSDStyle` — dataclass: colours, font, layout, anchor, multi-monitor sizing
+- `render_surface(text, w, h, style, monitor_mm=None)` → `cairo.ImageSurface`
+- `display_on_all_monitors(text, duration, style)` — one-shot show
+- `get_monitors(d, root)` — active monitor rects, 6-tuple `(x, y, w_px, h_px, w_mm, h_mm)`; mm is 0 when EDID didn't report it.
+
+Renders text with cairo (configurable fill / outline / drop shadow), then displays in override-redirect X windows whose XShape mask is derived from the rendered alpha channel — the "background" is genuinely transparent (XShape clips). Works without a compositor. Multi-monitor: one window per active CRTC. Splits cairo→X `PutImage` calls into row chunks because python-xlib doesn't use `BIG-REQUESTS` (16-bit length cap → ~256 KB per request). Catches `SIGTERM`/`SIGINT` for clean window teardown.
+
+- **Sizing**: `width_frac`/`height_frac` (fraction of monitor) OR `width_mm`/`height_mm` (absolute mm — same physical size across monitors with different pixel densities; falls back to 96 DPI when EDID mm isn't available). hangul-osd uses mm; battery-osd uses frac.
+- **Anchoring**: `anchor_y` (`top|center|bottom`) + `offset_y_frac`, mirrored for `anchor_x` + `offset_x_frac`.
+- **Font backend**: `use_pango=False` (default) uses cairo's toy font API — fast but family matching is fragile in sessions with elaborate fontconfig fallback chains. `use_pango=True` routes through Pango/PangoCairo for reliable fontconfig + harfbuzz matching, ~50–100 ms slower per render. Set `font_file=<path>` together with `use_pango=True` to register a ttf as an application-private font via `FcConfigAppFontAddFile` — this is what makes JejuHallasan visible to Pango despite incomplete `en` glyph coverage.
+- **Alpha caveat**: `fill_alpha` < 1.0 is a brightness multiplier under X11 without a compositor (cairo premultiplies; X11 strips alpha). Real translucency needs picom or similar.
+- **XShape threshold**: pixels with alpha ≥ `style.alpha_threshold` (default 128) become opaque; everything below is clipped. Drop shadows at α=0.7 therefore appear as solid coloured regions, not transparent fades — set `shadow_rgba=None` for a glyph-only look.
+
+## Audio / brightness OSDs
 
 Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
 
 - `bin/volume-osd` — green, y=100
 - `bin/cycle-audio-output` (`/tmp/audio-out-osd-fifo`) — cyan, y=210
 - `bin/cycle-audio-input` (`/tmp/audio-in-osd-fifo`) — pink, y=320
+- `bin/brightness-osd` — yellow, y=430. Uses `brightnessctl` (nix), 5% steps ≤20%, 10% above.
 
-Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: JetBrainsMono Nerd Font, size 36 bold (font respects DPI natively, doesn't need scaling). Auto-hide after 2–3 seconds.
-
-## Brightness OSD
-
-`bin/brightness-osd` — yellow, y=430. Same dzen2 FIFO pattern as audio OSD. Uses `brightnessctl` (nix), 5% steps ≤20%, 10% above.
+Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: JetBrainsMono Nerd Font, size 36 bold. Auto-hide after 2–3 seconds.
 
 ## Battery OSD
 
-- `bin/battery-osd.py` — thin invocation script (argparse → call into the `osd` library). Built as the `battery-osd` binary via `pkgs.writers.writePython3Bin` in `home.nix`, with the local `osd` Python package as a library dep.
-- `osd/` — local Python package (`pyproject.toml` + `src/osd/__init__.py`) providing the cairo + XShape OSD primitives. Built via `pkgs.python3Packages.buildPythonPackage` in `home.nix`. Public API: `OSDStyle` (dataclass: colours, font, layout, anchor, multi-monitor sizing), `render_surface(text, w, h, style, monitor_mm=None)` → `cairo.ImageSurface`, `display_on_all_monitors(text, duration, style)` → one-shot show, `get_monitors(d, root)` → active monitor rects (now 6-tuple `(x, y, w_px, h_px, w_mm, h_mm)`; mm is 0 when EDID didn't report it). Renders text with cairo (configurable fill / outline / drop shadow), then displays in override-redirect X windows whose XShape mask is derived from the rendered alpha channel — the "background" is genuinely transparent (XShape clips). Works without a compositor. Multi-monitor: shows one window per active CRTC. Splits cairo→X `PutImage` calls into row chunks because python-xlib doesn't use `BIG-REQUESTS` for those ops (16-bit length cap → ~256 KB per request). Catches `SIGTERM`/`SIGINT` for clean window teardown.
-  - **Sizing**: `width_frac`/`height_frac` (fraction of monitor, default) OR `width_mm`/`height_mm` (absolute mm — same physical size across monitors with different pixel densities; falls back to 96 DPI when EDID mm isn't available). hangul-osd uses mm; battery-osd uses frac.
-  - **Anchoring**: `anchor_y` (`top|center|bottom`) + `offset_y_frac`, mirrored by `anchor_x` (`left|center|right`) + `offset_x_frac`.
-  - **Font backend**: `use_pango=False` (default) uses cairo's toy font API — fast but family matching is fragile in sessions with elaborate fontconfig fallback chains. `use_pango=True` routes through Pango/PangoCairo for reliable fontconfig + harfbuzz matching, ~50–100 ms slower per render. Set `font_file=<path>` together with `use_pango=True` to register a ttf as an application-private font via `FcConfigAppFontAddFile` — this is what makes JejuHallasan visible to Pango despite incomplete `en` glyph coverage.
-  - **Alpha caveat**: `fill_alpha` < 1.0 is a brightness multiplier under X11 without a compositor (cairo premultiplies; X11 strips alpha). Real translucency needs picom or similar.
-  - **XShape threshold**: pixels with alpha ≥ `style.alpha_threshold` (default 128) become opaque; everything below is clipped. Drop shadows at α=0.7 therefore appear as solid colored regions, not transparent fades — set `shadow_rgba=None` for a glyph-only look.
+`bin/battery-osd.py` is a thin invocation script (argparse → call into the `osd` library), built as the `battery-osd` binary via `pkgs.writers.writePython3Bin` in `home.nix`.
 
 ## Hangul (Korean input) OSD
 
-`bin/hangul-osd.py` — persistent overlay shown on every monitor while ibus-hangul is in Hangul mode. Long-lived systemd user service (`systemd.user.services.hangul-osd` in `gnome.nix`, `PartOf=graphical-session.target`). Built as a `writeShellScriptBin` wrapper that exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from nix store + gobject-introspection wrapper) and `HANGUL_OSD_FONT_FILE` (path to the JejuHallasan ttf), then execs the inner `writePython3Bin` impl. See `home-manager.configsymlink/AGENTS.md` for the wrapper assembly.
+`bin/hangul-osd.py` — persistent overlay shown on every monitor while ibus-hangul is in Hangul mode. Long-lived systemd user service (`systemd.user.services.hangul-osd` in `gnome.nix`, `PartOf=graphical-session.target`). Built as a `writeShellScriptBin` wrapper that exports `GI_TYPELIB_PATH` and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl — see `home-manager.configsymlink/AGENTS.md`.
 
 ### Mode-change source: `org.gnome.Flashback.InputSources`
 
@@ -77,33 +85,33 @@ Subscribes to the D-Bus signal `org.gnome.Flashback.InputSources.Changed` (path 
 - ibus-hangul's engine-internal `switch-keys` (Shift+Space) DOES toggle Hangul/English, because IBus IM clients forward keystrokes to the active engine regardless of WM. But IBus does not broadcast the engine-internal mode change on D-Bus (verified with `dbus-monitor`), and `IBus.Bus.connect("global-engine-changed", ...)` raises `unknown signal name` in this PyGObject binding.
 - `gnome-flashback` is running and watches ibus engine state out-of-band; its `InputSources` D-Bus interface emits `Changed` on every engine-internal mode flip and on every source switch. That's the only push signal that fires reliably here.
 
-Implementation requires that `gnome-session=gnome-flashback-xmonad` is the session — the alternative (a custom IBus PanelService) would also work and would remove the gnome-flashback dependency, but adds a lot of code for no functional gain.
+Implementation requires `gnome-session=gnome-flashback-xmonad`. The alternative — a custom IBus PanelService — would also work and remove the gnome-flashback dependency, but adds a lot of code for no functional gain.
+
+### Why a long-lived daemon, not a per-toggle script
+
+A previous design wired Shift+Space to xmonad's keybinding map and shelled out per-press, but xmonad's grab swallows the keystroke before it reaches ibus-hangul, so Hangul mode itself stops working. The daemon listening to gnome-flashback's signal sidesteps that — the user keeps using `Shift+Space` exactly as before, ibus-hangul handles the actual toggle, we just observe.
 
 ### Style
 
 LEGO Bright Light Orange `#F8BB3D`, JejuHallasan, 60×70mm, top-right (`anchor_x=right`, `offset_x_frac=-0.015`, `anchor_y=top`, `offset_y_frac=0.02`), no outline, no shadow.
 
-- **mm sizing** chosen so the OSD looks the same physical size on monitors with different pixel densities (4K external + 1080p laptop). GNOME's display-scale (100% / 200%) is *irrelevant*: that scaling only affects GTK applications; X windows we paint via Xlib in native pixels are unaffected.
-- **No outline / no shadow** because XShape mask thresholds at `alpha_threshold=128` — drop shadows at α=0.7 (= 178) end up *inside* the mask and render as a solid coloured region, not a faded shadow. Pure-glyph look only.
+- **mm sizing** so the OSD looks the same physical size on monitors with different pixel densities (4K external + 1080p laptop). GNOME's display-scale (100% / 200%) is irrelevant: it only affects GTK applications; X windows we paint via Xlib in native pixels are unaffected.
+- **No outline / no shadow** because XShape mask thresholds at `alpha_threshold=128` — drop shadows at α=0.7 (= 178) end up *inside* the mask and render as solid coloured regions, not faded shadows. Pure-glyph look only.
 
 ### Font matching: JejuHallasan via Pango + fontconfig app-font
 
 JejuHallasan reaches cairo through three indirections, none of which work in isolation in our session:
 
-1. **cairo's toy font API (`select_font_face`) silently falls back** when the requested family is hard to match against fontconfig's generated fallback chain (this session's fontconfig prepends Noto Sans + every script-specific Noto Sans + DejaVu LGC Sans before any user family). Hangul codepoints render as `.notdef` rectangles even though `fc-match` resolves the family correctly.
+1. **cairo's toy font API silently falls back** when the requested family is hard to match against fontconfig's chain (this session's fontconfig prepends Noto Sans + every script-specific Noto Sans + DejaVu LGC Sans before any user family). Hangul codepoints render as `.notdef` rectangles even though `fc-match` resolves the family correctly.
 2. **PangoCairo's default fontmap also fails**: it filters out fonts that don't satisfy `en` language coverage. JejuHallasan is missing 20 ASCII glyphs (`fc-validate` confirms), so it's hidden from `PangoCairo.FontMap.list_families()` and `set_family("JejuHallasan")` matches some fallback.
 3. **fontconfig's app-font set bypasses the lang-coverage filter**: `FcConfigAppFontAddFile(current_config, ttf_path)` registers the font privately for our process, after which Pango's matcher sees it.
 
-So the working stack is: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing at the ttf**. The osd library's `_render_with_pango` calls `_fc_app_font_add(font_file)` once before creating the layout. ctypes is used to call `FcConfigAppFontAddFile` directly so we don't pull in a separate Python binding.
-
-### Why a long-lived daemon, not a per-toggle script
-
-A previous design wired Shift+Space to xmonad's keybinding map and shelled out per-press, but xmonad's grab swallows the keystroke before it reaches ibus-hangul, so Hangul mode itself stops working. The daemon listening to gnome-flashback's signal sidesteps that — the user keeps using `Shift+Space` exactly as before, ibus-hangul handles the actual toggle, and we just observe.
+Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing at the ttf**. The osd library's `_render_with_pango` calls `_fc_app_font_add(font_file)` once before creating the layout. ctypes calls `FcConfigAppFontAddFile` directly so we don't pull in a separate Python binding.
 
 ### Test modes
 
-- `hangul-osd --once` — shows the OSD on every monitor unconditionally; Ctrl-C / SIGTERM to clear. Used for visual sanity checks (`timeout 10 hangul-osd --once`).
-- `hangul-osd --render-png PATH` — renders an offline preview PNG.
+- `hangul-osd --once` — shows the OSD on every monitor unconditionally; Ctrl-C / SIGTERM to clear. (`timeout 10 hangul-osd --once` for visual sanity.)
+- `hangul-osd --render-png PATH` — offline preview PNG.
 
 ## Scratchpad system
 
@@ -123,17 +131,19 @@ A previous design wired Shift+Space to xmonad's keybinding map and shelled out p
 - `weather-genmon` — wttr.in JSON API, python3 parser; 🌙 after sunset / before sunrise; tooltip: current + hourly + 3-day forecast. Used by xfce4-genmon-plugin.
 - `sysmon-genmon` — sparkline graphs (CPU, MEM, IO, NET, BAT) via xfce4-genmon-plugin; `color_bar` supports inverted mode for metrics where high=good (battery); history in `/tmp/sysmon-history`, 8 samples.
 - `battery-genmon` — standalone battery genmon (fallback; battery is also in `sysmon-genmon`).
-- `random-lockscreen` — daily systemd timer; sets gnome lock screen wallpaper from `WALLPAPER_DIR` (default `~/Pictures/Favourites`). Uses `script/logger/log.sh`. Actionable ERRORs for missing dir, empty dir, DBus/schema unreachable, gsettings missing. **HEIC handling**: candidates include `*.heic`; if a HEIC is picked, transcodes it to JPG (full resolution, q≈92) into `${XDG_CACHE_HOME:-~/.cache}/random-lockscreen/<basename>.<src-mtime>.jpg` and sets `picture-uri` to the cached file. Cache key includes source mtime so re-saves trigger re-conversion; older mtime variants for the same basename are removed before writing. ffmpeg over ImageMagick because Ubuntu's `convert-im6.q16` ships a buggy HEIC reader (`error/heic.c/IsHEIFSuccess/139`); ffmpeg's libavcodec unwraps the embedded HEVC/MJPEG stream cleanly. Conversion failure logs WARN and re-rolls to a non-HEIC candidate. Why not skip HEIC entirely: gnome-shell on this machine inherits `GDK_PIXBUF_MODULE_FILE` from a Nix-store `loaders.cache` (set by librsvg's home-manager wrapper) that has no HEIF loader, so a raw HEIC URI silently renders as the primary fallback colour (black) on the lock screen — converting to JPG sidesteps gdk-pixbuf's loader set entirely. Test harness: `script/test_random-lockscreen.sh` (23 assertions + 1 skip when real gsettings is on PATH; fake wallpaper dir + stubbed gsettings).
+- `random-lockscreen` — daily systemd timer; sets gnome lock screen wallpaper from `WALLPAPER_DIR` (default `~/Pictures/Favourites`). Uses `script/logger/log.sh`. Actionable ERRORs for missing/empty dir, DBus/schema unreachable, gsettings missing.
+  - **HEIC handling**: candidates include `*.heic`; if a HEIC is picked, transcodes it to JPG (full resolution, q≈92) into `${XDG_CACHE_HOME:-~/.cache}/random-lockscreen/<basename>.<src-mtime>.jpg` and sets `picture-uri` to the cached file. Cache key includes source mtime so re-saves trigger re-conversion; older mtime variants for the same basename are removed before writing. ffmpeg over ImageMagick because Ubuntu's `convert-im6.q16` ships a buggy HEIC reader (`error/heic.c/IsHEIFSuccess/139`); ffmpeg's libavcodec unwraps the embedded HEVC/MJPEG cleanly. Conversion failure logs WARN and re-rolls.
+  - **Why not skip HEIC entirely**: gnome-shell on this machine inherits `GDK_PIXBUF_MODULE_FILE` from a Nix-store `loaders.cache` (set by librsvg's home-manager wrapper) that has no HEIF loader, so a raw HEIC URI silently renders as the primary fallback colour (black) on the lock screen — converting to JPG sidesteps gdk-pixbuf's loader set entirely.
+  - Test harness: `script/test_random-lockscreen.sh`.
+- `on-input-change` — called by inputplug on `XISlaveAdded`; sleeps 3s for GNOME's keymap reset to settle, then re-applies `xmodmap ~/.Xmodmap`.
 
 ## Clipboard history
 
-`copyq` (nix) — systemd user service. xmonad Super+Shift+V runs `copyq toggle`. See `keyd/AGENTS.md` for why Super+V is now paste rather than copyq toggle.
+`copyq` (nix) — systemd user service. xmonad Super+Shift+V runs `copyq toggle`. Super+V is universal paste (see `keyd/AGENTS.md`).
 
 ## Monitors
 
-- Current setup: 3 monitors — eDP-1 (1920×1200 laptop), DP-1 (3440×1440 ultrawide), DP-3 (1440×2560 portrait); varies by location.
-- Multi-monitor: configurations change frequently; `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens after hotplug.
-- xfce4-panel bottom bar: 48px, using `avoidStruts`.
+Multi-monitor configurations vary by location; `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens after hotplug. xfce4-panel bottom bar: 48px, using `avoidStruts`.
 
 ## Known issues
 

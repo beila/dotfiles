@@ -47,6 +47,5 @@ Symlinked to `~/.config/input-remapper-2/`. Per-device, runs as systemd user dae
 
 ## Known issues
 
-- **keyd v2.5.0** parser fails on UTF-8 box-drawing characters in `default.conf` comments (works in `kinesis.conf`).
 - **AltGr on laptop keyboard** doesn't map to Right Alt — needs a keyd per-device config.
-- **input-remapper after Bluetooth reconnect**: when a BT mouse/trackball drops + re-attaches mid-session, the daemon's internal device list goes stale and autoload doesn't re-apply to the new evdev node — `xinput list` shows BOTH the original device AND `input-remapper <name> forwarded`, but real button presses pass through unmapped. First try `input-remapper-control --command autoload`; if that still says "Device unknown", restart the daemon: `sudo systemctl restart input-remapper-daemon`. If this happens repeatedly, automate via a udev rule that triggers `autoload` on `add` events for the device, or a systemd path/dispatcher hook.
+- **input-remapper after Bluetooth reconnect**: when a BT mouse/trackball drops + re-attaches mid-session, the daemon's internal device list goes stale and autoload doesn't re-apply to the new evdev node — `xinput list` shows BOTH the original device AND `input-remapper <name> forwarded`, but real button presses pass through unmapped. First try `input-remapper-control --command autoload`; if that still says "Device unknown", restart the daemon: `sudo systemctl restart input-remapper-daemon`. If repeated, automate via a udev rule that triggers `autoload` on `add` events for the device.

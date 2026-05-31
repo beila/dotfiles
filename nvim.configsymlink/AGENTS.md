@@ -1,6 +1,6 @@
 # Neovim — Context for AI Agent
 
-`~/.dotfiles/nvim.configsymlink/` symlinked to `~/.config/nvim`. Also symlinked to `~/.vim` via `~/.dotfiles/vim.symlink → nvim.configsymlink`. If `~/.vim/myvimrc` is unreachable on a machine (vim.symlink missing/broken), `vimrc.symlink`'s `source ~/.vim/myvimrc` will error and abort everything downstream in `init.lua`. Fix: `ln -sfn nvim.configsymlink ~/.dotfiles/vim.symlink`.
+`nvim.configsymlink/` symlinked to `~/.config/nvim`. Also symlinked to `~/.vim` via `vim.symlink → nvim.configsymlink`. If `~/.vim/myvimrc` is unreachable (vim.symlink missing/broken), `vimrc.symlink`'s `source ~/.vim/myvimrc` will error and abort everything downstream in `init.lua` — fix with `ln -sfn nvim.configsymlink ~/.dotfiles/vim.symlink`.
 
 ## Plugin management
 
@@ -60,7 +60,7 @@ Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-c
 - **Limelight** (`my-text.lua`) — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit.
 - **Table mode** (`my-markdown.lua`) — `silent! TableModeEnable` on markdown FileType.
 - **fzf-lua** (`vimrcs/fzf.lua`) — `<leader>f` jj/git tracked files (ctrl-g toggles submodule files, ctrl-f toggles all files, query preserved), `<leader>F` all files, `<C-g><C-f>` changed files, ctrl-n/p preview scroll. **Grep dialog toggles** (header strip, separated by newline so it stacks instead of forming one long line): `ctrl-r` `actions.toggle_ignore` (live-labelled "Respect/Disable .gitignore"), `ctrl-g` default `actions.grep_lgrep` (live/regex), `ctrl-w` `--word-regexp`, `ctrl-s` `--case-sensitive`. The two flag toggles use a local `toggle_rg_flag` helper instead of `actions.toggle_flag`: it inserts the flag immediately before the trailing `-e` (so the user's query stays the rg pattern arg, not the toggled flag) AND keeps the flag positioned after `--smart-case` so rg's last-case-flag-wins rule lets `--case-sensitive` actually take effect. `ctrl-s` shadows the inherited `file_split` action inside grep only.
-- **Font** (`gvimrc`) — neovide guifont `JetBrains Mono Thin,LXGW WenKai Mono:h11` (Latin + Hangul/CJK fallback, matches ghostty). `:hSize` goes once at the very end; repeating it per font fails with "Invalid size". `home-manager.configsymlink/neovide.nix` copies LXGW Mono into `~/.local/share/fonts/` (skia ignores nix paths). Source Code Pro must be installed for neovide's default fallback.
+- **Font** (`gvimrc`) — neovide guifont `JetBrains Mono Thin,LXGW WenKai Mono:h11` (Latin + Hangul/CJK fallback, matches ghostty). `:h<Size>` goes once at the very end; repeating per font fails with "Invalid size". `neovide.nix` copies LXGW Mono into `~/.local/share/fonts/` (skia ignores nix paths). Source Code Pro must be installed for neovide's default fallback.
 - **Linting** — `nvim-lint` runs CLI linters (checkmake, hadolint, checkstyle, markdownlint-cli2, statix, deadnix) on save.
 
 ## Tool installation
@@ -73,7 +73,7 @@ A sibling-repo home-manager module appends a snippet to `programs.neovim.initLua
 
 ## Universal copy/paste
 
-`vimrcs/my-clipboard.lua` maps `<F24>`/`<F20>` AND `<XF86Copy>`/`<XF86Paste>` (sent by keyd's Super+C / Super+V macro): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`. See `keyd/AGENTS.md` for the full stack.
+`vimrcs/my-clipboard.lua` maps `<F24>`/`<F20>` AND `<XF86Copy>`/`<XF86Paste>` (sent by keyd's Super+C / Super+V macro): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`. See `keyd/AGENTS.md`.
 
 ## Known issues
 
