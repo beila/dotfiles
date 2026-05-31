@@ -96,26 +96,27 @@ _ELAPSED_WIDTH = 5  # fits "59.9s", "9m59s", "9h59m" — practical ceiling
 
 
 def _spacer_line(elapsed: float):
-    # Layout: dim dashes (left) · yellow elapsed · cyan time (right).
-    # Order and colors match p10k's right-prompt segments
+    # Layout: dim dashes (left) · yellow elapsed · cyan time · trailing
+    # space (right). Order and colors match p10k's right-prompt segments
     # (command_execution_time → time) so the spacer reads as a
-    # continuation of the prompt's visual language. Elapsed is right-
-    # justified in a fixed _ELAPSED_WIDTH slot so the time column lines
-    # up across spacer lines regardless of elapsed's natural length.
+    # continuation of the prompt's visual language. The trailing space
+    # also matches p10k's segment padding. Elapsed is right-justified in
+    # a fixed _ELAPSED_WIDTH slot so the time column lines up across
+    # spacer lines regardless of elapsed's natural length.
     cols = _term_width()
     time_str = time.strftime("%H:%M:%S")
     elapsed_raw = _format_elapsed(elapsed) if elapsed > 0.1 else ""
     elapsed_padded = elapsed_raw.rjust(_ELAPSED_WIDTH)
-    tail_visible = f"{elapsed_padded} {time_str}"
+    tail_visible = f"{elapsed_padded} {time_str} "
     dashes = max(1, cols - len(tail_visible) - 1)
     if elapsed_raw:
         tail_colored = (
             f"{YELLOW}{elapsed_padded}{DEFAULT_FG} "
-            f"{CYAN}{time_str}{DEFAULT_FG}"
+            f"{CYAN}{time_str}{DEFAULT_FG} "
         )
     else:
         # Pad with plain spaces; no color escapes so the slot stays empty.
-        tail_colored = f"{' ' * _ELAPSED_WIDTH} {CYAN}{time_str}{DEFAULT_FG}"
+        tail_colored = f"{' ' * _ELAPSED_WIDTH} {CYAN}{time_str}{DEFAULT_FG} "
     sys.stdout.write(f"{DIM}{'─' * dashes}{RESET} {tail_colored}\n")
     sys.stdout.flush()
 
