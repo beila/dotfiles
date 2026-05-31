@@ -50,8 +50,12 @@ def _ansi(code: str) -> str:
 
 DIM = _ansi("2")
 RESET = _ansi("0")
-YELLOW = _ansi("33")  # time
-BLUE = _ansi("34")  # elapsed
+# Colors mirror powerlevel10k's right-prompt segments so spacer lines
+# read as a continuation of the prompt's visual language:
+#   COMMAND_EXECUTION_TIME_FOREGROUND=3 (yellow) → elapsed
+#   TIME_FOREGROUND=6                   (cyan)  → wall-clock time
+YELLOW = _ansi("33")
+CYAN = _ansi("36")
 DEFAULT_FG = _ansi("39")
 ERASE_LINE = "\x1b[2K\r"
 
@@ -93,26 +97,26 @@ _ELAPSED_WIDTH = 5  # fits "59.9s", "9m59s", "9h59m" — practical ceiling
 
 
 def _spacer_line(elapsed: float):
-    # Layout: dim dashes (left) · yellow time · blue elapsed (right). Date
-    # is omitted — always today in interactive runs, just noise. Elapsed
-    # is right-justified in a fixed 9-char slot so the time column lines
+    # Layout: dim dashes (left) · yellow elapsed · cyan time (right).
+    # Order and colors match p10k's right-prompt segments
+    # (command_execution_time → time) so the spacer reads as a
+    # continuation of the prompt's visual language. Elapsed is right-
+    # justified in a fixed _ELAPSED_WIDTH slot so the time column lines
     # up across spacer lines regardless of elapsed's natural length.
     cols = _term_width()
     time_str = time.strftime("%H:%M:%S")
     elapsed_raw = _format_elapsed(elapsed) if elapsed > 0.1 else ""
     elapsed_padded = elapsed_raw.rjust(_ELAPSED_WIDTH)
-    # Always reserve the elapsed slot so the time column doesn't shift
-    # on lines where elapsed was suppressed (sub-0.1s gap).
-    tail_visible = f"{time_str} {elapsed_padded}"
+    tail_visible = f"{elapsed_padded} {time_str}"
     dashes = max(1, cols - len(tail_visible) - 1)
     if elapsed_raw:
         tail_colored = (
-            f"{YELLOW}{time_str}{DEFAULT_FG} "
-            f"{BLUE}{elapsed_padded}{DEFAULT_FG}"
+            f"{YELLOW}{elapsed_padded}{DEFAULT_FG} "
+            f"{CYAN}{time_str}{DEFAULT_FG}"
         )
     else:
         # Pad with plain spaces; no color escapes so the slot stays empty.
-        tail_colored = f"{YELLOW}{time_str}{DEFAULT_FG} {' ' * _ELAPSED_WIDTH}"
+        tail_colored = f"{' ' * _ELAPSED_WIDTH} {CYAN}{time_str}{DEFAULT_FG}"
     sys.stdout.write(f"{DIM}{'─' * dashes}{RESET} {tail_colored}\n")
     sys.stdout.flush()
 
