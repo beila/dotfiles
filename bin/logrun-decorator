@@ -7,14 +7,13 @@ sends SIGUSR2 when it crosses --auto's line/wallclock threshold. Until
 that signal arrives we behave as plain `cat`.
 
 Activated mode behavior (after SIGUSR2):
-  - prints a thin "──── HH:MM:SS Xs" line each time stdout has been
-    silent for `--after` seconds (default 1.0). Format mirrors
-    `spacer --right --force-color` minus the date (always today in an
-    interactive run, so it's just noise): dim dashes (left), yellow
-    time, blue elapsed-since-previous-spacer (right). The elapsed
-    value is wall time since the last spacer line (or program start),
-    per spacer's source — NOT the just-finished idle gap; it shows
-    you how long it's been since you last saw activity flagged.
+  - prints a thin "──── Xs HH:MM:SS" line each time stdout has been
+    silent for `--after` seconds (default 1.0). Layout/colors match
+    p10k's right-prompt segments (command_execution_time → time): dim
+    dashes (left), yellow elapsed, cyan wall-clock time (right). The
+    elapsed value is wall time since the last spacer line (or program
+    start), per spacer's source — NOT the just-finished idle gap; it
+    shows how long it's been since the previous spacer fired.
   - lightweight idle indicator on stderr ("idle 5s", overwriting in
     place) when no output for `--idle` seconds (default 3); cleared on
     next byte. Mimics `watchlog`.
