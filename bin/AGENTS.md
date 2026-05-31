@@ -89,9 +89,15 @@ No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own),
 
 `mcp-tts` — MCP server exposing `say` / `say_ko` tools to Kiro/Claude. Kills previous playback via `setsid` + `kill -PGID`. See `kiro.filesymlink/AGENTS.md` for the agent wiring. Test: `bash bin/test_mcp_tts.sh`.
 
+## logrun config files (cross-machine, in this dir)
+
+- `logrun-auto-functions` — committed list of function names that the `zz-logrun-auto.zsh` widget should wrap (slow `zsh -ic` path). Read at widget load time. `.gitattributes` maps to `merge=union-dedupe` so concurrent appends from different machines auto-merge.
+- `logrun-tui-skiplist` — committed list of curses-style commands `logrun --auto` saw with alt-screen escapes. The widget skips wrap for these so the TUI doesn't break under any pipe. Auto-extended by `bin/logrun` when an unknown TUI is detected. `.gitattributes` maps to `merge=union` for cross-machine merging. (The `LOGRUN_TUI_SKIPLIST` env var in `home.nix` is a separate, in-process baseline — both feed the same skip check.)
+
 ## Other
 
 - `jj-untrack-files` — selectively untrack files in jj while keeping the working copy.
+- `copy-paste-route` — vestigial empty file, leftover from the pre-keyd `xmonad + xdotool` copy-paste flow. Pending removal.
 
 ## Known issues
 
