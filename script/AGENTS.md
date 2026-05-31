@@ -47,7 +47,7 @@ Failures: ERROR (paged via Telegram) for build failures and non-network `nix fla
 
 Env: `FLAKE_UPDATE_DRY_RUN=1` skips the actual update (still runs build + news), `FLAKE_UPDATE_FLAKE_DIR` overrides the flake path.
 
-**First production-validation run (2026-05-23) caught a real upstream breaking change**: nixpkgs reclassified 8 nvim plugins (`nvim-dap-vscode-js`, `typescript-vim`, `vim-argumentative`, `vim-dirdiff`, `vim-fubitive`, `vim-jinja`, `vim-table-mode`, `vimproc.vim`, `YankRing.vim`) as unfree, breaking the next `home-manager switch`. Watchdog fired ERROR before any switch happened; fix = added the names to `home.nix`'s `allowUnfreePredicate` allowlist.
+The watchdog has caught real upstream breakage in production (e.g. nixpkgs reclassifying nvim plugins as unfree); when that happens, fix = add to `home.nix`'s `allowUnfreePredicate` allowlist.
 
 Test harness: `script/test_flake-update.sh` (34 assertions; stubbed `nix`, `home-manager`, `claude` via PATH; the harness `env -u CLAUDECODE`s the runner so it works whether or not Claude Code is the calling shell).
 

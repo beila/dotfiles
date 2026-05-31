@@ -15,12 +15,16 @@
 - `history.zsh` — 10M entries, dedup, `HIST_IGNORE_SPACE` disabled.
 - `directory.zsh` — `auto_cd`, `auto_pushd`, `extended_glob`, no clobber.
 - `utility.zsh` — correction, `nocorrect`/`noglob` aliases, colored ls/grep.
-- `completion.zsh` — compinit, caching, fuzzy match, case-insensitive, menu select, AWS bashcompinit, **fzf-tab** (see below).
+- `config.zsh` — preexec/precmd timer that triggers `say_done` for commands taking >10s on desktop machines.
+- `functions.zsh` — autoloads everything in `functions/`; turns `aliased_<name>` files into `<name>` aliases (smart_sudo idiom). Also autoloads `exa_functions/` when `eza` is on PATH.
+- `fuzzy_completion.zsh` — single `zstyle` setting case-insensitive partial-word matching for the completion system.
+- `completion.zsh` — compinit, caching, menu select, AWS bashcompinit, **fzf-tab** (see below).
 - `syntax-highlighting.zsh` — `fast-syntax-highlighting` (nix).
 - `autosuggestions.zsh` — `zsh-autosuggestions` (nix).
 - `git.zsh` — git aliases, no git-flow.
 - `gnu-utility.zsh` — g-prefixed GNU utils on macOS, no-op on Linux.
 - `p10k.zsh` — powerlevel10k (nix) + user config.
+- `print_actual_command.zsh` — defines `print_actual_command` (echoes pre-alias-expansion command line). Dormant: the `add-zsh-hook` registration is commented out, so the function is dead code unless re-enabled.
 - `zz-logrun-auto.zsh` — `accept-line` widget that auto-wraps interactive prompt commands in `logrun --auto`. Loaded last (the `zz-` prefix wins the alphabetical glob sort) so the widget sits OUTSIDE `zsh-syntax-highlighting`'s and `zsh-autosuggestions`' own `accept-line` wrappers. See "logrun-auto widget" below.
 
 ## Functions (`zsh/functions/`)
