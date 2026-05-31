@@ -7,6 +7,8 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ## TODO List
 
 ### High impact
+- [ ] make copilot key work as super (current `keyd/thinkpad.conf` config exists but doesn't actually work in practice — needs investigation)
+  - it works with hold, but not with tap
 - [ ] bidirectional auto-suggestion for `LOGRUN_AUTO_FUNCTIONS` tuning:
   - wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → suggest removing from list (it's adding shell-startup overhead for nothing)
   - unwrapped function exceeded threshold → suggest adding to list (its output should be captured)
