@@ -528,6 +528,46 @@ step_run_jj_fix() {
 }
 step_run_jj_fix
 
+# Generate descriptions for any descriptionless mutable commits in the local
+# chain. gitfarm's pre-receive hook rejects pushes that contain undescribed
+# commits ("Won't push commit X since it has no description"); so does any
+# other server with a similar policy. snapshot_at_to_push_rev only describes
+# @ when it's empty-and-fresh; older mutable commits made outside this script
+# (interactive `jj new`, agent edits, etc.) can still be undescribed, and the
+# rebase in handle_diverged carries that forward unchanged.
+#
+# Same revset shape as step_run_jj_fix: local-only chain when a remote
+# bookmark is configured, else just @-. Skips empty commits (they can't be
+# described meaningfully and aren't pushed by gitfarm anyway).
+step_describe_local_chain() {
+    local revset="@-"
+    if [ -n "$SYNC_BM" ]; then
+        if jj log -r "${SYNC_BM}@${SYNC_REMOTE}" --no-graph -T '"y"' 2>/dev/null | grep -q y; then
+            revset="${SYNC_BM}@${SYNC_REMOTE}..@-"
+        fi
+    fi
+    local change_id msg
+    # Iterate descriptionless, non-empty commits. Template emits one
+    # change_id per line (or nothing for commits we skip).
+    while IFS= read -r change_id; do
+        [ -n "$change_id" ] || continue
+        if ! msg=$("$DOTFILES_ROOT/bin/commit-msg" "$change_id" 2>/dev/null); then
+            log WARN "DESCRIBE-FAIL $change_id: commit-msg failed; leaving undescribed"
+            continue
+        fi
+        # commit-msg always falls back to a file-list, so empty output is
+        # an unexpected pipeline break — log and skip to avoid setting an
+        # empty description (jj describe -m '' clears the description).
+        [ -n "$msg" ] || { log WARN "DESCRIBE-FAIL $change_id: empty commit-msg output"; continue; }
+        if jj describe "$change_id" -m "$msg" 2>/dev/null; then
+            log INFO "DESCRIBE-OK $change_id: $msg"
+        else
+            log WARN "DESCRIBE-FAIL $change_id: jj describe failed"
+        fi
+    done < <(jj log -r "$revset" --no-graph -T 'if(!description && !empty, change_id ++ "\n")' 2>/dev/null)
+}
+step_describe_local_chain
+
 # CRITICAL ORDER: snapshot push FIRST (purely additive, no local state mutation).
 # Whatever the user has in the working copy gets backed up to the snapshot URL
 # before any rebase / bookmark advance / merge probe can possibly disturb it.

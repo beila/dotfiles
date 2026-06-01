@@ -617,6 +617,113 @@ else
 fi
 
 echo
+echo "=== Scenario 13: descriptionless commit on local chain -> commit-msg pre-push ==="
+# Regression for the gitfarm-style failure: server's pre-receive hook
+# rejects commits without descriptions. sync_repo must run commit-msg on
+# any descriptionless mutable commit in the local-only chain BEFORE push,
+# so the rebase / push downstream of step_describe_local_chain never tries
+# to send an undescribed commit.
+#
+# Setup: a fresh bare with a pre-receive hook that mimics gitfarm's
+# behaviour ("Won't push commit X since it has no description").
+# This user's git template puts hooks at the bare-repo top level (not
+# under hooks/); install accordingly. Detect by checking which dir
+# layout `git init --bare` produced for the existing remote.git.
+git -C "$TMPDIR" init --bare -q -b master strict.git
+if [ -d "$TMPDIR/strict.git/hooks" ]; then
+    HOOK_PATH="$TMPDIR/strict.git/hooks/pre-receive"
+else
+    HOOK_PATH="$TMPDIR/strict.git/pre-receive"
+fi
+cat >"$HOOK_PATH" <<'HOOK'
+#!/bin/bash
+# Reject any push that includes a commit with an empty description.
+while read -r oldrev newrev refname; do
+    [ "$newrev" = "0000000000000000000000000000000000000000" ] && continue
+    range="$newrev"
+    [ "$oldrev" != "0000000000000000000000000000000000000000" ] && range="$oldrev..$newrev"
+    while read -r sha; do
+        msg=$(git log --format=%B -1 "$sha")
+        if [ -z "$(printf '%s' "$msg" | tr -d '[:space:]')" ]; then
+            echo "Error: Won't push commit $sha since it has no description" >&2
+            echo "Hint: Rejected commit: $sha (no description set)" >&2
+            exit 1
+        fi
+    done < <(git rev-list "$range")
+done
+HOOK
+chmod +x "$HOOK_PATH"
+
+mkdir -p "$TMPDIR/repoStrictBase"
+(
+    cd "$TMPDIR/repoStrictBase"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/strict.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.snapshot-url "$TMPDIR/strict.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo "init" > README.md
+    jj commit -m "initial"
+    jj bookmark create master -r @-
+    jj git push --remote backup --bookmark master --allow-new
+) >/dev/null 2>&1
+
+# Two clones diverge: repoP and repoQ, both creating an undescribed commit
+# on top of the shared base. repoP edits one file, repoQ edits a different
+# one — divergence triggers handle_diverged in the second sync_repo run.
+cp -r "$TMPDIR/repoStrictBase" "$TMPDIR/repoP"
+cp -r "$TMPDIR/repoStrictBase" "$TMPDIR/repoQ"
+
+# Build an undescribed mutable commit in each: `jj new` then leave the
+# working copy with edits but never describe it. snapshot_at_to_push_rev
+# moves @ to a fresh empty child, so the parent (@-) is the one that
+# carries the actual changes — and is the one without a description.
+( cd "$TMPDIR/repoP" && echo "from P" > p.txt ) >/dev/null 2>&1
+( cd "$TMPDIR/repoQ" && echo "from Q" > q.txt ) >/dev/null 2>&1
+
+# repoP syncs first; bookmark sync sees local-ahead and pushes @-.
+# Without step_describe_local_chain, this push would be rejected.
+run_sync "$TMPDIR/repoP"
+remote_after_p=$(git -C "$TMPDIR/strict.git" rev-parse master 2>/dev/null)
+local_p_at_minus=$(cd "$TMPDIR/repoP" && jj log -r "@-" --no-graph -T 'commit_id')
+check "repoP: strict push of described commit succeeded" "$local_p_at_minus" "$remote_after_p"
+
+# repoQ now diverges from remote (P landed). handle_diverged rebases Q's
+# undescribed commit onto P's tip; without commit-msg pre-population, the
+# rebased commit would still lack a description and the push would fail
+# with the gitfarm-style message.
+run_sync "$TMPDIR/repoQ"
+remote_after_q=$(git -C "$TMPDIR/strict.git" rev-parse master 2>/dev/null)
+local_q_at_minus=$(cd "$TMPDIR/repoQ" && jj log -r "@-" --no-graph -T 'commit_id')
+check "repoQ: strict push of described+rebased commit succeeded" "$local_q_at_minus" "$remote_after_q"
+
+# DESCRIBE-OK should appear in the logs for both repos (each had one
+# descriptionless commit pre-push).
+if grep -rqE 'DESCRIBE-OK' "$LOG_ROOT"/*/sync_repo.*repoP* 2>/dev/null; then
+    echo "PASS: repoP log recorded DESCRIBE-OK"
+    pass=$((pass+1))
+else
+    echo "FAIL: repoP log missing DESCRIBE-OK"
+    fail=$((fail+1))
+fi
+if grep -rqE 'DESCRIBE-OK' "$LOG_ROOT"/*/sync_repo.*repoQ* 2>/dev/null; then
+    echo "PASS: repoQ log recorded DESCRIBE-OK"
+    pass=$((pass+1))
+else
+    echo "FAIL: repoQ log missing DESCRIBE-OK"
+    fail=$((fail+1))
+fi
+# Neither repo should log "no description set" rejection from the server.
+if grep -rqE 'no description set' "$LOG_ROOT"/*/sync_repo.*repoP* "$LOG_ROOT"/*/sync_repo.*repoQ* 2>/dev/null; then
+    echo "FAIL: server rejected an undescribed commit (step_describe_local_chain didn't populate)"
+    fail=$((fail+1))
+else
+    echo "PASS: no 'no description set' rejection in logs"
+    pass=$((pass+1))
+fi
+
+echo
 echo "=== Sample log file ==="
 sample=$(find "$LOG_ROOT" -name '*.log' | head -1)
 if [ -n "$sample" ]; then
