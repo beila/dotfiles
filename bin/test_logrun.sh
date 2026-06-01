@@ -349,30 +349,19 @@ shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
 check "case17b: wallclock log retained"        "1" "${#logs[@]}"
 
 # -----------------------------------------------------------------------------
-# Case 18: --auto + non-zero exit → FAILED rename + banner shows FAILED path
+# Case 18: --auto + non-zero exit UNDER threshold → wrap stays invisible.
+# No log file, no banner — the failure looks identical to a bare run.
+# Above-threshold failures still get the FAILED rename + banner (case 22).
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
     -- bash -c 'echo oops; exit 7' >/dev/null 2>"$d/stderr"
 rc=$?
 check "case18a: failure exit propagated"       "7" "$rc"
-# *.FAILED.txt counts the renamed log; "plain" must exclude that suffix.
-# bash globs can't easily express "ends in .txt but NOT .FAILED.txt", so
-# we filter the array after the fact.
-shopt -s nullglob
-failed=("$d"/*.FAILED.txt)
-all_txt=("$d"/log-*.txt)
-plain=()
-for f in "${all_txt[@]}"; do
-    [[ "$f" == *.FAILED.txt ]] || plain+=("$f")
-done
-shopt -u nullglob
-check "case18b: FAILED.txt rename applied"     "1" "${#failed[@]}"
-# Plain log-*.txt files (not the .FAILED.txt variant) should be gone
-# after the failure rename.
-check "case18c: no plain .txt remains"         "0" "${#plain[@]}"
-banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
-check "case18d: banner mentions FAILED.txt"    "1" "$banner_failed"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+check "case18b: short failure leaves no log"   "0" "${#logs[@]}"
+banner_count=$(grep -c '^Log' "$d/stderr" 2>/dev/null; true)
+check "case18c: short failure prints no banner" "0" "$banner_count"
 
 # -----------------------------------------------------------------------------
 # Case 19: --auto + alt-screen entry → hint printed AND command name

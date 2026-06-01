@@ -24,8 +24,10 @@
 #                        ≥LOGRUN_AUTO_SECONDS (10) wall-clock OR ≥LOGRUN_AUTO_LINES
 #                        (100) output lines, print "Log: <path>" to stderr and
 #                        the decorator (bin/logrun-decorator) starts emitting
-#                        idle indicators. If neither tripped and exit code is 0,
-#                        the log file is removed on exit.
+#                        idle indicators. Under threshold → log file removed
+#                        regardless of exit code (the wrap stays invisible);
+#                        a non-zero exit only reveals the log when the run
+#                        also crossed a threshold.
 #   --no-zshrc           With positional argv, exec the command directly
 #                        instead of via `zsh -ic`. Skips ~800ms zshrc startup
 #                        for plain externals (the widget passes this).
@@ -467,31 +469,25 @@ if (( auto_mode )); then
     # async signal handling makes that flag unreliable here.
     [[ -s "$auto_lines_file" ]] && revealed=1
 
-    if (( exit_code != 0 )); then
-        # Failure always reveals: user needs the log path to debug.
-        # Apply FAILED rename FIRST so the banner shows the renamed path.
-        if [[ -n "$fail_suffix" ]]; then
+    if (( revealed )); then
+        # Threshold tripped during the run. On non-zero exit, apply the
+        # FAILED rename and surface the renamed path (the in-run trap
+        # already printed the original path, so this becomes a "Log
+        # renamed: …" line so the user doesn't think two separate logs
+        # were created).
+        if (( exit_code != 0 )) && [[ -n "$fail_suffix" ]]; then
             failed_path="${log_path%.txt}.${fail_suffix}"
             if mv "$log_path" "$failed_path" 2>/dev/null; then
                 log_path="$failed_path"
+                echo "Log renamed: $log_path" >&2
             fi
         fi
-        # If the in-run trap already printed the (now-stale) original
-        # path, label the second banner as a rename so the user doesn't
-        # think two separate logs were created. If no in-run banner
-        # printed yet, just print the normal "Log:" line.
-        if [[ -e "$auto_lines_file.banner" ]]; then
-            echo "Log renamed: $log_path" >&2
-        else
-            _logrun_on_reveal
-        fi
-    elif (( revealed )); then
-        # Threshold tripped during the run; the trap already printed
-        # the banner. Nothing to do unless the path changed.
-        :
     else
-        # Quiet, successful run: nothing crossed the threshold. Erase
-        # the log so the prompt looks identical to a bare command.
+        # Under threshold: the wrap stays invisible. Erase the log
+        # regardless of exit code — a fast failure looks identical to
+        # bare execution. The user gets the command's own stderr; if
+        # they want a log, they can rerun without --auto or with
+        # LOGRUN_AUTO_SECONDS=0.
         rm -f "$log_path"
     fi
 
