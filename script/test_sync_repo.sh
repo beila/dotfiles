@@ -675,12 +675,25 @@ mkdir -p "$TMPDIR/repoStrictBase"
 cp -r "$TMPDIR/repoStrictBase" "$TMPDIR/repoP"
 cp -r "$TMPDIR/repoStrictBase" "$TMPDIR/repoQ"
 
-# Build an undescribed mutable commit in each: `jj new` then leave the
-# working copy with edits but never describe it. snapshot_at_to_push_rev
-# moves @ to a fresh empty child, so the parent (@-) is the one that
-# carries the actual changes — and is the one without a description.
-( cd "$TMPDIR/repoP" && echo "from P" > p.txt ) >/dev/null 2>&1
-( cd "$TMPDIR/repoQ" && echo "from Q" > q.txt ) >/dev/null 2>&1
+# Build an undescribed mutable commit ABOVE the working copy in each.
+# `snapshot_at_to_push_rev` already handles the @-uncommitted case (it
+# describes @ before push); the bug we're regressing is the case where
+# someone left a mid-chain commit without a description (e.g. interactive
+# `jj split`, an editor agent that did `jj new` + edits but skipped the
+# describe). step_describe_local_chain has to walk the whole local chain.
+(
+    cd "$TMPDIR/repoP"
+    echo "from P" > p.txt
+    jj commit --reset-author --quiet -m ""    # commits @ with empty desc, moves @ to empty child
+    # Force jj to forget the previous "set description" for @- so it stays empty
+    jj describe -r "@-" -m "" 2>/dev/null
+) >/dev/null 2>&1
+(
+    cd "$TMPDIR/repoQ"
+    echo "from Q" > q.txt
+    jj commit --reset-author --quiet -m ""
+    jj describe -r "@-" -m "" 2>/dev/null
+) >/dev/null 2>&1
 
 # repoP syncs first; bookmark sync sees local-ahead and pushes @-.
 # Without step_describe_local_chain, this push would be rejected.
