@@ -60,3 +60,6 @@ export PROMPT4='+%F{blue}%B+%N:%i>%b%f '
 
 # Added by AIM CLI
 export PATH="$HOME/.aim/mcp-servers:$PATH"
+
+# Added by AIM CLI
+export PATH="/local/home/hojin/.aim/mcp-servers:$PATH"

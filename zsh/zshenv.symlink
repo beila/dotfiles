@@ -25,3 +25,6 @@ done
 
 # Added by AIM CLI
 export PATH="$HOME/.aim/mcp-servers:$PATH"
+
+# Added by AIM CLI
+export PATH="/local/home/hojin/.aim/mcp-servers:$PATH"
