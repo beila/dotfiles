@@ -66,6 +66,7 @@ in
         pkgs.lxgw-wenkai  # calligraphic CJK monospace; ghostty Hangul fallback + hangul-osd font
         pkgs.mergiraf
         pkgs.nmap  # raw JetDirect printer discovery (print-hp)
+        pkgs.nodejs  # provides node + npx (used by ad-hoc tooling)
         pkgs.ollama
         pkgs.pavucontrol
         pkgs.piper-tts
