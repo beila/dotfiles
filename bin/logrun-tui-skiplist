@@ -4,3 +4,4 @@
 # path to `merge=union` so concurrent appends from multiple machines
 # auto-merge instead of conflicting.
 git
+jj
