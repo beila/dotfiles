@@ -1,3 +1,21 @@
+# Hop to nix zsh for interactive sessions. /etc/passwd lists /bin/zsh (system
+# 5.8.1, glibc 2.26) because LDAP blocks chsh; nix-built modules like fzf-tab
+# require glibc 2.33+ and won't load there. Guard prevents re-exec loop when
+# we're already on the nix zsh.
+if [[ -o interactive && -x ~/.nix-profile/bin/zsh ]]; then
+  _self=$(readlink -f /proc/self/exe 2>/dev/null)
+  _nix=$(readlink -f ~/.nix-profile/bin/zsh 2>/dev/null)
+  if [[ -n $_self && -n $_nix && $_self != $_nix ]]; then
+    unset _self _nix
+    if [[ -o login ]]; then
+      exec ~/.nix-profile/bin/zsh -l
+    else
+      exec ~/.nix-profile/bin/zsh
+    fi
+  fi
+  unset _self _nix
+fi
+
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
