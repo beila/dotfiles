@@ -1,6 +1,8 @@
 # zsh — Context for AI Agent
 
-`~/.dotfiles/zsh/`. Standalone files (zprezto fully removed). zsh is **not** managed by home-manager. The user is on LDAP and can't `chsh`, so `$SHELL` stays bash and zsh is started via `exec` from `.bashrc`.
+`~/.dotfiles/zsh/`. Standalone files (zprezto fully removed). zsh is **not** managed by home-manager.
+
+**Re-exec to the nix zsh**: `zshrc.symlink` opens with a guard that, on interactive shells, re-execs into `~/.nix-profile/bin/zsh` if `/proc/$$/exe` resolves elsewhere. Why: hosts where `chsh` is blocked (LDAP) end up running the system `/bin/zsh` (e.g. 5.8.1, glibc 2.26), and nix-built binary modules like fzf-tab's `fzftab.so` need a newer glibc than the system provides. The check uses `/proc/$$/exe` (not `/proc/self/exe`, which inside `$(readlink ...)` is the readlink subprocess). Carries `-i` and `-l` flags through the exec so the new shell re-enters the same rc files. No-op when already running the nix zsh, or when `~/.nix-profile/bin/zsh` is missing (mid-bootstrap). Works on chsh-able hosts too (the no-op branch).
 
 ## Loading order
 

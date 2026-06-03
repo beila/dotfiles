@@ -8,8 +8,12 @@ if [[ -o interactive && -x ~/.nix-profile/bin/zsh ]]; then
   _self=$(readlink -f /proc/$$/exe 2>/dev/null)
   _nix=$(readlink -f ~/.nix-profile/bin/zsh 2>/dev/null)
   if [[ -n $_self && -n $_nix && $_self != $_nix ]]; then
+    # Carry -i (interactive) and -l (login) through the exec so the new
+    # shell loads the same set of rc files we just started loading.
+    _flags=(-i)
+    [[ -o login ]] && _flags+=(-l)
     unset _self _nix
-    [[ -o login ]] && exec ~/.nix-profile/bin/zsh -l || exec ~/.nix-profile/bin/zsh
+    exec ~/.nix-profile/bin/zsh "${_flags[@]}"
   fi
   unset _self _nix
 fi
