@@ -13,6 +13,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → suggest removing from list (it's adding shell-startup overhead for nothing)
   - unwrapped function exceeded threshold → suggest adding to list (its output should be captured)
   - dedup once per shell session per name (assoc array in the widget)
+- [ ] skip commands in skip list even when running with nix run. When terminal command is detected with nix run, add the correct package to the skip list.
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
