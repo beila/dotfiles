@@ -1,17 +1,14 @@
-# Hop to nix zsh for interactive sessions. /etc/passwd lists /bin/zsh (system
-# 5.8.1, glibc 2.26) because LDAP blocks chsh; nix-built modules like fzf-tab
-# require glibc 2.33+ and won't load there. Guard prevents re-exec loop when
-# we're already on the nix zsh.
+# Re-exec into the nix zsh when we landed in a different one (e.g. system
+# /bin/zsh on hosts where chsh is blocked). The nix zsh is built against the
+# nix glibc, which binary modules like fzf-tab's fzftab.so require. No-op
+# when /proc/self/exe already resolves to ~/.nix-profile/bin/zsh, or when
+# the nix profile isn't present yet (mid-bootstrap).
 if [[ -o interactive && -x ~/.nix-profile/bin/zsh ]]; then
   _self=$(readlink -f /proc/self/exe 2>/dev/null)
   _nix=$(readlink -f ~/.nix-profile/bin/zsh 2>/dev/null)
   if [[ -n $_self && -n $_nix && $_self != $_nix ]]; then
     unset _self _nix
-    if [[ -o login ]]; then
-      exec ~/.nix-profile/bin/zsh -l
-    else
-      exec ~/.nix-profile/bin/zsh
-    fi
+    [[ -o login ]] && exec ~/.nix-profile/bin/zsh -l || exec ~/.nix-profile/bin/zsh
   fi
   unset _self _nix
 fi

@@ -182,10 +182,13 @@ in
     {
       # Cron's default PATH is /usr/bin:/bin — too narrow for our scripts,
       # which call nix-installed tools (jj, plocate, claude, kiro-cli) and
-      # user-local helpers. Use mkDefault so a host can override if it has
-      # an unusual layout.
+      # user-local helpers. /nix/var/nix/profiles/default/bin is where the
+      # multi-user nix daemon installs `nix` itself; without it scripts that
+      # shell out to nix (e.g. flake-update) fail with "nix not found on PATH".
+      # Use mkDefault so a host can override if it has an unusual layout.
       dotfiles.schedule.pathExtra = lib.mkDefault [
         "${config.home.homeDirectory}/.nix-profile/bin"
+        "/nix/var/nix/profiles/default/bin"
         "${config.home.homeDirectory}/.local/bin"
         "/run/current-system/sw/bin"
         "/usr/local/bin"
