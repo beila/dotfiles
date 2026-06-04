@@ -545,6 +545,35 @@ else
     printf 'SKIP: case27 (python3 unavailable)\n'
 fi
 
+# Case 28: decorator that exits early (SIGPIPEs tee) must NOT truncate
+# the log file. Regression for the "tail missing from log" bug where a
+# build's final lines + failure summary appeared on the tty but never
+# landed on disk. Use a decorator that reads one line and exits; the
+# log file must still contain every output line.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+"$UNDER_TEST" --log-dir "$d" \
+    --decorator 'head -n 1 >/dev/null' \
+    -- bash -c 'for i in $(seq 1 50); do echo "line-$i"; done' \
+    >/dev/null 2>&1 || true
+log=$(ls "$d"/log-*.txt 2>/dev/null | head -1)
+check_grep "case28a: decorator-exit log keeps first line"  '^line-1$'  "$log"
+check_grep "case28b: decorator-exit log keeps last line"   '^line-50$' "$log"
+
+# Same case but in --auto mode (the file-side path is awk-on-fd-4, not a
+# process substitution — the SIGPIPE-tolerance fix needs to apply there
+# too). LOGRUN_AUTO_LINES=2 ensures the threshold is crossed so the log
+# is kept on success-exit; otherwise auto mode deletes it (see case 15).
+new_logdir; d=$LOG_DIR
+LOGRUN_AUTO_LINES=2 \
+    "$UNDER_TEST" --auto --log-dir "$d" --no-zshrc \
+    --decorator 'head -n 1 >/dev/null' \
+    -- bash -c 'for i in $(seq 1 50); do echo "line-$i"; done' \
+    >/dev/null 2>&1 || true
+log=$(ls "$d"/log-*.txt 2>/dev/null | head -1)
+check_grep "case28c: --auto decorator-exit log keeps first line" '^line-1$'  "$log"
+check_grep "case28d: --auto decorator-exit log keeps last line"  '^line-50$' "$log"
+
 # -----------------------------------------------------------------------------
 # Summary
 # -----------------------------------------------------------------------------

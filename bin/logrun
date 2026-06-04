@@ -440,8 +440,13 @@ if (( auto_mode )); then
     # zsh helpers like gitstatus / zsh-async) don't inherit it and
     # block awk's EOF after we exit. tee's own fd 4 is unaffected —
     # the redirection only applies to "$@". See AGENTS.md "fd 4 isolation".
+    # `tee -p` (warn-nopipe): when the decorator stage exits early and
+    # SIGPIPEs tee's stdout, tee keeps running and continues writing to
+    # fd 4 — otherwise the log file would be truncated mid-stream
+    # (e.g. ninja output past the failure point would be visible on the
+    # tty via the decorator but missing from the log).
     "$@" 2>&1 4>&- \
-        | tee /dev/fd/4 \
+        | tee -p /dev/fd/4 \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}
     # Close fd 4 so awk sees EOF and exits, then wait specifically for
@@ -450,7 +455,7 @@ if (( auto_mode )); then
     [[ -n "$awk_pid" ]] && wait "$awk_pid" 2>/dev/null
 else
     "$@" 2>&1 \
-        | tee >("${strip_ansi[@]}" > "$log_path") \
+        | tee -p >("${strip_ansi[@]}" > "$log_path") \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}
 fi
