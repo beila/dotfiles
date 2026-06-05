@@ -25,7 +25,7 @@ import Graphics.X11.ExtraTypes.XF86
 -- Main
 ------------------------------------------------------------------------
 
-main = xmonad $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
+main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
   where
     -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
     fsHook = composeOne
