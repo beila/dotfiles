@@ -18,7 +18,10 @@ let
     pyproject = true;
     src = ../xwindow/osd;
     build-system = with pkgs.python3Packages; [ setuptools ];
-    propagatedBuildInputs = with pkgs.python3Packages; [ pycairo xlib ];
+    propagatedBuildInputs = with pkgs.python3Packages; [
+      pycairo
+      xlib
+    ];
     doCheck = false;
   };
 in
@@ -39,93 +42,107 @@ in
     # # "Hello, world!" when run.
     # pkgs.hello
 
-        pkgs.albert
-        pkgs.bat
-        pkgs.brightnessctl
-        pkgs.btop
-        pkgs.xfce4-genmon-plugin
-        pkgs.cmake
-        pkgs.dzen2  # lightweight OSD popups for audio/device switching
-        pkgs.difftastic
-        pkgs.dust
-        pkgs.eza  # modern ls replacement; used by fzf-tab directory previews
-        pkgs.fd
-        pkgs.ffmpeg
-        pkgs.fzf
-        # `bin/logrun` requires gawk in --auto mode. Debian's default
-        # mawk has a hardcoded ~8KB record buffer when run with
-        # `-W interactive` (the line-buffered-input flag we need so
-        # threshold detection trips mid-stream rather than at EOF).
-        # Long un-LF'd records — e.g. `uvx whichllm`, `pip`, `cargo`,
-        # `docker pull` progress bars or rich/textual table output —
-        # exceed that and get silently truncated, losing the on-disk
-        # log content. gawk is line-buffered on pipes by default and
-        # has no record-size cap, so logrun prefers it when present.
-        pkgs.gawk
-        pkgs.git
-        (config.lib.nixGL.wrap pkgs.ghostty)
-        pkgs.ghostty.terminfo
-        pkgs.glow  # terminal markdown renderer
-        pkgs.gnumake  # `make` needed by bb
-        pkgs.hishtory
-        pkgs.jetbrains-mono # For OSD popups
-        pkgs.nerd-fonts.jetbrains-mono  # For OSD popups
-        pkgs.jujutsu
-        pkgs.just
-        pkgs.keyd
-        pkgs.lxgw-wenkai  # calligraphic CJK monospace; ghostty Hangul fallback + hangul-osd font
-        pkgs.mergiraf
-        pkgs.nmap  # raw JetDirect printer discovery (print-hp)
-        pkgs.nodejs  # provides node + npx (used by ad-hoc tooling)
-        pkgs.ollama
-        pkgs.pavucontrol
-        pkgs.piper-tts
-        pkgs.plocate
-        pkgs.ripgrep
-        pkgs.scrot
-        pkgs.spacer
-        pkgs.uv  # edge-tts runner for say-ko
-        pkgs.watchlog
-        # battery-osd: invocation wrapper around the local `osd` library.
-        # Single binary in PATH; no full Python (would conflict with awscli2).
-        (pkgs.writers.writePython3Bin "battery-osd" {
-          libraries = with pkgs.python3Packages; [ pycairo xlib ] ++ [ osd ];
-          flakeIgnore = [ "E501" "E731" "W503" ];
-        } (builtins.readFile ../xwindow/bin/battery-osd.py))
-        # hangul-osd: persistent overlay while ibus's current engine is hangul.
-        # Same osd-library pattern as battery-osd, plus PyGObject for the IBus
-        # D-Bus signal subscription (no polling). The wrapper script sources
-        # the IBus GIR typelib at runtime so PyGObject can find it.
-        (pkgs.writeShellScriptBin "hangul-osd" ''
-          export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
-          # Path to JejuHallasan ttf — passed straight to fontconfig's
-          # app-font set at startup so Pango sees it even though its English
-          # coverage is incomplete (Pango hides such fonts from its default
-          # family list).
-          export HANGUL_OSD_FONT_FILE=${jejuhallasan-ttf}
-          exec ${pkgs.writers.writePython3Bin "hangul-osd-impl" {
-            libraries = with pkgs.python3Packages; [ pycairo xlib pygobject3 ] ++ [ osd ];
-            flakeIgnore = [ "E501" "E731" "W503" ];
-          } (builtins.readFile ../xwindow/bin/hangul-osd.py)}/bin/hangul-osd-impl "$@"
-        '')
-        pkgs.alsa-utils  # aplay for say/say-ko
-        pkgs.wl-clipboard
-        pkgs.xclip
-        pkgs.xdotool  # window/input automation (xmonad debugging, scripts)
-        pkgs.xz  # liblzma needed by zstd for ollama .tar.zst extraction
-        pkgs.xournalpp
-        pkgs.zellij
-        pkgs.zoxide
-        pkgs.zsh
-        pkgs.zsh-completions
-        pkgs.nix-zsh-completions
-        pkgs.zsh-powerlevel10k
-        pkgs.zsh-fast-syntax-highlighting
-        pkgs.zsh-autosuggestions
-        pkgs.zsh-fzf-tab  # fzf-driven <Tab> completion; sourced from completion.zsh
+    pkgs.albert
+    pkgs.bat
+    pkgs.brightnessctl
+    pkgs.btop
+    pkgs.xfce4-genmon-plugin
+    pkgs.cmake
+    pkgs.dzen2 # lightweight OSD popups for audio/device switching
+    pkgs.difftastic
+    pkgs.dust
+    pkgs.eza # modern ls replacement; used by fzf-tab directory previews
+    pkgs.fd
+    pkgs.ffmpeg
+    pkgs.fzf
+    pkgs.gawk # `bin/logrun` requires gawk in --auto mode
+    pkgs.git
+    (config.lib.nixGL.wrap pkgs.ghostty)
+    pkgs.ghostty.terminfo
+    pkgs.glow # terminal markdown renderer
+    pkgs.gnumake # `make` needed by bb
+    pkgs.hishtory
+    pkgs.jetbrains-mono # For OSD popups
+    pkgs.nerd-fonts.jetbrains-mono # For OSD popups
+    pkgs.jujutsu
+    pkgs.just
+    pkgs.keyd
+    pkgs.lxgw-wenkai # calligraphic CJK monospace; ghostty Hangul fallback + hangul-osd font
+    pkgs.mergiraf
+    pkgs.nmap # raw JetDirect printer discovery (print-hp)
+    pkgs.nodejs # provides node + npx (used by ad-hoc tooling)
+    pkgs.ollama
+    pkgs.pavucontrol
+    pkgs.piper-tts
+    pkgs.plocate
+    pkgs.ripgrep
+    pkgs.scrot
+    pkgs.spacer
+    pkgs.uv # edge-tts runner for say-ko
+    pkgs.watchlog
+    # battery-osd: invocation wrapper around the local `osd` library.
+    # Single binary in PATH; no full Python (would conflict with awscli2).
+    (pkgs.writers.writePython3Bin "battery-osd" {
+      libraries =
+        with pkgs.python3Packages;
+        [
+          pycairo
+          xlib
+        ]
+        ++ [ osd ];
+      flakeIgnore = [
+        "E501"
+        "E731"
+        "W503"
+      ];
+    } (builtins.readFile ../xwindow/bin/battery-osd.py))
+    # hangul-osd: persistent overlay while ibus's current engine is hangul.
+    # Same osd-library pattern as battery-osd, plus PyGObject for the IBus
+    # D-Bus signal subscription (no polling). The wrapper script sources
+    # the IBus GIR typelib at runtime so PyGObject can find it.
+    (pkgs.writeShellScriptBin "hangul-osd" ''
+      export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      # Path to JejuHallasan ttf — passed straight to fontconfig's
+      # app-font set at startup so Pango sees it even though its English
+      # coverage is incomplete (Pango hides such fonts from its default
+      # family list).
+      export HANGUL_OSD_FONT_FILE=${jejuhallasan-ttf}
+      exec ${
+        pkgs.writers.writePython3Bin "hangul-osd-impl" {
+          libraries =
+            with pkgs.python3Packages;
+            [
+              pycairo
+              xlib
+              pygobject3
+            ]
+            ++ [ osd ];
+          flakeIgnore = [
+            "E501"
+            "E731"
+            "W503"
+          ];
+        } (builtins.readFile ../xwindow/bin/hangul-osd.py)
+      }/bin/hangul-osd-impl "$@"
+    '')
+    pkgs.alsa-utils # aplay for say/say-ko
+    pkgs.wl-clipboard
+    pkgs.xclip
+    pkgs.xdotool # window/input automation (xmonad debugging, scripts)
+    pkgs.xz # liblzma needed by zstd for ollama .tar.zst extraction
+    pkgs.xournalpp
+    pkgs.zellij
+    pkgs.zoxide
+    pkgs.zsh
+    pkgs.zsh-completions
+    pkgs.nix-zsh-completions
+    pkgs.zsh-powerlevel10k
+    pkgs.zsh-fast-syntax-highlighting
+    pkgs.zsh-autosuggestions
+    pkgs.zsh-fzf-tab # fzf-driven <Tab> completion; sourced from completion.zsh
 
-        pkgs.awscli2
-        pkgs.copyq  # clipboard history manager (Super+V picker)
+    pkgs.awscli2
+    pkgs.copyq # clipboard history manager (Super+V picker)
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
@@ -141,7 +158,8 @@ in
     # '')
   ];
 
-  nixpkgs.config.allowUnfreePredicate = pkg:
+  nixpkgs.config.allowUnfreePredicate =
+    pkg:
     builtins.elem (pkgs.lib.getName pkg) [
       "albert"
       # Reclassified as unfree by upstream nixpkgs after 2026-05-23 flake update.
@@ -225,8 +243,11 @@ in
   dotfiles.schedule.jobs.sync-repos = {
     description = "Sync dotfiles and docs repos";
     command = "%h/.dotfiles/script/sync_all";
-    schedule = { systemd = "*:0/10"; cron = "*/10 * * * *"; };
-    randomizedDelaySec = 540;          # 9m
+    schedule = {
+      systemd = "*:0/10";
+      cron = "*/10 * * * *";
+    };
+    randomizedDelaySec = 540; # 9m
     nice = 19;
     ioSchedulingClass = "idle";
   };
@@ -240,14 +261,20 @@ in
   dotfiles.schedule.jobs.updatedb = {
     description = "Update plocate database";
     command = "%h/.dotfiles/script/updatedb";
-    schedule = { systemd = "*:0/10"; cron = "*/10 * * * *"; };
+    schedule = {
+      systemd = "*:0/10";
+      cron = "*/10 * * * *";
+    };
   };
 
   # Battery low-charge OSD + notification (script tracks per-stage state).
   dotfiles.schedule.jobs.battery-notify = {
     description = "Battery low notification";
     command = "%h/.dotfiles/script/battery-notify";
-    schedule = { systemd = "*:0/1"; cron = "* * * * *"; };
+    schedule = {
+      systemd = "*:0/1";
+      cron = "* * * * *";
+    };
   };
 
   # Weekly flake update + dry-run home-manager build. Catches breaking
@@ -260,8 +287,11 @@ in
   dotfiles.schedule.jobs.flake-update = {
     description = "Weekly nix flake update + home-manager build dry-run";
     command = "%h/.dotfiles/script/flake-update";
-    schedule = { systemd = "Sun 03:00"; cron = "0 3 * * 0"; };
-    randomizedDelaySec = 7200;         # 2h
+    schedule = {
+      systemd = "Sun 03:00";
+      cron = "0 3 * * 0";
+    };
+    randomizedDelaySec = 7200; # 2h
     persistent = true;
     nice = 19;
     ioSchedulingClass = "idle";
