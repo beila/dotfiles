@@ -286,13 +286,19 @@ fi
 # sed expr from https://stackoverflow.com/a/18000433 (referenced in the
 # original justfile pattern). `-u` is GNU sed's line-buffered mode; it
 # lets `tee` flush in real time when piping the live stream.
-# Second expression collapses in-line carriage-return redraws
-# (progress spinners like `uv`/`pip`/`cargo`/`docker pull` that rewrite
-# the same line with `\r` and never emit `\n` until the very end). Without
-# it the log ends up with every spinner frame concatenated into one giant
-# line. `.*\r` is greedy so it keeps only what follows the LAST `\r` —
-# i.e. the final frame the user actually saw.
-strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g; s/.*\r//')
+# Expressions, in order:
+#   1. CSI sequences (\x1b[ ... [mGK])
+#   2. OSC 8 hyperlinks (\x1b]…(\x07|\x1b\)) — uvx/rich/eza wrap link
+#      text in `OSC 8 ; params ; URL ST … OSC 8 ; ; ST`. The visible text
+#      between the two OSCs is preserved; only the escapes are stripped.
+#   3. In-line carriage-return redraws — progress spinners (uv/uvx/pip/
+#      cargo/docker pull) rewrite the same line with `\r` and only emit
+#      `\n` at the very end; without this the log ends up with every
+#      spinner frame concatenated into one giant line. `.*\r` is greedy
+#      so it keeps only what follows the LAST `\r` — i.e. the final
+#      frame the user actually saw. Runs LAST so OSC text inside earlier
+#      frames is already neutralised.
+strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g; s/\x1B\][^\x07\x1B]*(\x07|\x1B\\)//g; s/.*\r//')
 
 _logrun_on_reveal() {
     # Two markers, two purposes:
@@ -422,6 +428,11 @@ if (( auto_mode )); then
             gsub(/\033\[[mGK]/, "")
             gsub(/\033\[\?1049[hl]/, "")
             gsub(/\033\[\?25[hl]/, "")
+            # OSC 8 hyperlinks: ESC ] params ; URL ST … ESC ] ; ; ST.
+            # uvx/rich/eza wrap link text this way. The visible text
+            # between the two OSCs is preserved; only the escapes go.
+            # ST is either BEL (\007) or ESC \ — match both.
+            gsub(/\033\][^\007\033]*(\007|\033\\)/, "")
             # script(1) adds \r before \n on every line because the
             # PTY runs in canonical mode. Drop it from the log so the
             # file matches the non-PTY representation.

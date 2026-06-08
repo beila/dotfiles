@@ -596,6 +596,31 @@ check_grep   "case29c: --auto log keeps only final spinner frame" '^final$' "$lo
 check_nogrep "case29d: --auto log drops earlier frames"           'frame1'  "$log"
 
 # -----------------------------------------------------------------------------
+# Case 30: OSC 8 hyperlink escapes are stripped from the log while the
+# visible text between them is preserved. uvx/rich/eza wrap clickable
+# links as `ESC ] 8 ; id=N ; URL ST <text> ESC ] 8 ; ; ST`. Tests both
+# the non-auto sed branch and the --auto awk branch, with both ST
+# terminators (BEL and ESC \).
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+"$UNDER_TEST" "${BASE_FLAGS[@]}" --name osc --log-dir "$d" \
+    -c 'printf "pre \e]8;id=1;https://x.test\e\\linktext\e]8;;\e\\ post\n"' \
+    >/dev/null 2>/dev/null
+log=$(ls "$d"/log-osc-*.txt 2>/dev/null | head -1)
+check_grep   "case30a: non-auto OSC 8 link text preserved" '^pre linktext post$' "$log"
+check_nogrep "case30b: non-auto log has no ESC bytes"      $'\e' "$log"
+
+# Same with BEL-terminated OSC and the --auto awk branch.
+new_logdir; d=$LOG_DIR
+LOGRUN_AUTO_LINES=1 \
+    "$UNDER_TEST" --auto --log-dir "$d" --no-zshrc \
+    -- bash -c 'printf "pre \e]8;id=2;https://y.test\alinktext\e]8;;\a post\n"' \
+    >/dev/null 2>/dev/null
+log=$(ls "$d"/log-bash-*.txt 2>/dev/null | head -1)
+check_grep   "case30c: --auto OSC 8 link text preserved" '^pre linktext post$' "$log"
+check_nogrep "case30d: --auto log has no ESC bytes"      $'\e' "$log"
+
+# -----------------------------------------------------------------------------
 # Summary
 # -----------------------------------------------------------------------------
 pass=$(cat "$PASS_FILE"); fail=$(cat "$FAIL_FILE")

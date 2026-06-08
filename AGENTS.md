@@ -9,11 +9,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 ### High impact
 - [ ] make copilot key work as super (current `keyd/thinkpad.conf` config exists but doesn't actually work in practice — needs investigation)
   - it works with hold, but not with tap
-- [ ] bidirectional auto-suggestion for `LOGRUN_AUTO_FUNCTIONS` tuning:
-  - wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → suggest removing from list (it's adding shell-startup overhead for nothing)
-  - unwrapped function exceeded threshold → suggest adding to list (its output should be captured)
-  - dedup once per shell session per name (assoc array in the widget)
-- [ ] skip commands in skip list even when running with nix run. When terminal command is detected with nix run, add the correct package to the skip list.
+- [ ] skip commands in skip list even when running with nix run, npx, uvx. When TUI command is detected with nix run, npx, uvx, add the correct package to the skip list.
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
@@ -44,6 +40,10 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] random voice for `say-en`/`say-ko`; same voice within one parent process (parent pid mod # voices?)
 - [ ] super-c in visual block mode of neovide
 - [ ] add temperature in sysmon
+- [ ] bidirectional auto-suggestion for `LOGRUN_AUTO_FUNCTIONS` tuning:
+  - wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → suggest removing from list (it's adding shell-startup overhead for nothing)
+  - unwrapped function exceeded threshold → suggest adding to list (its output should be captured)
+  - dedup once per shell session per name (assoc array in the widget)
 
 ## Repo conventions
 
