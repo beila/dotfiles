@@ -52,6 +52,16 @@ in
         pkgs.fd
         pkgs.ffmpeg
         pkgs.fzf
+        # `bin/logrun` requires gawk in --auto mode. Debian's default
+        # mawk has a hardcoded ~8KB record buffer when run with
+        # `-W interactive` (the line-buffered-input flag we need so
+        # threshold detection trips mid-stream rather than at EOF).
+        # Long un-LF'd records — e.g. `uvx whichllm`, `pip`, `cargo`,
+        # `docker pull` progress bars or rich/textual table output —
+        # exceed that and get silently truncated, losing the on-disk
+        # log content. gawk is line-buffered on pipes by default and
+        # has no record-size cap, so logrun prefers it when present.
+        pkgs.gawk
         pkgs.git
         (config.lib.nixGL.wrap pkgs.ghostty)
         pkgs.ghostty.terminfo

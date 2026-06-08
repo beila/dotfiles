@@ -399,19 +399,39 @@ if (( auto_mode )); then
     # Open the awk process substitution as fd 4 so $! captures its pid
     # for a targeted `wait` later (bare `wait` would also block on the
     # wallclock timer).
-    # mawk (Debian default) block-buffers stdin in 4KB chunks, which
-    # delays threshold detection: with `echo a; echo b; sleep 3; echo done`
-    # (LOGRUN_AUTO_LINES=2), mawk wouldn't process the b that crosses the
-    # threshold until the post-sleep `done` brings the buffer to flush
-    # size. By then the pipeline has effectively ended and the decorator
-    # has already closed its stdin. `-W interactive` puts mawk in
-    # line-buffered mode. gawk doesn't need the flag (it's already
-    # line-buffered when stdin is a pipe), but the flag is a no-op there.
-    _awk_interactive=""
-    if awk --version 2>&1 | grep -q '^mawk'; then
-        _awk_interactive="-W interactive"
+    #
+    # Prefer gawk when available; fall back to mawk with `-W interactive`.
+    # Two distinct buffering problems force the choice:
+    #
+    #   1. mawk's input is block-buffered by default → threshold detection
+    #      is delayed until the buffer fills. With `echo a; echo b;
+    #      sleep 3; echo done` (LOGRUN_AUTO_LINES=2), plain mawk wouldn't
+    #      process the `b` that crosses the threshold until the post-sleep
+    #      `done` brought the buffer to flush size. By then the pipeline
+    #      has effectively ended and the decorator has already closed its
+    #      stdin. `-W interactive` puts mawk in line-buffered mode and
+    #      fixes this — but introduces problem 2.
+    #
+    #   2. mawk in `-W interactive` mode caps a single record at ~8KB
+    #      and silently truncates anything longer. Some tools (notably
+    #      `uvx`/`uv`/`rich`/`textual` apps) emit large progress redraws
+    #      or whole tables as a single 20+KB chunk with no LF until the
+    #      end. Truncation drops everything past 8KB from the on-disk
+    #      log even though the user saw it on the terminal — the regression
+    #      that motivated installing gawk via home-manager.
+    #
+    # gawk is line-buffered on pipes by default (no flag needed) AND has
+    # no record-size cap, so it's strictly better here. If neither gawk
+    # nor mawk-with-`-W interactive` is available we fall back to plain
+    # `awk` and accept whichever trade-off the host's awk implements.
+    _awk_bin="awk"
+    _awk_flags=""
+    if command -v gawk >/dev/null 2>&1; then
+        _awk_bin="gawk"
+    elif awk --version 2>&1 | grep -q '^mawk'; then
+        _awk_flags="-W interactive"
     fi
-    exec 4> >(awk $_awk_interactive \
+    exec 4> >("$_awk_bin" $_awk_flags \
                   -v line_thr="$auto_lines" \
                   -v lines_file="$auto_lines_file" \
                   -v shown_file="$auto_lines_file.shown" \
