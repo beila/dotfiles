@@ -575,6 +575,27 @@ check_grep "case28c: --auto decorator-exit log keeps first line" '^line-1$'  "$l
 check_grep "case28d: --auto decorator-exit log keeps last line"  '^line-50$' "$log"
 
 # -----------------------------------------------------------------------------
+# Case 29: in-line carriage-return spinner output (uvx/uv/pip/cargo style)
+# collapses to the final frame on disk instead of concatenating every frame
+# onto one giant line. Tests both the non-auto sed branch and the --auto
+# awk branch.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+"$UNDER_TEST" "${BASE_FLAGS[@]}" --name spin --log-dir "$d" \
+    -c 'printf "frame1\rframe2\rfinal\n"' >/dev/null 2>/dev/null
+log=$(ls "$d"/log-spin-*.txt 2>/dev/null | head -1)
+check_grep   "case29a: non-auto log keeps only final spinner frame" '^final$' "$log"
+check_nogrep "case29b: non-auto log drops earlier frames"           'frame1'  "$log"
+
+new_logdir; d=$LOG_DIR
+LOGRUN_AUTO_LINES=1 \
+    "$UNDER_TEST" --auto --log-dir "$d" --no-zshrc \
+    -- bash -c 'printf "frame1\rframe2\rfinal\n"' >/dev/null 2>/dev/null
+log=$(ls "$d"/log-bash-*.txt 2>/dev/null | head -1)
+check_grep   "case29c: --auto log keeps only final spinner frame" '^final$' "$log"
+check_nogrep "case29d: --auto log drops earlier frames"           'frame1'  "$log"
+
+# -----------------------------------------------------------------------------
 # Summary
 # -----------------------------------------------------------------------------
 pass=$(cat "$PASS_FILE"); fail=$(cat "$FAIL_FILE")

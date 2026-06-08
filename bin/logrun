@@ -286,7 +286,13 @@ fi
 # sed expr from https://stackoverflow.com/a/18000433 (referenced in the
 # original justfile pattern). `-u` is GNU sed's line-buffered mode; it
 # lets `tee` flush in real time when piping the live stream.
-strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g')
+# Second expression collapses in-line carriage-return redraws
+# (progress spinners like `uv`/`pip`/`cargo`/`docker pull` that rewrite
+# the same line with `\r` and never emit `\n` until the very end). Without
+# it the log ends up with every spinner frame concatenated into one giant
+# line. `.*\r` is greedy so it keeps only what follows the LAST `\r` —
+# i.e. the final frame the user actually saw.
+strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g; s/.*\r//')
 
 _logrun_on_reveal() {
     # Two markers, two purposes:
@@ -420,6 +426,15 @@ if (( auto_mode )); then
             # PTY runs in canonical mode. Drop it from the log so the
             # file matches the non-PTY representation.
             sub(/\r$/, "")
+            # Collapse in-line carriage-return redraws: progress
+            # spinners (uv/uvx, pip, cargo, docker pull, …) rewrite the
+            # same line with \r and only emit \n at the very end, so
+            # without this every frame ends up concatenated into one
+            # giant line. Keep only the text after the last remaining
+            # \r — i.e. the final frame the user actually saw. Done
+            # AFTER the trailing-\r strip so PTY-canonical "hello\r"
+            # stays as "hello" instead of getting wiped to "".
+            sub(/.*\r/, "")
             print > log_path
             fflush(log_path)
             if (!hit_lines && NR >= line_thr) {
