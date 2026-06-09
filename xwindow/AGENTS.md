@@ -60,7 +60,7 @@ Renders text with cairo (configurable fill / outline / drop shadow), then displa
 
 Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
 
-- `bin/volume-osd` — green, y=100. `toggle` cycles **normal → audio-muted → say-muted → normal**. Say-muted leaves the master unmuted but creates `${XDG_RUNTIME_DIR:-/tmp}/say-mute` so `bin/say` exits silently (other audio unaffected); the transition into say-mute also `TERM`s the active `say.pgid` PGID so any in-flight utterance stops at once. See `bin/AGENTS.md` for the `say` side.
+- `bin/volume-osd` — green, y=100
 - `bin/cycle-audio-output` (`/tmp/audio-out-osd-fifo`) — cyan, y=210
 - `bin/cycle-audio-input` (`/tmp/audio-in-osd-fifo`) — pink, y=320
 - `bin/brightness-osd` — yellow, y=430. Uses `brightnessctl` (nix), 5% steps ≤20%, 10% above.
