@@ -1,21 +1,58 @@
 #!/bin/bash
 # System monitor genmon script — sparkline graphs with color
 # Shows: CPU, MEM, IO wait, Network in panel with Pango markup
+#
+# Rendering: braille pairs (U+2800-block). One cell shows 2 samples, each at 5
+# height levels (0-4 dots). Halves panel cell count vs the old 1-sample/cell
+# block sparkline, so we double the displayed history (CELLS=8, 16 samples).
 HIST=/tmp/sysmon-history
-LEN=8  # 8 samples × 23s ≈ 3 minutes
+CELLS=8  # panel-visible glyphs per series; matches old width
+LEN=$(( CELLS * 2 ))  # 16 samples × 23s ≈ 6 minutes
 
-color_bar() {
-    local pct=$1 bars=(▁ ▂ ▃ ▄ ▅ ▆ ▇ █) inv=${2:-0}
-    local idx=$(( pct * 7 / 100 ))
-    (( idx > 7 )) && idx=7
-    (( idx < 0 )) && idx=0
-    local bar="${bars[$idx]}"
-    local hi=$pct
+# Braille pair lookup. Index = L*5 + R, where L,R ∈ 0..4 (dot height per side).
+# Generated from L bits {0,0x40,0x44,0x46,0x47} + R bits {0,0x80,0xA0,0xB0,0xB8}
+# added to 0x2800. See `python3 - <<EOF ... EOF` block in commit history.
+BRAILLE_PAIR=(
+    ⠀ ⢀ ⢠ ⢰ ⢸
+    ⡀ ⣀ ⣠ ⣰ ⣸
+    ⡄ ⣄ ⣤ ⣴ ⣼
+    ⡆ ⣆ ⣦ ⣶ ⣾
+    ⡇ ⣇ ⣧ ⣷ ⣿
+)
+
+# Map 0..100 → 0..4 dot height with rounding (so 50% lands on level 2, not 1).
+height() {
+    local pct=$1 idx
+    (( pct < 0 )) && pct=0
+    (( pct > 100 )) && pct=100
+    idx=$(( (pct * 4 + 50) / 100 ))
+    echo "$idx"
+}
+
+# Severity tier for one sample: 2=red, 1=yellow, 0=green. inv=1 inverts (battery).
+severity() {
+    local pct=$1 inv=${2:-0} hi=$1
     (( inv )) && hi=$(( 100 - pct ))
-    if (( hi >= 75 )); then   printf "<span color='#ff5555'>%s</span>" "$bar"
-    elif (( hi >= 50 )); then printf "<span color='#f1fa8c'>%s</span>" "$bar"
-    else                       printf "<span color='#50fa7b'>%s</span>" "$bar"
+    if   (( hi >= 75 )); then echo 2
+    elif (( hi >= 50 )); then echo 1
+    else                       echo 0
     fi
+}
+
+# Render a single braille cell from two samples + inv flag, coloured by the
+# worse of the two severities (max).
+color_pair() {
+    local l=$1 r=$2 inv=${3:-0}
+    local lh rh sl sr sev color
+    lh=$(height "$l"); rh=$(height "$r")
+    sl=$(severity "$l" "$inv"); sr=$(severity "$r" "$inv")
+    sev=$(( sl > sr ? sl : sr ))
+    case $sev in
+        2) color="#ff5555" ;;
+        1) color="#f1fa8c" ;;
+        *) color="#50fa7b" ;;
+    esac
+    printf "<span color='%s'>%s</span>" "$color" "${BRAILLE_PAIR[lh*5+rh]}"
 }
 
 read_hist() { grep "^$1 " "$HIST" 2>/dev/null | cut -d' ' -f2-; }
@@ -31,12 +68,21 @@ push_hist() {
 }
 
 spark() {
-    local vals out="" count v inv=${2:-0}
-    vals=$(read_hist "$1")
-    count=$(echo "$vals" | wc -w)
-    # Padding: always non-inverted so battery doesn't show red with no data
-    for (( i=count; i<LEN; i++ )); do out+="$(color_bar 0)"; done
-    for v in $vals; do out+="$(color_bar "$v" "$inv")"; done
+    local key=$1 inv=${2:-0} vals padded out=""
+    vals=$(read_hist "$key")
+    # Left-pad with zeros so the newest sample sits at the right edge.
+    # shellcheck disable=SC2206
+    local arr=( $vals )
+    local count=${#arr[@]}
+    local pad=$(( LEN - count ))
+    (( pad < 0 )) && pad=0
+    local padded_arr=()
+    for (( i=0; i<pad; i++ )); do padded_arr+=( 0 ); done
+    padded_arr+=( "${arr[@]}" )
+    # Pair up adjacent samples into braille cells.
+    for (( i=0; i<LEN; i+=2 )); do
+        out+=$(color_pair "${padded_arr[i]}" "${padded_arr[i+1]}" "$inv")
+    done
     echo "$out"
 }
 
