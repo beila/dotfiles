@@ -2,8 +2,14 @@
 # Change volume and show OSD via dzen2.
 # Uses a FIFO so rapid key presses update text without flicker.
 # Usage: volume-osd up|down|toggle
+#
+# `toggle` cycles through 3 states: normal → audio-muted → say-muted → normal.
+# say-muted: audio plays, but `say` exits silently (see bin/say). Entering it
+# unmutes the master and kills any in-flight TTS via the say.pgid state file.
 FIFO="/tmp/volume-osd-fifo"
 LOCKFILE="/tmp/volume-osd-lock"
+SAY_MUTE_FILE="${SAY_MUTE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say-mute}"
+SAY_STATE_FILE="${SAY_STATE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say.pgid}"
 
 start_dzen() {
     rm -f "$FIFO"
@@ -18,10 +24,34 @@ start_dzen() {
 
 [ -p "$FIFO" ] || start_dzen
 
+cur_mute=$(amixer get Master | grep -oP '\[o[fn]+\]' | head -1)
+say_muted=0
+[ -e "$SAY_MUTE_FILE" ] && say_muted=1
+
 case "$1" in
     up)     amixer -q set Master 5%+ ;;
     down)   amixer -q set Master 5%- ;;
-    toggle) amixer -q set Master toggle ;;
+    toggle)
+        # Cycle: normal → audio-muted → say-muted → normal.
+        if [ "$cur_mute" = "[on]" ] && [ "$say_muted" = "0" ]; then
+            # normal → audio-muted
+            amixer -q set Master mute
+        elif [ "$cur_mute" = "[off]" ]; then
+            # audio-muted → say-muted: unmute audio, silence say,
+            # and stop the currently-playing TTS pipeline if any.
+            amixer -q set Master unmute
+            : >"$SAY_MUTE_FILE"
+            if [ -r "$SAY_STATE_FILE" ]; then
+                prev=$(cat "$SAY_STATE_FILE" 2>/dev/null) || prev=
+                if [ -n "$prev" ] && kill -0 "$prev" 2>/dev/null; then
+                    kill -TERM -- "-$prev" 2>/dev/null || true
+                fi
+            fi
+        else
+            # say-muted → normal
+            rm -f "$SAY_MUTE_FILE"
+        fi
+        ;;
 esac
 
 vol=$(amixer get Master | grep -oP '\d+%' | head -1)
@@ -30,6 +60,8 @@ pct=${vol%\%}
 
 if [ "$mute" = "[off]" ]; then
     text="  󰝟  MUTED"
+elif [ -e "$SAY_MUTE_FILE" ]; then
+    text="  󰕾  SAY MUTED  $vol"
 else
     bar=""
     filled=$((pct / 5))

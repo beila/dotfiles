@@ -7,6 +7,14 @@ set -u
 
 DOTFILES_ROOT="${DOTFILES_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 STATE_FILE="${SAY_STATE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say.pgid}"
+MUTE_FILE="${SAY_MUTE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say-mute}"
+
+# say-mute mode: silently drop the request without touching audio output.
+# Toggled by `volume-osd toggle`. Drain stdin so callers don't see SIGPIPE.
+if [ -e "$MUTE_FILE" ]; then
+    [ $# -eq 0 ] && cat >/dev/null
+    exit 0
+fi
 
 if [ $# -gt 0 ]; then
     text="$*"
