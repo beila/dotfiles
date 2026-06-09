@@ -33,7 +33,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - should switch between machines without blocking, and between sessions as easily as zellij session manager
   - bring back something like fzf-zellij
 - [ ] xdg-open fails to open html files due to container issue
-- [ ] detect if I'm in a meeting before `say` actually says something
+- [x] detect if I'm in a meeting before `say` actually says something — `say` now checks `pw-dump` for a `Stream/Input/Audio` from zoom/teams/meet/webex/slack/chime/discord (regex via `$SAY_MEETING_APP_REGEX`, bypass via `SAY_NO_MEETING_CHECK=1`). Works even when you're muted in the call. See `bin/AGENTS.md`.
 
 ### Low impact
 - [ ] no vertical gap between ghostty windows

@@ -16,6 +16,25 @@ if [ -e "$MUTE_FILE" ]; then
     exit 0
 fi
 
+# Meeting auto-mute: skip TTS while a conferencing app holds the mic.
+# Zoom keeps its capture stream live even with in-app mute on, so this fires
+# regardless of whether *you're* muted in the call. Bypass with
+# SAY_NO_MEETING_CHECK=1; tune apps via $SAY_MEETING_APP_REGEX.
+# Silently no-ops on hosts without PipeWire (`pw-dump` absent).
+if [ "${SAY_NO_MEETING_CHECK:-0}" != "1" ] \
+    && command -v pw-dump >/dev/null 2>&1 \
+    && command -v jq >/dev/null 2>&1; then
+    re="${SAY_MEETING_APP_REGEX:-zoom|teams|meet|webex|slack|chime|discord}"
+    if pw-dump 2>/dev/null | jq -e --arg re "$re" '
+        .[] | select(.info?.props?["media.class"] == "Stream/Input/Audio")
+            | select(((.info.props["application.process.binary"] // "") | test($re; "i"))
+                  or ((.info.props["application.name"] // "") | test($re; "i")))
+    ' >/dev/null 2>&1; then
+        [ $# -eq 0 ] && cat >/dev/null
+        exit 0
+    fi
+fi
+
 if [ $# -gt 0 ]; then
     text="$*"
 else
