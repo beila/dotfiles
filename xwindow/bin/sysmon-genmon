@@ -21,11 +21,14 @@ BRAILLE_PAIR=(
 )
 
 # Map 0..100 → 0..4 dot height with rounding (so 50% lands on level 2, not 1).
+# Any non-zero input renders at least 1 dot so trickle activity stays visible
+# (otherwise pct < 13 would round to 0 and look identical to "no data").
 height() {
     local pct=$1 idx
     (( pct < 0 )) && pct=0
     (( pct > 100 )) && pct=100
     idx=$(( (pct * 4 + 50) / 100 ))
+    (( pct > 0 && idx == 0 )) && idx=1
     echo "$idx"
 }
 
@@ -83,7 +86,9 @@ spark() {
     for (( i=0; i<LEN; i+=2 )); do
         out+=$(color_pair "${padded_arr[i]}" "${padded_arr[i+1]}" "$inv")
     done
-    echo "$out"
+    # Wrap in a Nerd Font face so braille (U+2800-block) renders at its native
+    # half-cell width without panel-font letter-spacing inflating the gaps.
+    echo "<span face='JetBrainsMono Nerd Font'>$out</span>"
 }
 
 # --- CPU & IO (delta via awk for large numbers) ---
