@@ -6,8 +6,14 @@
 # height levels (0-4 dots). Halves panel cell count vs the old 1-sample/cell
 # block sparkline, so we double the displayed history (CELLS=8, 16 samples).
 HIST=/tmp/sysmon-history
-CELLS=8  # panel-visible glyphs per series; matches old width
-LEN=$(( CELLS * 2 ))  # 16 samples × 23s ≈ 6 minutes
+# DejaVu Sans Mono braille is narrower than the panel's default font, so we can
+# fit more cells in the same horizontal budget than the old block-sparkline did.
+CELLS=15
+# Polling period (seconds) — must match `update-period` in xfce4-panel.xml's
+# sysmon-genmon plugin entry (currently 20000ms = 20s). Used for the network
+# byte-rate calculation; if you change one, change the other.
+POLL_SEC=20
+LEN=$(( CELLS * 2 ))  # 30 samples × 20s = 10 minutes
 
 # Braille pair lookup. Index = L*5 + R, where L,R ∈ 0..4 (dot height per side).
 # Generated from L bits {0,0x40,0x44,0x46,0x47} + R bits {0,0x80,0xA0,0xB0,0xB8}
@@ -20,21 +26,24 @@ BRAILLE_PAIR=(
     ⡇ ⣇ ⣧ ⣷ ⣿
 )
 
-# Map 0..100 → 0..4 dot height with rounding (so 50% lands on level 2, not 1).
-# Any non-zero input renders at least 1 dot so trickle activity stays visible
-# (otherwise pct < 13 would round to 0 and look identical to "no data").
+# Map a sample to dot height 0..4. -1 means "no data" (history not filled yet)
+# and renders as 0 dots; any real reading 0..100 renders at least 1 dot so
+# idle/trickle activity stays distinguishable from "no data".
 height() {
     local pct=$1 idx
-    (( pct < 0 )) && pct=0
+    (( pct < 0 )) && { echo 0; return; }
     (( pct > 100 )) && pct=100
     idx=$(( (pct * 4 + 50) / 100 ))
-    (( pct > 0 && idx == 0 )) && idx=1
+    (( idx == 0 )) && idx=1
     echo "$idx"
 }
 
 # Severity tier for one sample: 2=red, 1=yellow, 0=green. inv=1 inverts (battery).
+# -1 (no data) maps to 0/green so padding never colours the panel red.
 severity() {
-    local pct=$1 inv=${2:-0} hi=$1
+    local pct=$1 inv=${2:-0} hi
+    (( pct < 0 )) && { echo 0; return; }
+    hi=$pct
     (( inv )) && hi=$(( 100 - pct ))
     if   (( hi >= 75 )); then echo 2
     elif (( hi >= 50 )); then echo 1
@@ -73,22 +82,25 @@ push_hist() {
 spark() {
     local key=$1 inv=${2:-0} vals padded out=""
     vals=$(read_hist "$key")
-    # Left-pad with zeros so the newest sample sits at the right edge.
+    # Left-pad with -1 ("no data") so empty cells stay blank instead of
+    # rendering a 1-dot floor that looks like a real low reading.
     # shellcheck disable=SC2206
     local arr=( $vals )
     local count=${#arr[@]}
     local pad=$(( LEN - count ))
     (( pad < 0 )) && pad=0
     local padded_arr=()
-    for (( i=0; i<pad; i++ )); do padded_arr+=( 0 ); done
+    for (( i=0; i<pad; i++ )); do padded_arr+=( -1 ); done
     padded_arr+=( "${arr[@]}" )
     # Pair up adjacent samples into braille cells.
     for (( i=0; i<LEN; i+=2 )); do
         out+=$(color_pair "${padded_arr[i]}" "${padded_arr[i+1]}" "$inv")
     done
-    # Wrap in a Nerd Font face so braille (U+2800-block) renders at its native
-    # half-cell width without panel-font letter-spacing inflating the gaps.
-    echo "<span face='JetBrainsMono Nerd Font'>$out</span>"
+    # Wrap in a face that actually contains braille (U+2800-block) glyphs.
+    # JetBrainsMono Nerd Font has no braille, so Pango falls back to a
+    # proportional Sans, which spaces the dot pairs apart on the panel.
+    # DejaVu Sans Mono has the full block at fixed pitch.
+    echo "<span face='DejaVu Sans Mono'>$out</span>"
 }
 
 # --- CPU & IO (delta via awk for large numbers) ---
@@ -121,8 +133,8 @@ if [ -n "$iface" ]; then
     prev_net=$(cat /tmp/sysmon-net-prev 2>/dev/null)
     if [ -n "$prev_net" ]; then
         read -r prx ptx <<< "$prev_net"
-        drx=$(( (rx-prx)/23 ))
-        dtx=$(( (tx-ptx)/23 ))
+        drx=$(( (rx-prx)/POLL_SEC ))
+        dtx=$(( (tx-ptx)/POLL_SEC ))
         net_pct=$(( (drx+dtx) / 104858 ))
         (( net_pct > 100 )) && net_pct=100
     fi
