@@ -66,6 +66,22 @@ LOG_CONTEXT=$(printf '%s' "$_rel_home" | tr / -)
 # shellcheck source=/dev/null
 source "$DOTFILES_ROOT/script/logger/log.sh"
 
+# _summarize_stderr <file>
+# Pluck the most informative lines from a captured stderr file for the one-line
+# summary in the structured ERROR/WARN log. Strips the `remote: ` prefix that
+# git prepends to server output, drops blank lines, and joins the first 4
+# survivors with ` | `. Without this, gitfarm pushes log only the generic
+# "We're sorry, we failed to handle your request!" banner — the actual reason
+# (no-description rejection, GuardRails block, log id, etc.) lives on lines
+# 3+ and gets truncated by `head -2`.
+_summarize_stderr() {
+    sed -E 's/\r$//; s/^remote:[[:space:]]*//' "$1" \
+        | awk 'NF > 0' \
+        | head -4 \
+        | tr '\n' '|' \
+        | sed -E 's/\|$//; s/\|/ | /g'
+}
+
 # classify_cmd <tag> <cmd...>
 # Run <cmd...>, capture stderr, classify failure as NETWORK (usually transient
 # -> WARN) or OTHER (-> ERROR). Returns the original exit code.
@@ -98,10 +114,23 @@ classify_cmd() {
             # repo is locked by a concurrent git-receive-pack. Transient — the
             # next sync_repo run will retry.
             _LAST_CLASSIFICATION=NETWORK-ERR
-            log WARN "NETWORK-ERR $tag: $(head -2 "$err" | tr '\n' ' ')"
+            log WARN "NETWORK-ERR $tag: $(_summarize_stderr "$err")"
         else
             _LAST_CLASSIFICATION=OTHER-ERR
-            log ERROR "OTHER-ERR $tag (rc=$rc): $(head -2 "$err" | tr '\n' ' ')"
+            log ERROR "OTHER-ERR $tag (rc=$rc): $(_summarize_stderr "$err")"
+        fi
+        # Fold the full stderr into the structured log at DEBUG so the file the
+        # notification links to actually contains the diagnosis. The summary
+        # line above is lossy by design (gitfarm/git/curl errors run 10+ lines);
+        # this preserves everything for post-hoc inspection without raising the
+        # notification body length. DEBUG never re-notifies and never raises the
+        # keep threshold beyond what the ERROR/WARN call already did.
+        if [ -s "$err" ]; then
+            log DEBUG "STDERR-BEGIN $tag"
+            while IFS= read -r _stderr_line; do
+                log DEBUG "  $_stderr_line"
+            done < "$err"
+            log DEBUG "STDERR-END $tag"
         fi
         # Forward stderr to the process stderr so set -x / systemd journal still see it
         cat "$err" >&2
