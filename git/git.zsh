@@ -9,3 +9,4 @@ then
     }
 fi
 
+export GITFLAGS='--filter=blob:none'
