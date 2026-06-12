@@ -61,10 +61,15 @@ _git_log_fzf() {
 # against the graph area's variable leading spaces and ANSI colour, unlike the
 # old "first lowercase word after the graph" regex which mis-fired on file
 # lines and space-containing graph columns (merges/elisions).
-_jj_extract_id='cut -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
+# `-s` (--only-delimited) is CRUCIAL: graph-only rows (merge/elision connectors
+# like "│ │" or "~") have NO tab, and without -s `cut -f2` would echo the whole
+# row, so the preview would run `jj -r "│ │"` → "Failed to parse revset". With
+# -s those rows yield an empty id and the preview's `[ -z "$id" ] && exit 0`
+# guard suppresses it.
+_jj_extract_id='cut -s -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 # 3rd TAB field is the file path on `jj log -s` file lines, empty on commit
-# lines. Used by the preview to diff just that file.
-_jj_extract_path='cut -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
+# lines. Used by the preview to diff just that file. -s for the same reason.
+_jj_extract_path='cut -s -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # fzf wrapper for jj log views. Extraction is delegated to fzf's own
 # --accept-nth: each caller passes the field index of the ID (e.g. =2 for
@@ -235,7 +240,8 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 
 # Extract jj change ID from an fzf line: 2nd TAB field (see _jj_extract_id and
 # fzf_oneline in jj config.toml). Robust against graph spaces / ANSI / file lines.
-_jj_change_id='cut -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
+# `-s` so graph-only connector rows (no tab) yield empty, not the whole row.
+_jj_change_id='cut -s -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
 _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
