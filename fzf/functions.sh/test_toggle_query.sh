@@ -79,10 +79,15 @@ assert "with pos: result:pos(4)" "result:pos(4)" "$out"
 assert "become passes {n} {q}" "{n} {q}" "$out"
 
 echo "change ID extraction:"
-extract() { echo "$1" | eval "${_jj_change_id//\{\}/\$(cat)}"; }
-assert "single char ID" "t" "$(extract '@  t 24s ago (empty)')"
-assert "multi char ID" "lkm" "$(extract '◆  lkm 2h ago desc')"
-assert "empty on no match" "" "$(extract '~')"
+# Id rides in the 2nd TAB field now (see _jj_change_id / fzf_oneline); the
+# visible column is field 1. Graph-only connector rows have NO tab and must
+# extract to empty (cut -s) so the preview/ctrl-o guard suppresses them.
+extract() { printf '%s' "$1" | eval "${_jj_change_id//\{\}/\$(cat)}"; }
+assert "single char ID" "t" "$(extract $'@  t 24s ago (empty)\tt\t')"
+assert "multi char ID" "lkm" "$(extract $'◆  lkm 2h ago desc\tlkm\t')"
+assert "file line ID from tab field" "lkm" "$(extract $'│   M a/b.txt\tlkm\ta/b.txt')"
+assert "empty on graph elision row" "" "$(extract '~')"
+assert "empty on merge connector row" "" "$(extract '│ │')"
 
 echo "_jh ctrl-o (insert new revision):"
 out=$(capture _jh)
