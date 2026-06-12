@@ -36,7 +36,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] xdg-open fails to open html files due to container issue
 - [x] detect if I'm in a meeting before `say` actually says something — `say` now checks `pw-dump` for a `Stream/Input/Audio` from zoom/teams/meet/webex/slack/chime/discord (regex via `$SAY_MEETING_APP_REGEX`, bypass via `SAY_NO_MEETING_CHECK=1`). Works even when you're muted in the call. See `bin/AGENTS.md`.
 - [x] match sysmon color threshold to match the resolution of height, so that the same height doesn't show sometimes green and sometimes yellow — `severity()` now keys off the quantized dot-height (0..4) instead of raw percent, so a bar height maps to exactly one color (h1,h2→green, h3→yellow, h4→red). See `xwindow/bin/sysmon-genmon`.
-- [ ] _jh outputs incorrect string when the graph area includes space
+- [x] _jh outputs incorrect string when the graph area includes space — the oneline templates now carry the change id/path in hidden tab fields (`<display>\t<id>\t<path>`) and `_jh`/`_gh` extract via `cut -f2`/`--accept-nth=2` (tab-delimited), so merge/elision graph spaces no longer shift the field. See `fzf/functions.sh` and `jj.configsymlink/config.toml`.
 
 ### Low impact
 - [ ] no vertical gap between ghostty windows

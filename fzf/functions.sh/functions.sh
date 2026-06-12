@@ -56,9 +56,15 @@ _git_log_fzf() {
 # --- helpers (jj) ---
 
 # shellcheck disable=SC2120
-# Extract jj change ID: first all-lowercase word after graph chars (strips ANSI).
-# Uses \{1,\} not \{2,\} — fzf_oneline shortest prefix can be a single char in small repos.
-_jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
+# Extract the jj change ID from an fzf line. The oneline templates put the id
+# in the 2nd TAB field (see fzf_oneline in jj config.toml), so cut -f2 — robust
+# against the graph area's variable leading spaces and ANSI colour, unlike the
+# old "first lowercase word after the graph" regex which mis-fired on file
+# lines and space-containing graph columns (merges/elisions).
+_jj_extract_id='cut -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
+# 3rd TAB field is the file path on `jj log -s` file lines, empty on commit
+# lines. Used by the preview to diff just that file.
+_jj_extract_path='cut -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # fzf wrapper for jj log views. Extraction is delegated to fzf's own
 # --accept-nth: each caller passes the field index of the ID (e.g. =2 for
@@ -68,12 +74,14 @@ _jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}
 # toggle: `_jyy → become(_jy)` would print "minutes" because op-log lines
 # went through the change-id letter regex).
 _jj_log_fzf() {
-  # Preview: `jj show --summary` first (header + description + the modified-file
-  # list, like `jj -s`), then the full diff via `jj diff`. jj's show/diff take
-  # only one diff format at a time, so the summary and the patch are two calls
-  # joined in order rather than a single flag.
-  fzf_down --ansi --no-sort --reverse --multi "$@" \
-    --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && { jj --quiet show --summary --color=always \"\$id\"; echo; jj --quiet diff --color=always -r \"\$id\"; }"
+  # --delimiter/--with-nth=1: show & search only field 1 (the visible graph +
+  # commit/file text); fields 2 (change id) and 3 (path) are hidden data the
+  # extractors and preview read. Preview: on a file line (path field set) show
+  # just that file's diff; on a commit line show `jj show --summary` (header +
+  # description + file list, like `jj -s`) then the full `jj diff` — jj's
+  # show/diff take one diff format at a time, so summary + patch are two calls.
+  fzf_down --ansi --no-sort --reverse --multi --delimiter='\t' --with-nth=1 "$@" \
+    --preview "id=\$($_jj_extract_id); path=\$($_jj_extract_path); [ -n \"\$id\" ] && if [ -n \"\$path\" ]; then jj --quiet diff --color=always -r \"\$id\" -- \"\$path\"; else jj --quiet show --summary --color=always \"\$id\"; echo; jj --quiet diff --color=always -r \"\$id\"; fi"
 }
 
 _dim_jj_op_ids() {
@@ -205,20 +213,19 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 
 # --- log upstream ---
 
-# Extract jj change ID from an fzf line (strips ANSI codes)
-_jj_change_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}" | grep -o "[a-z]\{1,\}$"'
+# Extract jj change ID from an fzf line: 2nd TAB field (see _jj_extract_id and
+# fzf_oneline in jj config.toml). Robust against graph spaces / ANSI / file lines.
+_jj_change_id='cut -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
 _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
-# Field index of the change ID in jj log output. The fzf_oneline /
-# fzf_oneline_author templates produce lines like:
-#   ◆  mptlxvr 2h ago hojin description
-# The graph char(s) are field 1, the change id is field 2. fzf's --accept-nth
-# extracts that token directly, stripping ANSI, so callers do not need a
-# pipe-tail extractor — which means the toggle (`become`-swap fzf for the
-# other leaf) cannot mangle the swapped leaf's output by running it through
-# the wrong extractor.
+# TAB field index (with --delimiter='\t') of the change ID. The oneline
+# templates emit "<display>\t<change-id>\t<path>", so the id is tab field 2 on
+# both commit and `jj log -s` file lines. fzf's --accept-nth=2 extracts it
+# directly — no pipe-tail extractor — so the `become` toggle can't mangle the
+# swapped leaf's output, and the variable-width graph area (merge/elision
+# spaces) no longer shifts the field as it did with whitespace splitting.
 _jj_change_field=2
 
 # Build the `jj log` reload command for a given template + revset. ctrl-s

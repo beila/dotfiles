@@ -133,9 +133,25 @@ fzf_down() {
   command fzf --ansi -1 --filter '' "$@" 2>/dev/null
 }
 
-FZF_LINE="◆  mptlxvr 2h ago hojin description"
-assert "_gh natural (real fzf): leading change ID extracted" "mptlxvr" "$(_gh)"
-assert "_gyy natural (real fzf): leading change ID extracted" "mptlxvr" "$(_gyy)"
+# oneline templates close each line with hidden tab fields "…\t<id>\t<path>";
+# the extractor reads tab field 2 (see _jj_extract_id / fzf_oneline). Commit
+# lines leave the path empty.
+FZF_LINE=$'◆  mptlxvr 2h ago hojin description\tmptlxvr\t'
+assert "_gh natural (real fzf): tab-field change ID extracted" "mptlxvr" "$(_gh)"
+assert "_gyy natural (real fzf): tab-field change ID extracted" "mptlxvr" "$(_gyy)"
+
+# File line from the ctrl-s `jj log -s` view: visible field is a coloured
+# "│  M path", and the owning commit's id rides in hidden tab field 2. Enter on
+# such a line must still yield the commit id (not a path segment) — this is the
+# whole point of the tab-field design.
+FZF_LINE=$'│   \x1b[38;5;6mM fzf/functions.sh/functions.sh\x1b[39m\tmptlxvr\tfzf/functions.sh/functions.sh'
+assert "_gh file line: change ID from tab field, not path" "mptlxvr" "$(_gh)"
+
+# Graph area containing spaces (merge/elision columns) — the old whitespace
+# --accept-nth would grab a graph glyph; the tab field is positional so it's
+# unaffected.
+FZF_LINE=$'│ ○    kxwxqupv 1M ago alice Merge master\tkxwxqupv\t'
+assert "_gh merge graph w/ spaces: change ID intact" "kxwxqupv" "$(_gh)"
 
 FZF_LINE="2 minutes ago jj git fetch --all-remotes 6d8b8b9d73c0"
 assert "_gy natural (real fzf): trailing hex op ID extracted" "6d8b8b9d73c0" "$(_gy)"

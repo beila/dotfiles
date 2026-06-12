@@ -80,14 +80,21 @@ if(ts.ago().contains("year"),    ts.ago().substr(0, -9)  ++ "y",
   ts.ago()))))))))))))
 )
 '''
-# Compact oneline for fzf: no author, no git commit id, shortest change id
+# Compact oneline for fzf: no author, no git commit id, shortest change id.
+# Two HIDDEN tab fields close each line: "<display>\t<change-id>\t<path>".
+# fzf shows/searches only field 1 (--with-nth=1), extracts the id from field 2
+# (--accept-nth=2), and previews field 3 as a path. Putting the id/path in
+# fixed tab columns — instead of reading them off the visible line — makes
+# extraction immune to the graph area's variable leading spaces (merges,
+# elisions), which is what broke positional `--accept-nth` before. Commit
+# lines leave the path field empty; fzf_files_suffix fills it per file.
 'fzf_oneline' = '''
 if(root, format_root_commit(self),
   label(if(current_working_copy, "working_copy"),
     separate(" ", change_id.shortest(), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
-      bookmarks, tags) ++ "\n"))
+      bookmarks, tags) ++ "\t" ++ change_id.shortest() ++ "\t\n"))
 '''
 # Same but with author (for full history where multiple authors appear)
 'fzf_oneline_author' = '''
@@ -96,26 +103,27 @@ if(root, format_root_commit(self),
     separate(" ", change_id.shortest(), if(author.name(), author.name().split(" ").first(), author.email().local()), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
-      bookmarks, tags) ++ "\n"))
+      bookmarks, tags) ++ "\t" ++ change_id.shortest() ++ "\t\n"))
 '''
-# One file per line, used as a suffix appended to a oneline template when the
-# `jj log -s`-style file toggle is on (ctrl-s in _jh/_jhh). CRUCIAL: every file
-# line repeats the commit's change id as its SECOND whitespace field — same
-# column as on the commit line — so fzf's `--accept-nth=2` and the change-id
-# extraction regex both yield the right id when Enter is pressed ON a file
-# line. Without the repeated id, file lines (graph-continuation `│` + `M path`)
-# would extract the first path word as a bogus id. Status is squashed to a
-# single coloured letter (M/A/D/?) via diff().files().
+# One file per line, appended to a oneline template when the `jj log -s`-style
+# file toggle is on (ctrl-s in _jh/_jhh). The visible field 1 is coloured the
+# same way as native `jj log -s` (whole "M path" wrapped in the `diff <status>`
+# label → modified=cyan, added=green, removed=red), with NO change id shown on
+# file lines. The id/path ride in the same two hidden tab fields as the commit
+# line (field 2 = change id, field 3 = path), so Enter on a file line yields
+# its commit's id and the preview can diff just that path. The leading space
+# before the first file nudges it to the same column as later file lines (jj's
+# graph indents the first continuation line one space less than the rest).
 'fzf_files_suffix' = '''
 separate("", diff.files().map(|f|
-  "  " ++ label(if(current_working_copy, "working_copy"), change_id.shortest()) ++ "  "
-  ++ label("diff " ++ f.status(),
+  " " ++ label("diff " ++ f.status(),
        if(f.status() == "modified", "M",
        if(f.status() == "added",    "A",
        if(f.status() == "removed",  "D",
        if(f.status() == "copied",   "C",
-       if(f.status() == "renamed",  "R", "?"))))))
-  ++ " " ++ f.path() ++ "\n"))
+       if(f.status() == "renamed",  "R", "?")))))
+       ++ " " ++ f.path())
+  ++ "\t" ++ change_id.shortest() ++ "\t" ++ f.path() ++ "\n"))
 '''
 
 # `jj fix` tool that generalizes absolute home-directory paths to a
