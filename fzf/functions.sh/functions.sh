@@ -248,13 +248,13 @@ _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null
 # spaces) no longer shifts the field as it did with whitespace splitting.
 _jj_change_field=2
 
-# gawk filter that fixes `jj log -s` file-line alignment. jj's graph renderer
-# indents a commit's FIRST continuation line one space less than the rest
-# (e.g. "│  M a" then "│   M b"), so file lines don't line up. We normalize the
-# run of spaces after the last graph bar (│) to a fixed 3 — on file lines only
-# (tab field 3 = path is non-empty), leaving commit lines untouched. Handles
-# nested merge graphs ("│ │  M") via the greedy `.*│` anchor.
-_jj_align_files=$'gawk -F\'\\t\' \'NF>=3 && $3!="" { $1 = gensub(/^(.*│)[ ]+/, "\\\\1   ", 1, $1); print $1 "\\t" $2 "\\t" $3; next } 1\''
+# Command that fixes `jj log -s` file-line alignment, piped after the file-view
+# `jj log` in _jj_log_reload. The gawk program lives in jj-align-files.awk (next
+# to this file) — NOT inline — because the reload command crosses several shell
+# hops (fzf transform → echo → fzf → sh -c) and an inline program's $1/$3 would
+# be eaten by those shells, corrupting the script. A bare file path has no `$`
+# to expand, so it survives intact. See that file for what the filter does.
+_jj_align_files="gawk -f ${_fzf_functions_sh%/functions.sh}/jj-align-files.awk"
 
 # Build the `jj log` reload command for a given template + revset. ctrl-s
 # toggles the file view by swapping the template between `fzf_oneline` and
