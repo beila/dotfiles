@@ -111,12 +111,13 @@ if(root, format_root_commit(self),
 # label → modified=cyan, added=green, removed=red), with NO change id shown on
 # file lines. The id/path ride in the same two hidden tab fields as the commit
 # line (field 2 = change id, field 3 = path), so Enter on a file line yields
-# its commit's id and the preview can diff just that path. The leading space
-# before the first file nudges it to the same column as later file lines (jj's
-# graph indents the first continuation line one space less than the rest).
+# its commit's id and the preview can diff just that path. Alignment of the
+# first vs later file lines is fixed downstream by _jj_align_files (gawk) in
+# fzf/functions.sh, not here — jj's graph indents the first continuation line
+# one space less, which a template can't compensate for.
 'fzf_files_suffix' = '''
 separate("", diff.files().map(|f|
-  " " ++ label("diff " ++ f.status(),
+  label("diff " ++ f.status(),
        if(f.status() == "modified", "M",
        if(f.status() == "added",    "A",
        if(f.status() == "removed",  "D",
