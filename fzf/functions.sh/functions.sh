@@ -221,18 +221,33 @@ _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null
 # the wrong extractor.
 _jj_change_field=2
 
+# Build the `jj log` reload command for a given template + revset. ctrl-s
+# toggles the file view by swapping the template between `fzf_oneline` and
+# `fzf_oneline ++ fzf_files_suffix` (`jj log -s`-style: one file per line, each
+# repeating the change id as its 2nd field — see fzf_files_suffix in jj
+# config.toml — so --accept-nth=2 and the id regex still resolve the right
+# commit when Enter is pressed on a file line). Toggle state is held in the
+# fzf prompt ("log> " vs "log+files> "), the same prompt-as-state pattern as
+# _file_browse; ctrl-o reads it back so an insert keeps the current view.
+_jj_log_reload() { printf "reload(jj --quiet log --color=always -T '%s' -r '%s' 2>/dev/null)" "$1" "$2"; }
+
 # shellcheck disable=SC2120
 _jh() {
-  local pos_bind=()
+  local pos_bind=() rv='workspace_view()'
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(_jj_find_pos "$1" 'workspace_view()')
+    local pos; pos=$(_jj_find_pos "$1" "$rv")
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
-  jj --quiet log --color=always -T 'fzf_oneline' -r 'workspace_view()' 2>/dev/null | _jj_log_fzf \
-    --header '☐ full log (ctrl-h) insert after (ctrl-o)' \
+  local rl_plain rl_files
+  rl_plain=$(_jj_log_reload 'fzf_oneline' "$rv")
+  rl_files=$(_jj_log_reload 'fzf_oneline ++ fzf_files_suffix' "$rv")
+  jj --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
+    --prompt 'log> ' \
+    --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o)' \
     --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then echo "reload(jj --quiet log --color=always -T '"'"'fzf_oneline'"'"' -r '"'"'workspace_view()'"'"' 2>/dev/null)+change-header(☐ full log (ctrl-h) insert after (ctrl-o))"; else echo "change-header(⚠ $err)"; fi' \
+    --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
+    --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 
@@ -270,16 +285,21 @@ _gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 
 # shellcheck disable=SC2120
 _jhh() {
-  local pos_bind=()
+  local pos_bind=() rv='::workspace_view()'
   if [[ -n "${1:-}" ]]; then
-    local pos; pos=$(_jj_find_pos "$1" '::workspace_view()' 'fzf_oneline_author')
+    local pos; pos=$(_jj_find_pos "$1" "$rv" 'fzf_oneline_author')
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
   fi
-  jj --quiet log --color=always -T 'fzf_oneline_author' -r '::workspace_view()' 2>/dev/null | _jj_log_fzf \
-    --header '☑ full log (ctrl-h) insert after (ctrl-o)' \
+  local rl_plain rl_files
+  rl_plain=$(_jj_log_reload 'fzf_oneline_author' "$rv")
+  rl_files=$(_jj_log_reload 'fzf_oneline_author ++ fzf_files_suffix' "$rv")
+  jj --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
+    --prompt 'log> ' \
+    --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o)' \
     --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
-    --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then echo "reload(jj --quiet log --color=always -T '"'"'fzf_oneline_author'"'"' -r '"'"'::workspace_view()'"'"' 2>/dev/null)+change-header(☑ full log (ctrl-h) insert after (ctrl-o))"; else echo "change-header(⚠ $err)"; fi' \
+    --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
+    --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
 }
 

@@ -13,6 +13,7 @@ Symlinked to `~/.config/jj/`. User email kept in `private-dotfiles/jj/user.toml`
 - `short_ago(ts)` — compact relative time (m/h/d/w/M/y). Internal label is `"timestamp ago"` (renamed from `"committer timestamp ago"` after the override above).
 - `fzf_oneline` — shortest change ID, no author/git-id, short relative time, bookmarks after description.
 - `fzf_oneline_author` — same + author first name via `.split(" ").first()`, falls back to email local part.
+- `fzf_files_suffix` — one modified file per line (`diff().files()`, single-letter coloured status M/A/D/C/R), appended to a oneline template by `_jh`/`_jhh`'s ctrl-s toggle for a `jj log -s` view. Each file line **repeats the change id as its 2nd whitespace field** (same column as the commit line) so fzf's `--accept-nth=2` and the change-id extraction regex return the owning commit when Enter is pressed on a file line — without it, the first path segment would be mis-extracted as the id.
 
 ## Known issues
 

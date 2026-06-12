@@ -98,6 +98,25 @@ if(root, format_root_commit(self),
       if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
       bookmarks, tags) ++ "\n"))
 '''
+# One file per line, used as a suffix appended to a oneline template when the
+# `jj log -s`-style file toggle is on (ctrl-s in _jh/_jhh). CRUCIAL: every file
+# line repeats the commit's change id as its SECOND whitespace field — same
+# column as on the commit line — so fzf's `--accept-nth=2` and the change-id
+# extraction regex both yield the right id when Enter is pressed ON a file
+# line. Without the repeated id, file lines (graph-continuation `│` + `M path`)
+# would extract the first path word as a bogus id. Status is squashed to a
+# single coloured letter (M/A/D/?) via diff().files().
+'fzf_files_suffix' = '''
+separate("", diff.files().map(|f|
+  "  " ++ label(if(current_working_copy, "working_copy"), change_id.shortest()) ++ "  "
+  ++ label("diff " ++ f.status(),
+       if(f.status() == "modified", "M",
+       if(f.status() == "added",    "A",
+       if(f.status() == "removed",  "D",
+       if(f.status() == "copied",   "C",
+       if(f.status() == "renamed",  "R", "?"))))))
+  ++ " " ++ f.path() ++ "\n"))
+'''
 
 # `jj fix` tool that generalizes absolute home-directory paths to a
 # portable placeholder before commits leave the machine. See
