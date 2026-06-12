@@ -68,8 +68,12 @@ _jj_extract_id='sed "s/\x1b\[[0-9;]*m//g" <<< {} | grep -o "^[^a-z(]*[a-z]\{1,\}
 # toggle: `_jyy → become(_jy)` would print "minutes" because op-log lines
 # went through the change-id letter regex).
 _jj_log_fzf() {
+  # Preview: `jj show --summary` first (header + description + the modified-file
+  # list, like `jj -s`), then the full diff via `jj diff`. jj's show/diff take
+  # only one diff format at a time, so the summary and the patch are two calls
+  # joined in order rather than a single flag.
   fzf_down --ansi --no-sort --reverse --multi "$@" \
-    --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && jj --quiet show --color=always \"\$id\""
+    --preview "id=\$($_jj_extract_id); [ -n \"\$id\" ] && { jj --quiet show --summary --color=always \"\$id\"; echo; jj --quiet diff --color=always -r \"\$id\"; }"
 }
 
 _dim_jj_op_ids() {
