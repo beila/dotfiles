@@ -73,15 +73,35 @@ _jj_extract_path='cut -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 # mangle the swapped leaf's output (the original bug behind the y-pair
 # toggle: `_jyy → become(_jy)` would print "minutes" because op-log lines
 # went through the change-id letter regex).
+# Preview command for the jj log views. Reads the hidden tab fields of the
+# focused line ({2}=change id, {3}=path) and branches three ways:
+#   • files view OFF (prompt is "log> "): commit line → `jj show --summary`
+#     (header + description + file list, like `jj -s`) then the full diff.
+#   • files view ON ("log+files> "), commit line (no path) → header + desc only
+#     (builtin_log_detailed via `jj log`), NO file list — the file names are
+#     already in the fzf list, so repeating them in the preview is noise.
+#   • files view ON, file line (path set) → header + desc, then ONLY that
+#     file's diff.
+# $FZF_PROMPT is set by fzf for child processes; the ctrl-s toggle flips it
+# between "log> " and "log+files> " (see _jh/_jhh).
+_jj_log_preview="\
+id=\$($_jj_extract_id); path=\$($_jj_extract_path);
+[ -z \"\$id\" ] && exit 0;
+if [ -n \"\$path\" ]; then
+  jj --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  jj --quiet diff --color=always -r \"\$id\" -- \"\$path\";
+elif [[ \$FZF_PROMPT == log+files* ]]; then
+  jj --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+else
+  jj --quiet show --summary --color=always \"\$id\"; echo; jj --quiet diff --color=always -r \"\$id\";
+fi"
+
 _jj_log_fzf() {
   # --delimiter/--with-nth=1: show & search only field 1 (the visible graph +
   # commit/file text); fields 2 (change id) and 3 (path) are hidden data the
-  # extractors and preview read. Preview: on a file line (path field set) show
-  # just that file's diff; on a commit line show `jj show --summary` (header +
-  # description + file list, like `jj -s`) then the full `jj diff` — jj's
-  # show/diff take one diff format at a time, so summary + patch are two calls.
+  # extractors and preview read (see _jj_log_preview).
   fzf_down --ansi --no-sort --reverse --multi --delimiter='\t' --with-nth=1 "$@" \
-    --preview "id=\$($_jj_extract_id); path=\$($_jj_extract_path); [ -n \"\$id\" ] && if [ -n \"\$path\" ]; then jj --quiet diff --color=always -r \"\$id\" -- \"\$path\"; else jj --quiet show --summary --color=always \"\$id\"; echo; jj --quiet diff --color=always -r \"\$id\"; fi"
+    --preview "$_jj_log_preview"
 }
 
 _dim_jj_op_ids() {
@@ -228,15 +248,24 @@ _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null
 # spaces) no longer shifts the field as it did with whitespace splitting.
 _jj_change_field=2
 
+# gawk filter that fixes `jj log -s` file-line alignment. jj's graph renderer
+# indents a commit's FIRST continuation line one space less than the rest
+# (e.g. "│  M a" then "│   M b"), so file lines don't line up. We normalize the
+# run of spaces after the last graph bar (│) to a fixed 3 — on file lines only
+# (tab field 3 = path is non-empty), leaving commit lines untouched. Handles
+# nested merge graphs ("│ │  M") via the greedy `.*│` anchor.
+_jj_align_files=$'gawk -F\'\\t\' \'NF>=3 && $3!="" { $1 = gensub(/^(.*│)[ ]+/, "\\\\1   ", 1, $1); print $1 "\\t" $2 "\\t" $3; next } 1\''
+
 # Build the `jj log` reload command for a given template + revset. ctrl-s
 # toggles the file view by swapping the template between `fzf_oneline` and
-# `fzf_oneline ++ fzf_files_suffix` (`jj log -s`-style: one file per line, each
-# repeating the change id as its 2nd field — see fzf_files_suffix in jj
-# config.toml — so --accept-nth=2 and the id regex still resolve the right
-# commit when Enter is pressed on a file line). Toggle state is held in the
-# fzf prompt ("log> " vs "log+files> "), the same prompt-as-state pattern as
+# `fzf_oneline ++ fzf_files_suffix` (`jj log -s`-style: one file per line). Each
+# file line carries the change id/path in hidden tab fields (see fzf_files_suffix
+# in jj config.toml) so --accept-nth=2 and the preview resolve the right commit
+# and file when Enter is pressed on a file line. Output is piped through
+# _jj_align_files to fix the first-line indent. Toggle state is held in the fzf
+# prompt ("log> " vs "log+files> "), the same prompt-as-state pattern as
 # _file_browse; ctrl-o reads it back so an insert keeps the current view.
-_jj_log_reload() { printf "reload(jj --quiet log --color=always -T '%s' -r '%s' 2>/dev/null)" "$1" "$2"; }
+_jj_log_reload() { printf "reload(jj --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
 
 # shellcheck disable=SC2120
 _jh() {
