@@ -38,26 +38,35 @@ height() {
     echo "$idx"
 }
 
-# Severity tier for one sample: 2=red, 1=yellow, 0=green. inv=1 inverts (battery).
-# -1 (no data) maps to 0/green so padding never colours the panel red.
+# Severity tier for one dot-height 0..4: 2=red, 1=yellow, 0=green.
+# Color is a pure function of the rendered dot height (NOT the raw percent), so
+# a given bar height always shows the same color — the 50/75 percent thresholds
+# the old version used fell inside height bands, splitting one height into two
+# colors (e.g. a 2-dot bar green below 50% but yellow above). Mapping (relaxed,
+# matches height()'s <37.5 / <62.5 / <87.5 / ≥87.5 bands):
+#   h1,h2 → green   h3 → yellow   h4 → red
+# inv=1 flips the scale (battery: a short bar is bad → red) by mirroring the
+# height (eff = 5-h). Height 0 (no data) maps to green so padding never colours
+# the panel.
 severity() {
-    local pct=$1 inv=${2:-0} hi
-    (( pct < 0 )) && { echo 0; return; }
-    hi=$pct
-    (( inv )) && hi=$(( 100 - pct ))
-    if   (( hi >= 75 )); then echo 2
-    elif (( hi >= 50 )); then echo 1
+    local h=$1 inv=${2:-0} eff
+    (( h == 0 )) && { echo 0; return; }
+    eff=$h
+    (( inv )) && eff=$(( 5 - h ))
+    if   (( eff >= 4 )); then echo 2
+    elif (( eff >= 3 )); then echo 1
     else                       echo 0
     fi
 }
 
 # Render a single braille cell from two samples + inv flag, coloured by the
-# worse of the two severities (max).
+# worse of the two severities (max). Severity is derived from each sample's
+# quantized height so the color can never disagree with the displayed bar.
 color_pair() {
     local l=$1 r=$2 inv=${3:-0}
     local lh rh sl sr sev color
     lh=$(height "$l"); rh=$(height "$r")
-    sl=$(severity "$l" "$inv"); sr=$(severity "$r" "$inv")
+    sl=$(severity "$lh" "$inv"); sr=$(severity "$rh" "$inv")
     sev=$(( sl > sr ? sl : sr ))
     case $sev in
         2) color="#ff5555" ;;
