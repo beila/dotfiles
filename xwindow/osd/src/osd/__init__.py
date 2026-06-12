@@ -323,14 +323,24 @@ def _make_shape_mask(
     """Build a 1-bit XShape mask from `surface`'s alpha channel.
 
     Returns (mask_bytes, width, height). Bit packing: LSBFirst within each
-    byte, rows padded to whole bytes (X11 default for XYBitmap data).
+    byte, rows padded to the X server's bitmap scanline unit (32 bits / 4
+    bytes). The X11 PutImage protocol assumes every XYBitmap scanline is
+    padded to `bitmap_format_scanline_pad` (32 on every modern server); the
+    server computes the request's expected byte length from that padding, so
+    a byte-only-padded buffer is shorter than the header claims and the
+    request fails with BadLength (opcode 72 = PutImage). This only bit when
+    the mask width wasn't already a multiple of 32 px — earlier glyph sizes
+    happened to land on that boundary and masked the bug.
     """
     iw = surface.get_width()
     ih = surface.get_height()
     stride = surface.get_stride()
     data = bytes(surface.get_data())
 
-    row_bytes = (iw + 7) // 8
+    # Pad each row to a 4-byte (32-bit) boundary, matching X11's default
+    # bitmap_format_scanline_pad. ((iw + 31) // 32) * 4 == round the
+    # byte count up to the next multiple of 4.
+    row_bytes = ((iw + 31) // 32) * 4
     mask = bytearray(row_bytes * ih)
     for y in range(ih):
         src_row = y * stride
@@ -455,8 +465,11 @@ def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
     mask_bytes, smw, smh = _make_shape_mask(surface, style.alpha_threshold)
     pixmap = win.create_pixmap(smw, smh, 1)
     pgc = pixmap.create_gc(foreground=1, background=0)
+    # Row stride must match the 32-bit scanline padding used in
+    # _make_shape_mask (X11's bitmap_format_scanline_pad), or PutImage
+    # fails with BadLength.
     _chunked_put_image(pixmap, pgc, X.XYBitmap, 1, smw, smh, mask_bytes,
-                       (smw + 7) // 8)
+                       ((smw + 31) // 32) * 4)
     win.shape_mask(shape.SO.Set, shape.SK.Bounding, 0, 0, pixmap)
     pgc.free()
     pixmap.free()

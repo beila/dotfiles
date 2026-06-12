@@ -10,6 +10,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] make copilot key work as super (current `keyd/thinkpad.conf` config exists but doesn't actually work in practice — needs investigation)
   - it works with hold, but not with tap
 - [ ] skip commands in skip list even when running with nix run, npx, uvx. When TUI command is detected with nix run, npx, uvx, add the correct package to the skip list.
+- [ ] Add a way for commands to disable logrun from themselves.
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
