@@ -9,7 +9,8 @@ Symlinked to `~/.config/jj/`. User email kept in `private-dotfiles/jj/user.toml`
 
 ## Template aliases
 
-- `short_ago(ts)` — compact relative time (m/h/d/w/M/y).
+- `commit_timestamp(commit)` — **overridden to `commit.author().timestamp()`** (builtin default is the committer timestamp). The builtin log templates and `fzf_oneline` both call this alias, so `jj log`, `_jh`/`_gh`, etc. all show the author timestamp — fixed at the moment the revision first became non-empty and stable across later `squash`/`describe`/rebase, i.e. a creation time rather than a last-rewrite time. The git-fallback log functions (`_git_h`/`_git_hh`/`_git_yy` in `fzf/functions.sh`) use `%ad` to match.
+- `short_ago(ts)` — compact relative time (m/h/d/w/M/y). Internal label is `"timestamp ago"` (renamed from `"committer timestamp ago"` after the override above).
 - `fzf_oneline` — shortest change ID, no author/git-id, short relative time, bookmarks after description.
 - `fzf_oneline_author` — same + author first name via `.split(" ").first()`, falls back to email local part.
 

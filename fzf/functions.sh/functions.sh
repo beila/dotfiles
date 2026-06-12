@@ -148,7 +148,7 @@ _git_b() {
 # shellcheck disable=SC2016
   git branch -a --color=always | grep -v '/HEAD\s' | sort |
   fzf_down --ansi --multi --tac --preview-window right:70% \
-    --preview 'git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%cd %h%d %s" $(sed s/^..// <<< {} | cut -d" " -f1)' |
+    --preview 'git log --oneline --graph --date=short --color=always --pretty="format:%C(auto)%ad %h%d %s" $(sed s/^..// <<< {} | cut -d" " -f1)' |
   sed 's/^..//' | cut -d' ' -f1 |
   sed 's#^remotes/##'
 }
@@ -174,7 +174,7 @@ _git_bb() {
   git worktree list |
     fzf_down --ansi --multi --tac --preview-window right:70% \
         --preview 'git -C $(awk "{print \$1}" <<< {}) diff --stat --color=always
-          git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%d %s (%an)" --color=always "$(awk "{print \$2}" <<< {})" "^$(git merge-base "$(awk "{print \$2}" <<< {})" "origin/HEAD")^@"' |
+          git log --date=short --format="%C(green)%C(bold)%ad %C(auto)%d %s (%an)" --color=always "$(awk "{print \$2}" <<< {})" "^$(git merge-base "$(awk "{print \$2}" <<< {})" "origin/HEAD")^@"' |
     cut -d' ' -f1
 }
 
@@ -235,7 +235,9 @@ _jh() {
 _git_h() {
   git rev-parse "@{u}" || { echo "No upstream"; return; }
   all_parents_of_merge_base="$(git merge-base HEAD "@{u}")^@"
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
+  # %ad (author date) not %cd (committer date): match the jj side, which shows
+  # the author/creation timestamp via the commit_timestamp template override.
+  git log --date=short --format="%C(green)%C(bold)%ad %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
   _git_log_fzf
 }
 
@@ -254,7 +256,7 @@ _jyy() {
 }
 
 _git_yy() {
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always --all |
+  git log --date=short --format="%C(green)%C(bold)%ad %C(auto)%h%d %s (%an)" --graph --color=always --all |
   _git_log_fzf
 }
 
@@ -278,7 +280,7 @@ _jhh() {
 }
 
 _git_hh() {
-  git log --date=short --format="%C(green)%C(bold)%cd %C(auto)%h%d %s (%an)" --graph --color=always |
+  git log --date=short --format="%C(green)%C(bold)%ad %C(auto)%h%d %s (%an)" --graph --color=always |
   _git_log_fzf
 }
 
@@ -322,7 +324,7 @@ _jr() {
 _git_r() {
   git remote -v | awk '{print $1 "\t" $2}' | uniq |
   fzf_down --tac \
-    --preview 'git log --oneline --graph --date=short --pretty="format:%C(auto)%cd %h%d %s" {1}' |
+    --preview 'git log --oneline --graph --date=short --pretty="format:%C(auto)%ad %h%d %s" {1}' |
   cut -d$'\t' -f1
 }
 

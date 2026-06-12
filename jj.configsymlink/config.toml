@@ -49,10 +49,22 @@ merge-tool-edits-conflict-markers = true
 'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
 
 [template-aliases]
+# Show the AUTHOR timestamp instead of the committer timestamp everywhere the
+# builtin log templates (and our fzf_oneline below) render a time. jj's builtin
+# `format_timestamp` calls this alias; default is `commit.committer().timestamp()`,
+# which is the last-rewrite time and changes on every `jj squash`/`describe`/etc.
+# The author timestamp is fixed at the moment the revision first became
+# non-empty (verified empirically) and stays put through later edits, so it
+# reads as the revision's creation time. Overriding the alias propagates to
+# `jj log`, `_jh`/`_gh`, and any view that uses commit_timestamp(self).
+'commit_timestamp(commit)' = 'commit.author().timestamp()'
+
 # Short relative timestamp: "1w", "3d", "2h", "5m", "6M", "1y"
 # (jj 0.32 lacks .replace(); uses .contains()/.substr() to strip " <unit> ago")
+# Label kept as "timestamp ago" (was "committer timestamp ago") since the
+# value is now the author timestamp via the override above.
 'short_ago(ts)' = '''
-label("committer timestamp ago",
+label("timestamp ago",
 if(ts.ago().contains("minutes"), ts.ago().substr(0, -12) ++ "m",
 if(ts.ago().contains("minute"),  ts.ago().substr(0, -11) ++ "m",
 if(ts.ago().contains("hours"),   ts.ago().substr(0, -10) ++ "h",
