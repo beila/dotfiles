@@ -1,0 +1,4 @@
+#!/bin/bash
+/home/beila/bin/all-media
+cd /pub
+sudo -u beila python -m SimpleHTTPServer&

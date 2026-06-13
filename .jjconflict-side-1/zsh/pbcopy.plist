@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+
+<!-- https://unity.email.amazon.dev/list-archive/list/sde-tip-of-the-day/thread/10088387/message/11372840 -->
+
+<plist version="1.0">
+<dict>
+     <key>Label</key>
+     <string>localhost.pbcopy</string>
+     <key>ProgramArguments</key>
+     <array>
+         <string>/usr/bin/pbcopy</string>
+     </array>
+     <key>inetdCompatibility</key>
+     <dict>
+          <key>Wait</key>
+          <false/>
+     </dict>
+     <key>Sockets</key>
+     <dict>
+          <key>Listeners</key>
+               <dict>
+                    <key>SockServiceName</key>
+                    <string>2224</string>
+                    <key>SockNodeName</key>
+                    <string>127.0.0.1</string>
+               </dict>
+     </dict>
+</dict>
+</plist>

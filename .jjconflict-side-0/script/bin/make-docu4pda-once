@@ -1,0 +1,11 @@
+#!/bin/bash
+#set -o xtrace
+pgrep -x make-docu4pda >/dev/null
+if [[ $? -eq 0 ]]
+then
+    exit
+fi
+
+progname="$0"
+curdir=`dirname "$progname"`
+exec "$curdir"/make-docu4pda "$@"

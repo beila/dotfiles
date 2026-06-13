@@ -1,0 +1,3 @@
+#!/bin/sh
+jj file list
+git submodule foreach --quiet 'git ls-files | sed "s|^|$displaypath/|"'

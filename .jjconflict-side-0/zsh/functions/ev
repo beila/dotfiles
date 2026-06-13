@@ -1,0 +1,2 @@
+#!env zsh
+test ! -z $DOTFILES_ROOT && test -d $DOTFILES_ROOT && $VISUAL $DOTFILES_ROOT || $VISUAL ~/.dotfiles

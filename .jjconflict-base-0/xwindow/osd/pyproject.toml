@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "osd"
+version = "0.1.0"
+description = "Cairo + XShape OSD building blocks for X11 (no compositor needed)"
+requires-python = ">=3.10"
+dependencies = [
+    "pycairo>=1.20",
+    "python-xlib>=0.33",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

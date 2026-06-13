@@ -1,0 +1,3 @@
+#!env zsh
+2=${2:-$(git remote | head -1)/HEAD} # HEAD of default remote if there's no second argument
+echo $(git merge-base "$@")..$1

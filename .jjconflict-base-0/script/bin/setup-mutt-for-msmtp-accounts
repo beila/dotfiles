@@ -1,0 +1,26 @@
+#!/bin/sh
+awk -F "[[:space:]]" '
+BEGIN { n = 0; }
+/^[[:space:]]*account[[:space:]]+[[:print:]]/ {
+  gsub("[[:space:]]*account[[:space:]]+","");
+  t[n] = $0; n++;
+}
+END {
+  l = " \"Internal macro from the MSMTP module\""
+  c = " the current MSMTP account"
+  print "macro generic \\Cx_ \"<enter-command>set sendmail\"" l
+  print "macro generic \\Cx| \"\\Cx_ = \\\"/usr/bin/msmtp\"" l
+  print "macro generic \\Cx& \"<enter-command>macro compose \\\\t"\
+    " \\\"\\\\Cx\"" l
+  print "macro compose <tab> \"\\Cx1\" \"Change" c "\""
+  print "macro compose = \"\\Cx_\\n\" \"Show" c "\""
+  for(i=0;i<n;i++) {
+    a = t[i];
+    if(a=="default") a = "\\\"\\n";
+    else a = " -a " a "\\\"\\n";
+    print "macro generic \\Cx" i " \"\\Cx|" a "\\Cx&" (i+1)%n\
+      "\\\" \\\"Change" c "\\\"\\n\\Cx_\\n\""\
+      " \"Switch to account n° " i " for MSMTP\""
+  }
+}
+' ~/.msmtprc

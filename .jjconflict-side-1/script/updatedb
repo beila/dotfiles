@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Update the user-local plocate database at ~/.cache/plocate.db.
+# Scans only $HOME, runs every few minutes via updatedb.timer.
+#
+# Structured events go to $LOG_ROOT/<machine>/updatedb.<date>.log
+# and (above ERROR threshold) to the configured notifier. Slow-run
+# warnings go via notify-send locally (desktop popup) so they're visible
+# without triggering a phone notification.
+
+set -u
+
+LOG_TAG=updatedb
+DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+DB="$HOME/.cache/plocate.db"
+DB_DIR=$(dirname "$DB")
+# Slow-run warning threshold in seconds. Tuned to 30s so transient I/O
+# contention on a loaded system doesn't pop notifications; persistent
+# slowness (e.g. a giant new dir that needs --prunepaths) still fires.
+# Overridable via UPDATEDB_THRESHOLD for tests or one-off tuning.
+THRESHOLD="${UPDATEDB_THRESHOLD:-30}"
+
+# Preflight: make sure updatedb itself exists. If not, tell the user
+# exactly how to install it on either nix or apt systems.
+if ! command -v updatedb >/dev/null 2>&1; then
+    log ERROR "updatedb binary not found. Install with: 'nix-env -iA nixpkgs.plocate' or 'apt install plocate'"
+    exit 1
+fi
+
+# Preflight: cache dir exists. updatedb doesn't create parent dirs.
+if [ ! -d "$DB_DIR" ]; then
+    if ! mkdir -p "$DB_DIR" 2>/dev/null; then
+        log ERROR "cannot create cache dir $DB_DIR (check permissions on $(dirname "$DB_DIR"))"
+        exit 1
+    fi
+fi
+
+START=$SECONDS
+err=$(mktemp "/tmp/updatedb_err.XXXXXX")
+updatedb --require-visibility 0 --output "$DB" --database-root "$HOME" 2>"$err"
+rc=$?
+ELAPSED=$((SECONDS - START))
+
+if [ "$rc" -ne 0 ]; then
+    first=$(head -1 "$err")
+    case "$first" in
+        *"No space left"*)
+            log ERROR "updatedb failed: disk full writing $DB. Free space on $DB_DIR: $(df -h "$DB_DIR" | awk 'NR==2{print $4}')"
+            ;;
+        *"Permission denied"*)
+            log ERROR "updatedb permission denied. Target: $DB. Check ownership: $(stat -c '%U:%G %a' "$DB" 2>/dev/null || echo 'file missing, parent='"$(stat -c '%U:%G %a' "$DB_DIR")")"
+            ;;
+        *"Read-only file system"*)
+            log ERROR "updatedb: $DB_DIR is read-only"
+            ;;
+        *)
+            log ERROR "updatedb exit=$rc: $first"
+            ;;
+    esac
+    rm -f "$err"
+    exit $rc
+fi
+
+# Warn (not notify-webhook) if the scan is slow. This is a tuning hint, not
+# an alert. notify-send puts a desktop popup on the current display; we also
+# record a WARN in the log so there's a trail.
+if [ "$ELAPSED" -gt "$THRESHOLD" ]; then
+    log WARN "slow updatedb: ${ELAPSED}s > ${THRESHOLD}s. Add --prunepaths to ~/.dotfiles/script/updatedb for bulky dirs (e.g., large nix build trees)"
+    # Desktop popup for immediate visibility (fails silently outside X/Wayland)
+    notify-send -u low "plocate updatedb slow" \
+        "${ELAPSED}s > ${THRESHOLD}s. Edit ~/.dotfiles/script/updatedb to add --prunepaths" \
+        2>/dev/null || true
+else
+    log INFO "updatedb ok: ${ELAPSED}s"
+fi
+rm -f "$err"

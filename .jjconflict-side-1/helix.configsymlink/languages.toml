@@ -1,0 +1,27 @@
+[[language]]
+name = "cpp"
+language-servers = ["clangd"]
+
+[[language]]
+name = "c"
+language-servers = ["clangd"]
+
+[[language]]
+name = "toml"
+language-servers = ["taplo"]
+
+[[language]]
+name = "just"
+language-servers = ["just-lsp"]
+
+[language-server.clangd]
+command = "clangd"
+args = ["--background-index", "--clang-tidy", "--completion-style=detailed"]
+
+[language-server.taplo]
+command = "taplo"
+args = ["lsp", "stdio"]
+
+[language-server.just-lsp]
+command = "just"
+args = ["--lsp"]

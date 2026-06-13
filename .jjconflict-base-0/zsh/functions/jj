@@ -1,0 +1,40 @@
+# Wrap `jj` so a positional argument that isn't a known subcommand or alias
+# is routed through `jj -r <arg>`.
+#
+# Why: jj's `ui.default-command` only fires when no positional is given, so
+# `jj @` would otherwise fail with "unrecognized subcommand '@'". `jj -r @`
+# runs the default-command (`log`) restricted to that revset — the usual
+# "show me this revision" intent.
+#
+# Walks past leading global flags so `jj --ignore-working-copy @`,
+# `jj -R /path @`, `jj --config foo=bar @` etc. also work.
+#
+# Detection: `jj X --help` succeeds for real subcommands AND aliases (jj's
+# dispatcher resolves aliases before --help is parsed); ~20ms per probe;
+# only triggered when a non-flag positional is present.
+#
+# Bypass with `command jj ...` if needed.
+emulate -L zsh
+local -a args=("$@")
+local i=1
+while (( i <= ${#args} )); do
+  case $args[i] in
+    --) break ;;                    # end of options
+    --*=*) (( i++ )) ;;             # --flag=value (single token)
+    -r) (( i+=2 )) ;;               # -r revset (separate value)
+    -R) (( i+=2 )) ;;               # -R PATH  (separate value)
+    -R*) (( i++ )) ;;               # -RPATH   (joined)
+    -T) (( i+=2 )) ;;               # -T template+(separate value)
+    -T*) (( i++ )) ;;               # -Ttemplate  (joined)
+    --revisions|--repository|--at-operation|--at-op|--color|--config|--config-file|--template)
+      (( i+=2 )) ;;                 # long forms with separate value
+    -*) (( i++ )) ;;                # any other flag (boolean)
+    *) break ;;                     # first positional
+  esac
+done
+if (( i <= ${#args} )) && ! command jj "$args[i]" --help >/dev/null 2>&1; then
+  args[i,i]=(-r "$args[i]")
+  command jj "${args[@]}"
+else
+  command jj "$@"
+fi

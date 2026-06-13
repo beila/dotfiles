@@ -1,0 +1,6 @@
+#!env zsh
+# Run an arbitrary shell command with set -x. Logging and elapsed-time
+# reporting are handled by the zz-logrun-auto.zsh widget + bin/logrun on
+# the outer prompt invocation (when `jr` is in LOGRUN_AUTO_FUNCTIONS).
+set -x
+"$@"

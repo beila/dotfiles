@@ -1,0 +1,11 @@
+#!/bin/bash
+export XMODIFIERS="@im=nabi"
+export EDITOR=gvim
+export KDE_FULL_SESSION=true
+
+if test -z "$DBUS_SESSION_BUS_ADDRESS" ; then
+    ## if not found, launch a new one
+    eval `/usr/bin/dbus-launch --sh-syntax --exit-with-session`
+fi
+
+export DISPLAY=:0

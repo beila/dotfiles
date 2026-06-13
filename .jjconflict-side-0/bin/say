@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# TTS dispatcher: Hangul (U+AC00–U+D7A3) → say-ko, else → say-en.
+# Usage: say "text"  or  echo "text" | say
+# A new invocation preempts any still-playing one via setsid + kill -PGID.
+# Disable with SAY_NO_PREEMPT=1 (for callers managing PGIDs themselves).
+set -u
+
+DOTFILES_ROOT="${DOTFILES_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+STATE_FILE="${SAY_STATE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/say.pgid}"
+
+# Meeting auto-mute: skip TTS while a conferencing app holds the mic.
+# Zoom keeps its capture stream live even with in-app mute on, so this fires
+# regardless of whether *you're* muted in the call. Bypass with
+# SAY_NO_MEETING_CHECK=1; tune apps via $SAY_MEETING_APP_REGEX.
+# Silently no-ops on hosts without PipeWire (`pw-dump` absent).
+if [ "${SAY_NO_MEETING_CHECK:-0}" != "1" ] \
+    && command -v pw-dump >/dev/null 2>&1 \
+    && command -v jq >/dev/null 2>&1; then
+    re="${SAY_MEETING_APP_REGEX:-zoom|teams|meet|webex|slack|chime|discord}"
+    if pw-dump 2>/dev/null | jq -e --arg re "$re" '
+        .[] | select(.info?.props?["media.class"] == "Stream/Input/Audio")
+            | select(((.info.props["application.process.binary"] // "") | test($re; "i"))
+                  or ((.info.props["application.name"] // "") | test($re; "i")))
+    ' >/dev/null 2>&1; then
+        [ $# -eq 0 ] && cat >/dev/null
+        exit 0
+    fi
+fi
+
+if [ $# -gt 0 ]; then
+    text="$*"
+else
+    text=$(cat)
+fi
+
+if printf '%s' "$text" | grep -qP '[\x{AC00}-\x{D7A3}]'; then
+    backend="$DOTFILES_ROOT/bin/say-ko"
+else
+    backend="$DOTFILES_ROOT/bin/say-en"
+fi
+
+# Stale PID after natural exit is the common case — ignore failures.
+if [ "${SAY_NO_PREEMPT:-0}" != "1" ] && [ -r "$STATE_FILE" ]; then
+    prev=$(cat "$STATE_FILE" 2>/dev/null) || prev=
+    if [ -n "$prev" ] && kill -0 "$prev" 2>/dev/null; then
+        kill -TERM -- "-$prev" 2>/dev/null || true
+    fi
+fi
+
+if [ "${SAY_NO_PREEMPT:-0}" = "1" ]; then
+    exec "$backend" "$text"
+fi
+
+# setsid: PID == PGID, so kill -PGID reaches the whole audio pipeline
+# (uv → edge-tts → ffmpeg → aplay, or piper → aplay).
+setsid "$backend" "$text" &
+worker=$!
+( umask 077 && printf '%s' "$worker" >"$STATE_FILE" ) 2>/dev/null || true
+
+cleanup_state_file() {
+    # Only remove the file if it still names us; a newer `say` may have claimed it.
+    if [ -r "$STATE_FILE" ] && [ "$(cat "$STATE_FILE" 2>/dev/null)" = "$worker" ]; then
+        rm -f "$STATE_FILE"
+    fi
+}
+
+# Forward signals so an external `kill say` (e.g. mcp-tts) still tears down
+# the audio pipeline. Must exit explicitly — bash otherwise swallows the
+# signal after the trap and hangs in `wait`.
+forward_term() {
+    kill -TERM -- "-$worker" 2>/dev/null || true
+    wait "$worker" 2>/dev/null || true
+    cleanup_state_file
+    exit 143
+}
+trap forward_term TERM INT HUP
+
+wait "$worker"
+rc=$?
+cleanup_state_file
+exit "$rc"

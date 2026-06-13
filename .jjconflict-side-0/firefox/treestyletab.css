@@ -1,0 +1,54 @@
+/* Show title of unread tabs with red and italic font */
+:root.sidebar tab-item.unread .label-content {
+  color: grey;
+/*  font-style: italic !important;*/
+}
+
+/* Add private browsing indicator per tab */
+:root.sidebar tab-item.private-browsing tab-label:before {
+  content: "🕶";
+}
+
+/* Indicating state, domain, containers */
+
+/* Change styling of the favicon of pending (unloaded) tabs */
+tab-item.discarded tab-favicon {
+  opacity: 0.5 !important;
+}
+
+/* Highlight active tab
+This makes the active tab very noticeable increasing its height and modifying the color and font
+*/
+
+tab-item.active tab-item-substance {
+  height: 39px !important;
+}
+tab-item.active .background {
+  background-color: steelblue;
+}
+tab-item.active .label-content {
+  font-weight: bold;
+  font-size: 14px;
+}
+tab-item.active tab-twisty,
+tab-item.active .label-content,
+tab-item.active tab-counter {
+  color: #fff;
+}
+
+/* Only show tab close button on hover */
+
+/* "#tabbar" is required for TST 3.4.0 and later! */
+#tabbar tab-item tab-item-substance:not(:hover) tab-closebox {
+  display: none;
+}
+
+/* normal tabs */
+:root.sidebar #background {
+  background: black;
+}
+
+/* tabs stuck at the edge */
+tab-item.sticky .background {
+  background-color: #333333;
+}

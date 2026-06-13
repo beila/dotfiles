@@ -1,0 +1,7 @@
+#!/bin/bash
+for encoding in `convmv --list`
+	do
+		echo $encoding
+		convmv -f $encoding -t utf8 "$@"
+	done
+

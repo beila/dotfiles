@@ -1,0 +1,11 @@
+#!/bin/bash
+DIR_SHOWS="/media/cavod3/shows /media/cavod3/upload1"
+for jj in $DIR_SHOWS
+	do
+		sudo mount "$jj"
+	done
+
+(for jj in $DIR_SHOWS
+	do
+		find "$jj" -iname \*.avi -print0
+	done)| xargs -0 ls -t|head

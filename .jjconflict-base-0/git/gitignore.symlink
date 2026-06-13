@@ -1,0 +1,16 @@
+**/.claude/settings.local.json
+*.iml
+*.swp
+*~
+.DS_Store
+.cache/
+.clion.source.upload.marker
+.gdb_history
+.idea
+.jj/
+CMakeUserPresets.json
+__cmake_systeminformation
+atlassian-ide-plugin.xml
+cmake-build-*
+tags
+venv/

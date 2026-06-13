@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# Battery low notification — triggered by battery-notify.timer every minute.
+#
+# While discharging, fires a battery-osd overlay (and at ≤20%, a notify-send)
+# as a monotonic state machine:
+#
+#   stage     trigger              style                  fires
+#   --------  -------------------  ---------------------  ----------------------
+#   warn:30   first cross of 30%   yellow                 once per discharge
+#   warn:20   first cross of 20%   yellow + notify-send   once per discharge
+#   warn:15   first cross of 15%   yellow                 once per discharge
+#   crit:<n>  ≤10%                 red                    every percent change
+#
+# Stages only advance — if capacity jumps from 50% straight to 12% between
+# polls, we skip warn:30/20 and fire warn:15. Charging/full/unknown clears
+# the state so the cycle starts over on the next discharge.
+#
+# Logs only at state transitions to keep the log file readable; routine
+# checks are silent.
+
+set -euo pipefail
+
+LOG_TAG=battery-notify
+DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+STATE_FILE="${BATTERY_NOTIFY_STATE_FILE:-/tmp/battery-notify-last}"
+BAT="${BATTERY_NOTIFY_BAT_DIR:-/sys/class/power_supply/BAT0}"
+POWER_SUPPLY_DIR="${BATTERY_NOTIFY_POWER_SUPPLY_DIR:-/sys/class/power_supply}"
+
+# Preflight: battery directory. Laptops with non-standard naming (BAT1, CMB0,
+# macsmc-battery on Apple Silicon) would need updating here. Keep the error
+# actionable: list what IS available so the fix is obvious.
+if [ ! -d "$BAT" ]; then
+    # Only log once until the battery appears; otherwise every minute -> 1440 lines/day.
+    if [ "$(cat "$STATE_FILE" 2>/dev/null)" != "missing" ]; then
+        available=$(ls "$POWER_SUPPLY_DIR" 2>/dev/null | grep -i '^bat\|^cmb\|battery' | tr '\n' ' ')
+        log ERROR "battery not found at $BAT. Available power supplies: ${available:-none}. Edit script/battery-notify to set BAT=."
+        echo missing > "$STATE_FILE"
+    fi
+    exit 0
+fi
+
+if [ ! -r "$BAT/status" ] || [ ! -r "$BAT/capacity" ]; then
+    log ERROR "battery sysfs unreadable: $BAT/status or $BAT/capacity. Check permissions: $(ls -l "$BAT/status" "$BAT/capacity" 2>&1 | head -2)"
+    exit 1
+fi
+
+status=$(<"$BAT/status")
+capacity=$(<"$BAT/capacity")
+
+# Validate capacity is a sensible integer. Some kernels return junk for a few
+# seconds after wake.
+if ! [[ "$capacity" =~ ^[0-9]+$ ]] || [ "$capacity" -gt 100 ]; then
+    log WARN "unexpected capacity value '$capacity' (expected integer 0-100). Skipping this check."
+    exit 0
+fi
+
+if [[ "$status" != "Discharging" ]]; then
+    # Charging, full, or unknown. Reset the threshold state so the next
+    # discharge cycle re-fires every stage.
+    [ -f "$STATE_FILE" ] && rm -f "$STATE_FILE"
+    exit 0
+fi
+
+last=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+
+# `last_rank` = the threshold level of the last stage we already fired.
+# `""` (nothing fired yet) maps to 100 so the first sub-30% poll triggers
+# warn:30. Each new stage records its threshold so subsequent polls only
+# fire stages strictly lower than what was already shown.
+case "$last" in
+    "")        last_rank=100 ;;
+    warn:30)   last_rank=30 ;;
+    warn:20)   last_rank=20 ;;
+    warn:15)   last_rank=15 ;;
+    crit:*)    last_rank=10 ;;
+    *)         last_rank=100 ;;  # legacy/unknown — treat as fresh
+esac
+
+OSD="${BATTERY_OSD_BIN:-battery-osd}"
+
+if (( capacity <= 10 )) && [[ "$last" != "crit:$capacity" ]]; then
+    # Critical. Red OSD re-fires on every percent change while still ≤10%
+    # so the user notices the trend, not just the initial cross. Best-effort:
+    # OSD failure must not stop the timer or block subsequent polls.
+    "$OSD" --style critical "$capacity" 2>/dev/null || true
+    log WARN "battery at ${capacity}% (critical)"
+    echo "crit:$capacity" > "$STATE_FILE"
+elif (( capacity <= 15 )) && (( last_rank > 15 )); then
+    "$OSD" --style warn "$capacity" 2>/dev/null || true
+    log WARN "battery at ${capacity}% (warn:15)"
+    echo "warn:15" > "$STATE_FILE"
+elif (( capacity <= 20 )) && (( last_rank > 20 )); then
+    "$OSD" --style warn "$capacity" 2>/dev/null || true
+    notify-send -u normal "Battery Low" "${capacity}% remaining" 2>/dev/null || true
+    log INFO "battery at ${capacity}% (warn:20)"
+    echo "warn:20" > "$STATE_FILE"
+elif (( capacity <= 30 )) && (( last_rank > 30 )); then
+    "$OSD" --style warn "$capacity" 2>/dev/null || true
+    log INFO "battery at ${capacity}% (warn:30)"
+    echo "warn:30" > "$STATE_FILE"
+fi

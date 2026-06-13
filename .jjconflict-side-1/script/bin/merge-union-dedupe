@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# merge-union-dedupe — git merge driver: 3-way union merge with line dedupe.
+#
+# Argv: %A %O %B  (ours, base, theirs — git's standard merge-driver order).
+# %A is both an input (ours) and the output target — driver writes back to it.
+#
+# 1. `git merge-file --union -p` runs a real 3-way merge: hunks unique to one
+#    side appear once, base lines that exist on both sides also appear once.
+#    That's the same behavior as git's built-in `merge=union`.
+# 2. `awk '!seen[$0]++'` dedupes by full-line value, keeping first occurrence.
+#    For our append-only skiplist files, this means a name added on machine A
+#    and (independently) on machine B doesn't show up twice after sync.
+#
+# Wire-up:
+#   .gitattributes:           PATH merge=union-dedupe
+#   ~/.gitconfig (or repo):   [merge "union-dedupe"]
+#                                 name = 3-way union with line dedupe
+#                                 driver = /…/script/bin/merge-union-dedupe %A %O %B
+#                                 recursive = binary
+#   resolve-by-attrs:         dispatches via its `driver)` branch using the
+#                             gitconfig template, so jj/sync_repo flows pick
+#                             this up too without extra wiring.
+#
+# Exit non-zero only on hard error (missing args, write failure). Conflict
+# remnants from a non-mergeable file would still leave conflict markers; we
+# treat that as success here so the calling git/jj reports the unresolved
+# conflict in its normal way.
+set -u
+
+if [[ $# -ne 3 ]]; then
+    printf 'usage: %s OURS BASE THEIRS\n' "$(basename "$0")" >&2
+    exit 2
+fi
+ours=$1; base=$2; theirs=$3
+
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+
+git merge-file --union -p -- "$ours" "$base" "$theirs" 2>/dev/null \
+    | awk '!seen[$0]++' > "$tmp"
+
+cat -- "$tmp" > "$ours"

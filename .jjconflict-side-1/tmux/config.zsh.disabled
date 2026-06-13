@@ -1,0 +1,19 @@
+# Command timing for tmux status bar
+autoload -Uz add-zsh-hook
+
+_tmux_preexec() {
+    if [[ -n "$TMUX" ]]; then
+        pane_id=$(tmux display-message -p "#{pane_id}")
+        echo $$ >| /tmp/tmux-shell-pid-$pane_id
+    fi
+    echo $(date +%s) >| /tmp/tmux-cmd-start-$$
+}
+
+_tmux_precmd() {
+    rm -f /tmp/tmux-cmd-start-$$ 2>/dev/null
+}
+
+add-zsh-hook preexec _tmux_preexec
+add-zsh-hook precmd _tmux_precmd
+
+trap 'rm -f /tmp/tmux-cmd-start-$$ 2>/dev/null; if [[ -n "$TMUX" ]]; then pane_id=$(tmux display-message -p "#{pane_id}" 2>/dev/null); rm -f /tmp/tmux-shell-pid-$pane_id 2>/dev/null; fi' EXIT

@@ -1,0 +1,12 @@
+--type-add
+json:*.jsonc
+--type-add
+groovy:Jenkinsfile
+--type-add
+ci:include:py,groovy,json,sh,docker,yaml
+--type-add
+ci:*.config
+--type-add
+ci:*.config.*
+--type-add
+ci:avpk_deploy_*

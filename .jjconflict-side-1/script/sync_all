@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Sync every jj/git repo under $HOME via sync_repo. Triggered by
+# sync-repos.timer. sync_repo itself exits cleanly on repos that don't
+# have a 'backup' remote, so we can iterate broadly without filtering
+# client-side.
+#
+# Deduplicates by repo root so that submodule-heavy monorepos don't invoke
+# sync_repo once per nested '.git' marker. Each repo root is visited once;
+# sync_repo handles per-workspace iteration via the jj-workspace-aware code
+# inside each run.
+#
+# Per-repo failures are already logged + (optionally) notified by sync_repo
+# via log.sh. This wrapper logs its own START/SUMMARY line so you can grep
+# for the overall run outcome.
+
+set -u
+
+# Same log-root override as sync_repo (and inherited by the sync_repo subprocess).
+if [ "${SYNC_LOG_ROOT_KEEP:-0}" != "1" ]; then
+    unset LOG_ROOT LOG_REL_BASE LOG_NOTIFY_DEDUP_DIR
+fi
+
+LOG_TAG=sync_all
+DOTFILES_ROOT="${DOTFILES_ROOT:-$HOME/.dotfiles}"
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+SYNC="$DOTFILES_ROOT/script/sync_repo"
+DB="$HOME/.cache/plocate.db"
+
+log INFO "START"
+
+if [ ! -f "$DB" ]; then
+    log ERROR "plocate database not found at $DB. Run script/updatedb to build it, or check that the updatedb.timer is active (systemctl --user list-timers)."
+    exit 1
+fi
+if [ ! -x "$SYNC" ]; then
+    log ERROR "sync_repo script not executable at $SYNC"
+    exit 1
+fi
+
+# Build the repo list. Dedup by jj root (falls back to git top-level) so
+# monorepos with many submodule markers only get one sync_repo invocation.
+# Takes a few extra forks per path but is cheap compared to the actual sync.
+declare -A seen
+repos=()
+while IFS= read -r marker; do
+    dir=$(dirname "$marker")
+    case "$dir" in
+        */.cache/*|*/.cargo/*|*/.nix-profile/*|*/node_modules/*) continue ;;
+    esac
+    [ -d "$dir" ] || continue
+    # Canonical root: prefer jj root, fall back to git top-level, else the
+    # marker-parent itself. Errors here are fine; we'll still iterate.
+    root=$(cd "$dir" 2>/dev/null && { jj root 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null; } || echo "$dir")
+    if [ -z "${seen[$root]:-}" ]; then
+        seen[$root]=1
+        repos+=("$root")
+    fi
+done < <(
+    { plocate --database "$DB" -r '/\.jj$'  2>/dev/null
+      plocate --database "$DB" -r '/\.git$' 2>/dev/null
+    } | sort -u
+)
+
+total=${#repos[@]}
+failed=0
+processed=0
+log INFO "discovered $total repo(s)"
+
+for repo in ${repos[@]+"${repos[@]}"}; do
+    processed=$((processed+1))
+    "$SYNC" "$repo"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        failed=$((failed+1))
+        # WARN-level so per-repo lines survive in the SUMMARY-kept log without
+        # firing 35 notifications (LOG_NOTIFY_THRESHOLD defaults to ERROR).
+        # The path is enough to re-run `sync_repo $REPO` for diagnostics.
+        log WARN "FAILED rc=$rc $repo"
+    fi
+done
+
+if [ "$failed" -gt 0 ]; then
+    log ERROR "SUMMARY processed=$processed failed=$failed (per-repo paths logged above as WARN)"
+    exit 1
+fi
+log INFO "SUMMARY processed=$processed failed=0"

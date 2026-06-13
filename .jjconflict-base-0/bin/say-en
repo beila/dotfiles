@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Text-to-speech via piper
+# Usage: say "text to speak" or echo "text" | say
+MODEL="${PIPER_MODEL:-$HOME/.local/share/piper/en_GB-alba-medium.onnx}"
+if [ ! -f "$MODEL" ]; then
+    mkdir -p "$(dirname "$MODEL")"
+    echo "Downloading piper voice model..." >&2
+    BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alba/medium"
+    curl -sfL "$BASE/en_GB-alba-medium.onnx" -o "$MODEL" && curl -sfL "$BASE/en_GB-alba-medium.onnx.json" -o "$MODEL.json"
+fi
+if [ $# -gt 0 ]; then
+    echo "$*"
+else
+    cat
+fi | piper --model "$MODEL" --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -c 1 -q 2>/dev/null

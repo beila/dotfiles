@@ -1,0 +1,183 @@
+"$schema" = "https://jj-vcs.github.io/jj/latest/config-schema.json"
+
+[ui]
+default-command = "log"
+merge-editor = "vimdiff"
+
+[revsets]
+log = "(present(@) | ancestors(immutable_heads().., 2) | trunk()) ~ hidden()"
+
+[merge-tools.vimdiff]
+program = "nvim"
+merge-args = ["-f", "-d", "$output", "-M",
+    "$left", "$base", "$right",
+    "-c", "wincmd J", "-c", "set modifiable",
+    "-c", "set write"]
+merge-tool-edits-conflict-markers = true
+
+[revset-aliases]
+'immutable_heads()' = 'trunk() | tags() | untracked_remote_bookmarks() ~ remote_bookmarks(remote=backup) ~ remote_bookmarks(remote=hj)'
+
+# Mutable working chain + boundary + all branches off it (for fzf _jh)
+'workspace_view()' = 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::'
+
+# Show commits unique to a revision x relative to a set of marker revisions
+# (bookmarks, tags, etc), plus the boundary revs where unique history ends.
+#
+# Goal: when previewing a bookmark or tag, show only the commits that were
+# introduced by that bookmark/tag — not the shared history that already
+# existed in ancestor bookmarks/tags. Each branch in the graph terminates
+# at a boundary rev (the first shared commit), giving clear visual context
+# of where the unique work starts and ends.
+#
+# unique(x, markers):
+#   The range from ancestor markers to x. Finds all markers that are
+#   strict ancestors of x, then returns commits reachable from x but not
+#   from those markers.
+#
+# unique_boundary(x, markers):
+#   unique() plus the parent commits that sit just outside the range.
+#   These boundary revs are parents of range commits that are NOT
+#   themselves in the range — i.e. the first commits of shared history.
+#   This ensures every branch in the graph ends with a visible commit
+#   instead of trailing off with "~".
+#
+# Usage:
+#   jj log -r 'unique_boundary("my-bookmark", bookmarks())'
+#   jj log -r 'unique_boundary("v1.2.0", tags())'
+'unique(x, markers)' = '((markers ~ x) & ::x-)..x'
+'unique_boundary(x, markers)' = 'unique(x, markers) | (parents(unique(x, markers)) ~ unique(x, markers))'
+
+[template-aliases]
+# Show the AUTHOR timestamp instead of the committer timestamp everywhere the
+# builtin log templates (and our fzf_oneline below) render a time. jj's builtin
+# `format_timestamp` calls this alias; default is `commit.committer().timestamp()`,
+# which is the last-rewrite time and changes on every `jj squash`/`describe`/etc.
+# The author timestamp is fixed at the moment the revision first became
+# non-empty (verified empirically) and stays put through later edits, so it
+# reads as the revision's creation time. Overriding the alias propagates to
+# `jj log`, `_jh`/`_gh`, and any view that uses commit_timestamp(self).
+'commit_timestamp(commit)' = 'commit.author().timestamp()'
+
+# Shortest change id, plus the /N change-offset suffix when the change is
+# DIVERGENT (same notation as `jj log`, e.g. "lurk/0"). Used by fzf_oneline for
+# both the visible column and the hidden extraction field, so a divergent row
+# is disambiguated on screen AND the previewed/selected revset (`jj -r lurk/0`)
+# resolves to the one commit under the cursor instead of erroring on ambiguity.
+# Non-divergent changes get no suffix (change_offset only renders for divergent).
+'fzf_change_id(commit)' = 'commit.change_id().shortest() ++ if(commit.divergent(), "/" ++ commit.change_offset())'
+
+# Short relative timestamp: "1w", "3d", "2h", "5m", "6M", "1y"
+# (jj 0.32 lacks .replace(); uses .contains()/.substr() to strip " <unit> ago")
+# Label kept as "timestamp ago" (was "committer timestamp ago") since the
+# value is now the author timestamp via the override above.
+'short_ago(ts)' = '''
+label("timestamp ago",
+if(ts.ago().contains("minutes"), ts.ago().substr(0, -12) ++ "m",
+if(ts.ago().contains("minute"),  ts.ago().substr(0, -11) ++ "m",
+if(ts.ago().contains("hours"),   ts.ago().substr(0, -10) ++ "h",
+if(ts.ago().contains("hour"),    ts.ago().substr(0, -9)  ++ "h",
+if(ts.ago().contains("days"),    ts.ago().substr(0, -9)  ++ "d",
+if(ts.ago().contains("day"),     ts.ago().substr(0, -8)  ++ "d",
+if(ts.ago().contains("weeks"),   ts.ago().substr(0, -10) ++ "w",
+if(ts.ago().contains("week"),    ts.ago().substr(0, -9)  ++ "w",
+if(ts.ago().contains("months"),  ts.ago().substr(0, -11) ++ "M",
+if(ts.ago().contains("month"),   ts.ago().substr(0, -10) ++ "M",
+if(ts.ago().contains("years"),   ts.ago().substr(0, -10) ++ "y",
+if(ts.ago().contains("year"),    ts.ago().substr(0, -9)  ++ "y",
+  ts.ago()))))))))))))
+)
+'''
+# Compact oneline for fzf: no author, no git commit id, shortest change id.
+# Two HIDDEN tab fields close each line: "<display>\t<change-id>\t<path>".
+# fzf shows/searches only field 1 (--with-nth=1), extracts the id from field 2
+# (--accept-nth=2), and previews field 3 as a path. Putting the id/path in
+# fixed tab columns — instead of reading them off the visible line — makes
+# extraction immune to the graph area's variable leading spaces (merges,
+# elisions), which is what broke positional `--accept-nth` before. Commit
+# lines leave the path field empty; fzf_files_suffix fills it per file.
+'fzf_oneline' = '''
+if(root, format_root_commit(self),
+  label(if(current_working_copy, "working_copy"),
+    separate(" ", fzf_change_id(self), short_ago(commit_timestamp(self)), working_copies,
+      if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
+      bookmarks, tags) ++ "\t" ++ fzf_change_id(self) ++ "\t\n"))
+'''
+# Same but with author (for full history where multiple authors appear)
+'fzf_oneline_author' = '''
+if(root, format_root_commit(self),
+  label(if(current_working_copy, "working_copy"),
+    separate(" ", fzf_change_id(self), if(author.name(), author.name().split(" ").first(), author.email().local()), short_ago(commit_timestamp(self)), working_copies,
+      if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder)),
+      bookmarks, tags) ++ "\t" ++ fzf_change_id(self) ++ "\t\n"))
+'''
+# One file per line, appended to a oneline template when the `jj log -s`-style
+# file toggle is on (ctrl-s in _jh/_jhh). The visible field 1 is coloured the
+# same way as native `jj log -s` (whole "M path" wrapped in the `diff <status>`
+# label → modified=cyan, added=green, removed=red), with NO change id shown on
+# file lines. Conflicted files (`f.target().conflict()`) are merged into the
+# SAME list but flagged with an `x` indicator and jj's red `conflict` colour
+# instead of their plain M/A/D status, so a conflict stands out in-line. The
+# id/path ride in the same two hidden tab fields as the commit line (field 2 =
+# change id, field 3 = path), so Enter on a file line yields its commit's id
+# and the preview can diff just that path. Alignment of the first vs later file
+# lines is fixed downstream by _jj_align_files (gawk) in fzf/functions.sh, not
+# here — jj's graph indents the first continuation line one space less, which a
+# template can't compensate for. (Merge commits have an empty diff so their
+# conflicts don't appear here; single-parent/rebase conflicts do.)
+'fzf_files_suffix' = '''
+separate("", diff.files().map(|f|
+  if(f.target().conflict(),
+    label("conflict", "x " ++ f.path()),
+    label("diff " ++ f.status(),
+       if(f.status() == "modified", "M",
+       if(f.status() == "added",    "A",
+       if(f.status() == "removed",  "D",
+       if(f.status() == "copied",   "C",
+       if(f.status() == "renamed",  "R", "?")))))
+       ++ " " ++ f.path())
+  ++ "\t" ++ fzf_change_id(self) ++ "\t" ++ f.path() ++ "\n"))
+'''
+
+# `jj fix` tool that generalizes absolute home-directory paths to a
+# portable placeholder before commits leave the machine. See
+# script/bin/generalize-paths for what it does and why it's a stream
+# filter (and not git's clean/smudge — jj ignores gitattributes filters).
+# Bootstrap calls localize-paths on a fresh clone to expand placeholders
+# for tools that don't interpolate env vars themselves (Amazon `claude`
+# binary, xfconf).
+#
+# Pattern: every tracked file EXCEPT xfce4-panel.xml. xfconf doesn't expand
+# $USER_HOME in its values, so the file is checked in with absolute
+# paths and needs a different fix (see AGENTS.md TODO "replace absolute
+# path from xfce settings"). Until that's resolved, exclude it here.
+[fix.tools.generalize-paths]
+command = ["sh", "-c", '"$DOTFILES_ROOT/script/bin/generalize-paths"', "_"]
+patterns = ["all() ~ glob:'**/xfce4-panel.xml'"]
+
+# clang-format on the C/C++/Obj-C/proto family. `--style=file` walks parents
+# for `.clang-format`; `--fallback-style=none` makes it a stdin->stdout
+# passthrough when no config is found, so repos that haven't opted in stay
+# untouched (matches the per-repo opt-in pattern of generalize-paths). JS/TS/
+# JSON/YAML/MD/HTML/CSS are intentionally NOT listed — those are prettier's
+# territory (see home-manager.configsymlink/nvim.nix). `--assume-filename=$path`
+# lets clang-format pick the right language when reading from stdin.
+[fix.tools.clang-format]
+command = ["clang-format", "--style=file", "--fallback-style=none", "--assume-filename=$path"]
+patterns = [
+    "glob:'**/*.c'",
+    "glob:'**/*.cc'",
+    "glob:'**/*.cpp'",
+    "glob:'**/*.cxx'",
+    "glob:'**/*.c++'",
+    "glob:'**/*.h'",
+    "glob:'**/*.hh'",
+    "glob:'**/*.hpp'",
+    "glob:'**/*.hxx'",
+    "glob:'**/*.h++'",
+    "glob:'**/*.m'",
+    "glob:'**/*.mm'",
+    "glob:'**/*.proto'",
+]

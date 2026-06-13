@@ -1,0 +1,2 @@
+-- which-key.nvim — disabled
+-- require('which-key').setup {}
