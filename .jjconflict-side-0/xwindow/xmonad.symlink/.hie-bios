@@ -1,7 +1,0 @@
-#!/bin/bash
-# HLS cradle: write GHC flags to $HIE_BIOS_OUTPUT so HLS can find xmonad packages
-cat > "$HIE_BIOS_OUTPUT" <<EOF
--package xmonad
--package xmonad-contrib
--package-db $(${XMONAD_GHC:-ghc} --print-global-package-db)
-EOF

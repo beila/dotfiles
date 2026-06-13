@@ -1,5 +1,0 @@
-# Swap left/right buttons on Logitech USB Optical Mouse (046d:c018)
-evdev:input:b0003v046DpC018*
- EVDEV_ABS_00=::1
- KEYBOARD_KEY_90001=btn_right
- KEYBOARD_KEY_90002=btn_left

@@ -1,2 +1,0 @@
-#!/bin/bash
-mencoder -ovc lavc -oac lavc -o download.wmv $*

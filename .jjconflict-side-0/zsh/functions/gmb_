@@ -1,3 +1,0 @@
-#!env zsh
-2=${2:-HEAD} # HEAD if there's no second argument
-git merge-base "$@"

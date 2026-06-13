@@ -1,6 +1,0 @@
-# logrun auto-wrap function list (cross-machine). One function name per line.
-# Lines beginning with `#` are comments. The zz-logrun-auto.zsh widget
-# reads this as additive entries to $LOGRUN_AUTO_FUNCTIONS — functions
-# listed here are wrapped in `logrun --auto -c "$BUFFER"` when typed at
-# the prompt. .gitattributes maps this path to `merge=union-dedupe` so
-# entries appended on different machines auto-merge without duplicates.

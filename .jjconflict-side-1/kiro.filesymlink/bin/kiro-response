@@ -1,2 +1,0 @@
-#!/bin/sh
-exec ~/.dotfiles/bin/say-ko '완료했습니다. 도움이 필요하면 말씀해 주세요.'

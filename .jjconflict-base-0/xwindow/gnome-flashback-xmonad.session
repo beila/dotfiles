@@ -1,3 +1,0 @@
-[GNOME Session]
-Name=GNOME Flashback (XMonad)
-RequiredComponents=xmonad;org.gnome.SettingsDaemon.Datetime;org.gnome.SettingsDaemon.Housekeeping;org.gnome.SettingsDaemon.Keyboard;org.gnome.SettingsDaemon.Power;org.gnome.SettingsDaemon.ScreensaverProxy;org.gnome.SettingsDaemon.XSettings;
