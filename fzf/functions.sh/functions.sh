@@ -275,9 +275,14 @@ _jj_log_reload() { printf "reload(jj --quiet log --color=always -T '%s' -r '%s' 
 
 # shellcheck disable=SC2120
 _jh() {
-  # rv = the `log()` revset-alias, identical to a bare `jj log` (see jj
-  # config.toml [revsets].log). ctrl-h toggles to _jhh's wider ::workspace_view().
-  local pos_bind=() rv='log()'
+  # rv = whatever `[revsets].log` resolves to IN THIS REPO, so `_jh` shows
+  # exactly what a bare `jj log` shows. Read it dynamically (not hardcoded to
+  # `log()`) because a repo can override revsets.log in its own .jj config —
+  # e.g. IgnitionX redefines it, and a hardcoded alias diverged badly there.
+  # Fall back to `log()` if the lookup fails (e.g. very old jj).
+  local pos_bind=() rv
+  rv=$(jj config get revsets.log 2>/dev/null) || rv='log()'
+  [[ -z "$rv" ]] && rv='log()'
   if [[ -n "${1:-}" ]]; then
     local pos; pos=$(_jj_find_pos "$1" "$rv")
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")
