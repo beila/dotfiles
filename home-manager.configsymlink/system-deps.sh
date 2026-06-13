@@ -77,6 +77,20 @@ EOF
   sudo systemctl enable --now keyd
 fi
 
+# adb/fastboot over USB: udev rule so the debug bridge (running as $USER) can
+# open the device node, which is otherwise root-owned 0664. Matches on the USB
+# interface class rather than any vendor id: ff/42/01 is adb, ff/42/03 is
+# fastboot, so ff42?? covers both modes (a device re-enumerates when it reboots
+# into the bootloader). uaccess tags it for the active-session user via ACLs.
+if [ -d /dev/bus/usb ]; then
+  sudo tee /etc/udev/rules.d/51-android.rules > /dev/null <<'EOF'
+# Managed by home-manager/system-deps.sh — adb + fastboot device access.
+SUBSYSTEM=="usb", ENV{ID_USB_INTERFACES}=="*:ff42??:*", MODE="0660", TAG+="uaccess"
+EOF
+  sudo udevadm control --reload-rules
+  sudo udevadm trigger
+fi
+
 # linger: keep systemd --user alive after logout so zellij servers,
 # sync timers, and other user services survive GNOME session restarts.
 # Without this, logging out stops the user manager and kills all children.
