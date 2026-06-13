@@ -117,15 +117,21 @@ if(root, format_root_commit(self),
 # file toggle is on (ctrl-s in _jh/_jhh). The visible field 1 is coloured the
 # same way as native `jj log -s` (whole "M path" wrapped in the `diff <status>`
 # label → modified=cyan, added=green, removed=red), with NO change id shown on
-# file lines. The id/path ride in the same two hidden tab fields as the commit
-# line (field 2 = change id, field 3 = path), so Enter on a file line yields
-# its commit's id and the preview can diff just that path. Alignment of the
-# first vs later file lines is fixed downstream by _jj_align_files (gawk) in
-# fzf/functions.sh, not here — jj's graph indents the first continuation line
-# one space less, which a template can't compensate for.
+# file lines. Conflicted files (`f.target().conflict()`) are merged into the
+# SAME list but flagged with an `x` indicator and jj's red `conflict` colour
+# instead of their plain M/A/D status, so a conflict stands out in-line. The
+# id/path ride in the same two hidden tab fields as the commit line (field 2 =
+# change id, field 3 = path), so Enter on a file line yields its commit's id
+# and the preview can diff just that path. Alignment of the first vs later file
+# lines is fixed downstream by _jj_align_files (gawk) in fzf/functions.sh, not
+# here — jj's graph indents the first continuation line one space less, which a
+# template can't compensate for. (Merge commits have an empty diff so their
+# conflicts don't appear here; single-parent/rebase conflicts do.)
 'fzf_files_suffix' = '''
 separate("", diff.files().map(|f|
-  label("diff " ++ f.status(),
+  if(f.target().conflict(),
+    label("conflict", "x " ++ f.path()),
+    label("diff " ++ f.status(),
        if(f.status() == "modified", "M",
        if(f.status() == "added",    "A",
        if(f.status() == "removed",  "D",
