@@ -275,7 +275,9 @@ _jj_log_reload() { printf "reload(jj --quiet log --color=always -T '%s' -r '%s' 
 
 # shellcheck disable=SC2120
 _jh() {
-  local pos_bind=() rv='workspace_view()'
+  # rv = the `log()` revset-alias, identical to a bare `jj log` (see jj
+  # config.toml [revsets].log). ctrl-h toggles to _jhh's wider ::workspace_view().
+  local pos_bind=() rv='log()'
   if [[ -n "${1:-}" ]]; then
     local pos; pos=$(_jj_find_pos "$1" "$rv")
     [[ -n "$pos" ]] && pos_bind=(--bind "result:pos($pos)+unbind(result)")

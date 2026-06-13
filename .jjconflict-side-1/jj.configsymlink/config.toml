@@ -5,7 +5,10 @@ default-command = "log"
 merge-editor = "vimdiff"
 
 [revsets]
-log = "(present(@) | ancestors(immutable_heads().., 2) | trunk()) ~ hidden()"
+# Default `jj log` view. Defined as the `log()` revset-alias below so the fzf
+# picker `_jh` (fzf/functions.sh) can reuse the exact same set — keep them in
+# sync by editing the alias, not this line.
+log = "log()"
 
 [merge-tools.vimdiff]
 program = "nvim"
@@ -18,7 +21,12 @@ merge-tool-edits-conflict-markers = true
 [revset-aliases]
 'immutable_heads()' = 'trunk() | tags() | untracked_remote_bookmarks() ~ remote_bookmarks(remote=backup) ~ remote_bookmarks(remote=hj)'
 
-# Mutable working chain + boundary + all branches off it (for fzf _jh)
+# The default `jj log` view, as a named alias so `_jh` (fzf picker) shows the
+# exact same revisions as a bare `jj log`. `[revsets].log` above points here.
+'log()' = '(present(@) | ancestors(immutable_heads().., 2) | trunk()) ~ hidden()'
+
+# Mutable working chain + boundary + all branches off it. Used by `_jhh`
+# (ctrl-h "full log" toggle) via `::workspace_view()`, and by `_jb`/`_jt`.
 'workspace_view()' = 'ancestors(immutable_heads()..@, 2) | ancestors(immutable_heads()..@, 1)::'
 
 # Show commits unique to a revision x relative to a set of marker revisions

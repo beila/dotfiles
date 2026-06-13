@@ -4,7 +4,8 @@ Symlinked to `~/.config/jj/`. User email kept in `private-dotfiles/jj/user.toml`
 
 ## Revset aliases (`config.toml`)
 
-- `workspace_view()` — view used in workspace dispatchers (`fzf/functions.sh`).
+- `log()` — the default `jj log` view, factored into a named alias so `[revsets].log = "log()"` and the fzf picker `_jh` share one definition. Edit the alias to change both; `_jh` uses `-r 'log()'` so it shows exactly what a bare `jj log` shows (same set AND order).
+- `workspace_view()` — wider "full log" view (mutable working chain + boundary + all branches off it). Used by `_jhh` (the ctrl-h toggle, via `::workspace_view()`) and by `_jb`/`_jt`. NOT `_jh` anymore — that was the old behavior where `_jh` and `jj log` diverged.
 - `unique(x, markers)` / `unique_boundary(x, markers)` — used by `_jb`/`_jt` previews and by `commit-msg` for merge-commit context.
 
 ## Template aliases
