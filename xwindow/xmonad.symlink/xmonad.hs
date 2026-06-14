@@ -1,6 +1,6 @@
 import Control.Monad
 import qualified Data.List as L (filter, find, isSuffixOf)
-import qualified Data.Map as M (member)
+import qualified Data.Map as M (lookup, member)
 import Data.Maybe
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
@@ -131,7 +131,12 @@ scratchpadToggle name = withWindowSet $ \ws -> do
             isFocused <- case W.peek ws of
                 Just w -> isSP w
                 Nothing -> return False
-            fullscreen <- runQuery isFullscreen s
+            -- Detect fullscreen from xmonad's float map, not the EWMH atom: exiting
+            -- fullscreen runs doSink (setEwmhFullscreenHooks … doSink), which removes
+            -- the window from the float map but leaves _NET_WM_STATE_FULLSCREEN set, so
+            -- isFullscreen would stay True on a now-tiled window. doFullFloat floats it
+            -- at exactly RationalRect 0 0 1 1; anything else is a normal/half-screen state.
+            let fullscreen = M.lookup s (W.floating ws) == Just (W.RationalRect 0 0 1 1)
             let visibleWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
             let isVisible = s `elem` visibleWins
             if fullscreen
