@@ -117,7 +117,9 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 ## Scratchpad system
 
 - Two independent ghostty instances (scratchpad1, scratchpad2), each running `zellij-cycle` with a numeric index (1/2) — attaches to the Nth existing zellij session, falls back to creating `main-N`.
-- `scratchpadToggle`: focused → hide, visible elsewhere → focus, hidden → bring to current workspace + float + focus. Exception: a scratchpad made fullscreen (ghostty ctrl-enter, holds `_NET_WM_STATE_FULLSCREEN`) and parked on a real workspace → jump to that workspace and focus it, preserving fullscreen geometry instead of pulling it here and refloating to half-screen.
+- `scratchpadToggle`: per-scratchpad (left-alt → ghostty1, right-alt → ghostty2); behavior branches on whether the window is fullscreen (ghostty ctrl-enter, `_NET_WM_STATE_FULLSCREEN`):
+  - **Fullscreen** — stuck in its own workspace, never hidden: focused → `toggleWS' ["NSP"]` jumps back to the previously viewed workspace (pressing again returns, toggling between the two); parked elsewhere → jump to its workspace and focus, preserving fullscreen.
+  - **Not fullscreen** (half-screen float) — classic per-window show/hide: focused → hide to NSP; visible on another screen → focus; hidden → bring to current workspace + float + focus.
 - `adaptiveFloat` manage hook: landscape → side-by-side halves, portrait → stacked halves, 2% margins.
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show.
 

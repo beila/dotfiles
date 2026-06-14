@@ -104,10 +104,19 @@ adaptiveFloat isLeftOrTop = do
     sc <- liftX $ withWindowSet $ return . screenRect . W.screenDetail . W.current
     doRectFloat (scratchpadRect isLeftOrTop sc)
 
--- Scratchpad toggle (each scratchpad independent):
--- 1. Focused on current screen → hide (move to NSP)
--- 2. Visible on another screen → just focus it
--- 3. Hidden (NSP or any non-visible workspace) → move to current workspace, float, and focus
+-- Scratchpad toggle (each scratchpad independent — left-alt → ghostty1, right-alt →
+-- ghostty2). Behavior depends on whether the scratchpad is fullscreen (ghostty
+-- ctrl-enter, holds _NET_WM_STATE_FULLSCREEN):
+--
+-- Fullscreen — stuck in its own workspace, never hidden (workspace-level navigation):
+--   1. Focused → toggleWS' jumps back to the previously viewed workspace (skipping NSP);
+--      pressing again returns, toggling between the two workspaces.
+--   2. Parked on a real workspace → jump there and focus it, preserving fullscreen.
+--
+-- Not fullscreen (normal half-screen float) — classic per-window show/hide:
+--   3. Focused → hide (move to NSP).
+--   4. Visible on another screen → just focus it.
+--   5. Hidden → move to current workspace, float, and focus (adapting to orientation).
 scratchpadToggle name = withWindowSet $ \ws -> do
     let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
             (NS _ _ q _ : _) -> q
@@ -122,19 +131,22 @@ scratchpadToggle name = withWindowSet $ \ws -> do
             isFocused <- case W.peek ws of
                 Just w -> isSP w
                 Nothing -> return False
+            fullscreen <- runQuery isFullscreen s
             let visibleWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
             let isVisible = s `elem` visibleWins
-            if isFocused
-                then namedScratchpadAction myScratchpads name -- hide (no refloat!)
-                else do
-                    fullscreen <- runQuery isFullscreen s
-                    case W.findTag s ws of
-                        -- Fullscreen scratchpad (ghostty ctrl-enter) parked on another
-                        -- workspace: jump to that workspace and focus it, preserving the
-                        -- fullscreen geometry. Don't pull it to the current workspace and
-                        -- refloat it to half-screen.
-                        Just tag | fullscreen && tag /= "NSP" -> windows $ W.focusWindow s
-                        _ -> do
+            if fullscreen
+                then -- stuck in its workspace, never hide
+                    if isFocused
+                        then toggleWS' ["NSP"] -- jump back to previous workspace
+                        else case W.findTag s ws of
+                            Just tag | tag /= "NSP" -> windows $ W.focusWindow s -- jump to its workspace + focus
+                            _ -> do
+                                namedScratchpadAction myScratchpads name -- fallback: bring from NSP
+                                refloatScratchpad isLeftOrTop isSP
+                else -- classic per-window show/hide
+                    if isFocused
+                        then namedScratchpadAction myScratchpads name -- hide (no refloat!)
+                        else do
                             if isVisible
                                 then windows $ W.focusWindow s -- on another screen, just focus
                                 else namedScratchpadAction myScratchpads name -- bring from hidden
