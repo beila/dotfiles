@@ -127,12 +127,20 @@ scratchpadToggle name = withWindowSet $ \ws -> do
             if isFocused
                 then namedScratchpadAction myScratchpads name -- hide (no refloat!)
                 else do
-                    if isVisible
-                        then windows $ W.focusWindow s -- on another screen, just focus
-                        else namedScratchpadAction myScratchpads name -- bring from hidden
-                        -- Refloat for both visible and hidden cases to adapt to screen orientation.
-                        -- Do NOT refloat on hide — it would bring the scratchpad back.
-                    refloatScratchpad isLeftOrTop isSP
+                    fullscreen <- runQuery isFullscreen s
+                    case W.findTag s ws of
+                        -- Fullscreen scratchpad (ghostty ctrl-enter) parked on another
+                        -- workspace: jump to that workspace and focus it, preserving the
+                        -- fullscreen geometry. Don't pull it to the current workspace and
+                        -- refloat it to half-screen.
+                        Just tag | fullscreen && tag /= "NSP" -> windows $ W.focusWindow s
+                        _ -> do
+                            if isVisible
+                                then windows $ W.focusWindow s -- on another screen, just focus
+                                else namedScratchpadAction myScratchpads name -- bring from hidden
+                                -- Refloat for both visible and hidden cases to adapt to screen orientation.
+                                -- Do NOT refloat on hide — it would bring the scratchpad back.
+                            refloatScratchpad isLeftOrTop isSP
 
 -- Find the scratchpad window and refloat it
 refloatScratchpad :: Bool -> (Window -> X Bool) -> X ()
