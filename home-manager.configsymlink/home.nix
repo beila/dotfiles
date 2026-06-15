@@ -72,6 +72,7 @@ in
     pkgs.nmap # raw JetDirect printer discovery (print-hp)
     pkgs.nodejs # provides node + npx (used by ad-hoc tooling)
     pkgs.ollama
+    pkgs.parallel
     pkgs.pavucontrol
     pkgs.piper-tts
     pkgs.plocate
