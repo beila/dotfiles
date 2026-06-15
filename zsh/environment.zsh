@@ -68,5 +68,11 @@ export LESS_TERMCAP_us=$'\E[01;32m'      # Begins underline.
 # MANPAGER: `col -bx` strips overstrike (backspace-bold) sequences that bat
 # would otherwise render literally; `-l man` selects the man syntax; `-p`
 # disables decorations (line numbers, headers).
+# MANROFFOPT="-c" is load-bearing: modern groff defaults to emitting SGR (ANSI)
+# escapes, which `col` does NOT understand — it mangles the ESC byte and the
+# numeric tails (1m, 4m, 22m, 0m) leak through as literal text on top of bat's
+# own highlighting. `-c` forces groff back to backspace-overstrike, which
+# `col -bx` actually strips, leaving bat as the sole source of color.
 export PAGER='bat'
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+export MANROFFOPT="-c"
