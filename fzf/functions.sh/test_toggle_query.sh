@@ -115,6 +115,16 @@ out=$(capture _jhh);  assert "_jhh has --accept-nth=2"  "--accept-nth=2"  "$out"
 out=$(capture _jyy);  assert "_jyy has --accept-nth=2"  "--accept-nth=2"  "$out"
 out=$(capture _jy);   assert "_jy has --accept-nth=-1"  "--accept-nth=-1" "$out"
 
+echo "_jh / _jhh ctrl-x yanks the commit id (tab field 4):"
+out=$(capture _jh)
+assert "_jh has ctrl-x binding"            "ctrl-x:"  "$out"
+assert "_jh ctrl-x outputs field 4 ({+4})" "{+4}"     "$out"
+assert "_jh header mentions commit-id"     "commit-id (ctrl-x)" "$out"
+out=$(capture _jhh)
+assert "_jhh has ctrl-x binding"            "ctrl-x:" "$out"
+assert "_jhh ctrl-x outputs field 4 ({+4})" "{+4}"    "$out"
+assert "_jhh header mentions commit-id"     "commit-id (ctrl-x)" "$out"
+
 echo
 echo "_gh / _gy / _gyy real-fzf end-to-end (uses the real fzf binary in filter mode):"
 # Re-source again so any stubs from the previous block are gone.
@@ -157,6 +167,19 @@ assert "_gh file line: change ID from tab field, not path" "mptlxvr" "$(_gh)"
 # unaffected.
 FZF_LINE=$'│ ○    kxwxqupv 1M ago alice Merge master\tkxwxqupv\t'
 assert "_gh merge graph w/ spaces: change ID intact" "kxwxqupv" "$(_gh)"
+
+# ctrl-x (yank commit id) reads tab field 4 = git commit hash. The real binding
+# uses become(printf %s {+4}); --accept-nth=4 reads the SAME parsed field, so it
+# faithfully proves the data path: field 4 carries the commit id, and real fzf
+# strips its ANSI colour just as Enter does for the change id. Commit + file
+# lines both carry the field (fzf_oneline / fzf_files_suffix).
+_yank_commit() { command fzf --ansi -1 --filter '' --delimiter=$'\t' --accept-nth=4 2>/dev/null <<< "$FZF_LINE"; }
+FZF_LINE=$'◆  mptlxvr 2h ago hojin description\tmptlxvr\t\t\x1b[38;5;4mdeadbeef1234\x1b[39m'
+got=$(_yank_commit)
+assert "ctrl-x commit line: commit id from tab field 4" "deadbeef1234" "$got"
+assert_not "ctrl-x output: ANSI stripped" $'\x1b[' "$got"
+FZF_LINE=$'│   \x1b[38;5;6mM a/b.txt\x1b[39m\tmptlxvr\ta/b.txt\tdeadbeef1234'
+assert "ctrl-x file line: commit id (not change id / path)" "deadbeef1234" "$(_yank_commit)"
 
 FZF_LINE="2 minutes ago jj git fetch --all-remotes 6d8b8b9d73c0"
 assert "_gy natural (real fzf): trailing hex op ID extracted" "6d8b8b9d73c0" "$(_gy)"

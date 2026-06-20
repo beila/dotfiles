@@ -247,12 +247,22 @@ _jj_change_id='cut -s -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
 # TAB field index (with --delimiter='\t') of the change ID. The oneline
-# templates emit "<display>\t<change-id>\t<path>", so the id is tab field 2 on
-# both commit and `jj log -s` file lines. fzf's --accept-nth=2 extracts it
-# directly — no pipe-tail extractor — so the `become` toggle can't mangle the
-# swapped leaf's output, and the variable-width graph area (merge/elision
-# spaces) no longer shifts the field as it did with whitespace splitting.
+# templates emit "<display>\t<change-id>\t<path>\t<commit-id>", so the change id
+# is tab field 2 on both commit and `jj log -s` file lines. fzf's --accept-nth=2
+# extracts it directly — no pipe-tail extractor — so the `become` toggle can't
+# mangle the swapped leaf's output, and the variable-width graph area
+# (merge/elision spaces) no longer shifts the field as it did with whitespace
+# splitting. This is the default Enter behaviour of _jh/_jhh.
 _jj_change_field=2
+
+# fzf placeholder for the git COMMIT id (tab field 4, `commit_id.short()` →
+# 12-char hex; see fzf_oneline in jj config.toml). ctrl-x in _jh/_jhh yanks this
+# instead of the change id, for the times you need the underlying git hash
+# (e.g. pasting into a non-jj tool). `{+4}` (not {4}) so multi-select yields one
+# commit id per selected row; --ansi strips the field's colour, like Enter does.
+# Consumed via `become(printf '%s\n' {+4})` so the hash flows straight to the
+# zsh widget's stdout, the same exit path as the ctrl-h toggle's become.
+_jj_commit_field='{+4}'
 
 # Command that fixes `jj log -s` file-line alignment, piped after the file-view
 # `jj log` in _jj_log_reload. The gawk program lives in jj-align-files.awk (next
@@ -292,11 +302,12 @@ _jh() {
   rl_files=$(_jj_log_reload 'fzf_oneline ++ fzf_files_suffix' "$rv")
   jj --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
-    --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o)' \
+    --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
     --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
+    --bind "ctrl-x:become(printf '%s\n' $_jj_commit_field)" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 
@@ -344,11 +355,12 @@ _jhh() {
   rl_files=$(_jj_log_reload 'fzf_oneline_author ++ fzf_files_suffix' "$rv")
   jj --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
-    --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o)' \
+    --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
     --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
+    --bind "ctrl-x:become(printf '%s\n' $_jj_commit_field)" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
 }
 
