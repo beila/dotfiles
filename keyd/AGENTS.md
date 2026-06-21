@@ -17,7 +17,7 @@ Copied to `/etc/keyd/` by `home-manager.configsymlink/system-deps.sh`. Reload wi
   - `[meta]` block: Super+C / Super+V → universal copy/paste (see below)
 - `default.conf` — all keyboards except device-specific, includes `common`.
 - `kinesis.conf` — Kinesis Advantage2 (`29ea:0102`), Mac-mode key swaps, includes `common`.
-- `thinkpad.conf` — ThinkPad (`0001:0001:09b4e68d`), Copilot key → tap: Albert, hold: Super; includes `common`.
+- `thinkpad.conf` — ThinkPad (`0001:0001:09b4e68d`); includes `common`. Copilot key handling is **shelved** (see "Copilot key" below) — the file only suppresses the stray F23.
 
 ## Universal copy/paste
 
@@ -37,6 +37,41 @@ v = macro(paste f20)
 - **nvim mappings** (`nvim.configsymlink/vimrcs/my-clipboard.lua`, identical for both `<F24>`/`<F20>` and `<XF86Copy>`/`<XF86Paste>`): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`.
 - **Terminal nvim inside ghostty** still needs explicit `"+y`/`"+p` for normal/visual mode (ghostty intercepts XF86Paste before zellij/nvim see it; insert-mode pastes via bracketed paste).
 - **F20 in terminals**: ghostty has `keybind = f20=ignore` because the F20 token corrupts zellij's input stream. Don't drop it — neovide depends on F20 and bypasses ghostty.
+
+## Copilot key — SHELVED, not fixable in keyd (do not retry without new info)
+
+The ThinkPad Copilot key (between AltGr and RCtrl) is **not a single keycode** — Lenovo/Microsoft firmware makes it a hardware-macro **chord**. Goal was: tap → Albert, hold+key → Super+key. **Verdict: not achievable in keyd config without sacrificing Super-key-tap=Albert, which is used more. Shelved.** Full investigation below so a future attempt starts informed.
+
+### True raw firmware sequence
+Captured with **keyd stopped** (so nothing reorders the AT keyboard — `keyd monitor` shows raw `/dev/input`):
+```
+Tap:       leftmeta↓ leftshift↓ f23↓ f23↑ leftshift↑ leftmeta↑
+Hold+key:  leftmeta↓ leftshift↓ f23↓  <key>  f23↑ leftshift↑ leftmeta↑
+```
+All three (`leftmeta`, `leftshift`, `f23`) press within microseconds, `leftmeta` first, and bracket the pressed key. The **real Super key sends `leftmeta` alone** (no f23). Note: any `keyd monitor` capture taken *while keyd runs* is **reordered** by `common`'s `leftmeta = overloadt2(...)` buffering — only a keyd-stopped capture shows truth.
+
+### The core conflict (why "both" is impossible)
+- **Super-tap = Albert** requires `common`'s `leftmeta = overloadt2(meta, prog1, 150)`.
+- **Collapsing the Copilot chord** requires a chord whose first key is `leftmeta` (e.g. `leftmeta+leftshift+f23 = …`).
+- An `overloadt2` on `leftmeta` **consumes the `leftmeta` event before the chord engine can buffer it**, so the chord never assembles. Proven by single-variable test: chord fires with a plain `leftmeta` (no `common`), does **not** fire with `common` loaded. Same input keycode → mutually exclusive. Different *output* keycodes don't help; the collision is on the `leftmeta` **input**.
+- Maintainer rvaiya (keyd issue [#825](https://github.com/rvaiya/keyd/issues/825)) confirms a deeper wall: *"there is no way to distinguish between leftshift emitted by the left shift key and the one emitted by the copilot key… I agree that this is mostly hopeless."* → **Copilot+Shift+key can never work** (firmware already holds shift; a real shift press registers as a kernel repeat, value 2, not a fresh down).
+
+### What was tried (all failed)
+| Attempt | Result | Why |
+|---|---|---|
+| `f23 = overloadt2(copilot, prog1, 150)` + `[copilot] leftshift = noop` | shift leaked → Copilot+C = Super+Shift+C | overloadt2 defers layer activation; the interrupting `shift` is processed in `[main]` before `[copilot]` is live |
+| `f23 = overload(copilot, prog1)` + `[copilot] leftshift = noop` | **stuck Shift → dead mouse** | `noop` ate the `shift↑` whose `shift↓` fired in another layer → stranded modifier until next Super tap |
+| `leftmeta+leftshift+f23 = overload(meta, prog1)` **with** `include common` | chord didn't fire; tap leaked raw `<F23>` (`<2a>`); Copilot+C still M-S-c | `common`'s `leftmeta = overloadt2` consumes leftmeta first |
+| `leftmeta+leftshift+f23 = layer(control)` / `overload(meta, prog1)` **without** `common` | **WORKS**: Copilot+C copies, +4 switches, tap=Albert, clean Super, no stuck key | nothing overloads `leftmeta`, so the chord assembles |
+
+So a config that fully works exists — but only **without** `common`'s `leftmeta` overload, i.e. you'd lose Super-key-tap=Albert. That tradeoff was rejected (Super used more than Copilot).
+
+### If revisiting
+- The known-good full-Copilot config (accept losing Super-tap=Albert): `include common`, then in `[main]` of `thinkpad.conf` override `leftmeta = layer(meta)` and add `leftmeta+leftshift+f23 = overload(meta, prog1)`. Verified working on this hardware.
+- Hardware note: this unit does **not** block keys while Copilot is held (some BT keyboards do — keyd issue #1241). Confirmed via raw capture (the `<key>` registers mid-hold).
+- Kernel angle: commit `907bc9268a5a` (in 6.13+) addresses some Copilot variants. We're on **6.17 and the meta+shift+f23 chord still appears**, so the kernel fix does not cover this unit. If a future kernel collapses it to a single keycode, the whole problem dissolves — re-test with a keyd-stopped raw capture.
+- External tool [`mishoo/exorcise-copilot`](https://github.com/mishoo/exorcise-copilot): a ~200-line C++ evdev-grab+uinput remapper. **Rejected**: it `libevdev_grab`s the same physical keyboard keyd already grabs (conflict — would force pulling the ThinkPad keyboard out of keyd entirely and reimplementing all current remaps), hardcodes output to Right Ctrl (not Super), and its own README admits the modifier combos are imperfect.
+- Current `thinkpad.conf` keeps only `f23 = noop` (suppress the stray F23 so a tap doesn't emit `<2a>` into the focused app). Hold still passes `leftmeta`+`leftshift` through as **Super+Shift** via `common` (functional for non-shift-sensitive Super bindings — this is the "hold works" baseline). The old `leftshift+leftmeta = layer(meta)` and `[meta] f23 = timeout(...)` lines were removed because they never fired (same `overloadt2`-consumes-leftmeta reason) — dead code.
 
 ## input-remapper (`~/.dotfiles/input-remapper-2.configsymlink/`, mice only)
 
