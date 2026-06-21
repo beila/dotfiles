@@ -123,11 +123,15 @@ let
     in
       "${job.schedule.cron}  ${body}  ${comment}";
 
+  # Single source of truth for the job PATH, shared by both backends. The
+  # trailing /usr/bin:/bin keep core system tools reachable when this value
+  # fully replaces the inherited PATH (cron's tiny default, or the systemd
+  # Environment= override below).
+  schedulePath = lib.concatStringsSep ":" (cfg.pathExtra ++ [ "/usr/bin" "/bin" ]);
+
   envHeader =
     let
-      pathLine =
-        if cfg.pathExtra == [] then ""
-        else "PATH=${lib.concatStringsSep ":" (cfg.pathExtra ++ [ "/usr/bin" "/bin" ])}\n";
+      pathLine = if cfg.pathExtra == [] then "" else "PATH=${schedulePath}\n";
       envLines = lib.concatMapStrings (k: "${k}=${cfg.environment.${k}}\n")
                    (lib.attrNames cfg.environment);
     in
@@ -180,13 +184,24 @@ in
   config = lib.mkMerge [
     # ----- defaults --------------------------------------------------------
     {
-      # Cron's default PATH is /usr/bin:/bin — too narrow for our scripts,
-      # which call nix-installed tools (jj, plocate, claude, kiro-cli) and
-      # user-local helpers. /nix/var/nix/profiles/default/bin is where the
-      # multi-user nix daemon installs `nix` itself; without it scripts that
-      # shell out to nix (e.g. flake-update) fail with "nix not found on PATH".
+      # Both backends run with a stripped PATH: cron defaults to /usr/bin:/bin,
+      # and the systemd user manager's PATH is a login-time snapshot. Neither
+      # includes the dirs an interactive shell prepends. Our scripts call nix
+      # tools (jj, plocate), the LLM CLIs commit-msg shells out to (claude,
+      # kiro-cli, under ~/.toolbox/bin), and user-local helpers, so we set an
+      # explicit PATH for both backends. /nix/var/nix/profiles/default/bin is
+      # where the multi-user nix daemon installs `nix` itself; without it
+      # scripts that shell out to nix (e.g. flake-update) fail with "nix not
+      # found on PATH".
+      #
+      # ~/.toolbox/bin is listed before ~/.local/bin on purpose: both hold a
+      # kiro-cli shim, but the ~/.local/bin one pins a version path (e.g.
+      # .../kiro-cli/2.7.1/...) that the next auto-update deletes, leaving a
+      # dangling symlink — which is exactly why commit-msg silently fell back
+      # to file-list descriptions. The ~/.toolbox/bin shim is version-stable.
       # Use mkDefault so a host can override if it has an unusual layout.
       dotfiles.schedule.pathExtra = lib.mkDefault [
+        "${config.home.homeDirectory}/.toolbox/bin"
         "${config.home.homeDirectory}/.nix-profile/bin"
         "/nix/var/nix/profiles/default/bin"
         "${config.home.homeDirectory}/.local/bin"
@@ -197,16 +212,22 @@ in
 
     # ----- systemd backend -------------------------------------------------
     (lib.mkIf (cfg.backend == "systemd") {
-      systemd.user.services = lib.mapAttrs (_: job: {
-        Unit.Description = job.description;
-        Service =
-          { Type = "oneshot"; ExecStart = expandHome job.command; }
-          // (lib.optionalAttrs (job.nice != null) { Nice = job.nice; })
-          // (lib.optionalAttrs (job.ioSchedulingClass != null) { IOSchedulingClass = job.ioSchedulingClass; })
-          // (lib.optionalAttrs (job.env != { }) {
-               Environment = lib.mapAttrsToList (k: v: "${k}=${v}") job.env;
-             });
-      }) enabledJobs;
+      systemd.user.services = lib.mapAttrs (_: job:
+        let
+          # The systemd user manager's PATH is a login-time snapshot that omits
+          # what interactive shells prepend (e.g. ~/.toolbox/bin), so set it
+          # explicitly from pathExtra. Per-job env is appended after, sharing the
+          # one Environment list so the two don't clobber via the `//` merge.
+          envList = lib.optional (cfg.pathExtra != []) "PATH=${schedulePath}"
+                 ++ lib.mapAttrsToList (k: v: "${k}=${v}") job.env;
+        in {
+          Unit.Description = job.description;
+          Service =
+            { Type = "oneshot"; ExecStart = expandHome job.command; }
+            // (lib.optionalAttrs (job.nice != null) { Nice = job.nice; })
+            // (lib.optionalAttrs (job.ioSchedulingClass != null) { IOSchedulingClass = job.ioSchedulingClass; })
+            // (lib.optionalAttrs (envList != []) { Environment = envList; });
+        }) enabledJobs;
 
       systemd.user.timers = lib.mapAttrs (_: job: {
         Unit.Description = "${job.description} (timer)";
