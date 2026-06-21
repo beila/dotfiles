@@ -44,7 +44,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] no vertical gap between ghostty windows
 - [ ] random voice for `say-en`/`say-ko`; same voice within one parent process (parent pid mod # voices?)
 - [ ] super-c in visual block mode of neovide
-- [ ] add temperature in sysmon
+- [x] add temperature in sysmon — CPU package temp now renders as a `🌡️` braille sparkline in the panel row (normalized 40–100°C → green ≤~77°C, yellow ~78–92°C, red ≥~92°C, reusing the existing height/severity quantizer) plus a `Temp:` tooltip line; fan RPM (`thinkpad/fan1_input`) is tooltip-only (`Fan:`). Sensors resolved by driver name via `hwmon_by_name` (not fixed `hwmonN`). See `xwindow/bin/sysmon-genmon` and `xwindow/AGENTS.md`.
 - [ ] bidirectional auto-suggestion for `LOGRUN_AUTO_FUNCTIONS` tuning:
   - wrapped function finished under threshold AND `t_total - t_in_cmd > 200ms` → suggest removing from list (it's adding shell-startup overhead for nothing)
   - unwrapped function exceeded threshold → suggest adding to list (its output should be captured)

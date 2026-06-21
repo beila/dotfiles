@@ -112,6 +112,17 @@ spark() {
     echo "<span face='DejaVu Sans Mono'>$out</span>"
 }
 
+# Resolve a hwmon directory by its `name` file. hwmon indices (hwmon0, hwmon1…)
+# reshuffle across boots depending on driver probe order, so we match on the
+# stable driver name instead of a hard-coded number. Echoes the dir, or nothing.
+hwmon_by_name() {
+    local want=$1 d
+    for d in /sys/class/hwmon/*; do
+        [ -r "$d/name" ] && [ "$(cat "$d/name")" = "$want" ] && { echo "$d"; return 0; }
+    done
+    return 1
+}
+
 # --- CPU & IO (delta via awk for large numbers) ---
 read -r _ cu cn cs ci cio cirq csirq _ < /proc/stat
 prev=$(cat /tmp/sysmon-cpu-prev 2>/dev/null)
@@ -160,11 +171,43 @@ if [ -d "$bat" ]; then
 fi
 push_hist bat "$bat_pct"
 
+# --- Temperature & fan ---
+# Temp: CPU package die temp in m°C. Preferred source coretemp/"Package id 0"
+# (temp1_input); fall back to the x86_pkg_temp thermal zone, then thinkpad CPU.
+# Normalize 40–100°C → 0–100% so the existing height()/severity() quantizer
+# colours it like the other metrics: green ≤~77°C, yellow ~78–92°C, red ≥~92°C.
+# Idle here is ~66°C and crit is 105°C, so this range keeps idle green while
+# still hitting red before thermal throttling.
+temp_c=-1
+coretemp_dir=$(hwmon_by_name coretemp)
+pkg_zone=$(grep -l '^x86_pkg_temp$' /sys/class/thermal/thermal_zone*/type 2>/dev/null | head -1)
+pkg_zone=${pkg_zone%/type}
+thinkpad_dir=$(hwmon_by_name thinkpad)
+if [ -n "$coretemp_dir" ] && [ -r "$coretemp_dir/temp1_input" ]; then
+    temp_c=$(( $(cat "$coretemp_dir/temp1_input") / 1000 ))
+elif [ -n "$pkg_zone" ] && [ -r "$pkg_zone/temp" ]; then
+    temp_c=$(( $(cat "$pkg_zone/temp") / 1000 ))
+elif [ -n "$thinkpad_dir" ] && [ -r "$thinkpad_dir/temp1_input" ]; then
+    temp_c=$(( $(cat "$thinkpad_dir/temp1_input") / 1000 ))
+fi
+temp_pct=-1
+if (( temp_c >= 0 )); then
+    temp_pct=$(( (temp_c - 40) * 100 / 60 ))
+    (( temp_pct < 0 )) && temp_pct=0
+    (( temp_pct > 100 )) && temp_pct=100
+fi
+push_hist temp "$temp_pct"
+
+# Fan: thinkpad_acpi fan1_input (RPM). Tooltip-only — no panel sparkline.
+# Reuses $thinkpad_dir resolved above for the temp fallback.
+fan_rpm=-1
+[ -n "$thinkpad_dir" ] && [ -r "$thinkpad_dir/fan1_input" ] && fan_rpm=$(cat "$thinkpad_dir/fan1_input")
+
 # --- Panel ---
 bat_icon="🔋"
 [ "$(cat /sys/class/power_supply/AC/online 2>/dev/null)" = "1" ] && bat_icon="🔌"
 (( bat_pct < 20 )) && [ "$bat_status" != "Charging" ] && bat_icon="🪫"
-echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) ${bat_icon}$(spark bat 1)</txt>"
+echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) 🌡️$(spark temp) ${bat_icon}$(spark bat 1)</txt>"
 
 # --- Tooltip ---
 used_mb=$(( (memtotal-memavail)/1024 ))
@@ -198,12 +241,18 @@ else
 fi
 cp "$cur_cores" "$prev_cores"
 
-printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
+# Human-readable temp/fan for the tooltip ("n/a" when the sensor is missing).
+temp_tip="n/a"; (( temp_c >= 0 )) && temp_tip="${temp_c}°C (pkg)"
+fan_tip="n/a";  (( fan_rpm >= 0 )) && fan_tip="${fan_rpm} RPM"
+
+printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nTemp: %s\nFan:  %s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
     "$cpu" "$loadavg" \
     "$cores_tip" \
     "$mem" "$used_mb" "$total_mb" \
     "$iow" \
     "$(hr $drx)" "$(hr $dtx)" \
+    "$temp_tip" \
+    "$fan_tip" \
     "$swap_used" "$swap_total" \
     "$bat_pct" "${bat_status:-AC}" \
     "$(uptime -p | sed 's/up //')"
