@@ -10,6 +10,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [~] make copilot key work as super — **WON'T FIX** (investigated 2026-06-21, do not retry without new info). The Copilot key is a hardware chord `leftmeta+leftshift+f23`; collapsing it requires a keyd chord on `leftmeta`, but `common`'s `leftmeta = overloadt2` (which gives Super-key-tap=Albert) consumes `leftmeta` before the chord can assemble. Mutually exclusive on the same keycode — and Super-tap=Albert is used more, so it wins. keyd maintainer also calls the meta+shift+f23 variant "mostly hopeless". Full findings + the working-but-rejected config + revisit conditions (e.g. a future kernel collapsing the chord) are in `keyd/AGENTS.md`. Current state: `f23 = noop` (tap suppressed), hold = Super+Shift via `common`.
 - [ ] skip commands in skip list even when running with nix run, npx, uvx. When TUI command is detected with nix run, npx, uvx, add the correct package to the skip list.
 - [ ] Add a way for commands to disable logrun from themselves.
+- [ ] Add a way to add NOLOG=1 more easily even after typing all the command line
 
 ### Medium impact
 - [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
