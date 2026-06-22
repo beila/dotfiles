@@ -9,7 +9,7 @@
 # Usage:
 #   dotfiles.schedule.backend = "systemd" | "cron";    # per-host, default systemd
 #   dotfiles.schedule.environment = { LOG_ROOT = "..."; };  # cron-mode top-level env
-#   dotfiles.schedule.pathExtra   = [ "/some/dir" ];        # prepended to PATH in cron header
+#   dotfiles.schedule.pathExtra   = [ "/some/dir" ];        # job PATH — both backends (cron header + systemd Environment=)
 #   dotfiles.schedule.jobs.<name> = {
 #     description = "...";
 #     command     = "%h/.dotfiles/script/foo";  # %h expands to the user's home dir
@@ -172,7 +172,7 @@ in
     pathExtra = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      description = "Directories prepended to PATH in cron mode. systemd mode ignores it.";
+      description = "Directories prepended to PATH for jobs, in both backends: the cron header PATH= line, and Environment=PATH= on each systemd service (the user manager's inherited PATH is a login-time snapshot that omits these). A trailing /usr/bin:/bin is always appended.";
     };
 
     jobs = lib.mkOption {
