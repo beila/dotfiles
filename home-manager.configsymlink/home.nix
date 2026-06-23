@@ -226,7 +226,7 @@ in
     # `bin/logrun --auto` will tell you when something it saw should be
     # added.
     # See bin/AGENTS.md "Output writer / decorator".
-    LOGRUN_TUI_SKIPLIST = "nvim btop fzf zellij zmx glow less more ssh man top nano watch claude kiro-cli bat";
+    LOGRUN_TUI_SKIPLIST = "nvim btop fzf zellij zmx glow less more ssh man top nano watch claude kiro-cli bat journalctl";
   };
 
   # Let Home Manager install and manage itself.
