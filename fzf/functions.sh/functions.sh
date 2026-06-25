@@ -255,8 +255,8 @@ _jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null
 # splitting. This is the default Enter behaviour of _jh/_jhh.
 _jj_change_field=2
 
-# fzf placeholder for the git COMMIT id (tab field 4, `commit_id.shortest()` →
-# shortest unique hex prefix; see fzf_oneline in jj config.toml). ctrl-x in _jh/_jhh yanks this
+# fzf placeholder for the git COMMIT id (tab field 4, `commit_id.shortest(7)` →
+# min 7-char unique hex prefix; see fzf_oneline in jj config.toml). ctrl-x in _jh/_jhh yanks this
 # instead of the change id, for the times you need the underlying git hash
 # (e.g. pasting into a non-jj tool). `{+4}` (not {4}) so multi-select yields one
 # commit id per selected row; --ansi strips the field's colour, like Enter does.

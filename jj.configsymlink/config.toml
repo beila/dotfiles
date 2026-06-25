@@ -88,7 +88,7 @@ if(ts.ago().contains("year"),    ts.ago().substr(0, -9)  ++ "y",
 # fields close each line: "<display>\t<change-id>\t<path>\t<commit-id>".
 # fzf shows/searches only field 1 (--with-nth=1), extracts the change id from
 # field 2 (--accept-nth=2 — the default Enter), previews field 3 as a path, and
-# emits field 4 (the git commit id, shortest unique prefix via commit_id.shortest()) when
+# emits field 4 (the git commit id, min 7-char unique prefix via commit_id.shortest(7)) when
 # you press ctrl-x in _jh/_jhh to yank the commit hash instead of the change id.
 # Putting the ids/path in fixed tab columns — instead of reading them off the
 # visible line — makes extraction immune to the graph area's variable leading
@@ -101,7 +101,7 @@ if(root, format_root_commit(self),
     separate(" ", fzf_change_id(self), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       bookmarks, tags,
-      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder))) ++ "\t" ++ fzf_change_id(self) ++ "\t\t" ++ self.commit_id().shortest() ++ "\n"))
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder))) ++ "\t" ++ fzf_change_id(self) ++ "\t\t" ++ self.commit_id().shortest(7) ++ "\n"))
 '''
 # Same but with author (for full history where multiple authors appear)
 'fzf_oneline_author' = '''
@@ -110,7 +110,7 @@ if(root, format_root_commit(self),
     separate(" ", fzf_change_id(self), if(author.name(), author.name().split(" ").first(), author.email().local()), short_ago(commit_timestamp(self)), working_copies,
       if(conflict, label("conflict", "conflict")), if(empty, label("empty", "(empty)")),
       bookmarks, tags,
-      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder))) ++ "\t" ++ fzf_change_id(self) ++ "\t\t" ++ self.commit_id().shortest() ++ "\n"))
+      if(description, description.first_line(), label(if(empty, "empty"), description_placeholder))) ++ "\t" ++ fzf_change_id(self) ++ "\t\t" ++ self.commit_id().shortest(7) ++ "\n"))
 '''
 # One file per line, appended to a oneline template when the `jj log -s`-style
 # file toggle is on (ctrl-s in _jh/_jhh). The visible field 1 is coloured the
@@ -132,7 +132,7 @@ separate("", diff.files().map(|f|
        if(f.status() == "copied",   "C",
        if(f.status() == "renamed",  "R", "?")))))
        ++ " " ++ f.path())
-  ++ "\t" ++ fzf_change_id(self) ++ "\t" ++ f.path() ++ "\t" ++ self.commit_id().shortest() ++ "\n"))
+  ++ "\t" ++ fzf_change_id(self) ++ "\t" ++ f.path() ++ "\t" ++ self.commit_id().shortest(7) ++ "\n"))
 '''
 
 # `jj fix` tool that generalizes absolute home-directory paths to a
