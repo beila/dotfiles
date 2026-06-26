@@ -1,0 +1,13 @@
+#!/bin/bash
+# Re-apply input-remapper autoload presets (e.g. the Logitech left-handed swap)
+# after the daemon's device list goes stale — see keyd/AGENTS.md.
+#
+# Runs the system CLI under `env -i`: the interactive session leaks Nix's
+# GI_TYPELIB_PATH (glib 2.88.1), so /usr/bin/input-remapper-control loads the
+# Nix typelib and dies on `import gi.repository.Gio`
+# (undefined symbol: g_string_copy). A clean env dodges the Nix glib entirely.
+exec env -i \
+    HOME="$HOME" \
+    XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
+    PATH=/usr/bin:/bin \
+    /usr/bin/input-remapper-control --command autoload

@@ -2,6 +2,8 @@
 
 Managed by input-remapper-daemon (apt). Autoloads on device connect.
 
+If a mapping stops applying mid-session (e.g. the Logitech left-handed swap reverts to right-handed), run `reloadmouse` (in `bin/`) to re-trigger autoload. Do **not** call `input-remapper-control --command autoload` directly from a Nix-wrapped shell — it crashes on the leaked Nix glib; see `keyd/AGENTS.md` "input-remapper stale device list" for the full rationale.
+
 ## Logitech USB Optical Mouse — left-handed.json
 Swap left/right buttons (BTN_LEFT ↔ BTN_RIGHT).
 

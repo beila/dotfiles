@@ -142,6 +142,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
   - **Why not skip HEIC entirely**: gnome-shell on this machine inherits `GDK_PIXBUF_MODULE_FILE` from a Nix-store `loaders.cache` (set by librsvg's home-manager wrapper) that has no HEIF loader, so a raw HEIC URI silently renders as the primary fallback colour (black) on the lock screen — converting to JPG sidesteps gdk-pixbuf's loader set entirely.
   - Test harness: `script/test_random-lockscreen.sh`.
 - `on-input-change` — called by inputplug on `XISlaveAdded`; sleeps 3s for GNOME's keymap reset to settle, then re-applies `xmodmap ~/.Xmodmap`.
+- `reloadmouse` — re-triggers input-remapper autoload when its device list goes stale (mouse silently reverts to right-handed). Re-execs `/usr/bin/input-remapper-control --command autoload` under `env -i` to dodge the session's leaked Nix `GI_TYPELIB_PATH`, which otherwise crashes the system CLI (`undefined symbol: g_string_copy`). See `keyd/AGENTS.md`.
 
 ## Clipboard history
 
