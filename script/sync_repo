@@ -6,7 +6,13 @@ if [ "${SYNC_REPO_DEBUG:-0}" = "1" ]; then
     set -x
 fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
+# Exported: the `jj fix` generalize-paths tool runs as `sh -c
+# '"$DOTFILES_ROOT/script/bin/generalize-paths"'` and reads this from the
+# ENVIRONMENT. Scheduled sync (sync-repos.service) runs with a systemd env
+# that carries neither DOTFILES_ROOT nor USER_HOME, so without the export the
+# tool resolves to "/script/bin/generalize-paths" → exit 127, jj fix treats it
+# as a no-op, and home paths leak into pushed commits unscrubbed.
+export DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
 GIT=${GIT_EXECUTABLE:-git}
 MACHINE_NAME=$(hostnamectl --pretty 2>/dev/null | grep -v '\.')
 MACHINE_NAME=${MACHINE_NAME:-$(hostname -s)}
@@ -550,6 +556,13 @@ step_run_jj_fix() {
         if jj log -r "${SYNC_BM}@${SYNC_REMOTE}" --no-graph -T '"y"' 2>/dev/null | grep -q y; then
             revset="${SYNC_BM}@${SYNC_REMOTE}..@-"
         fi
+    fi
+    # Defense in depth: jj fix swallows a tool's nonzero exit and reports
+    # "Nothing changed", so a misconfigured tool (e.g. DOTFILES_ROOT unset →
+    # generalize-paths not found) scrubs nothing yet looks successful. Surface
+    # that as ERROR instead of leaking home paths silently into the push.
+    if [ ! -x "$DOTFILES_ROOT/script/bin/generalize-paths" ]; then
+        log ERROR "FIX-TOOL-MISSING generalize-paths not executable at \$DOTFILES_ROOT=$DOTFILES_ROOT; home paths will NOT be scrubbed"
     fi
     # Quiet unless something changed; jj fix prints "Nothing changed."
     # when the tools were no-ops, which is the steady-state expectation.
