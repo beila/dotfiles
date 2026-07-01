@@ -210,7 +210,7 @@ floatRules =
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
 
-mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real"]
+mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution"]
 
 editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 
