@@ -210,7 +210,13 @@ floatRules =
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
 
-mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution"]
+-- All Evolution windows (main, compose, prefs, contacts, calendar) share the
+-- WM_CLASS "Org.gnome.Evolution", so one class match covers them. The reminder
+-- popup has its own class "Evolution-alarm-notify" and still floats (floatRules)
+-- — shifted here too so every Evolution window lands on 2:mail. Trade-off: a
+-- reminder now only shows when 2:mail is visible; drop it from this list to make
+-- reminders appear on the current workspace instead.
+mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution", className =? "Evolution-alarm-notify"]
 
 editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 
