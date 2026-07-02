@@ -202,7 +202,9 @@ floatRules =
         , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
         , className =? "Tilda" --> doFloat
         , className =? "ignition" --> doFloat
-        , className =? "Evolution-alarm-notify" --> doFloat
+        , -- Calendar reminder popup: float AND copy to every workspace so it's
+          -- visible wherever you are, not just where it spawned.
+          className =? "Evolution-alarm-notify" --> doFloat <> copyToAllHook
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
@@ -211,12 +213,11 @@ floatRules =
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
 
 -- All Evolution windows (main, compose, prefs, contacts, calendar) share the
--- WM_CLASS "Org.gnome.Evolution", so one class match covers them. The reminder
--- popup has its own class "Evolution-alarm-notify" and still floats (floatRules)
--- — shifted here too so every Evolution window lands on 2:mail. Trade-off: a
--- reminder now only shows when 2:mail is visible; drop it from this list to make
--- reminders appear on the current workspace instead.
-mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution", className =? "Evolution-alarm-notify"]
+-- WM_CLASS "Org.gnome.Evolution", so one class match sends them all to 2:mail.
+-- The reminder popup ("Evolution-alarm-notify") is intentionally NOT here — it
+-- floats on the current workspace (see floatRules) so reminders show wherever
+-- you are, not only when 2:mail is visible.
+mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution"]
 
 editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 
