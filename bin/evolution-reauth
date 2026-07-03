@@ -12,6 +12,15 @@
 # evolution-setup bugs (reuses-expired-token; skips store when account exists)
 # by clearing the stale token first and storing the new one directly.
 #
+# CRUCIAL (why the naive version failed): a *running* flatpak Evolution reads
+# secrets over the Secret Service session bound to ITS sandbox instance. A
+# fresh `flatpak run --command=secret-tool …` is a DIFFERENT sandbox instance
+# whose stored secret the running app cannot see. So when Evolution is already
+# open we must store INTO its live namespace via `flatpak enter <pid>`. When
+# it's not running, the host keyring (plain secret-tool) is what a fresh launch
+# reads. We write to whichever is relevant (and the host keyring always, so a
+# later fresh launch also works).
+#
 # Usage: evolution-reauth        (opens browser/broker sign-in as needed)
 set -uo pipefail
 
@@ -48,11 +57,23 @@ EMAIL="$(rg -m1 '^Email=' "$collection_file" | cut -d= -f2-)"
 LEGACY_UID="OAuth2::Microsoft365[${EMAIL}]"
 echo "evolution-reauth: refreshing token for $EMAIL (uid $COLLECTION_UID)"
 
-# 1. Clear stale tokens under BOTH keys evolution-setup/EDS use, in BOTH keyrings.
+# Is a flatpak Evolution already running? If so, capture its instance PID so we
+# can store the secret into ITS namespace (see header). `flatpak ps` columns:
+# instance  pid  app  runtime — the first column is the instance id used by
+# `flatpak enter`.
+EVO_INSTANCE="$(flatpak ps --columns=instance,application 2>/dev/null | awk '$2=="org.gnome.Evolution"{print $1; exit}')"
+
+# secret-tool invocations for each relevant namespace:
+#   host_st   → host keyring (what a fresh launch reads)
+#   live_st   → the running instance's namespace (what the open app reads), if any
+host_st() { secret-tool "$@"; }
+live_st() { [ -n "$EVO_INSTANCE" ] && flatpak enter "$EVO_INSTANCE" secret-tool "$@"; }
+
+# 1. Clear stale tokens under BOTH keys evolution-setup/EDS use, in every namespace.
 #    (check_existing_token looks up the legacy key; EDS reads the collection UID.)
 clear_key() {
-    secret-tool clear "e-source-uid" "$1" 2>/dev/null || true
-    flatpak run --command=secret-tool org.gnome.Evolution clear "e-source-uid" "$1" 2>/dev/null || true
+    host_st clear "e-source-uid" "$1" 2>/dev/null || true
+    live_st clear "e-source-uid" "$1" 2>/dev/null || true
 }
 clear_key "$COLLECTION_UID"
 clear_key "$LEGACY_UID"
@@ -68,20 +89,25 @@ access="$(echo "$tok" | jq -r '.access_token // empty')"
 blob="$(echo "$tok" | jq -c '{refresh_token: (.refresh_token // ""), access_token: .access_token, expires_after: .expires_after}')"
 label="Evolution Data Source - Microsoft365[${EMAIL}]"
 
-# 3. Store under the EXISTING collection UID in both host and flatpak keyrings.
-store() {
-    printf '%s' "$blob" | "$@" store --label "$label" \
+# 3. Store under the EXISTING collection UID. Always write the host keyring (so a
+#    later fresh launch works); also write the running instance's namespace (so
+#    the currently-open app sees it without a restart).
+store_into() {
+    # $1 = a function name (host_st / live_st) that fronts secret-tool
+    printf '%s' "$blob" | "$1" store --label "$label" \
         "e-source-uid" "$COLLECTION_UID" \
         "eds-origin" "evolution-data-server" \
         "xdg:schema" "org.gnome.Evolution.Data.Source" 2>/dev/null
 }
-store secret-tool && echo "  stored in host keyring" || echo "  WARN host keyring store failed" >&2
-store flatpak run --command=secret-tool org.gnome.Evolution \
-    && echo "  stored in flatpak keyring" || echo "  WARN flatpak keyring store failed" >&2
+store_into host_st && echo "  stored in host keyring" || echo "  WARN host keyring store failed" >&2
+if [ -n "$EVO_INSTANCE" ]; then
+    store_into live_st && echo "  stored into running Evolution (instance $EVO_INSTANCE)" \
+        || echo "  WARN live-instance store failed" >&2
+fi
 
-# 4. Nudge Evolution to retry with the new token (restart EDS source registry).
-#    If Evolution is running, it picks up the keyring change on next fetch;
-#    a gentle backend restart avoids a full app restart.
-pkill -f 'evolution-data-server/.*evolution-calendar-factory' 2>/dev/null || true
-
-echo "evolution-reauth: done. In Evolution, hit Send/Receive (F12) — mail cache is preserved, no re-download."
+# 4. Tell the user how to apply it.
+if [ -n "$EVO_INSTANCE" ]; then
+    echo "evolution-reauth: done. In Evolution, hit Send/Receive (F12) — mail cache is preserved, no re-download."
+else
+    echo "evolution-reauth: done. Launch Evolution — it will use the fresh token (mail cache preserved, no re-download)."
+fi
