@@ -69,41 +69,64 @@ EVO_INSTANCE="$(flatpak ps --columns=instance,application 2>/dev/null | awk '$2=
 host_st() { secret-tool "$@"; }
 live_st() { [ -n "$EVO_INSTANCE" ] && flatpak enter "$EVO_INSTANCE" secret-tool "$@"; }
 
-# 1. Clear stale tokens under BOTH keys evolution-setup/EDS use, in every namespace.
-#    (check_existing_token looks up the legacy key; EDS reads the collection UID.)
+# 1. Clear the legacy key (evolution-setup's check_existing_token looks it up).
+#    Per-source-uid stale entries are overwritten by the store step below, so we
+#    only need to clear the legacy alias here.
 clear_key() {
     host_st clear "e-source-uid" "$1" 2>/dev/null || true
     live_st clear "e-source-uid" "$1" 2>/dev/null || true
 }
-clear_key "$COLLECTION_UID"
 clear_key "$LEGACY_UID"
 
 # 2. Acquire a fresh token (broker if on-VPN, else browser — helper decides).
-tok="$("$MSAL_PY" "$MSAL_HELPER" 2>/dev/null)"
-# Helper may prefix non-JSON noise; keep from first brace.
-tok="{${tok#*\{}"
-echo "$tok" | jq empty 2>/dev/null || die "MSAL returned no valid token (sign-in cancelled or failed)"
-access="$(echo "$tok" | jq -r '.access_token // empty')"
+#    Capture to a FILE, not `$(…)`: the helper opens the sign-in in Edge, which
+#    inherits the process's stdout. Command substitution waits for EOF on the
+#    pipe, i.e. until *every* writer (including the long-lived Edge) closes it —
+#    so `$(…)` hangs indefinitely after the token is already printed. A file
+#    redirect makes bash wait only for the direct python child to exit.
+tokfile="$(mktemp /tmp/evo-reauth-tok.XXXXXX)"
+trap 'rm -f "$tokfile"' EXIT
+"$MSAL_PY" "$MSAL_HELPER" >"$tokfile" 2>/dev/null || true
+# Helper may prefix non-JSON noise; keep from the first brace onward.
+raw="$(cat "$tokfile")"
+tok="{${raw#*\{}"
+printf '%s' "$tok" | jq empty 2>/dev/null || die "MSAL returned no valid token (sign-in cancelled or failed)"
+access="$(printf '%s' "$tok" | jq -r '.access_token // empty')"
 [ -n "$access" ] || die "MSAL returned empty access_token"
 
-blob="$(echo "$tok" | jq -c '{refresh_token: (.refresh_token // ""), access_token: .access_token, expires_after: .expires_after}')"
+blob="$(printf '%s' "$tok" | jq -c '{refresh_token: (.refresh_token // ""), access_token: .access_token, expires_after: .expires_after}')"
 label="Evolution Data Source - Microsoft365[${EMAIL}]"
 
-# 3. Store under the EXISTING collection UID. Always write the host keyring (so a
-#    later fresh launch works); also write the running instance's namespace (so
-#    the currently-open app sees it without a restart).
-store_into() {
-    # $1 = a function name (host_st / live_st) that fronts secret-tool
+# 3. Store the token. The collection (.2) holds the OAuth2 config, but the child
+#    mail/calendar/contacts sources each look the credential up under THEIR OWN
+#    uid — storing only under the collection left the calendar erroring with
+#    "OAuth2 secret not found". So store under every microsoft365 source uid.
+#    Write the host keyring always (a fresh launch reads it) and, if Evolution
+#    is open, its live namespace too (so it applies without a restart).
+mapfile -t M365_UIDS < <(
+    for d in "${SRC_DIRS[@]}"; do
+        [ -d "$d" ] || continue
+        for f in "$d"/*.source; do
+            [ -f "$f" ] || continue
+            rg -q 'BackendName=microsoft365|Method=Microsoft365' "$f" 2>/dev/null \
+                && basename "$f" .source
+        done
+    done | sort -u
+)
+
+store_uid() {
+    # $1 = front fn (host_st/live_st), $2 = source uid
     printf '%s' "$blob" | "$1" store --label "$label" \
-        "e-source-uid" "$COLLECTION_UID" \
+        "e-source-uid" "$2" \
         "eds-origin" "evolution-data-server" \
         "xdg:schema" "org.gnome.Evolution.Data.Source" 2>/dev/null
 }
-store_into host_st && echo "  stored in host keyring" || echo "  WARN host keyring store failed" >&2
-if [ -n "$EVO_INSTANCE" ]; then
-    store_into live_st && echo "  stored into running Evolution (instance $EVO_INSTANCE)" \
-        || echo "  WARN live-instance store failed" >&2
-fi
+
+for uid in "${M365_UIDS[@]}"; do
+    store_uid host_st "$uid" || echo "  WARN host store failed for $uid" >&2
+    [ -n "$EVO_INSTANCE" ] && { store_uid live_st "$uid" || echo "  WARN live store failed for $uid" >&2; }
+done
+echo "  stored token under ${#M365_UIDS[@]} source uid(s) in host keyring$([ -n "$EVO_INSTANCE" ] && echo " + running instance $EVO_INSTANCE")"
 
 # 4. Tell the user how to apply it.
 if [ -n "$EVO_INSTANCE" ]; then
