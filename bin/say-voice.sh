@@ -7,18 +7,27 @@
 # voice pool, its size, or the voice names. Any non-empty value is honoured
 # verbatim — including "1".
 #
-# When no key is given we fall back to $PPID, EXCEPT a PPID of 1: that means the
-# process was reparented to init (e.g. spawned under setsid) and has no
-# meaningful caller, so it stays unidentified. This setsid detail lives here,
-# not in the key contract — so an explicit key of "1" is never conflated with it.
+# Unset vs set-but-empty is meaningful:
+#   - unset            → caller didn't specify; fall back to $PPID (a stable
+#                        identity for interactive / directly-spawned callers).
+#   - set but empty    → caller tried and has no identity (e.g. a hook whose
+#                        session id came back empty) → stay UNIDENTIFIED, which
+#                        the pickers map to the default voice.
+# Detaching callers (the Claude hooks, mcp-tts) pass an explicit key rather than
+# relying on the $PPID fallback: once a backgrounded `setsid` child is reparented
+# to the init/subreaper (NOT necessarily pid 1 — a user systemd is common), its
+# $PPID is either that reaper's pid or a racy short-lived parent, neither of which
+# is the semantic caller identity we want the voice keyed to.
 
 # Echo the resolved caller key, or empty if the caller is unidentified.
 say_resolve_key() {
-    local key="${SAY_VOICE_KEY:-}"
-    if [ -z "$key" ] && [ "${PPID:-1}" != "1" ]; then
-        key="$PPID"
+    # Set (even if empty) → honour verbatim; empty means "no identity".
+    if [ -n "${SAY_VOICE_KEY+set}" ]; then
+        printf '%s' "$SAY_VOICE_KEY"
+        return
     fi
-    printf '%s' "$key"
+    # Unset → fall back to the parent pid, unless we're an orphan (PPID 1/absent).
+    [ "${PPID:-1}" != "1" ] && printf '%s' "$PPID"
 }
 
 # say_pick_index <pool_size> → 0-based voice index.

@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Evolution Re-auth
-Comment=Refresh Evolution M365 token in place (no mail re-download)
-Icon=evolution
-Exec=ghostty --title=evolution-reauth -e bash -lc "$HOME/.dotfiles/bin/evolution-reauth; echo; read -n1 -r -p 'Done — press any key to close.'"
-Terminal=false
-Categories=Office;Email;
-Keywords=evolution;email;m365;token;auth;reauth;refresh;mail;

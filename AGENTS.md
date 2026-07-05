@@ -42,7 +42,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 
 ### Low impact
 - [ ] no vertical gap between ghostty windows
-- [x] random voice for `say-en`/`say-ko`; same voice within one parent process (parent pid mod # voices?) — both backends pick `voice = pool[cksum(key) mod N]`, keyed on `$SAY_VOICE_KEY` (else `$PPID`); unidentified callers (key empty/`1`) keep the default voice. `say` resolves + exports the key before its `setsid`; the detaching callers (`claude-stop-tts`/`claude-notification-tts` → Claude `session_id`, `mcp-tts` → server `$$`) set it themselves. Korean uses the 3 free edge-tts voices; English hashes over a 5-voice piper pool with lazy per-voice download (alba fallback). See `bin/AGENTS.md`. Test: `bin/test_say_voice.sh`.
+- [x] random voice for `say-en`/`say-ko`; same voice within one parent process (parent pid mod # voices?) — shared `bin/say-voice.sh` maps caller→voice via `voice = pool[sha256(key) mod N]` (sha256 not cksum/CRC32, so the distribution is uniform for arbitrary opaque keys the caller passes blind — no need to know N). Key = `$SAY_VOICE_KEY` if set (empty ⇒ unidentified ⇒ default voice; `"1"` honoured verbatim), else `$PPID`. `say` resolves+exports the key before its `setsid`; detaching callers (`claude-stop-tts`/`claude-notification-tts` → Claude `session_id`, `mcp-tts` → server `$$`) pass it themselves because a `setsid` child does *not* get `PPID==1` under a user-systemd subreaper. Korean = 3 free edge-tts voices; English = 5-voice piper pool with lazy per-voice download (alba fallback). See `bin/AGENTS.md`. Test: `bin/test_say_voice.sh`.
 - [ ] super-c in visual block mode of neovide
 - [x] add temperature in sysmon — CPU package temp now renders as a `🌡️` braille sparkline in the panel row (normalized 40–100°C → green ≤~77°C, yellow ~78–92°C, red ≥~92°C, reusing the existing height/severity quantizer) plus a `Temp:` tooltip line; fan RPM (`thinkpad/fan1_input`) is tooltip-only (`Fan:`). Sensors resolved by driver name via `hwmon_by_name` (not fixed `hwmonN`). See `xwindow/bin/sysmon-genmon` and `xwindow/AGENTS.md`.
 - [ ] bidirectional auto-suggestion for `LOGRUN_AUTO_FUNCTIONS` tuning:
@@ -71,7 +71,7 @@ Detailed design lives in per-directory `AGENTS.md`. Pick the one closest to your
 | `ghostty.configsymlink/` | Legacy ctrl-code keybinds, terminfo. |
 | `script/` | `sync_all` / `sync_repo`, `updatedb`, `flake-update`, `battery-notify`, `print-hp`. |
 | `script/logger/` | `log.sh` (level + retention + dedup), notification backends, Telegram setup. |
-| `bin/` | `logrun`, `commit-msg`, `say`/`say-en`/`say-ko` TTS, Claude Code hooks, `vpn-up`/`vpn-watch`, `zellij-cycle`, `zmx-select`, `notify-webhook`, `mcp-tts`, `evolution-reauth` (in-place M365 token refresh, no mail re-download). |
+| `bin/` | `logrun`, `commit-msg`, `say`/`say-en`/`say-ko` TTS, Claude Code hooks, `vpn-up`/`vpn-watch`, `zellij-cycle`, `zmx-select`, `notify-webhook`, `mcp-tts`. |
 | `kiro.filesymlink/` | Kiro/Claude agents, `settings/cli.json`, MCP TTS server, steering files, global `~/.claude/CLAUDE.md`. |
 | `private-dotfiles/` | Companion repo (gitignored). See its own AGENTS.md. |
 | `work-dotfiles/` | Companion repo (gitignored). See its own AGENTS.md. |

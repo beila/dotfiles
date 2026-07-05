@@ -33,18 +33,16 @@ expect_one=$(( 0x$(printf '%s' 1 | sha256sum | cut -c1-15) % 3 ))
 got_one=$(SAY_VOICE_KEY=1 say_pick_index 3)
 assert_eq "explicit key '1' is hashed, not defaulted" "$got_one" "$expect_one"
 
-# Empty explicit key → unidentified → index 0 (default voice).
+# Set-but-EMPTY key → caller has no identity → unidentified → index 0 (default).
+# (Distinct from unset: an explicit empty means "I tried, I have nothing".)
 assert_eq "empty SAY_VOICE_KEY → default index 0" "$(SAY_VOICE_KEY='' say_pick_index 3)" "0"
+assert_eq "empty SAY_VOICE_KEY → resolver empty" "$(SAY_VOICE_KEY='' say_resolve_key)" ""
 
-# No key + PPID==1 (setsid'd) → unidentified → 0. Simulate by unsetting the key
-# and forcing PPID via a subshell that can't really change PPID, so instead test
-# say_resolve_key's branch directly with the key unset and PPID spoofed.
-key_when_ppid1=$(unset SAY_VOICE_KEY; PPID=1 say_resolve_key)
-assert_eq "no key + PPID==1 → unidentified (empty)" "$key_when_ppid1" ""
-
-# No key + real PPID → that PPID is used verbatim.
-key_when_ppid_real=$(unset SAY_VOICE_KEY; PPID=4242 say_resolve_key)
-assert_eq "no key + PPID=4242 → key is 4242" "$key_when_ppid_real" "4242"
+# UNSET key → fall back to $PPID (a real number in this test process).
+# (PPID is readonly in bash, so the PPID==1 orphan branch can't be unit-tested
+# here; it's exercised by the integration behaviour of detached callers.)
+key_unset=$(unset SAY_VOICE_KEY; say_resolve_key)
+assert_true "unset SAY_VOICE_KEY → resolver is a PPID number ($key_unset)" "[[ '$key_unset' =~ ^[0-9]+$ ]]"
 
 # Spread: distinct keys should touch >1 index (not all-collapsed).
 seen=$(for k in a b c d e f g h; do SAY_VOICE_KEY="$k" say_pick_index 3; echo; done | sort -u | wc -l)
