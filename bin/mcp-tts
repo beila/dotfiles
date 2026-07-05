@@ -35,12 +35,14 @@ while true; do
       [ -n "${tts_pid:-}" ] && { kill -- -"$tts_pid" 2>/dev/null || true; }; tts_pid=
       case "$tool" in
         say)
-          setsid ~/.dotfiles/bin/say "$text" &>/dev/null &
+          # $$ (server pid) is the voice key: stable for this server's lifetime,
+          # since setsid otherwise resets the backend PPID to 1 (see bin/say).
+          SAY_VOICE_KEY="$$" setsid ~/.dotfiles/bin/say "$text" &>/dev/null &
           tts_pid=$!
           send_msg "$(jq -nc --argjson id "$id" --arg text "Spoke: $text" '{"jsonrpc":"2.0","id":$id,"result":{"content":[{"type":"text","text":$text}]}}')"
           ;;
         say_ko)
-          setsid ~/.dotfiles/bin/say-ko "$text" &>/dev/null &
+          SAY_VOICE_KEY="$$" setsid ~/.dotfiles/bin/say-ko "$text" &>/dev/null &
           tts_pid=$!
           send_msg "$(jq -nc --argjson id "$id" --arg text "Spoke: $text" '{"jsonrpc":"2.0","id":$id,"result":{"content":[{"type":"text","text":$text}]}}')"
           ;;

@@ -1,12 +1,49 @@
 #!/usr/bin/env bash
 # Text-to-speech via piper
 # Usage: say "text to speak" or echo "text" | say
-MODEL="${PIPER_MODEL:-$HOME/.local/share/piper/en_GB-alba-medium.onnx}"
-if [ ! -f "$MODEL" ]; then
-    mkdir -p "$(dirname "$MODEL")"
-    echo "Downloading piper voice model..." >&2
-    BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/alba/medium"
-    curl -sfL "$BASE/en_GB-alba-medium.onnx" -o "$MODEL" && curl -sfL "$BASE/en_GB-alba-medium.onnx.json" -o "$MODEL.json"
+#
+# Voice is chosen from VOICE_POOL by the shared caller-key mapping in
+# say-voice.sh (the single place hashing lives); the selected model is
+# downloaded on demand. $PIPER_MODEL overrides the whole mechanism.
+source "$(dirname "$0")/say-voice.sh"
+PIPER_DIR="$HOME/.local/share/piper"
+HF_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+# "<name>|<huggingface relative dir>". First entry is the historical default.
+VOICE_POOL=(
+    "en_GB-alba-medium|en/en_GB/alba/medium"
+    "en_US-amy-medium|en/en_US/amy/medium"
+    "en_US-ryan-high|en/en_US/ryan/high"
+    "en_GB-cori-high|en/en_GB/cori/high"
+    "en_US-lessac-medium|en/en_US/lessac/medium"
+)
+
+if [ -n "${PIPER_MODEL:-}" ]; then
+    MODEL="$PIPER_MODEL"
+    HF_DIR=""
+else
+    entry="${VOICE_POOL[$(say_pick_index "${#VOICE_POOL[@]}")]}"
+    name="${entry%%|*}"
+    HF_DIR="${entry#*|}"
+    MODEL="$PIPER_DIR/$name.onnx"
+fi
+
+# Download the selected model on first use. Fall back to alba (the always-viable
+# default) if the download fails so an offline box still speaks.
+if [ ! -f "$MODEL" ] && [ -n "$HF_DIR" ]; then
+    mkdir -p "$PIPER_DIR"
+    name="${MODEL##*/}"; name="${name%.onnx}"
+    echo "Downloading piper voice model: $name..." >&2
+    if ! { curl -sfL "$HF_BASE/$HF_DIR/$name.onnx" -o "$MODEL" \
+        && curl -sfL "$HF_BASE/$HF_DIR/$name.onnx.json" -o "$MODEL.json"; }; then
+        rm -f "$MODEL" "$MODEL.json"
+        echo "Download failed for $name; falling back to en_GB-alba-medium." >&2
+        MODEL="$PIPER_DIR/en_GB-alba-medium.onnx"
+        if [ ! -f "$MODEL" ]; then
+            curl -sfL "$HF_BASE/en/en_GB/alba/medium/en_GB-alba-medium.onnx" -o "$MODEL" \
+                && curl -sfL "$HF_BASE/en/en_GB/alba/medium/en_GB-alba-medium.onnx.json" -o "$MODEL.json"
+        fi
+    fi
 fi
 if [ $# -gt 0 ]; then
     echo "$*"

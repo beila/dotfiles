@@ -39,6 +39,14 @@ else
     backend="$DOTFILES_ROOT/bin/say-en"
 fi
 
+# Resolve the voice key from *our* PPID (the real caller) and export it so the
+# backend inherits it — otherwise the setsid below resets the backend's PPID to
+# 1, losing the caller. Callers that themselves detach via setsid (the Claude
+# hooks, mcp-tts) pass $SAY_VOICE_KEY explicitly since our own PPID is 1 then.
+# The PPID==1 "unidentified" rule lives in say-voice.sh, the single source.
+source "$DOTFILES_ROOT/bin/say-voice.sh"
+export SAY_VOICE_KEY="$(say_resolve_key)"
+
 # Stale PID after natural exit is the common case — ignore failures.
 if [ "${SAY_NO_PREEMPT:-0}" != "1" ] && [ -r "$STATE_FILE" ]; then
     prev=$(cat "$STATE_FILE" 2>/dev/null) || prev=

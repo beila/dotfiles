@@ -66,9 +66,12 @@ esac
 
 log "spoken: $spoken"
 
+# setsid resets PPID to 1, so pass the session id as the voice key to keep a
+# stable-but-random voice per Claude session (see bin/say-ko / bin/say-en).
+session_id=$(printf '%s' "$input" | jq -r '.session_id // empty' 2>/dev/null)
 if [ -x "$SAY" ]; then
-    setsid "$SAY" "$spoken" </dev/null >/dev/null 2>&1 &
-    log "spawned $SAY pid=$!"
+    SAY_VOICE_KEY="$session_id" setsid "$SAY" "$spoken" </dev/null >/dev/null 2>&1 &
+    log "spawned $SAY pid=$! voice_key=$session_id"
 else
     log "ABORT: $SAY not executable"
 fi
