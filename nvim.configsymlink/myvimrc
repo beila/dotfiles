@@ -108,6 +108,8 @@ augroup myautocommands
     "autocmd BufEnter * silent! :lcd %:p:h | silent! lcd `git rev-parse --show-superproject-working-tree --show-toplevel \| head -1`| silent! lcd ../../src
 
     " http://www.bestofvim.com/tip/better-commit-messages/
+    " Spell uses the personal allowlist spell/en.utf-8.add (add words with `zg`).
+    " CLI equivalent (same allowlist): `spellcheck-md FILE...` (~/.dotfiles/bin/).
     autocmd FileType gitcommit setlocal spell
     autocmd FileType markdown setlocal spell
     

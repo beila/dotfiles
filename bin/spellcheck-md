@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# spellcheck-md — spell-check prose files with codespell, using the same
+# allowlist as nvim's built-in spell (~/.config/nvim/spell/en.utf-8.add).
+#
+# codespell (not aspell): it flags known misspellings from a curated
+# typo→correction list rather than every "unknown word", so digit-suffixed
+# identifiers and API names (EC2, dup2, time64, CreateFile2, …) don't trip it —
+# aspell's en dictionary rejects any word ending in a digit and can't even load
+# such an allowlist.
+#
+# The nvim add-file is reused as codespell's --ignore-words so results stay
+# consistent with what nvim's spell highlights (words the user added to nvim
+# are also ignored here). codespell wants lowercase ignore entries; we
+# lowercase on the fly.
+#
+# Usage:  spellcheck-md FILE...
+#         spellcheck-md            # defaults to *.md in the current dir
+# Env:    SPELL_ADD  override the nvim add-file path
+#         CODESPELL_ARGS  extra args passed through to codespell
+#
+# Exit status is codespell's: 0 = clean, non-zero = misspellings found.
+
+set -euo pipefail
+
+add_file="${SPELL_ADD:-$HOME/.config/nvim/spell/en.utf-8.add}"
+
+# Resolve codespell: prefer an installed one, else run via nix.
+if command -v codespell >/dev/null 2>&1; then
+  codespell_cmd=(codespell)
+elif command -v nix >/dev/null 2>&1; then
+  codespell_cmd=(nix run nixpkgs#codespell --)
+else
+  echo "spellcheck-md: codespell not found and nix unavailable" >&2
+  exit 127
+fi
+
+# Build a lowercased ignore-list from the nvim add-file (if present).
+ignore_args=()
+if [[ -f "$add_file" ]]; then
+  ignore_tmp="$(mktemp)"
+  trap 'rm -f "$ignore_tmp"' EXIT
+  # strip blank lines, lowercase, dedupe
+  awk 'NF' "$add_file" | tr '[:upper:]' '[:lower:]' | sort -u > "$ignore_tmp"
+  ignore_args=(--ignore-words "$ignore_tmp")
+fi
+
+# Default targets: markdown in the current directory.
+if [[ $# -eq 0 ]]; then
+  set -- ./*.md
+fi
+
+exec "${codespell_cmd[@]}" "${ignore_args[@]}" ${CODESPELL_ARGS:-} "$@"

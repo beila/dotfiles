@@ -101,6 +101,12 @@ No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own),
 - `logrun-auto-functions` — committed list of function names that the `zz-logrun-auto.zsh` widget should wrap (slow `zsh -ic` path). Read at widget load time. `.gitattributes` maps to `merge=union-dedupe` so concurrent appends from different machines auto-merge.
 - `logrun-tui-skiplist` — committed list of curses-style commands `logrun --auto` saw with alt-screen escapes. The widget skips wrap for these so the TUI doesn't break under any pipe. Auto-extended by `bin/logrun` when an unknown TUI is detected. `.gitattributes` maps to `merge=union` for cross-machine merging. (The `LOGRUN_TUI_SKIPLIST` env var in `home.nix` is a separate, in-process baseline — both feed the same skip check.)
 
+## Spell check (matches nvim)
+
+`spellcheck-md FILE...` — spell-check prose/markdown with **codespell**, reusing nvim's built-in spell allowlist (`~/.config/nvim/spell/en.utf-8.add`) as codespell's `--ignore-words`, so results match what nvim highlights (words you `zg`-added in nvim are ignored here too). Defaults to `*.md` in cwd when no args. Runs codespell if installed, else `nix run nixpkgs#codespell`. Override the allowlist with `$SPELL_ADD`; pass extra flags via `$CODESPELL_ARGS`. Exit status is codespell's (0 = clean).
+
+**Why codespell, not aspell:** codespell flags known typos (curated typo→fix list), not every unknown word, so digit-suffixed identifiers and API names (`EC2`, `dup2`, `time64`, `CreateFile2`) don't false-positive — aspell's `en` dictionary rejects any word ending in a digit and can't even load such an allowlist. This is the tool to reach for when asked to "spell-check like nvim does".
+
 ## Other
 
 - `jj-untrack-files` — selectively untrack files in jj while keeping the working copy.

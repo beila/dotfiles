@@ -39,6 +39,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [x] _jh outputs incorrect string when the graph area includes space — the oneline templates now carry the change id/path/commit-id in hidden tab fields (`<display>\t<change-id>\t<path>\t<commit-id>`) and `_jh`/`_gh` extract via `cut -f2`/`--accept-nth=2` (tab-delimited), so merge/elision graph spaces no longer shift the field. See `fzf/functions.sh` and `jj.configsymlink/config.toml`.
 - [x] add a way to output the git commit id instead of the change id from `_jh`/`_jhh` — **ctrl-x** in the log picker yanks the commit id (12-char `commit_id.short()`) via hidden tab field 4 (`become(printf '%s\n' {+4})`), while Enter still yields the change id (`--accept-nth=2`). See `fzf/functions.sh`, `jj.configsymlink/config.toml`, and `fzf/AGENTS.md`.
 - [ ] add a shortcut to _jb to toggle remote bookmarks
+- [ ] show network graph differently when the internet is not accessible
 
 ### Low impact
 - [ ] no vertical gap between ghostty windows
