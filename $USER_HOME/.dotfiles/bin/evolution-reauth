@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# evolution-reauth — attended M365 token refresh for Evolution.
+#
+# Thin wrapper over `evolution-token-refresh --interactive`: use this when the
+# unattended timer notified you that a manual refresh is needed (Midway wants a
+# hardware key, or OTP requires VPN). It lets the Microsoft/Edge sign-in block
+# for your input, then stores the token + swaps the flatpak keyring and relaunches
+# Evolution — no mail re-download. See `evolution-token-refresh` for the details.
+exec "$(dirname "$(readlink -f "$0")")/evolution-token-refresh" --interactive "$@"

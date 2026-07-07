@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# evolution-token-refresh — keep Evolution's M365 OAuth token fresh, as hands-off
+# as Midway allows.
+#
+# The amazon-role-evolution flatpak's token dies ~hourly (Conditional Access caps
+# the browser-flow refresh token; the broker token isn't stored). This refreshes
+# it IN PLACE — no `evolution-setup -r`, so the mail cache is kept (no
+# re-download). Credit: approach from Richard Davis's workaround
+# (amzn-media #evolution), whose key insight is that the flatpak reads its OWN
+# in-sandbox keyring — so you must kill Evolution + delete that keyring before
+# writing, or the running/next GUI never sees the new token ("OAuth2 secret not
+# found"). See kiro memory `project_evolution-m365-flatpak`.
+#
+# Automation reality: FULLY unattended is impossible — when the Midway PRT
+# expires you must tap a hardware key, and OTP is refused off-VPN. So this script
+# is silent-when-it-can-be and notifies-when-it-can't:
+#   • token still valid (> threshold)      → exit 0, silent (cheap for the timer)
+#   • refresh succeeds (broker silent path) → store + swap keyring, silent
+#   • refresh needs a human / fails         → log WARN → notify, exit 0, never hang
+#
+# Modes:
+#   evolution-token-refresh            # auto/unattended: only silent paths; never blocks
+#   evolution-token-refresh --interactive   # attended: allow the browser/broker prompt to block
+#
+# Env knobs:
+#   EVO_TOKEN_MIN_REMAINING   seconds of validity below which we refresh (default 900)
+#   EVO_TOKEN_MSAL_TIMEOUT    seconds to wait on msal in auto mode (default 25)
+#   EVO_TOKEN_EMAIL           override account email (else read from source file)
+set -uo pipefail
+
+LOG_TAG=evolution-token-refresh
+DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
+# shellcheck source=/dev/null
+source "$DOTFILES_ROOT/script/logger/log.sh"
+
+MSAL_PY=/usr/lib/amazon/amazon-core-env/bin/python3
+MSAL_HELPER=/usr/lib/amazon-role-evolution/msal_auth.py
+EVO_SOURCES_DIR="$HOME/.config/evolution/sources"
+FLATPAK_KEYRING_DIR="$HOME/.var/app/org.gnome.Evolution/data/keyrings"
+MIN_REMAINING="${EVO_TOKEN_MIN_REMAINING:-900}"
+MSAL_TIMEOUT="${EVO_TOKEN_MSAL_TIMEOUT:-25}"
+
+INTERACTIVE=0
+[ "${1:-}" = "--interactive" ] && INTERACTIVE=1
+
+need() { command -v "$1" >/dev/null 2>&1 || { log ERROR "MISSING-DEP $1 not on PATH"; exit 1; }; }
+need jq; need secret-tool; need flatpak
+[ -x "$MSAL_PY" ]   || { log ERROR "MISSING msal python ($MSAL_PY) — amazon-role-evolution installed?"; exit 1; }
+[ -f "$MSAL_HELPER" ] || { log ERROR "MISSING msal helper ($MSAL_HELPER)"; exit 1; }
+
+# --- Discover the microsoft365 [Collection] source uid ------------------------
+COLLECTION_UID=""
+for src in "$EVO_SOURCES_DIR"/*.source; do
+    [ -f "$src" ] || continue
+    if grep -q 'BackendName=microsoft365' "$src" && grep -q '^\[Collection\]' "$src"; then
+        COLLECTION_UID="$(basename "$src" .source)"
+        SRC_FILE="$src"
+        break
+    fi
+done
+if [ -z "$COLLECTION_UID" ]; then
+    log ERROR "NO-M365-SOURCE no microsoft365 collection in $EVO_SOURCES_DIR — run 'evolution-setup -c' once first"
+    exit 1
+fi
+EMAIL="${EVO_TOKEN_EMAIL:-$(grep -m1 '^Email=' "$SRC_FILE" 2>/dev/null | cut -d= -f2-)}"
+[ -n "$EMAIL" ] || { log ERROR "NO-EMAIL couldn't read Email= from $SRC_FILE"; exit 1; }
+LABEL="Evolution Data Source - Microsoft365[${EMAIL}]"
+LEGACY_UID="OAuth2::Microsoft365[${EMAIL}]"
+
+# --- Skip if the current token is still comfortably valid ---------------------
+# `date +%s` is fine here (unlike in workflow scripts).
+now=$(date +%s)
+cur="$(secret-tool lookup e-source-uid "$COLLECTION_UID" 2>/dev/null)"
+if [ -n "$cur" ]; then
+    exp="$(printf '%s' "$cur" | jq -r '.expires_after // 0' 2>/dev/null)"
+    if [ -n "$exp" ] && [ "$exp" -gt $((now + MIN_REMAINING)) ] 2>/dev/null; then
+        log INFO "SKIP token valid for $((exp - now))s (> ${MIN_REMAINING}s threshold)"
+        exit 0
+    fi
+fi
+
+# --- Acquire a fresh token ----------------------------------------------------
+# Capture to a FILE, never `$(…)`: msal opens the sign-in in Edge, which inherits
+# stdout; command substitution then waits for Edge to close the pipe and hangs.
+# A file redirect makes us wait only for the python child.
+tokfile="$(mktemp /tmp/evo-token-refresh.XXXXXX)"
+errfile="$(mktemp /tmp/evo-token-refresh.err.XXXXXX)"
+trap 'rm -f "$tokfile" "$errfile"' EXIT
+
+if [ "$INTERACTIVE" -eq 1 ]; then
+    log INFO "AUTH interactive — a Microsoft/Edge sign-in may appear (hardware key / OTP-on-VPN as required)"
+    "$MSAL_PY" "$MSAL_HELPER" >"$tokfile" 2>"$errfile" || true
+else
+    # Auto mode: give the silent broker path a bounded window. If it needs
+    # interaction it won't finish in time; we kill it and notify rather than
+    # leave a browser/dialog hanging with no one to answer it.
+    timeout "$MSAL_TIMEOUT" "$MSAL_PY" "$MSAL_HELPER" >"$tokfile" 2>"$errfile"
+    rc=$?
+    if [ "$rc" -eq 124 ]; then
+        # Leftover interactive helpers (msal python / its Edge) would sit forever.
+        pkill -f "$MSAL_HELPER" 2>/dev/null || true
+    fi
+fi
+
+raw="$(cat "$tokfile" 2>/dev/null)"
+tok="{${raw#*\{}"
+if ! printf '%s' "$tok" | jq empty 2>/dev/null; then
+    # Distinguish "needs a human" from a hard failure, using msal's stderr.
+    reason="$(grep -iE 'OTP|VPN|InteractionRequired|hardware|U2F|WebAuthn|reauth|expired' "$errfile" 2>/dev/null | head -1)"
+    if [ "$INTERACTIVE" -eq 1 ]; then
+        log ERROR "AUTH-FAILED interactive sign-in did not yield a token. ${reason:-see $errfile}"
+    else
+        # Expected, recoverable: page the user to run the interactive refresh.
+        log WARN "MANUAL-REFRESH-NEEDED Evolution M365 token expired and can't refresh unattended (VPN/hardware-key). Run: evolution-reauth. ${reason:+(${reason})}"
+    fi
+    exit 0
+fi
+access="$(printf '%s' "$tok" | jq -r '.access_token // empty')"
+[ -n "$access" ] || { log WARN "MANUAL-REFRESH-NEEDED msal returned no access_token. Run: evolution-reauth."; exit 0; }
+
+blob="$(printf '%s' "$tok" | jq -c '{refresh_token: (.refresh_token // ""), access_token: .access_token, expires_after: .expires_after}')"
+blobfile="$(mktemp /tmp/evo-token-blob.XXXXXX)"
+trap 'rm -f "$tokfile" "$errfile" "$blobfile"' EXIT
+printf '%s' "$blob" >"$blobfile"
+
+# --- Store: host keyring (both keys) ------------------------------------------
+store_host() {
+    secret-tool store --label "$LABEL" \
+        e-source-uid "$1" eds-origin "evolution-data-server" \
+        "xdg:schema" "org.gnome.Evolution.Data.Source" <"$blobfile"
+}
+store_host "$COLLECTION_UID" && store_host "$LEGACY_UID" \
+    || { log ERROR "HOST-STORE-FAILED could not write host keyring"; exit 1; }
+
+# --- Swap the flatpak's isolated keyring (Richard's key step) ------------------
+# The flatpak reads its OWN keyring; a stale one hides the new token. Kill the
+# app, delete the keyring, then a fresh `flatpak run` recreates it with only the
+# new token. Remember whether Evolution was up so we can relaunch it.
+was_running=0
+flatpak ps --columns=application 2>/dev/null | grep -q '^org.gnome.Evolution$' && was_running=1
+flatpak kill org.gnome.Evolution 2>/dev/null || true
+# Wait for the GUI to actually exit before removing the keyring (else it may
+# rewrite the file on shutdown).
+for _ in 1 2 3 4 5 6 7 8 9 10; do
+    pgrep -f 'evolution.bin' >/dev/null 2>&1 || break
+    sleep 0.5
+done
+rm -f "$FLATPAK_KEYRING_DIR/default.keyring" "$FLATPAK_KEYRING_DIR/default.keyring~"
+
+store_fp() {
+    flatpak run --command=secret-tool org.gnome.Evolution store --label "$LABEL" \
+        e-source-uid "$1" eds-origin "evolution-data-server" \
+        "xdg:schema" "org.gnome.Evolution.Data.Source" <"$blobfile" 2>/dev/null
+}
+store_fp "$COLLECTION_UID" || log WARN "FLATPAK-STORE-WARN collection-uid store returned nonzero"
+store_fp "$LEGACY_UID" || true
+
+exp="$(printf '%s' "$blob" | jq -r '.expires_after')"
+log INFO "REFRESHED $EMAIL uid=$COLLECTION_UID expires=$(date -d "@$exp" 2>/dev/null || echo "$exp") was_running=$was_running"
+
+# --- Relaunch Evolution if it had been open -----------------------------------
+if [ "$was_running" -eq 1 ]; then
+    # Detach so the timer/job doesn't wait on the GUI.
+    setsid /usr/bin/evolution >/dev/null 2>&1 < /dev/null &
+    log INFO "RELAUNCHED evolution (was running before refresh)"
+fi
