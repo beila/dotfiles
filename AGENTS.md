@@ -72,7 +72,7 @@ Detailed design lives in per-directory `AGENTS.md`. Pick the one closest to your
 | `ghostty.configsymlink/` | Legacy ctrl-code keybinds, terminfo. |
 | `script/` | `sync_all` / `sync_repo`, `updatedb`, `flake-update`, `battery-notify`, `print-hp`. |
 | `script/logger/` | `log.sh` (level + retention + dedup), notification backends, Telegram setup. |
-| `bin/` | `logrun`, `commit-msg`, `say`/`say-en`/`say-ko` TTS, Claude Code hooks, `vpn-up`/`vpn-watch`, `zellij-cycle`, `zmx-select`, `notify-webhook`, `mcp-tts`. |
+| `bin/` | `logrun`, `commit-msg`, `say`/`say-en`/`say-ko` TTS, Claude Code hooks, `vpn-up`/`vpn-watch`, `zellij-cycle`, `zmx-select`, `notify-webhook`, `mcp-tts`, `evolution-token-refresh` (in-place M365 token refresh, scheduled; notifies when a hardware-key sign-in is needed) + `evolution-reauth` (attended wrapper). |
 | `kiro.filesymlink/` | Kiro/Claude agents, `settings/cli.json`, MCP TTS server, steering files, global `~/.claude/CLAUDE.md`. |
 | `private-dotfiles/` | Companion repo (gitignored). See its own AGENTS.md. |
 | `work-dotfiles/` | Companion repo (gitignored). See its own AGENTS.md. |

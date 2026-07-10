@@ -299,6 +299,26 @@ in
     ioSchedulingClass = "idle";
   };
 
+  # Keep Evolution's M365 OAuth token fresh. The amazon-role-evolution flatpak's
+  # token expires ~hourly (Conditional Access), and Evolution can't self-renew
+  # it. This refreshes IN PLACE (no evolution-setup -r → no mail re-download):
+  # skips silently while the token is still valid, refreshes via the silent
+  # broker path when possible, and only when it truly can't (off-VPN / needs a
+  # hardware key) does it log WARN → notify so the user runs `evolution-reauth`.
+  # The skip-if-valid guard makes the frequent poll cheap. Only meaningful on
+  # hosts with the flatpak + a graphical session (taygeta); electra has neither,
+  # so enable is gated on the flatpak binary existing.
+  dotfiles.schedule.jobs.evolution-token-refresh = {
+    enable = builtins.pathExists "/usr/lib/amazon-role-evolution/msal_auth.py";
+    description = "Refresh Evolution M365 OAuth token (in place, no re-download)";
+    command = "%h/.dotfiles/bin/evolution-token-refresh";
+    schedule = {
+      systemd = "*:0/15";
+      cron = "*/15 * * * *";
+    };
+    nice = 19;
+  };
+
   # CopyQ clipboard manager daemon (persistent history at ~/.config/copyq/).
   # Long-running graphical-session.target service — not a scheduled job, so
   # it stays a direct systemd.user.services declaration. Only relevant on
