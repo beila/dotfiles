@@ -61,7 +61,13 @@ myConfig =
         , -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
           -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
           manageHook = myManageHook
-        , layoutHook = avoidStruts $ layoutHook gnomeConfig
+        , layoutHook = smartBorders $ avoidStruts $ layoutHook gnomeConfig
+        , -- Focus indicator: warm accent matching hangul-osd; unfocused border
+          -- painted near-invisible instead of 0px so client geometry stays
+          -- constant across focus changes (no terminal re-wrap on every switch)
+          borderWidth = 4
+        , focusedBorderColor = "#F8BB3D"
+        , normalBorderColor = "#1d1d1d"
         }
         `additionalKeys` myKeys
 

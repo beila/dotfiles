@@ -13,10 +13,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [ ] Add a way to add NOLOG=1 more easily even after typing all the command line
 
 ### Medium impact
-- [ ] make focused window more noticeable but not ugly (currently red `focusedBorderColor` line)
-  - options: pick a subtler border colour, or `borderWidth = 0` + picom shadow as the focus indicator
-  - picom adds GPU/process overhead; only adopt if the visual win is worth it
-  - no border on the tiled window when there's only one tiled
+- [x] make focused window more noticeable but not ugly — focused border is now 4px LEGO orange `#F8BB3D` (matches hangul-OSD), unfocused painted near-invisible `#1d1d1d`, `smartBorders` hides the border for a lone window on a single screen (kept when multiple screens are visible). Picom rejected (extra compositor process for a purely cosmetic win); true 0px-unfocused rejected because border-width toggles resize the client by 2×width on every focus change → terminal re-wrap under focus-follows-mouse. See `xwindow/AGENTS.md`.
 - [ ] share fzf config between shell (`fzf/functions.sh/functions.sh`) and nvim (`fzf.lua`)
   - fzf command-line parameters (including preview commands) are duplicated between the two
   - goal: single source of truth for shared fzf options/previews

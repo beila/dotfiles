@@ -10,6 +10,14 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC are installed from the same `haskellPackages` set in `home-manager.configsymlink/nvim.nix` to keep versions in sync.
 
+## Borders (focus indicator)
+
+`borderWidth = 4`, `focusedBorderColor = "#F8BB3D"` (LEGO orange, same accent as hangul-osd), `normalBorderColor = "#1d1d1d"`, `smartBorders` in the layoutHook.
+
+- **Unfocused is "invisible colour", not 0px**: xmonad keeps the window footprint constant, so toggling border width between 0 and N resizes the client by 2×N on every focus change — terminals get SIGWINCH and re-wrap, and focus-follows-mouse makes that fire on every mouse sweep. Painting the border near-black instead keeps geometry stable; the cost is a 2×4px dark seam at unfocused–unfocused junctions.
+- **`smartBorders`** (not `lessBorders` with a custom strategy) already does the wanted thing: hides the border only when there's a single window *and* a single screen, so with multiple monitors the focused screen stays identifiable. Its width toggle only fires when the window count changes, which is rare enough that the resize is acceptable.
+- **No picom**: shadow/dim-based focus indicators were mocked up and rejected — an always-running compositor process for a purely cosmetic win.
+
 ## ManageHook
 
 Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarRules`, `meetingRules`, `messengerRules`.
