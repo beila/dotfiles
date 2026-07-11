@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# evolution-auth-browser — open the M365 OAuth sign-in URL in a dedicated Edge
+# window tagged with a distinct WM_CLASS so xmonad can route ONLY the auth window
+# to the mail workspace, without touching normal Edge/Firefox windows.
+#
+# Wired in via BROWSER=<this script> when evolution-token-refresh calls msal_auth.
+# MSAL only force-launches its own Edge ("msal-edge") when BROWSER is unset or
+# contains "microsoft-edge"; pointing BROWSER at this wrapper (whose name does
+# NOT contain "microsoft-edge") makes MSAL fall back to Python webbrowser.open(),
+# which honours $BROWSER and thus calls us with the auth URL as $1.
+#
+# Edge is still required for device-based Conditional Access, so we launch Edge —
+# but with:
+#   --class=m365-auth      → WM_CLASS xmonad matches (see xmonad.hs mailRules)
+#   --user-data-dir=…      → forces a NEW Edge instance/window (else the URL opens
+#                            as a tab in an existing Edge and --class is ignored)
+#   --new-window           → belt-and-suspenders for a fresh top-level window
+set -euo pipefail
+
+url="${1:-}"
+[ -n "$url" ] || { echo "evolution-auth-browser: no URL given" >&2; exit 2; }
+
+EDGE=/usr/bin/microsoft-edge
+[ -x "$EDGE" ] || EDGE=/opt/microsoft/msedge/msedge
+
+# Dedicated profile dir keeps the auth window a separate instance so --class
+# takes effect. It's throwaway auth state, not your normal Edge profile.
+PROFILE="${XDG_CACHE_HOME:-$HOME/.cache}/evolution-auth-edge"
+mkdir -p "$PROFILE"
+
+exec "$EDGE" --class=m365-auth --user-data-dir="$PROFILE" --new-window "$url"

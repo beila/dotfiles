@@ -16,6 +16,7 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
+import XMonad.Layout.NoBorders (smartBorders)
 import XMonad.Util.EZConfig (additionalKeys)
 import XMonad.Util.NamedScratchpad
 
@@ -217,7 +218,13 @@ browserRules = shiftAllTo "1:browser" [className =? "firefox"]
 -- The reminder popup ("Evolution-alarm-notify") is intentionally NOT here — it
 -- floats on the current workspace (see floatRules) so reminders show wherever
 -- you are, not only when 2:mail is visible.
-mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution"]
+--
+-- "m365-auth" is the M365 OAuth sign-in window: bin/evolution-auth-browser
+-- launches Edge with --class=m365-auth precisely so ONLY the auth window lands
+-- next to Evolution here, without routing normal Edge/Firefox windows. The
+-- broker's native dialog (title "Microsoft") is caught by title as a fallback,
+-- since it doesn't go through our wrapper.
+mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution", className =? "m365-auth", title =? "Microsoft"]
 
 editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 

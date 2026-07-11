@@ -43,6 +43,16 @@ MSAL_TIMEOUT="${EVO_TOKEN_MSAL_TIMEOUT:-25}"
 INTERACTIVE=0
 [ "${1:-}" = "--interactive" ] && INTERACTIVE=1
 
+# Route the OAuth sign-in through our Edge wrapper, which tags the window with
+# WM_CLASS=m365-auth so xmonad sends ONLY the auth window to 2:mail (see
+# xmonad.hs mailRules). Setting BROWSER to a name NOT containing "microsoft-edge"
+# makes msal fall back to Python webbrowser.open($BROWSER) instead of force-
+# launching its own untagged Edge. The wrapper still launches Edge (needed for
+# device Conditional Access), just with our class. Only meaningful on the
+# interactive path; harmless in auto mode (killed before the browser matters).
+AUTH_BROWSER="$(dirname "$(readlink -f "$0")")/evolution-auth-browser"
+[ -x "$AUTH_BROWSER" ] && export BROWSER="$AUTH_BROWSER"
+
 need() { command -v "$1" >/dev/null 2>&1 || { log ERROR "MISSING-DEP $1 not on PATH"; exit 1; }; }
 need jq; need secret-tool; need flatpak
 [ -x "$MSAL_PY" ]   || { log ERROR "MISSING msal python ($MSAL_PY) — amazon-role-evolution installed?"; exit 1; }
