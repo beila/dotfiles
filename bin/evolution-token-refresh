@@ -85,7 +85,12 @@ fi
 # A file redirect makes us wait only for the python child.
 tokfile="$(mktemp /tmp/evo-token-refresh.XXXXXX)"
 errfile="$(mktemp /tmp/evo-token-refresh.err.XXXXXX)"
-trap 'rm -f "$tokfile" "$errfile"' EXIT
+blobfile=""
+# log.sh installed `trap log_finalize EXIT` when sourced; setting our own EXIT
+# trap replaces it, so we must chain log_finalize ourselves (see log.sh header)
+# — otherwise the log file is never promoted from /tmp and notifications never
+# fire. Preserve the exit status across the trap.
+trap '_rc=$?; rm -f "$tokfile" "$errfile" "$blobfile"; log_finalize 2>/dev/null || true; exit $_rc' EXIT
 
 if [ "$INTERACTIVE" -eq 1 ]; then
     log INFO "AUTH interactive — a Microsoft/Edge sign-in may appear (hardware key / OTP-on-VPN as required)"
@@ -110,17 +115,19 @@ if ! printf '%s' "$tok" | jq empty 2>/dev/null; then
     if [ "$INTERACTIVE" -eq 1 ]; then
         log ERROR "AUTH-FAILED interactive sign-in did not yield a token. ${reason:-see $errfile}"
     else
-        # Expected, recoverable: page the user to run the interactive refresh.
-        log WARN "MANUAL-REFRESH-NEEDED Evolution M365 token expired and can't refresh unattended (VPN/hardware-key). Run: evolution-reauth. ${reason:+(${reason})}"
+        # Actionable: the user must run the interactive refresh. ERROR level so it
+        # both persists and notifies (log.sh dedups notifications on a ~6h window,
+        # so the 15-min timer won't spam — one page per window until resolved).
+        log ERROR "MANUAL-REFRESH-NEEDED Evolution M365 token expired and can't refresh unattended (VPN/hardware-key). Run: evolution-reauth. ${reason:+(${reason})}"
     fi
     exit 0
 fi
 access="$(printf '%s' "$tok" | jq -r '.access_token // empty')"
-[ -n "$access" ] || { log WARN "MANUAL-REFRESH-NEEDED msal returned no access_token. Run: evolution-reauth."; exit 0; }
+[ -n "$access" ] || { log ERROR "MANUAL-REFRESH-NEEDED msal returned no access_token. Run: evolution-reauth."; exit 0; }
 
 blob="$(printf '%s' "$tok" | jq -c '{refresh_token: (.refresh_token // ""), access_token: .access_token, expires_after: .expires_after}')"
+# blobfile is already cleaned by the EXIT trap above (it was declared empty then).
 blobfile="$(mktemp /tmp/evo-token-blob.XXXXXX)"
-trap 'rm -f "$tokfile" "$errfile" "$blobfile"' EXIT
 printf '%s' "$blob" >"$blobfile"
 
 # --- Store: host keyring (both keys) ------------------------------------------
