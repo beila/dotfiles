@@ -305,8 +305,15 @@ _logrun_auto_zshaddhistory() {
 # Only wire the widget / history hook into an interactive zle session.
 # Function definitions above are unconditional so non-interactive
 # sourcing (tests, sub-shells) can exercise the classifier.
+_logrun_nolog_accept_line() {
+    BUFFER="NOLOG=1 ${BUFFER}"
+    zle accept-line
+}
+
 if [[ -o interactive ]]; then
     zle -N accept-line _logrun_auto_accept_line
+    zle -N _logrun-nolog-accept-line _logrun_nolog_accept_line
+    bindkey '\e^M' _logrun-nolog-accept-line
 
     autoload -Uz add-zsh-hook
     add-zsh-hook -d zshaddhistory _logrun_auto_zshaddhistory 2>/dev/null

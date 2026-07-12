@@ -173,9 +173,27 @@ _jb() {
   jj --quiet bookmark list --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
-      --header '☐ workspaces (ctrl-b)' \
+      --header '☐ workspaces (ctrl-b) · ☐ remotes (ctrl-r)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
+      --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jbr {n} {q}')" \
+      --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
+        jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+    awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
+}
+
+# _jb with --all-remotes: every tracked + untracked remote bookmark, even
+# those whose target matches local. Toggled from _jb via ctrl-r (become).
+_jbr() {
+  local pos_bind=()
+  [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
+  jj --quiet bookmark list --all-remotes --color=always 2>/dev/null |
+    awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
+    fzf_down --ansi --multi --preview-window right:70% \
+      --header '☐ workspaces (ctrl-b) · ☑ remotes (ctrl-r)' \
+      "${pos_bind[@]}" ${2:+--query "$2"} \
+      --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
+      --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
         jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
