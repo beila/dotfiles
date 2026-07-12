@@ -5,4 +5,4 @@ tags
 /view/
 /pack/local/
 # nix-generated, changes on every home-manager switch
-init.lua
+/lua/hm-generated.lua

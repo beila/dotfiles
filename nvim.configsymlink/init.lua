@@ -1,3 +1,9 @@
+-- hm-generated: lua package paths, provider flags, and any initLua
+-- appended by other home-manager modules (e.g. work-dotfiles nvim-amazon).
+-- Written by nix to lua/hm-generated.lua — see home-manager.configsymlink/nvim.nix.
+-- pcall so nvim still boots (plugin-less) before the first home-manager switch.
+pcall(require, 'hm-generated')
+
 -- https://www.reddit.com/r/neovim/comments/zfimqo/comment/izc156m
 local vimrc = vim.fn.stdpath('config') .. '/vimrc.symlink'
 vim.cmd.source(vimrc)

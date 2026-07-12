@@ -20,11 +20,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - direction: whichever is simpler (e.g. shared config file, shell script that both source, or generated opts)
   - 양쪽에서 어떤 단축키를 뭐에 쓰는지 먼저 정리해봐야겠다
 - [ ] review each nvim plugin and cleanup/modernise
-- [ ] switch nix neovim module to `hm-generated.lua` approach
-  - better: `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;` + restore own `init.lua` with `require 'hm-generated'` at top
-  - benefit: nix stops overwriting `init.lua`, `myinit.lua` can be merged back into `init.lua`, simpler config chain
-  - see home-manager news 2026-01-25 and PR #8586/#8606
-  - files: `home-manager.configsymlink/nvim.nix`, `nvim.configsymlink/myinit.lua`, `nvim.configsymlink/.gitignore`
+- [x] switch nix neovim module to `hm-generated.lua` approach — nix writes `programs.neovim.initLua` (lua paths, providers, sibling-module appends) to `nvim/lua/hm-generated.lua` via `xdg.configFile`, the module's own `init.lua` output disabled with `mkForce false`; git-tracked `init.lua` restored with `pcall(require, 'hm-generated')` at top; `myinit.lua` merged into `init.lua` and deleted; `.gitignore` now ignores `/lua/hm-generated.lua` instead of `init.lua`. Verified: plugins (packpath), providers-off, vimrc chain, keymaps all load. See `home-manager.configsymlink/nvim.nix` and `nvim.configsymlink/AGENTS.md`.
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] fingerprint login + sudo (https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication)
 - [ ] use zmx-select locally instead of zellij

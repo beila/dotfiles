@@ -1,9 +1,17 @@
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   _vim-vint = pkgs.vim-vint.overrideAttrs (_: { doCheck = false; doInstallCheck = false; });
 in
 {
+  # hm-generated.lua approach: nix writes its computed init content (lua
+  # package paths, provider flags, plus any initLua appended by other
+  # modules, e.g. work-dotfiles/nvim-amazon.nix) to lua/hm-generated.lua
+  # instead of owning init.lua. Our own git-tracked init.lua requires it
+  # at the top, so nix stops overwriting init.lua on every switch.
+  xdg.configFile."nvim/init.lua".enable = lib.mkForce false;
+  xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua;
+
   programs.neovim = {
     enable = true;
     defaultEditor = true;
@@ -15,11 +23,6 @@ in
     # so the value doesn't depend on home.stateVersion.
     withPython3 = false;
     withRuby = false;
-    # Appended to nix-generated init.lua (which sets lua paths + providers).
-    # nvim 0.12 only loads init.lua when it exists, ignoring init.vim/vimrc.
-    # myinit.lua sources vimrc.symlink → myvimrc → vimrcs/*.lua
-    # TODO: switch to hm-generated.lua approach (see home-manager PR #8586)
-    initLua = builtins.readFile ../nvim.configsymlink/myinit.lua;
     plugins = with pkgs.vimPlugins; [
       vim-fugitive
       fzf-lua

@@ -8,11 +8,12 @@ All plugins installed via home-manager `programs.neovim.plugins` (see `home-mana
 
 ## Config loading
 
-1. nix generates `init.lua` (lua paths + `myinit.lua` content via `initLua`).
-2. `myinit.lua` sources `vimrc.symlink`.
-3. `vimrc.symlink` sources `myvimrc`.
-4. `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`.
-5. `init.lua` is gitignored (nix-generated); nvim only loads `init.lua` (not `init.vim`/vimrc) when both exist.
+1. `init.lua` (git-tracked, ours) starts with `pcall(require, 'hm-generated')`.
+2. `lua/hm-generated.lua` (nix-generated, gitignored) carries the nix-computed content: lua package paths, provider flags, plus any `initLua` appended by other modules (e.g. `work-dotfiles/nvim-amazon.nix`). Written via `xdg.configFile."nvim/lua/hm-generated.lua".text = config.programs.neovim.initLua` in `home-manager.configsymlink/nvim.nix`; the module's own `nvim/init.lua` output is disabled with `mkForce false`, so nix never touches our `init.lua`. The `pcall` lets nvim boot (plugin-less) before the first home-manager switch.
+3. `init.lua` sources `vimrc.symlink` (plus clipboard keymaps + yank highlight, formerly in `myinit.lua`, now merged in).
+4. `vimrc.symlink` sources `myvimrc`.
+5. `myvimrc` runs `runtime! vimrcs/*.vimrc`, `vimrcs/*.nvimrc`, `vimrcs/*.lua`.
+6. nvim only loads `init.lua` (not `init.vim`/vimrc) when both exist.
 
 ## Logs
 
