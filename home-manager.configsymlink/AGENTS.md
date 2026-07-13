@@ -58,6 +58,10 @@ nixGL-wrapped neovide (GPU access on non-NixOS), font-copying activation (JetBra
 
 neovim (default editor, vi/vim aliases). hm-generated.lua approach: the module's `nvim/init.lua` output is disabled (`mkForce false`) and the nix-computed `programs.neovim.initLua` (lua paths, provider flags, sibling-module appends like `work-dotfiles/nvim-amazon.nix`) is written to `nvim/lua/hm-generated.lua` (gitignored) instead; the git-tracked `nvim.configsymlink/init.lua` loads it via `pcall(require, 'hm-generated')` at the top. Dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim. See `nvim.configsymlink/AGENTS.md`.
 
+## picom.nix
+
+picom compositor for focused-window glow. xrender backend (no GL/nixGL needed), shadow-only. Focused window gets a centred `#F8BB3D` glow (radius 14, full opacity, offset = −radius); unfocused/docks/notifications/dzen excluded via `shadowExclude`. `use-ewmh-active-win = true` reads `_NET_ACTIVE_WINDOW` for correct multi-monitor focus detection. Paired with xmonad's `raiseFocused` logHook (which raises the focused window in X stacking order so the glow paints above tiled neighbors). See `xwindow/AGENTS.md`.
+
 ## xmonad.nix
 
 xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook. See `xwindow/AGENTS.md`.

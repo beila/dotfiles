@@ -1,10 +1,15 @@
 # picom compositor — focused-window glow only.
 #
-# Paired with xmonad's 2px #F8BB3D border (xwindow/xmonad.symlink/xmonad.hs):
+# Paired with xmonad's 1px #F8BB3D border (xwindow/xmonad.symlink/xmonad.hs):
 # the border gives the crisp edge, picom's shadow — same LEGO-orange tint,
 # centred, focused-only — adds a soft gradient halo around it. Earlier "no
 # compositor for cosmetics" stance (xwindow/AGENTS.md) was overridden by
 # explicit user preference for a gradient focus indicator (2026-07-13).
+#
+# The shadow renders at the window's Z-level, so it is only visible where
+# no higher-stacked window overlaps it. xmonad's `raiseFocused` logHook
+# keeps the focused window on top of the stack so its glow paints above
+# tiled neighbors on every side.
 #
 # xrender backend: shadows-only workload is cheap there and it avoids
 # GL-driver mismatch on non-NixOS hosts (no nixGL wrapper needed).

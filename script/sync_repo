@@ -235,7 +235,7 @@ check_refused_snapshots() {
         local files
         files=$(echo "$err" | awk '
             /Refused to snapshot/ { flag=1; next }
-            flag && /^  / && /MiB \(/ {
+            flag && /^  / && /bytes\)/ {
                 sub(/^  /, ""); sub(/:.*$/, ""); print
             }
         ' | tr '\n' ' ')

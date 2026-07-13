@@ -21,6 +21,7 @@ import XMonad.Util.EZConfig (additionalKeys)
 import XMonad.Util.NamedScratchpad
 
 import Graphics.X11.ExtraTypes.XF86
+import Graphics.X11.Xlib.Window (raiseWindow)
 
 ------------------------------------------------------------------------
 -- Main
@@ -54,7 +55,7 @@ myConfig =
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window")
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
@@ -412,6 +413,12 @@ stripZoomFullscreenHook _ = return (All True)
 
 -- Advertise fullscreen support to EWMH
 fullscreenStartupHook :: X ()
+-- Raise the focused window to the top of the X stacking order so picom's
+-- shadow (which renders at the window's Z-level) paints above neighbors.
+raiseFocused :: X ()
+raiseFocused = withDisplay $ \dpy ->
+    withFocused $ \w -> io (raiseWindow dpy w)
+
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
     a <- getAtom "_NET_SUPPORTED"
