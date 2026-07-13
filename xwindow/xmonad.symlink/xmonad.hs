@@ -18,6 +18,7 @@ import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
 import XMonad.Layout.NoBorders (smartBorders)
 import XMonad.Util.EZConfig (additionalKeys)
+import qualified XMonad.Util.ExtensibleState as XS
 import XMonad.Util.NamedScratchpad
 
 import Graphics.X11.ExtraTypes.XF86
@@ -415,15 +416,24 @@ stripZoomFullscreenHook _ = return (All True)
 fullscreenStartupHook :: X ()
 -- Raise the focused tiled window above other tiled windows so picom's
 -- shadow (which renders at the window's Z-level) paints above neighbors.
--- raiseWindow alone would put it above floats too, so afterwards every
--- floating window is re-raised to restore floats-above-tiled invariant.
--- A focused float needs no raise — xmonad already stacks it correctly.
+-- Only fires on actual focus changes (tracked via ExtensibleState) to
+-- avoid re-raising on every logHook invocation — that would cover
+-- override-redirect popups (dropdowns, menus) which aren't in xmonad's
+-- float map.
+newtype LastFocused = LastFocused Window
+    deriving (Typeable)
+instance ExtensionClass LastFocused where
+    initialValue = LastFocused 0
+
 raiseFocused :: X ()
 raiseFocused = withFocused $ \w -> do
-    floats <- gets (W.floating . windowset)
-    unless (M.member w floats) $ withDisplay $ \dpy -> io $ do
-        raiseWindow dpy w
-        mapM_ (raiseWindow dpy) (M.keys floats)
+    LastFocused prev <- XS.get
+    when (w /= prev) $ do
+        XS.put (LastFocused w)
+        floats <- gets (W.floating . windowset)
+        unless (M.member w floats) $ withDisplay $ \dpy -> io $ do
+            raiseWindow dpy w
+            mapM_ (raiseWindow dpy) (M.keys floats)
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
