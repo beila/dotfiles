@@ -1,6 +1,6 @@
 import Control.Monad
 import qualified Data.List as L (filter, find, isSuffixOf)
-import qualified Data.Map as M (lookup, member)
+import qualified Data.Map as M (keys, lookup, member)
 import Data.Maybe
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
@@ -413,11 +413,17 @@ stripZoomFullscreenHook _ = return (All True)
 
 -- Advertise fullscreen support to EWMH
 fullscreenStartupHook :: X ()
--- Raise the focused window to the top of the X stacking order so picom's
+-- Raise the focused tiled window above other tiled windows so picom's
 -- shadow (which renders at the window's Z-level) paints above neighbors.
+-- raiseWindow alone would put it above floats too, so afterwards every
+-- floating window is re-raised to restore floats-above-tiled invariant.
+-- A focused float needs no raise — xmonad already stacks it correctly.
 raiseFocused :: X ()
-raiseFocused = withDisplay $ \dpy ->
-    withFocused $ \w -> io (raiseWindow dpy w)
+raiseFocused = withFocused $ \w -> do
+    floats <- gets (W.floating . windowset)
+    unless (M.member w floats) $ withDisplay $ \dpy -> io $ do
+        raiseWindow dpy w
+        mapM_ (raiseWindow dpy) (M.keys floats)
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
