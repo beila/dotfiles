@@ -1,1 +1,0 @@
-/nix/store/z249jy65hkw7ppfr14lwh3fgfgc9l4vs-home-manager-files/.config/nvim/init.lua
