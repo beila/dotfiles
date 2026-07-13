@@ -62,10 +62,12 @@ myConfig =
           -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
           manageHook = myManageHook
         , layoutHook = smartBorders $ avoidStruts $ layoutHook gnomeConfig
-        , -- Focus indicator: warm accent matching hangul-osd; unfocused border
-          -- painted near-invisible instead of 0px so client geometry stays
-          -- constant across focus changes (no terminal re-wrap on every switch)
-          borderWidth = 4
+        , -- Focus indicator: thin LEGO-orange edge (same accent as
+          -- hangul-osd); picom adds a soft warm glow around the focused
+          -- window (see home-manager picom.nix). Unfocused border painted
+          -- near-invisible instead of 0px so client geometry stays constant
+          -- across focus changes (no terminal re-wrap on every switch)
+          borderWidth = 1
         , focusedBorderColor = "#F8BB3D"
         , normalBorderColor = "#1d1d1d"
         }

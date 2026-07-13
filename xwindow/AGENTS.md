@@ -12,11 +12,11 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 ## Borders (focus indicator)
 
-`borderWidth = 4`, `focusedBorderColor = "#F8BB3D"` (LEGO orange, same accent as hangul-osd), `normalBorderColor = "#1d1d1d"`, `smartBorders` in the layoutHook.
+`borderWidth = 2`, `focusedBorderColor = "#F8BB3D"` (LEGO orange, same accent as hangul-osd), `normalBorderColor = "#1d1d1d"`, `smartBorders` in the layoutHook. Paired with a picom glow (see `home-manager.configsymlink/picom.nix`) — the thin solid border gives a crisp edge while picom's focused-only centred shadow (radius 10, `#F8BB3D`, opacity 0.5) adds a soft gradient halo.
 
-- **Unfocused is "invisible colour", not 0px**: xmonad keeps the window footprint constant, so toggling border width between 0 and N resizes the client by 2×N on every focus change — terminals get SIGWINCH and re-wrap, and focus-follows-mouse makes that fire on every mouse sweep. Painting the border near-black instead keeps geometry stable; the cost is a 2×4px dark seam at unfocused–unfocused junctions.
+- **Unfocused is "invisible colour", not 0px**: xmonad keeps the window footprint constant, so toggling border width between 0 and N resizes the client by 2×N on every focus change — terminals get SIGWINCH and re-wrap, and focus-follows-mouse makes that fire on every mouse sweep. Painting the border near-black instead keeps geometry stable; the cost is a 2×2px dark seam at unfocused–unfocused junctions.
 - **`smartBorders`** (not `lessBorders` with a custom strategy) already does the wanted thing: hides the border only when there's a single window *and* a single screen, so with multiple monitors the focused screen stays identifiable. Its width toggle only fires when the window count changes, which is rare enough that the resize is acceptable.
-- **No picom**: shadow/dim-based focus indicators were mocked up and rejected — an always-running compositor process for a purely cosmetic win.
+- **Picom (compositor)**: `home-manager.configsymlink/picom.nix` — xrender backend (no GL, no nixGL wrapper needed), shadow-only config. Only the focused window gets a shadow; unfocused, docks, notifications, and dzen OSDs are excluded. The shadow is centred (offset = −radius) so it reads as a glow, not a drop-shadow. Runs under `graphical-session.target`.
 
 ## ManageHook
 
