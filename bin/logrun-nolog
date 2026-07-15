@@ -16,4 +16,4 @@ if [[ -z "${LOGRUN_NOLOG_FILE-}" ]]; then
     exit 0
 fi
 
-: > "$LOGRUN_NOLOG_FILE"
+printf 1 > "$LOGRUN_NOLOG_FILE"

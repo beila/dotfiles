@@ -95,6 +95,66 @@ LOGRUN_AUTO_FUNCTIONS=(
 
 # ----------------------------------------------------------------- helpers
 
+# Resolve the effective command name through runner wrappers.
+# Given "nix run nixpkgs#htop -- -t", returns "htop".
+# Given "npx -y cowsay", returns "cowsay".
+# Given "uvx ruff check .", returns "ruff".
+# Returns $2 (first word) unchanged if not a known runner pattern.
+_logrun_resolve_runner() {
+    local buf="$1" first="$2"
+    local words=("${(z)buf}")
+
+    case "$first" in
+        nix)
+            # `nix run <flakeref>#<pkg>` or `nix run <flakeref>`
+            [[ "${words[2]-}" == "run" ]] || { print -r -- "$first"; return; }
+            local arg
+            for arg in "${words[@]:2}"; do
+                [[ "$arg" == -* ]] && continue
+                [[ "$arg" == "--" ]] && break
+                # flakeref#pkg — extract pkg (last path component)
+                if [[ "$arg" == *"#"* ]]; then
+                    local pkg="${arg##*#}"
+                    pkg="${pkg##*.}"  # nixpkgs#legacyPackages.x86_64-linux.htop → htop
+                    print -r -- "$pkg"
+                    return
+                fi
+                # bare flakeref (e.g. `nix run .`) — can't resolve
+                print -r -- "$first"
+                return
+            done
+            print -r -- "$first"
+            ;;
+        npx)
+            # `npx [-y] [-p pkg] <command>` — first non-flag arg
+            local arg
+            for arg in "${words[@]:1}"; do
+                [[ "$arg" == -* ]] && continue
+                [[ "$arg" == "--" ]] && break
+                print -r -- "$arg"
+                return
+            done
+            print -r -- "$first"
+            ;;
+        uvx)
+            # `uvx [--from pkg] <command>` — first non-flag arg
+            local skip_next=0 arg
+            for arg in "${words[@]:1}"; do
+                (( skip_next )) && { skip_next=0; continue; }
+                [[ "$arg" == "--from" || "$arg" == "--python" || "$arg" == "-p" ]] && { skip_next=1; continue; }
+                [[ "$arg" == -* ]] && continue
+                [[ "$arg" == "--" ]] && break
+                print -r -- "$arg"
+                return
+            done
+            print -r -- "$first"
+            ;;
+        *)
+            print -r -- "$first"
+            ;;
+    esac
+}
+
 # Strip a leading `NAME=value` env-prefix run from a command string.
 # Returns the residual command string (or the input unchanged).
 _logrun_strip_env_prefix() {
@@ -227,9 +287,14 @@ _logrun_classify() {
     [[ -n "${LOGRUN_PID-}" ]] && return
 
     # TUI skiplist match — env-var (machine default) ∪ user file (auto-managed).
+    # Also resolves the effective command name through runner wrappers
+    # (nix run, npx, uvx) so `nix run nixpkgs#htop` matches skiplist
+    # entry `htop`.
+    local effective_cmd="$first"
+    effective_cmd=$(_logrun_resolve_runner "$BUFFER" "$first")
     local tui
     for tui in ${=LOGRUN_TUI_SKIPLIST} ${=$(_logrun_user_skiplist)}; do
-        [[ "$first" == "$tui" ]] && return
+        [[ "$effective_cmd" == "$tui" ]] && return
     done
 
     # whence -w: tells us if it's a builtin / reserved / function /

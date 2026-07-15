@@ -301,6 +301,8 @@ fi
 strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g; s/\x1B\][^\x07\x1B]*(\x07|\x1B\\)//g; s/.*\r//')
 
 _logrun_on_reveal() {
+    # Suppressed when the wrapped command opted out via logrun-nolog.
+    [[ -s "$LOGRUN_NOLOG_FILE" ]] && return
     # Two markers, two purposes:
     #   "$auto_lines_file.shown"   touched by awk/timer so logrun-decorator
     #                              activates mid-run (synchronous; can't wait
@@ -372,6 +374,7 @@ fi
 if (( auto_mode )); then
     ( exec </dev/null >/dev/null 2>&1
       sleep "$auto_seconds" \
+        && [[ ! -s "$LOGRUN_NOLOG_FILE" ]] \
         && echo "wallclock" >> "$auto_lines_file" \
         && touch "$auto_lines_file.shown" 2>/dev/null \
         && kill -USR2 $$ 2>/dev/null ) &
@@ -438,6 +441,7 @@ if (( auto_mode )); then
                   -v lines_file="$auto_lines_file" \
                   -v shown_file="$auto_lines_file.shown" \
                   -v tui_file="$auto_tui_file" \
+                  -v nolog_file="$LOGRUN_NOLOG_FILE" \
                   -v parent="$parent_pid" \
                   -v log_path="$log_path" '
         BEGIN { hit_lines=0; hit_tui=0 }
@@ -472,6 +476,8 @@ if (( auto_mode )); then
             fflush(log_path)
             if (!hit_lines && NR >= line_thr) {
                 hit_lines=1
+                # Suppressed when logrun-nolog opted out.
+                cmd = "test -s " nolog_file; if (system(cmd) == 0) { close(cmd); next }; close(cmd)
                 # Touch the .shown marker IMMEDIATELY so logrun-decorator
                 # (which polls it) activates mid-run. The parent USR2 trap
                 # also touches it, but bash defers the trap until the
