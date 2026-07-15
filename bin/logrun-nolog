@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# logrun-nolog — opt out of logrun from inside the wrapped command.
+#
+# Call this at the start of a recipe/script that should never be logged
+# (e.g. interactive commands requiring stdin). On exit, logrun will
+# delete the log file as if the command was never wrapped.
+#
+# Usage (in a justfile recipe):
+#   mwinit:
+#       logrun-nolog
+#       mwinit -o
+#
+# Does nothing when not running under logrun (safe to call unconditionally).
+
+if [[ -z "${LOGRUN_NOLOG_FILE-}" ]]; then
+    exit 0
+fi
+
+: > "$LOGRUN_NOLOG_FILE"

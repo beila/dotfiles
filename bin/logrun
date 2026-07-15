@@ -330,11 +330,13 @@ trap _logrun_on_reveal USR2
 # fd on the inode, not the pathname. Renaming the file doesn't touch the fd,
 # so subsequent writes land in the renamed file automatically.
 LOGRUN_MOVE_FILE=$(mktemp "/tmp/logrun-move.XXXXXX")
+LOGRUN_NOLOG_FILE=$(mktemp "/tmp/logrun-nolog.XXXXXX")
 export LOGRUN_PID=$$
 export LOGRUN_MOVE_FILE
+export LOGRUN_NOLOG_FILE
 # Clean side-channel files on exit. The auto_lines_file/auto_tui_file are
 # empty strings outside --auto mode so `rm -f ""` is a no-op.
-trap 'rm -f "$LOGRUN_MOVE_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_lines_file.banner" "$auto_tui_file"; \
+trap 'rm -f "$LOGRUN_MOVE_FILE" "$LOGRUN_NOLOG_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_lines_file.banner" "$auto_tui_file"; \
       [[ -n "$auto_timer_pid" ]] && kill "$auto_timer_pid" 2>/dev/null; :' EXIT
 
 _logrun_on_move() {
@@ -510,6 +512,13 @@ fi
 if [[ -n "$auto_timer_pid" ]]; then
     kill "$auto_timer_pid" 2>/dev/null
     auto_timer_pid=""
+fi
+
+# --------------------------------------------------------- nolog disposition
+# The wrapped command called `logrun-nolog` → discard the log unconditionally.
+if [[ -s "$LOGRUN_NOLOG_FILE" ]]; then
+    rm -f "$log_path"
+    exit "$exit_code"
 fi
 
 # ------------------------------------------------------- auto-mode disposition
