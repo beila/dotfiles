@@ -95,6 +95,28 @@ LOGRUN_AUTO_FUNCTIONS=(
 
 # ----------------------------------------------------------------- helpers
 
+# Extract the last pipeline stage's first word from a buffer containing
+# pipes. For `foo | bar -x | bat`, returns `bat`. For non-pipe compound
+# commands (&&, ;, etc.) returns empty.
+_logrun_pipeline_last_cmd() {
+    local buf="$1"
+    # Only handle simple pipes — if there's && or ; the last stage is
+    # ambiguous and not worth guessing.
+    [[ "$buf" == *'&&'* || "$buf" == *';'* ]] && return
+    # Split on unquoted pipe. Simple heuristic: last ` | ` delimited
+    # segment (space-pipe-space avoids matching `||`).
+    local last="${buf##*[[:space:]]|[[:space:]]}"
+    [[ "$last" == "$buf" ]] && return  # no pipe found
+    # Strip leading whitespace and env prefixes
+    last="${last#"${last%%[![:space:]]*}"}"
+    # Strip env prefixes (VAR=val ...)
+    while [[ "$last" == [a-zA-Z_][a-zA-Z0-9_]*=* ]]; do
+        last="${last#* }"
+    done
+    local cmd="${last%%[[:space:]]*}"
+    [[ -n "$cmd" ]] && print -r -- "$cmd"
+}
+
 # Resolve the effective command name through runner wrappers.
 # Given "nix run nixpkgs#htop -- -t", returns "htop".
 # Given "npx -y cowsay", returns "cowsay".
@@ -113,8 +135,8 @@ _logrun_resolve_runner() {
                 [[ "$arg" == -* ]] && continue
                 [[ "$arg" == "--" ]] && break
                 # flakeref#pkg — extract pkg (last path component)
-                if [[ "$arg" == *"#"* ]]; then
-                    local pkg="${arg##*#}"
+                if [[ "$arg" == *[#]* ]]; then
+                    local pkg="${arg##*[#]}"
                     pkg="${pkg##*.}"  # nixpkgs#legacyPackages.x86_64-linux.htop → htop
                     print -r -- "$pkg"
                     return
@@ -264,6 +286,17 @@ _logrun_classify() {
     # operator works exactly as the user typed it. Skip alias
     # pre-expansion in this case — the inner shell does its own.
     if _logrun_has_unquoted_metachar "$buf"; then
+        # For pipelines, also check the last command against the TUI
+        # skiplist — e.g. `xxx | bat` should skip because bat is a TUI.
+        local last_cmd
+        last_cmd=$(_logrun_pipeline_last_cmd "$buf")
+        if [[ -n "$last_cmd" ]]; then
+            last_cmd=$(_logrun_resolve_runner "$last_cmd" "${last_cmd%%[[:space:]]*}")
+            local tui
+            for tui in ${=LOGRUN_TUI_SKIPLIST} ${=$(_logrun_user_skiplist)}; do
+                [[ "$last_cmd" == "$tui" ]] && return
+            done
+        fi
         _logrun_decision="function"
         _logrun_first="${buf%%[[:space:]]*}"
         return
@@ -333,12 +366,22 @@ _logrun_auto_accept_line() {
     local _logrun_decision _logrun_first
     _logrun_classify
 
+    # When the effective command (resolved through runner wrappers)
+    # differs from the first word, pass --name so logrun uses it for
+    # the TUI skiplist hint instead of the runner name.
+    local _logrun_name_flag=""
+    local _logrun_effective
+    _logrun_effective=$(_logrun_resolve_runner "$BUFFER" "$_logrun_first")
+    if [[ "$_logrun_effective" != "$_logrun_first" && -n "$_logrun_effective" ]]; then
+        _logrun_name_flag="--name ${(q)_logrun_effective} "
+    fi
+
     case "$_logrun_decision" in
         external)
             # Externals: the widget already pre-expanded any aliases, so
             # $BUFFER is now a plain "binary arg arg ..." line. Use the
             # fast path (`--no-zshrc`) to avoid 800ms of zshrc replay.
-            BUFFER="logrun --auto --no-zshrc -- ${BUFFER}"
+            BUFFER="logrun --auto ${_logrun_name_flag}--no-zshrc -- ${BUFFER}"
             ;;
         function)
             # Functions need zsh -ic (or eval inside the widget) so that
@@ -346,7 +389,7 @@ _logrun_auto_accept_line() {
             # buffer.
             local q
             q="${(q)_logrun_orig_buffer}"
-            BUFFER="logrun --auto -c ${q}"
+            BUFFER="logrun --auto ${_logrun_name_flag}-c ${q}"
             ;;
         skip|*) ;;
     esac
