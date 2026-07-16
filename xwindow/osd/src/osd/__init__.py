@@ -1,11 +1,12 @@
 """
-osd — cairo + XShape OSD building blocks.
+osd — cairo + ARGB/XShape OSD building blocks.
 
 Renders text into a cairo ARGB32 surface (fill + outline + drop shadow),
-then displays it in an override-redirect X window whose XShape mask is
-derived from the rendered alpha. The "background" of the window is
-genuinely transparent (XShape clips), so the OSD is highly visible
-without painting a colored block. Works without a compositor.
+then displays it in an override-redirect X window. With a compositor
+(picom), uses a 32-bit ARGB visual for true alpha transparency — smooth
+edges, semi-transparent fills, real drop shadows. Without a compositor,
+falls back to an XShape mask (hard-clipped at alpha_threshold) for
+pseudo-transparency. Works in both environments.
 
 Multi-monitor: enumerates active CRTCs via Xrandr and shows one window
 per monitor sized to that monitor; falls back to the whole virtual
@@ -70,10 +71,10 @@ class OSDStyle:
     """
     # Colours
     fill_rgb: tuple[float, float, float] = (1.0, 0.19, 0.19)        # #ff3030
-    # Alpha for the fill, 0..1. Note: with no X11 compositor running, this
-    # acts as a brightness multiplier (cairo premultiplies; X11 strips the
-    # alpha channel) — handy for fading without picom, but not actually
-    # see-through. Pixels still inside the XShape mask if alpha ≥ threshold.
+    # Alpha for the fill, 0..1. With picom (32-bit ARGB visual), this is
+    # real transparency. Without a compositor, it acts as a brightness
+    # multiplier (cairo premultiplies; X11 strips the alpha channel) and
+    # pixels remain inside the XShape mask if alpha ≥ threshold.
     fill_alpha: float = 1.0
     outline_rgb: tuple[float, float, float] | None = (0.0, 0.0, 0.0)
     shadow_rgba: tuple[float, float, float, float] | None = (0.0, 0.0, 0.0, 0.7)
@@ -439,9 +440,24 @@ def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
     return base + int(monitor_h * style.offset_y_frac)
 
 
+def _find_argb_visual(screen):
+    """Find a 32-bit TrueColor visual with alpha, or return None."""
+    for depth_info in screen.allowed_depths:
+        if depth_info.depth != 32:
+            continue
+        for visual in depth_info.visuals:
+            if visual.visual_class == X.TrueColor:
+                return visual, depth_info.depth
+    return None, None
+
+
 def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
     """Create one OSD window anchored (per style) on `rect`, showing
     `surface`. Returns the window so it can be destroyed later.
+
+    When a 32-bit ARGB visual is available (compositor running), uses it
+    for true alpha transparency — smooth edges, semi-transparent fills,
+    real drop shadows. Falls back to XShape clipping on 24-bit servers.
     """
     mx, my, mw, mh = rect[:4]
     iw = surface.get_width()
@@ -449,39 +465,56 @@ def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
     wx = mx + _anchor_x(mw, iw, style)
     wy = my + _anchor_y(mh, ih, style)
 
-    win = root.create_window(
-        wx, wy, iw, ih, 0,
-        screen.root_depth,
-        X.InputOutput,
-        X.CopyFromParent,
-        background_pixel=screen.black_pixel,
-        override_redirect=1,
-        event_mask=X.ExposureMask,
-    )
+    argb_visual, argb_depth = _find_argb_visual(screen)
+    use_argb = argb_visual is not None
+
+    if use_argb:
+        colormap = root.create_colormap(argb_visual.visual_id, X.AllocNone)
+        win = root.create_window(
+            wx, wy, iw, ih, 0,
+            argb_depth,
+            X.InputOutput,
+            argb_visual.visual_id,
+            border_pixel=0,
+            background_pixel=0,
+            colormap=colormap,
+            override_redirect=1,
+            event_mask=X.ExposureMask,
+        )
+    else:
+        win = root.create_window(
+            wx, wy, iw, ih, 0,
+            screen.root_depth,
+            X.InputOutput,
+            X.CopyFromParent,
+            background_pixel=screen.black_pixel,
+            override_redirect=1,
+            event_mask=X.ExposureMask,
+        )
+
     win.set_wm_name("osd")
     win.set_wm_class("osd", "osd")
 
-    # Apply XShape before mapping so the window is never drawn as a rectangle.
-    mask_bytes, smw, smh = _make_shape_mask(surface, style.alpha_threshold)
-    pixmap = win.create_pixmap(smw, smh, 1)
-    pgc = pixmap.create_gc(foreground=1, background=0)
-    # Row stride must match the 32-bit scanline padding used in
-    # _make_shape_mask (X11's bitmap_format_scanline_pad), or PutImage
-    # fails with BadLength.
-    _chunked_put_image(pixmap, pgc, X.XYBitmap, 1, smw, smh, mask_bytes,
-                       ((smw + 31) // 32) * 4)
-    win.shape_mask(shape.SO.Set, shape.SK.Bounding, 0, 0, pixmap)
-    pgc.free()
-    pixmap.free()
+    if not use_argb:
+        # Fallback: XShape mask for hard-clipped transparency.
+        mask_bytes, smw, smh = _make_shape_mask(surface, style.alpha_threshold)
+        pixmap = win.create_pixmap(smw, smh, 1)
+        pgc = pixmap.create_gc(foreground=1, background=0)
+        _chunked_put_image(pixmap, pgc, X.XYBitmap, 1, smw, smh, mask_bytes,
+                           ((smw + 31) // 32) * 4)
+        win.shape_mask(shape.SO.Set, shape.SK.Bounding, 0, 0, pixmap)
+        pgc.free()
+        pixmap.free()
 
     win.map()
 
     # Push pixel data. Cairo ARGB32 little-endian is BGRA in memory, which
-    # matches X11's 32-bit-padded ZPixmap format on Intel/AMD. The alpha
-    # byte is ignored at the screen depth; the shape mask decides what's
-    # visible.
+    # matches X11's 32-bit ZPixmap format. With a 32-bit visual the alpha
+    # channel is composited by picom; at 24-bit depth it's ignored and the
+    # XShape mask decides visibility.
+    depth = argb_depth if use_argb else screen.root_depth
     gc = win.create_gc()
-    _chunked_put_image(win, gc, X.ZPixmap, screen.root_depth, iw, ih,
+    _chunked_put_image(win, gc, X.ZPixmap, depth, iw, ih,
                        bytes(surface.get_data()), iw * 4)
     gc.free()
     return win

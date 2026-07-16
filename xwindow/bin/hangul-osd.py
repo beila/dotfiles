@@ -53,7 +53,7 @@ from osd import OSDStyle, display_on_all_monitors, render_surface
 # looks the same physical size everywhere.
 STYLE = OSDStyle(
     fill_rgb=(0.972, 0.733, 0.239),    # LEGO Bright Light Orange #F8BB3D
-    fill_alpha=1.0,
+    fill_alpha=0.8,
     outline_rgb=None,
     shadow_rgba=None,
     font_family="JejuHallasan",
