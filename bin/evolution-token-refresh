@@ -12,11 +12,14 @@
 # found"). See kiro memory `project_evolution-m365-flatpak`.
 #
 # Automation reality: FULLY unattended is impossible — when the Midway PRT
-# expires you must tap a hardware key, and OTP is refused off-VPN. So this script
-# is silent-when-it-can-be and notifies-when-it-can't:
-#   • token still valid (> threshold)      → exit 0, silent (cheap for the timer)
-#   • refresh succeeds (broker silent path) → store + swap keyring, silent
-#   • refresh needs a human / fails         → log WARN → notify, exit 0, never hang
+# expires you must tap a hardware key, and OTP is refused off-VPN. Needing a manual
+# refresh is the STEADY STATE (Conditional Access caps the token ~hourly), not an
+# event — so it's INFO, not a WARN/ERROR to be kept or notified:
+#   • token still valid (> threshold)      → INFO SKIP, exit 0 (cheap for the timer)
+#   • refresh succeeds (broker silent path) → store + swap keyring, INFO
+#   • refresh needs a human (routine)       → INFO → not kept, not notified
+#                                             (expected; run `evolution-reauth`)
+#   • hard failure (missing dep, store)     → log ERROR → notify (unexpected)
 #
 # Modes:
 #   evolution-token-refresh            # auto/unattended: only silent paths; never blocks
@@ -125,15 +128,16 @@ if ! printf '%s' "$tok" | jq empty 2>/dev/null; then
     if [ "$INTERACTIVE" -eq 1 ]; then
         log ERROR "AUTH-FAILED interactive sign-in did not yield a token. ${reason:-see $errfile}"
     else
-        # Actionable: the user must run the interactive refresh. ERROR level so it
-        # both persists and notifies (log.sh dedups notifications on a ~6h window,
-        # so the 15-min timer won't spam — one page per window until resolved).
-        log ERROR "MANUAL-REFRESH-NEEDED Evolution M365 token expired and can't refresh unattended (VPN/hardware-key). Run: evolution-reauth. ${reason:+(${reason})}"
+        # The token dying and needing a manual (hardware-key) refresh is the STEADY
+        # STATE by Conditional-Access design, not an event — so INFO, like the SKIP
+        # path: printed inline if watched, not kept on disk, never notified. Hard
+        # failures below (deps, store) stay ERROR and still notify.
+        log INFO "MANUAL-REFRESH-NEEDED Evolution M365 token expired and can't refresh unattended (VPN/hardware-key). Run: evolution-reauth. ${reason:+(${reason})}"
     fi
     exit 0
 fi
 access="$(printf '%s' "$tok" | jq -r '.access_token // empty')"
-[ -n "$access" ] || { log ERROR "MANUAL-REFRESH-NEEDED msal returned no access_token. Run: evolution-reauth."; exit 0; }
+[ -n "$access" ] || { log INFO "MANUAL-REFRESH-NEEDED msal returned no access_token. Run: evolution-reauth."; exit 0; }
 
 blob="$(printf '%s' "$tok" | jq -c '{refresh_token: (.refresh_token // ""), access_token: .access_token, expires_after: .expires_after}')"
 # blobfile is already cleaned by the EXIT trap above (it was declared empty then).

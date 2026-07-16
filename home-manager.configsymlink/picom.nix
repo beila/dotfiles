@@ -32,9 +32,12 @@
       "window_type = 'dock'"
       "window_type = 'desktop'"
       "window_type = 'notification'"
-      # dzen2 OSDs (volume/brightness/audio-cycle) and XShape OSD popups
-      # draw their own look; a glow behind them is just noise.
+      # dzen2 OSDs (volume/brightness/audio-cycle): no glow (they draw
+      # their own look), but picom makes them 80% transparent via opacityRules.
       "class_g = 'dzen'"
+    ];
+    opacityRules = [
+      "80:class_g = 'dzen'"
     ];
     settings = {
       shadow-radius = 14;
