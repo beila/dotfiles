@@ -35,6 +35,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [x] add a way to output the git commit id instead of the change id from `_jh`/`_jhh` — **ctrl-x** in the log picker yanks the commit id (12-char `commit_id.short()`) via hidden tab field 4 (`become(printf '%s\n' {+4})`), while Enter still yields the change id (`--accept-nth=2`). See `fzf/functions.sh`, `jj.configsymlink/config.toml`, and `fzf/AGENTS.md`.
 - [x] add a shortcut to \_jb to toggle remote bookmarks — **ctrl-r** toggles `_jb`↔`_jbr` (`jj bookmark list --all-remotes`: every tracked + untracked remote bookmark, even when the target matches local). Same `become` pattern as the ctrl-b workspace toggle; header checkbox (`☐/☑ remotes`) shows the state. See `fzf/functions.sh/functions.sh` and `fzf/AGENTS.md`.
 - [ ] show network graph differently when the internet is not accessible
+- [ ] shortcut in _jh, _jhh to output the selected file name
 
 ### Low impact
 
