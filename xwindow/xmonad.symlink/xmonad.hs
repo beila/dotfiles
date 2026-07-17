@@ -438,8 +438,11 @@ raiseFocused = withFocused $ \w -> do
             -- Core purges restack-synthesized EnterNotify before the
             -- logHook runs; our raises here re-synthesize them, and with
             -- focusFollowsMouse they'd yank focus back to the window
-            -- under the pointer. Purge again, like core does.
-            clearEvents enterWindowMask
+            -- under the pointer (e.g. keyboard-cycling from a scratchpad
+            -- float to a tiled window bounces right back). Purge again,
+            -- same guard as core: skip when the change came from the mouse.
+            isMouseFocused <- asks mouseFocused
+            unless isMouseFocused $ clearEvents enterWindowMask
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
