@@ -431,9 +431,15 @@ raiseFocused = withFocused $ \w -> do
     when (w /= prev) $ do
         XS.put (LastFocused w)
         floats <- gets (W.floating . windowset)
-        unless (M.member w floats) $ withDisplay $ \dpy -> io $ do
-            raiseWindow dpy w
-            mapM_ (raiseWindow dpy) (M.keys floats)
+        unless (M.member w floats) $ do
+            withDisplay $ \dpy -> io $ do
+                raiseWindow dpy w
+                mapM_ (raiseWindow dpy) (M.keys floats)
+            -- Core purges restack-synthesized EnterNotify before the
+            -- logHook runs; our raises here re-synthesize them, and with
+            -- focusFollowsMouse they'd yank focus back to the window
+            -- under the pointer. Purge again, like core does.
+            clearEvents enterWindowMask
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
