@@ -124,10 +124,15 @@ classify_cmd() {
             # DEBUG so we keep a trace without paging anyone.
             _LAST_CLASSIFICATION=BENIGN-DEL
             log DEBUG "BENIGN-DEL $tag: $(head -1 "$err")"
-        elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing' "$err"; then
+        elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing|fine to retry your request' "$err"; then
             # 'Another user is currently pushing' is gitfarm's message when the
             # repo is locked by a concurrent git-receive-pack. Transient — the
             # next sync_repo run will retry.
+            # 'fine to retry your request' is gitfarm's own transient marker: its
+            # internal-error banner ("We're sorry, we failed to handle your
+            # request!") ends with "In most cases, it's fine to retry your
+            # request." Permanent rejections (no-description, GuardRails) use
+            # different wording and still classify as OTHER-ERR.
             _LAST_CLASSIFICATION=NETWORK-ERR
             log WARN "NETWORK-ERR $tag: $(_summarize_stderr "$err")"
         else
