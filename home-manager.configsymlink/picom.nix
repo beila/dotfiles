@@ -42,6 +42,9 @@
     settings = {
       shadow-radius = 14;
       shadow-color = "#F8BB3D";
+      # A fullscreen window's glow otherwise spills onto the adjacent
+      # monitor, reading as a focus indicator for whatever sits there.
+      crop-shadow-to-monitor = true;
       # xmonad sets _NET_ACTIVE_WINDOW correctly; without this, picom uses
       # FocusIn/Out events which can mark windows on inactive monitors as
       # focused (giving them glow they shouldn't have).
