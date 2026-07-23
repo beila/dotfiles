@@ -27,6 +27,15 @@ export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o ConnectTimeout=10 -o ServerAli
 # that survive ssh-level timeouts (proxy wrappers, DNS stalls, etc.).
 SYNC_REPO_CMD_TIMEOUT=${SYNC_REPO_CMD_TIMEOUT:-60}
 
+# jj 0.42 removed `--allow-new` (new bookmarks now push and auto-track by
+# default); jj ≤0.41 requires it when the bookmark has no tracked remote ref.
+# Probe the help text once so the same script works on both. Expanded
+# UNQUOTED at the call site so the empty case vanishes.
+JJ_PUSH_NEW_FLAG=""
+if jj git push --help 2>/dev/null | grep -qe '--allow-new'; then
+    JJ_PUSH_NEW_FLAG="--allow-new"
+fi
+
 cd "$1" || {
     echo "Error: No such directory as $1"; exit
 }
@@ -421,7 +430,17 @@ step_sync_remote_bookmark() {
     # a sub-repo inherits sync.remote-bookmark via a parent --when.repositories
     # scope but has no `backup` (or whichever) remote of its own. Logged at
     # INFO so it doesn't trip the ERROR notification.
-    if ! jj git remote list 2>/dev/null | awk '{print $1}' | grep -qx "$SYNC_REMOTE"; then
+    #
+    # "jj itself failed" must NOT take this branch: an erroring `jj git
+    # remote list` produces empty output, which is indistinguishable from
+    # "no remotes" unless we check the exit code. Treating it as a benign
+    # skip would silence a broken repo as INFO (no notification).
+    local remotes
+    if ! remotes=$(jj git remote list 2>/dev/null); then
+        log ERROR "REMOTE-LIST-FAIL ${SYNC_BM}@${SYNC_REMOTE}: jj git remote list failed; skipping bookmark sync"
+        return 0
+    fi
+    if ! printf '%s\n' "$remotes" | awk '{print $1}' | grep -qx "$SYNC_REMOTE"; then
         log INFO "SKIP ${SYNC_BM}@${SYNC_REMOTE}: remote '${SYNC_REMOTE}' not configured"
         return 0
     fi
@@ -445,7 +464,7 @@ step_sync_remote_bookmark() {
         # Need a local bookmark for jj git push.
         jj bookmark create "$SYNC_BM" -r "@-" 2>/dev/null \
             || jj bookmark set "$SYNC_BM" -r "@-" --allow-backwards 2>/dev/null
-        if timeout_cmd "push $SYNC_BM (new)" jj git push --remote "$SYNC_REMOTE" --bookmark "$SYNC_BM" --allow-new; then
+        if timeout_cmd "push $SYNC_BM (new)" jj git push --remote "$SYNC_REMOTE" --bookmark "$SYNC_BM" $JJ_PUSH_NEW_FLAG; then
             log INFO "PUSH-OK ${SYNC_BM}@${SYNC_REMOTE} rev=$local_rev (new)"
             # Track post-push so future runs see ${SYNC_BM}@${SYNC_REMOTE}
             # as tracked and can push without --allow-new.
@@ -528,6 +547,37 @@ if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ]; then
     log INFO "NO-SYNC-CONFIG: neither sync.remote-bookmark nor sync.snapshot-url set"
     exit 0
 fi
+
+# --- repo health gate ----------------------------------------------------------
+# The `jj root` gate at the top passes even when the store is corrupted
+# (missing object, unreadable index) — it only resolves the workspace path.
+# Every index-loading call below, however, fails; their stderr is either
+# discarded (`2>/dev/null || true`) or misread as benign (empty `jj git
+# remote list` output looks like "remote not configured" → INFO skip). The
+# run then ends INFO-only: no ERROR, no notification, and no snapshot
+# safety-net push — a silent backup outage. Probe the index once, loudly.
+# --ignore-working-copy keeps the probe read-only (no snapshot side effect).
+step_check_repo_health() {
+    local err rc
+    err=$(mktemp "/tmp/sync_repo_err.XXXXXX")
+    jj log -r @ --no-graph --ignore-working-copy -T '""' >/dev/null 2>"$err"
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        log ERROR "REPO-LOAD-FAIL (rc=$rc): $(_summarize_stderr "$err") -- sync AND snapshot backup skipped until the repo is repaired"
+        if [ -s "$err" ]; then
+            log DEBUG "STDERR-BEGIN repo-health"
+            while IFS= read -r _stderr_line; do
+                log DEBUG "  $_stderr_line"
+            done < "$err"
+            log DEBUG "STDERR-END repo-health"
+        fi
+        cat "$err" >&2
+        rm -f "$err"
+        exit 1
+    fi
+    rm -f "$err"
+}
+step_check_repo_health
 
 jj workspace update-stale 2>/dev/null || true
 

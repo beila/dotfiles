@@ -7,6 +7,7 @@
 #   - no sync config: exits cleanly with NO-SYNC-CONFIG
 #   - conflict divergence: REBASE-CONFLICT, no push
 #   - non-jj repo: silent skip
+#   - corrupted store: REPO-LOAD-FAIL at ERROR, exit 1, no push
 # And asserts the snapshot-first ordering: per-host refs/heads/<MACHINE>/...
 # always land on the snapshot URL even if the bookmark-sync step fails.
 #
@@ -46,6 +47,13 @@ STUB
     chmod +x "$TMPDIR/stubs/$tool"
 done
 export PATH="$TMPDIR/stubs:$PATH"
+
+# jj 0.42 removed `--allow-new` (new bookmarks push by default); ≤0.41 needs
+# it. Same probe as sync_repo so setup pushes work on both.
+JJ_PUSH_NEW_FLAG=""
+if jj git push --help 2>/dev/null | grep -qe '--allow-new'; then
+    JJ_PUSH_NEW_FLAG="--allow-new"
+fi
 
 # Pretend hostname (used as the prefix for snapshot refs) is stable across the
 # test so we can grep for a known string. Without this, the actual machine's
@@ -87,7 +95,7 @@ setup_repo() {
         jj commit -m "initial"
         # After commit, @- is the initial commit. Create master there.
         jj bookmark create master -r @-
-        jj git push --remote backup --bookmark master --allow-new
+        jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
         # Add content to a distinct file so different repos can push without conflict.
         if [ -n "$extra_file" ]; then
             echo "$extra_content" > "$extra_file"
@@ -333,7 +341,7 @@ mkdir -p "$TMPDIR/conflict-base"
     echo "base content" > shared.txt
     jj commit -m "base"
     jj bookmark create master -r @-
-    jj git push --remote backup --bookmark master --allow-new
+    jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
 ) >/dev/null 2>&1
 # Two repos sharing the same base commit_id, with conflicting working-copy edits.
 cp -r "$TMPDIR/conflict-base" "$TMPDIR/repoX"
@@ -503,7 +511,7 @@ mkdir -p "$TMPDIR/repoMultiWs"
     echo init > README.md
     jj commit -m "initial"
     jj bookmark create master -r @-
-    jj git push --remote backup --bookmark master --allow-new
+    jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
     # Add a second workspace alongside the default one.
     jj workspace add "$TMPDIR/repoMultiWs-second"
 ) >/dev/null 2>&1
@@ -578,7 +586,7 @@ mkdir -p "$TMPDIR/repoBigFile"
     echo "init" > README.md
     jj commit -m "initial"
     jj bookmark create master -r @-
-    jj git push --remote backup --bookmark master --allow-new
+    jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
     # Drop a >5MiB file that jj's default snapshot.max-new-file-size won't
     # accept (5MiB hard default).
     head -c 6000000 /dev/zero | tr '\0' 'x' > toobig.txt
@@ -605,7 +613,7 @@ mkdir -p "$TMPDIR/repoCleanForRefusal"
     echo init > README.md
     jj commit -m "initial"
     jj bookmark create master -r @-
-    jj git push --remote backup --bookmark master --allow-new
+    jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
 ) >/dev/null 2>&1
 bash "$SYNC_REPO" "$TMPDIR/repoCleanForRefusal" >/dev/null 2>&1
 if grep -rqE 'REFUSED-SNAPSHOT' "$LOG_ROOT"/*/sync_repo.*repoCleanForRefusal* 2>/dev/null; then
@@ -666,7 +674,7 @@ mkdir -p "$TMPDIR/repoStrictBase"
     echo "init" > README.md
     jj commit -m "initial"
     jj bookmark create master -r @-
-    jj git push --remote backup --bookmark master --allow-new
+    jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
 ) >/dev/null 2>&1
 
 # Two clones diverge: repoP and repoQ, both creating an undescribed commit
@@ -733,6 +741,63 @@ if grep -rqE 'no description set' "$LOG_ROOT"/*/sync_repo.*repoP* "$LOG_ROOT"/*/
     fail=$((fail+1))
 else
     echo "PASS: no 'no description set' rejection in logs"
+    pass=$((pass+1))
+fi
+
+echo
+echo "=== Scenario 14: corrupted store -> REPO-LOAD-FAIL, ERROR, exit 1, no push ==="
+# jj root still succeeds on a corrupted store (it only resolves the workspace
+# path), so sync_repo used to sail past the early checks; every later jj call
+# failed with stderr discarded, `jj git remote list`'s empty erroring output
+# was misread as "remote not configured", and the run ended INFO-only — no
+# notification, no snapshot backup, indefinitely. The health gate must turn
+# this into ERROR + exit 1.
+git -C "$TMPDIR" init --bare -q -b master corrupt-remote.git
+mkdir -p "$TMPDIR/repoCorrupt"
+(
+    cd "$TMPDIR/repoCorrupt"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/corrupt-remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.snapshot-url "$TMPDIR/corrupt-remote.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name  'Test User'
+    echo "initial" > README.md
+    jj commit -m "initial"
+    jj bookmark create master -r @-
+) >/dev/null 2>&1
+# Corrupt: delete @-'s loose git commit object, then drop jj's index cache so
+# the next command must re-index from the git store and hit the missing
+# object — the same "Object <id> of type commit not found" failure seen in
+# production.
+corrupt_id=$(cd "$TMPDIR/repoCorrupt" && jj log -r "@-" --no-graph -T 'commit_id')
+rm -f "$TMPDIR/repoCorrupt/.git/objects/${corrupt_id:0:2}/${corrupt_id:2}"
+rm -rf "$TMPDIR/repoCorrupt/.jj/repo/index"
+run_sync "$TMPDIR/repoCorrupt"
+rc=$?
+check "corrupted store: sync_repo exits 1" "1" "$rc"
+if grep -rqE '\[ERROR\].*REPO-LOAD-FAIL' "$LOG_ROOT"/*/sync_repo.*repoCorrupt* 2>/dev/null; then
+    echo "PASS: log recorded REPO-LOAD-FAIL at ERROR"
+    pass=$((pass+1))
+else
+    echo "FAIL: log missing REPO-LOAD-FAIL ERROR"
+    fail=$((fail+1))
+fi
+corrupt_refs=$(git -C "$TMPDIR/corrupt-remote.git" for-each-ref --format='%(refname)' "refs/heads/${TESTHOST}/*" 2>/dev/null)
+if [ -z "$corrupt_refs" ]; then
+    echo "PASS: no snapshot refs pushed from corrupted repo"
+    pass=$((pass+1))
+else
+    echo "FAIL: corrupted repo pushed refs: $corrupt_refs"
+    fail=$((fail+1))
+fi
+# The misleading benign skip must not appear — the gate exits before
+# step_sync_remote_bookmark can misread the erroring remote list.
+if grep -rqE "SKIP master@backup: remote" "$LOG_ROOT"/*/sync_repo.*repoCorrupt* 2>/dev/null; then
+    echo "FAIL: corrupted repo logged benign 'remote not configured' skip"
+    fail=$((fail+1))
+else
+    echo "PASS: no misleading 'remote not configured' skip for corrupted repo"
     pass=$((pass+1))
 fi
 
