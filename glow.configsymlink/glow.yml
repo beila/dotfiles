@@ -2,8 +2,9 @@
 style: "auto"
 # show local files only; no network (TUI-mode only)
 local: false
-# mouse support (TUI-mode only)
-mouse: true
+# mouse support (TUI-mode only) — off so the terminal keeps native
+# selection/copy instead of glow capturing clicks and drags
+mouse: false
 pager: false
 tui: true
 # word-wrap at width
