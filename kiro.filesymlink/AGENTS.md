@@ -24,6 +24,10 @@
 
 `~/.claude/CLAUDE.md` is auto-loaded into every Claude Code session regardless of project. It just `@`-references the three steering files above. On machines without the work-dotfiles checkout, those `@`-references resolve to nothing — Claude Code handles missing referenced files quietly.
 
+## Global Codex instructions
+
+`~/.codex/AGENTS.md` is Codex's global instruction file (auto-loaded every session). It symlinks to `codex.filesymlink/AGENTS.md`, which is itself a repo-relative symlink to `kiro.filesymlink/steering/instructions.md` — so Kiro, Claude, and Codex all load the same canonical instruction set. Codex has no `say_ko` MCP or Stop-hook TTS; the rule-4 fallback (`요약:` paragraph) still applies but is text-only there.
+
 ## TTS bin
 
 - `kiro.filesymlink/bin/kiro-response` — TTS fallback for kiro chat output.

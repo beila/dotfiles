@@ -1,0 +1,1 @@
+../kiro.filesymlink/steering/instructions.md
