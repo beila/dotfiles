@@ -15,6 +15,12 @@ vim.lsp.config.harper_ls = {
             linters = {
                 -- notes/TODO bullets here start lowercase by convention
                 SentenceCapitalization = false,
+                -- dictionary-based: flags EVERY word not in its dictionary
+                -- (possessives of allowlisted words, any new technical term
+                -- — 300+ hits on a systems-design doc). Spelling belongs to
+                -- built-in :set spell / codespell (typo-list-based), which
+                -- share en.utf-8.add without the unknown-word false positives.
+                SpellCheck = false,
             },
         },
     },
