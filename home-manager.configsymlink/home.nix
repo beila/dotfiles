@@ -98,6 +98,25 @@ in
         "W503"
       ];
     } (builtins.readFile ../xwindow/bin/battery-osd.py))
+    # zoom-osd: battery-osd-style overlay when a Zoom desktop notification
+    # arrives. Daemon monitors org.freedesktop.Notifications.Notify on the
+    # session bus (BecomeMonitor) — observes without replacing the daemon.
+    (pkgs.writers.writePython3Bin "zoom-osd" {
+      libraries =
+        with pkgs.python3Packages;
+        [
+          pycairo
+          xlib
+          dbus-python
+          pygobject3
+        ]
+        ++ [ osd ];
+      flakeIgnore = [
+        "E501"
+        "E731"
+        "W503"
+      ];
+    } (builtins.readFile ../xwindow/bin/zoom-osd.py))
     # hangul-osd: persistent overlay while ibus's current engine is hangul.
     # Same osd-library pattern as battery-osd, plus PyGObject for the IBus
     # D-Bus signal subscription (no polling). The wrapper script sources

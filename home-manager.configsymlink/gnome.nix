@@ -116,4 +116,23 @@
       WantedBy = [ "graphical-session.target" ];
     };
   };
+
+  # zoom-osd: battery-osd-style overlay when a Zoom desktop notification
+  # arrives. Monitors org.freedesktop.Notifications.Notify on the session
+  # bus (push, no polling) — same daemon lifecycle as hangul-osd.
+  systemd.user.services.zoom-osd = {
+    Unit = {
+      Description = "Zoom notification OSD";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${config.home.profileDirectory}/bin/zoom-osd";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
 }
