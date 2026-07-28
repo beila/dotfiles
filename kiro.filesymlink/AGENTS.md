@@ -12,6 +12,10 @@
 
 - `settings/cli.json` — default agent: `builder`; default model: `claude-opus-4.7`.
 
+## Skills (`skills/`)
+
+Shared-skill symlinks: each entry points repo-relatively at `../../../.agents/skills/<name>` (the cross-tool skill store used by Claude via `claude.symlink/skills`). Bootstrap's `*.filesymlink` walk materializes them per-file under `~/.kiro/skills/<name>/…` (it follows symlinks with `find -L`). `~/.kiro/skills/artifactory-design` is NOT ours — it's installed/managed by artifactory-mcp (`.managed-by-artifactory-mcp` marker); leave it alone.
+
 ## Steering files
 
 `~/.kiro/steering/` symlinks pull from two roots (bootstrap walks every `*.filesymlink/` it finds at `-maxdepth 3`):
