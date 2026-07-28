@@ -194,8 +194,9 @@ in
     sqls                               # sql         LSP        my-sql.lua
     sqlfluff                           # sql         lint+fmt   nvim-lint.lua
 
-    # text
-    vale                               # text        linter     nvim-lint.lua
+    # text (prose: text/markdown/gitcommit/…)
+    vale                               # text/md     linter     nvim-lint.lua
+    harper                             # text/md     LSP        harper.lua (harper_ls grammar checker + harper-cli)
 
     # toml
     taplo                              # toml        LSP+all    my-toml.lua
