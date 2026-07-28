@@ -12,6 +12,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [x] skip commands in skip list even when running with nix run, npx, uvx. When TUI command is detected with nix run, npx, uvx, add the correct package to the skip list — `_logrun_resolve_runner` in `zsh/zz-logrun-auto.zsh` resolves the effective command name through runner wrappers (`nix run nixpkgs#htop` → `htop`). Also checks the last pipeline stage (`xxx | bat` → skips if `bat` is in skiplist). The widget passes `--name <resolved>` to logrun so TUI auto-detection adds the correct name.
 - [x] Add a way for commands to disable logrun from themselves — `bin/logrun-nolog`: call from inside a recipe/script to opt out of logging. logrun exports `$LOGRUN_NOLOG_FILE`; the helper writes to it; logrun deletes the log on exit. Added to `just mwinit` in `work-dotfiles/recurse-brazil/recurse-brazil.just`.
 - [x] Add a way to add NOLOG=1 more easily even after typing all the command line — Alt+Enter (`\e^M`) prepends `NOLOG=1 ` to the buffer and submits; history records the full `NOLOG=1 cmd`. Widget `_logrun_nolog_accept_line` in `zsh/zz-logrun-auto.zsh`.
+- [ ] set up harper and vale for neovim and for kiro/claude/codex hook after modifying markdown files (https://lukicdejan.com/writing-editing-stack/)
 
 ### Medium impact
 
