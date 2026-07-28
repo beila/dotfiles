@@ -13,6 +13,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [x] Add a way for commands to disable logrun from themselves — `bin/logrun-nolog`: call from inside a recipe/script to opt out of logging. logrun exports `$LOGRUN_NOLOG_FILE`; the helper writes to it; logrun deletes the log on exit. Added to `just mwinit` in `work-dotfiles/recurse-brazil/recurse-brazil.just`.
 - [x] Add a way to add NOLOG=1 more easily even after typing all the command line — Alt+Enter (`\e^M`) prepends `NOLOG=1 ` to the buffer and submits; history records the full `NOLOG=1 cmd`. Widget `_logrun_nolog_accept_line` in `zsh/zz-logrun-auto.zsh`.
 - [ ] set up harper and vale for neovim and for kiro/claude/codex hook after modifying markdown files (https://lukicdejan.com/writing-editing-stack/)
+- [ ] alias generated from just recipe should have --justfile specified
 
 ### Medium impact
 
