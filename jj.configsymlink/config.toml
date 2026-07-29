@@ -149,7 +149,7 @@ separate("", diff.files().map(|f|
 # path from xfce settings"). Until that's resolved, exclude it here.
 [fix.tools.generalize-paths]
 command = ["sh", "-c", '"$DOTFILES_ROOT/script/bin/generalize-paths"', "_"]
-patterns = ["all() ~ glob:'**/xfce4-panel.xml'"]
+patterns = ["all() ~ glob:'codex.symlink/config.toml' ~ glob:'**/xfce4-panel.xml'"]
 
 # clang-format on the C/C++/Obj-C/proto family. `--style=file` walks parents
 # for `.clang-format`; `--fallback-style=none` makes it a stdin->stdout
