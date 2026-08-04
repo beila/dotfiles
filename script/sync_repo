@@ -57,7 +57,26 @@ jj root &>/dev/null || exit 0
 LOCK_PATH=$(jj git root 2>/dev/null || echo "$1")
 LOCKFILE="/tmp/sync_repo_$(echo "$LOCK_PATH" | tr / _).lock"
 exec 9>"$LOCKFILE"
-flock -n 9 || { echo "sync_repo already running for $LOCK_PATH, skipping"; exit 0; }
+# fd 9 is inherited across exec (bash marks neither `9>` nor `{fd}>` as
+# close-on-exec), so ANY child that daemonizes keeps the lock alive forever and
+# wedges this repo's sync permanently — every later run then exits right here.
+# Two real offenders: claude's telemetry sidecar (`claude __otel-server` +
+# otelcol-contrib, which reparent to systemd and survive commit-msg's
+# `timeout`), and ssh ControlMaster mux processes from git push. Long-lived
+# children therefore get `9>&-` at their call sites (see run_without_lock).
+# Name the holders when we bail so a leak is diagnosable instead of silent.
+if ! flock -n 9; then
+    holders=$(fuser "$LOCKFILE" 2>/dev/null | tr -s ' ' || true)
+    echo "sync_repo already running for $LOCK_PATH, skipping (lock held by:${holders:- unknown})"
+    exit 0
+fi
+
+# Run a command with the lock fd closed, so a daemonizing child can't inherit
+# the flock. Use for anything that may outlive us: LLM CLIs, git/ssh network
+# calls.
+run_without_lock() {
+    "$@" 9>&-
+}
 
 # --- structured logging + error classification --------------------------------
 # Use log.sh's local default (~/.local/state/logs/) instead of the inherited
@@ -190,7 +209,7 @@ push_force_replace() {
 # $SYNC_REPO_CMD_TIMEOUT + 10s.
 timeout_cmd() {
     local tag=$1; shift
-    classify_cmd "$tag" timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" "$@"
+    classify_cmd "$tag" run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" "$@"
 }
 
 # --- jj branch helpers --------------------------------------------------------
@@ -207,7 +226,7 @@ snapshot_at_to_push_rev() {
     if [ "$is_empty" = "0" ] || [ "$is_merge" = "1" ]; then
         jj new
         if [ "$is_empty" = "0" ] && [ "$has_desc" = "0" ]; then
-            if ! msg=$(VERBOSE=1 "$DOTFILES_ROOT/bin/commit-msg" "$change_id"); then
+            if ! msg=$(VERBOSE=1 run_without_lock "$DOTFILES_ROOT/bin/commit-msg" "$change_id"); then
                 echo "commit-msg failed" >&2
                 exit 1
             fi
@@ -242,7 +261,7 @@ step_describe_local_chain() {
     # change_id per line (or nothing for commits we skip).
     while IFS= read -r change_id; do
         [ -n "$change_id" ] || continue
-        if ! msg=$("$DOTFILES_ROOT/bin/commit-msg" "$change_id" 2>/dev/null); then
+        if ! msg=$(run_without_lock "$DOTFILES_ROOT/bin/commit-msg" "$change_id" 2>/dev/null); then
             log WARN "DESCRIBE-FAIL $change_id: commit-msg failed; leaving undescribed"
             continue
         fi

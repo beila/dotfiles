@@ -63,16 +63,18 @@ Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget r
 `zz-logrun-auto.zsh` overrides the `accept-line` widget so every interactive prompt command runs through `logrun --auto`. The widget classifies the typed buffer and rewrites it before `zle .accept-line`:
 
 - **Externals** (`whence -w` says `command` or `alias`) → `logrun --auto --no-zshrc -- $BUFFER`. The widget pre-expands aliases up to 8 hops in pure shell (no fork) so `gst` reaches `logrun` as `git status`. Per-prompt overhead ≈ 10ms (no `zsh -ic` replay).
-- **Functions in `LOGRUN_AUTO_FUNCTIONS`** → `logrun --auto -c "<orig-buffer>"`. Slow path (~800ms `zsh -ic` startup), but only for the wrapper-style functions explicitly opted in. The widget pre-populates with the long-running wrappers in `zsh/functions/` (`j n ji ni jr njr nijr sync-rsync sync-ssh docker_here docker_here_t docker_here_with_t`); append from `private-dotfiles/` for machine-specific entries (`LOGRUN_AUTO_FUNCTIONS+=( my_long_func )`).
+- **Functions in `LOGRUN_AUTO_FUNCTIONS`** → `logrun --auto -c "<orig-buffer>"`. Slow path (~800ms `zsh -ic` startup), but only for wrapper-style functions explicitly opted in. The widget pre-populates long-running wrappers in `zsh/functions/`; `bin/logrun-auto-functions` and private `LOGRUN_AUTO_FUNCTIONS+=( my_long_func )` entries are additive, while `bin/logrun-auto-functions-disabled` overrides both. Use `logrun-auto-function add NAME` / `remove NAME` for persistent changes.
 - **Functions NOT in the list, builtins, reserved words, `cd`** → no rewrite. Wrapping these would either be wasteful (short utility functions) or break parent-shell side effects (`cd`, `export`, `source`).
 - **TUIs** (first word in `LOGRUN_TUI_SKIPLIST`) → no rewrite. Curses-style apps break under any stdout pipe; canonical list is in `home-manager.configsymlink/home.nix` so it tracks what's actually installed.
 - **`logrun` re-entry / `NOLOG=1` prefix** → no rewrite (idempotency / per-call opt-out).
+
+Auto-tuning uses first-position `preexec`/`precmd` hooks and `zsh/datetime`. For listed functions, the parent shell measures total elapsed time while the child `zsh -ic` writes its post-zshrc function duration plus logrun's reveal/exit metadata through a private timing file. A successful wrapped function that stays below both time and line thresholds and has `total - function > 200ms` suggests removal; a successful unwrapped function exceeding `$LOGRUN_AUTO_SECONDS` suggests addition. Failures and interrupted/incomplete timing records are ignored. Advice prints `logrun-auto-function {add|remove} NAME`, copies that exact command through `c` (with native clipboard fallbacks), and deduplicates once per shell session/name. Set `LOGRUN_AUTO_TUNING=0` to disable advice.
 
 History: a `zshaddhistory` hook restores the user-typed buffer before zsh records the line, so `↑` recalls `gst` (not `logrun --auto --no-zshrc -- git status`). Side effect: the visible command line shown in scrollback above the output is the rewritten wrapper, not the original — copy-paste from scrollback is suboptimal but execution and history are correct.
 
 Composes correctly with `zsh-syntax-highlighting` and `zsh-autosuggestions`: those wrap `accept-line` themselves on load; the `zz-` filename prefix guarantees our widget loads after them so we run first and rewrite before they re-execute the saved chain.
 
-Test harness: `zsh/test_logrun-auto.sh` — classifier, rewrite, history, end-to-end where the widget rewrites a buffer and we actually invoke the resulting `logrun --auto` command and observe behavior. Drive: `bash zsh/test_logrun-auto.sh`.
+Test harness: `zsh/test_logrun-auto.sh` — classifier, exclusions/helper state, rewrite/history, tuning decisions, clipboard + session deduplication, timing-prefix integration, and end-to-end logrun behavior. E2E commands use `</dev/null` so the PTY layer cannot consume the harness heredoc. Drive: `bash zsh/test_logrun-auto.sh`.
 
 ## Known issues
 

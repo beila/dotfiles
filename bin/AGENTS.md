@@ -38,13 +38,17 @@ Other env: `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SEC
 
 The accept-line widget at `zsh/zz-logrun-auto.zsh` is the user-facing entry point — it auto-wraps interactive prompt commands in `logrun --auto`. See `zsh/AGENTS.md` for widget details.
 
+For listed-function tuning, the widget sets private `$LOGRUN_AUTO_TIMING_FILE` only on `-c` calls. After zshrc loads, logrun instruments the shell body and writes `in_cmd_seconds`, then appends `revealed` and `exit_code` after disposition. The parent widget compares that child-only duration with total prompt-command time; this side channel is internal, and missing or failed records produce no advice.
+
+Companion `bin/logrun-auto-function {add|remove} NAME` applies the exact persistent command printed and copied by tuning advice. `add` ensures the additive file contains the name and clears any exclusion; `remove` records an exclusion, which can disable names seeded in `$LOGRUN_AUTO_FUNCTIONS` without editing shell code.
+
 Companion `bin/logrun-nolog` opts out of logging from inside the wrapped command. Call it at the start of a recipe/script that should never be logged (e.g. interactive commands requiring stdin like `mwinit -o`). logrun checks `$LOGRUN_NOLOG_FILE` (a side-channel marker file, same pattern as the move handshake) after the command exits — if non-empty, the log is deleted unconditionally regardless of exit code or threshold state. Safe to call unconditionally (no-op outside logrun).
 
 Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a different directory mid-run (preserves the filename); only works when invoked as a descendant of `logrun` since it talks to the wrapper via `$LOGRUN_PID` / `$LOGRUN_MOVE_FILE`.
 
 Companion `bin/logrun-decorator` (Python stdlib only) is the `--auto` decorator: stays as plain `cat` until `--activate-when-exists <marker>` becomes truthy (or it receives `SIGUSR2`), then emits spacer-style horizontal lines at output pauses + an `idle Ns` stderr indicator. logrun's awk filter touches the marker synchronously when the threshold trips so the decorator activates mid-run (relying on bash's USR2 trap would defer activation until after the pipeline ends).
 
-Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors, `--auto` thresholds + invisibility + reveal + FAILED rename + alt-screen hint, `--no-zshrc` fast path).
+Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors, `--auto` thresholds + invisibility + reveal + FAILED rename + alt-screen hint, `--no-zshrc` fast path, and private function-timing metadata).
 
 ## Commit message generator
 
@@ -102,7 +106,9 @@ No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own),
 
 ## logrun config files (cross-machine, in this dir)
 
-- `logrun-auto-functions` — committed list of function names that the `zz-logrun-auto.zsh` widget should wrap (slow `zsh -ic` path). Read at widget load time. `.gitattributes` maps to `merge=union-dedupe` so concurrent appends from different machines auto-merge.
+- `logrun-auto-functions` — committed additive function list, read with an mtime cache on each prompt. `.gitattributes` maps it to `merge=union-dedupe` so concurrent additions auto-merge.
+- `logrun-auto-functions-disabled` — committed exclusion list that overrides both the additive file and `$LOGRUN_AUTO_FUNCTIONS`; it uses normal merging because `add` removes an existing exclusion.
+- `logrun-auto-function` — management CLI used by copied advice commands; it updates the additive/exclusion files idempotently.
 - `logrun-tui-skiplist` — committed list of curses-style commands `logrun --auto` saw with alt-screen escapes. The widget skips wrap for these so the TUI doesn't break under any pipe. Auto-extended by `bin/logrun` when an unknown TUI is detected. `.gitattributes` maps to `merge=union` for cross-machine merging. (The `LOGRUN_TUI_SKIPLIST` env var in `home.nix` is a separate, in-process baseline — both feed the same skip check.)
 
 ## Spell check (matches nvim)

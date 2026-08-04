@@ -8,4 +8,6 @@
 # after sync. resolve-by-attrs (script/bin/) reads the same gitconfig
 # driver entry, so jj/sync_repo auto-resolves identically.
 bin/logrun-tui-skiplist     merge=union-dedupe
+# logrun-auto-functions-disabled intentionally uses normal merging because
+# re-enabling a function removes its exclusion rather than appending a line.
 bin/logrun-auto-functions   merge=union-dedupe

@@ -180,6 +180,18 @@ _check "rewrite: TUI"               "less foo.txt"                            "$
 _check "rewrite: builtin"           "cd /tmp"                                 "$(_rewrite 'cd /tmp')"
 _check "rewrite: NOLOG"             "NOLOG=1 sleep 30"                        "$(_rewrite 'NOLOG=1 sleep 30')"
 
+# Tuning adds a private timing file only to listed function rewrites.
+LOGRUN_AUTO_TUNING=1
+LOGRUN_AUTO_TUNING_TEST=1
+BUFFER="my_long_func"
+_logrun_auto_accept_line
+[[ "$BUFFER" == LOGRUN_AUTO_TIMING_FILE=*" logrun --auto -c my_long_func" ]] && ok=1 || ok=0
+_check "rewrite: timed function carries side channel" "1" "$ok"
+_check "rewrite: timing file allocated" "1" "$([[ -f "$_logrun_tune_file" ]] && echo 1 || echo 0)"
+_logrun_tune_clear
+unset LOGRUN_AUTO_TUNING_TEST
+LOGRUN_AUTO_TUNING=0
+
 # ---- history hook captures original ----
 BUFFER="ls -la"
 _logrun_auto_accept_line
@@ -213,6 +225,18 @@ _logrun_tune_suggest add sample_fn 12 0 2> "$_ADVICE_FILE"
 _check "advice: once per session/name" "" "$(<"$_ADVICE_FILE")"
 _logrun_tune_suggest add slow_fn 12 0 2> "$_ADVICE_FILE"
 _check "advice: add command copied" "logrun-auto-function add slow_fn" "$(<"$_CLIP_FILE")"
+
+_TIMING_FILE=$(mktemp /tmp/test-logrun-auto-timing.XXXXXX)
+printf 'in_cmd_seconds=0.5\nrevealed=0\nexit_code=0\n' > "$_TIMING_FILE"
+_logrun_tune_mode=wrapped
+_logrun_tune_name=timed_fn
+_logrun_tune_file=$_TIMING_FILE
+_logrun_tune_started=$(( EPOCHREALTIME - 1.0 ))
+: > "$_ADVICE_FILE"
+true
+_logrun_tune_precmd 2> "$_ADVICE_FILE"
+_check "precmd: metadata produces copied command" "logrun-auto-function remove timed_fn" "$(<"$_CLIP_FILE")"
+_check "precmd: timing file cleaned" "0" "$([[ -e "$_TIMING_FILE" ]] && echo 1 || echo 0)"
 unfunction c
 rm -f "$_CLIP_FILE" "$_ADVICE_FILE"
 # These cases run the rewritten BUFFER in the same shell and observe the
@@ -228,7 +252,7 @@ _e2e_run() {
     BUFFER="$input"
     _logrun_auto_accept_line
     local cmd="$BUFFER"
-    eval "$@ $cmd" 2>&1
+    eval "$@ $cmd" </dev/null 2>&1
     return $?
 }
 

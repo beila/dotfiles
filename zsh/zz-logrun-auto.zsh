@@ -5,7 +5,7 @@
 # zsh glob, so our `accept-line` override sits OUTSIDE the wrappers
 # installed by zsh-syntax-highlighting / zsh-autosuggestions.
 #
-# See AGENTS.md "automatically use logrun" TODO for full requirements.
+# See zsh/AGENTS.md "logrun-auto widget" for behavior and timing design.
 
 # Re-source guard: our widget would call itself if installed twice.
 (( ${+functions[_logrun_auto_accept_line]} )) && return 0
