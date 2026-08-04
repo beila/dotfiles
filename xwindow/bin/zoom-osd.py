@@ -90,11 +90,19 @@ def _format_text(summary: str, body: str) -> str:
 
 
 _child_pid: int | None = None
+# _show/_hide are called from the dbus-monitor loop (main thread) AND the
+# X window-watcher thread.
+_show_lock = threading.Lock()
 
 
 def _show(text: str, duration: float) -> None:
+    with _show_lock:
+        _show_locked(text, duration)
+
+
+def _show_locked(text: str, duration: float) -> None:
     global _child_pid
-    _hide()
+    _hide_locked()
     pid = os.fork()
     if pid == 0:
         try:
@@ -106,6 +114,11 @@ def _show(text: str, duration: float) -> None:
 
 
 def _hide() -> None:
+    with _show_lock:
+        _hide_locked()
+
+
+def _hide_locked() -> None:
     global _child_pid
     if _child_pid is None:
         return
@@ -233,6 +246,18 @@ def _run_daemon(duration: float) -> int:
         sys.exit(0)
     signal.signal(signal.SIGTERM, _cleanup)
     signal.signal(signal.SIGINT, _cleanup)
+
+    # Zoom's meeting-invite popup is its own X window, not a
+    # freedesktop notification — watch for it in parallel.
+    win_re = re.compile(os.environ.get("ZOOM_OSD_WINDOW_REGEX",
+                                       DEFAULT_WINDOW_REGEX))
+
+    def _on_window(title: str) -> None:
+        sys.stderr.write(f"zoom-osd: window: {title}\n")
+        _show(_format_text("Zoom meeting reminder", ""), duration)
+
+    threading.Thread(target=_watch_windows, args=(win_re, _on_window),
+                     daemon=True).start()
 
     for app_name, summary, body in _notify_events(proc.stdout):
         if app_re.search(app_name):
