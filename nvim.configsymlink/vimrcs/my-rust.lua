@@ -1,7 +1,5 @@
 -- Rust: LSP, DAP, linter, formatter
--- rust-analyzer comes from Builder Toolbox (~/.toolbox/bin), not nix — the
--- internal build matches Amazon's rustc, avoiding proc-macro ABI mismatches
--- against CargoBrazil toolchains. See nvim.nix for the install commands.
+-- rust-analyzer comes from work-dotfiles, not nix.
 -- Tools installed via nix in nvim.nix:
 --   clippy, rustfmt, rustaceanvim
 -- Tools installed via Mason in mason.lua: codelldb (DAP config in nvim-dap.lua)

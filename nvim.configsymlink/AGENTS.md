@@ -38,7 +38,7 @@ LSP via `vim.lsp.config.NAME = { ... }` + `vim.lsp.enable('NAME')`, DAP, filetyp
 
 Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-css, my-docker, my-glsl, my-haskell, my-html, my-java, my-jinja, my-js (js/ts), my-json, my-just, my-kotlin, my-lua, my-markdown, my-nim, my-nix, my-python, my-rust (rustaceanvim, not vim.lsp.config), my-sql, my-text, my-toml, my-vim, my-xml, my-yaml.
 
-Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analyzer**, which comes from Builder Toolbox (`bt-rust` registry, `toolbox install --channel head rust-analyzer`) so it matches Amazon's internal rustc — the nixpkgs build drifts and hits proc-macro server ABI mismatches against CargoBrazil toolchains. `~/.toolbox/bin` precedes `~/.nix-profile/bin` in `$PATH`.
+Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analyzer**, which is configured from `work-dotfiles/`.
 
 ## Shared config
 
