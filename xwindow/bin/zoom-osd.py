@@ -50,6 +50,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import threading
 
 from osd import OSDStyle, display_on_all_monitors, render_surface
 
