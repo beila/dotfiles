@@ -5,6 +5,12 @@ zprezto.symlink
 private-dotfiles
 work-dotfiles
 
+# Only our own steering file is tracked. Vendor tooling re-seeds its own
+# steering docs into this directory (and recreates them when deleted), so
+# ignore everything else here rather than committing tool-managed files.
+/kiro.filesymlink/steering/*
+!/kiro.filesymlink/steering/instructions.md
+
 # `home-manager build` / `nix build` output symlinks. Targets are machine-
 # specific (/nix/store hashes), so committing them just churns history with
 # unreproducible refs.
