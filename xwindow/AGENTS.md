@@ -82,6 +82,14 @@ Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: Jet
 
 `bin/battery-osd.py` is a thin invocation script (argparse → call into the `osd` library), built as the `battery-osd` binary via `pkgs.writers.writePython3Bin` in `home.nix`.
 
+## Zoom notification OSD
+
+`bin/zoom-osd.py` — battery-osd-style overlay (Zoom blue `#2D8CFF`, centered, `height_frac 0.25`, 6 s default) whenever a Zoom desktop notification appears. Long-lived daemon (`systemd.user.services.zoom-osd` in `gnome.nix`, same lifecycle as hangul-osd) that spawns `dbus-monitor "type='method_call',…member='Notify'"` and parses its stdout for `org.freedesktop.Notifications.Notify` calls — observes every notification without replacing gnome-flashback's notification daemon. App filter: `$ZOOM_OSD_APP_REGEX` (default `zoom`, case-insensitive) against the Notify `app_name`. Fork-per-show like hangul-osd so a render crash never kills the monitor loop; a new notification preempts the previous overlay.
+
+- **Why dbus-monitor, not dbus-python `BecomeMonitor`**: a dbus-python private connection granted BecomeMonitor never delivered the method-call messages to `add_message_filter` (only its own NameAcquired/NameLost signals arrived). `dbus-monitor` is the proven consumer of the monitoring interface, so the daemon parses its text output instead. Binary pinned via `$ZOOM_OSD_DBUS_MONITOR` by the `writeShellScriptBin` wrapper in `home.nix`.
+- **Parser contract**: per Notify call, the first 4 `string "…"` argument lines are app_name/app_icon/summary/body; `array [` terminates the fixed args (multi-line bodies lose their tail — acceptable for a glanceable OSD).
+- Test modes: `zoom-osd --show "text"` (render once and exit), `zoom-osd --render-png PATH` (offline), or `notify-send --app-name=Zoom summary body` against the running service for the full path.
+
 ## Hangul (Korean input) OSD
 
 `bin/hangul-osd.py` — persistent overlay shown on every monitor while ibus-hangul is in Hangul mode. Long-lived systemd user service (`systemd.user.services.hangul-osd` in `gnome.nix`, `PartOf=graphical-session.target`). Built as a `writeShellScriptBin` wrapper that exports `GI_TYPELIB_PATH` and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl — see `home-manager.configsymlink/AGENTS.md`.

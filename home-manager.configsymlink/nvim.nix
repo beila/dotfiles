@@ -185,10 +185,16 @@ in
     ruff                               # python      lint+fmt   my-python.lua
 
     # rust
-    rust-analyzer                      # rust        LSP        my-rust.lua (rustaceanvim)
+    # rust-analyzer                    # rust        LSP        my-rust.lua (Builder Toolbox, not nix — see below)
     # codelldb                         # rust        DAP        my-rust.lua (mason, shared with c/c++)
     clippy                             # rust        linter     my-rust.lua (via rust-analyzer)
     rustfmt                            # rust        formatter  my-rust.lua (via rust-analyzer)
+    # rust-analyzer comes from Builder Toolbox (bt-rust registry), NOT nix:
+    #   toolbox registry add s3://buildertoolbox-registry-bt-rust-registry-us-west-2/tools.json
+    #   toolbox install --channel head rust-analyzer
+    # Amazon's CargoBrazil packages need a rust-analyzer built against the same
+    # internal rustc; the nixpkgs one drifts and hits proc-macro server ABI
+    # mismatches. ~/.toolbox/bin precedes ~/.nix-profile/bin in $PATH.
 
     # sql
     sqls                               # sql         LSP        my-sql.lua

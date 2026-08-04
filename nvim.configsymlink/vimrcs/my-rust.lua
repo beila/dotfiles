@@ -1,6 +1,9 @@
 -- Rust: LSP, DAP, linter, formatter
+-- rust-analyzer comes from Builder Toolbox (~/.toolbox/bin), not nix — the
+-- internal build matches Amazon's rustc, avoiding proc-macro ABI mismatches
+-- against CargoBrazil toolchains. See nvim.nix for the install commands.
 -- Tools installed via nix in nvim.nix:
---   rust-analyzer, clippy, rustfmt, rustaceanvim
+--   clippy, rustfmt, rustaceanvim
 -- Tools installed via Mason in mason.lua: codelldb (DAP config in nvim-dap.lua)
 -- clippy runs as rust-analyzer check command (no nvim-lint needed)
 -- rustfmt runs via rust-analyzer formatting (no external call needed)
