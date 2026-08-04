@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Persistently enable or disable logrun auto-wrapping for one zsh function.
+
+set -euo pipefail
+
+usage() {
+    echo "Usage: logrun-auto-function {add|remove} FUNCTION" >&2
+    exit 2
+}
+
+[[ $# -eq 2 ]] || usage
+action=$1
+name=$2
+[[ "$action" == "add" || "$action" == "remove" ]] || usage
+[[ "$name" =~ ^[[:alnum:]_.:+-]+$ ]] || {
+    echo "logrun-auto-function: invalid function name: $name" >&2
+    exit 2
+}
+
+root="${DOTFILES_ROOT:-$HOME/.dotfiles}"
+enabled_file="${LOGRUN_AUTO_FUNCTIONS_FILE:-$root/bin/logrun-auto-functions}"
+disabled_file="${LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE:-$root/bin/logrun-auto-functions-disabled}"
+
+ensure_file() {
+    local file=$1 header=$2
+    mkdir -p "$(dirname "$file")"
+    if [[ ! -e "$file" ]]; then
+        printf '%s\n' "$header" > "$file"
+    fi
+}
+
+has_line() {
+    local file=$1
+    [[ -f "$file" ]] && grep -Fxq -- "$name" "$file"
+}
+
+remove_line() {
+    local file=$1 tmp
+    [[ -f "$file" ]] || return
+    tmp=$(mktemp "${file}.tmp.XXXXXX")
+    grep -Fvx -- "$name" "$file" > "$tmp" || true
+    chmod --reference="$file" "$tmp" 2>/dev/null || true
+    mv "$tmp" "$file"
+}
+
+ensure_file "$enabled_file" \
+    "# logrun auto-wrap function list (cross-machine). One function name per line."
+ensure_file "$disabled_file" \
+    "# Functions excluded from logrun auto-wrapping. One function name per line."
+
+case "$action" in
+    add)
+        has_line "$enabled_file" || printf '%s\n' "$name" >> "$enabled_file"
+        remove_line "$disabled_file"
+        echo "logrun-auto-function: enabled '$name'"
+        ;;
+    remove)
+        has_line "$disabled_file" || printf '%s\n' "$name" >> "$disabled_file"
+        echo "logrun-auto-function: disabled '$name'"
+        ;;
+esac

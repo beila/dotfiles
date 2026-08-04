@@ -1,0 +1,5 @@
+# Functions excluded from logrun auto-wrapping. One function name per line.
+#
+# This file overrides both LOGRUN_AUTO_FUNCTIONS and
+# bin/logrun-auto-functions. Use `logrun-auto-function add NAME` or
+# `logrun-auto-function remove NAME`; do not edit it for routine tuning.
