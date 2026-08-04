@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # zmx-select — interactive fzf picker for zmx sessions
 #
-# Lists existing zmx sessions with scrollback preview. Actions:
+# Lists existing zmx sessions with live scrollback preview. Actions:
 #   Enter    — attach to the highlighted session (or create with typed query if no match)
 #   Ctrl-N   — create a new session with the typed query; auto-suffixes -2, -3, ...
 #              if that name is already in use
@@ -45,7 +45,7 @@ output=$(echo "$display" | fzf \
     --reverse \
     --prompt="zmx> " \
     --header="Enter: attach | Ctrl-N: new session (auto-suffix if name exists) | Ctrl-C: exit" \
-    --preview='zmx history {1} 2>/dev/null | tail -500' \
+    --preview='sh -c '\''zmx history "$1" 2>/dev/null | tail -500; exec zmx tail "$1" 2>/dev/null'\'' _ {1}' \
     --preview-window=right:60%:follow \
     --query="$initial_query") || rc=$?
 
