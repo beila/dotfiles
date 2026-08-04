@@ -20,6 +20,16 @@ case-insensitive), fork a child running display_on_all_monitors() for a
 few seconds — fork-per-show exactly like hangul-osd, so a crash in the
 X/render path never takes down the monitor loop.
 
+Second trigger — Zoom's own popup window: the Linux client does NOT call
+org.freedesktop.Notifications for meeting invites; it draws its own X
+window titled `zoom_linux_float_message_reminder`. A daemon thread
+watches root SubstructureNotify and fires the OSD on the first MapNotify
+of a newly *created* window whose title matches $ZOOM_OSD_WINDOW_REGEX.
+The created-set handshake keeps workspace-switch remaps (xmonad
+unmaps/remaps the copyToAllHook'd popup on every switch) from
+retriggering. Limitation: if Zoom updates an already-open reminder
+window in place for a later notification, no event fires.
+
 Deps (via home-manager: writers.writePython3Bin with libraries=[osd]):
     osd (pycairo + python-xlib transitively)
     dbus-monitor binary ($ZOOM_OSD_DBUS_MONITOR, else PATH)
@@ -54,6 +64,7 @@ STYLE = OSDStyle(
 
 DEFAULT_DURATION = 6.0
 DEFAULT_APP_REGEX = "zoom"
+DEFAULT_WINDOW_REGEX = "zoom_linux_float_message_reminder"
 
 MATCH_RULE = ("type='method_call',"
               "interface='org.freedesktop.Notifications',member='Notify'")
