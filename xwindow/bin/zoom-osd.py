@@ -53,6 +53,7 @@ import sys
 import threading
 
 from osd import OSDStyle, display_on_all_monitors, render_surface
+from Xlib import X, Xatom, display
 
 
 # Zoom brand blue (#2D8CFF), same alpha/geometry family as battery-osd
@@ -138,6 +139,51 @@ def _on_sigchld(*_a) -> None:
 def _dbus_monitor_bin() -> str | None:
     return (os.environ.get("ZOOM_OSD_DBUS_MONITOR")
             or shutil.which("dbus-monitor"))
+
+
+def _window_title(dpy, win) -> str:
+    """_NET_WM_NAME with WM_NAME fallback; '' on any race with a window
+    that's already gone."""
+    try:
+        net_wm_name = dpy.get_atom("_NET_WM_NAME")
+        utf8 = dpy.get_atom("UTF8_STRING")
+        prop = win.get_full_property(net_wm_name, utf8)
+        if prop is None:
+            prop = win.get_full_property(Xatom.WM_NAME, Xatom.STRING)
+        if prop is None or not prop.value:
+            return ""
+        raw = prop.value
+        return raw.decode("utf-8", "replace") if isinstance(raw, bytes) else str(raw)
+    except Exception:
+        return ""
+
+
+def _watch_windows(win_re: re.Pattern, on_match) -> None:
+    """Watch root SubstructureNotify for newly created-and-mapped windows
+    whose title matches win_re; call on_match(title) for each.
+
+    Runs in a daemon thread with its own Display connection (python-xlib
+    connections aren't thread-safe to share). Title is read at MapNotify
+    time — Zoom sets it before mapping. Only windows seen in a
+    CreateNotify during our watch count: xmonad unmaps/remaps the
+    copyToAllHook'd reminder popup on every workspace switch, and those
+    remaps must not retrigger the OSD."""
+    dpy = display.Display()
+    root = dpy.screen().root
+    root.change_attributes(event_mask=X.SubstructureNotifyMask)
+    dpy.flush()
+    created: set[int] = set()
+    while True:
+        ev = dpy.next_event()
+        if ev.type == X.CreateNotify:
+            created.add(ev.window.id)
+        elif ev.type == X.DestroyNotify:
+            created.discard(ev.window.id)
+        elif ev.type == X.MapNotify and ev.window.id in created:
+            created.discard(ev.window.id)
+            title = _window_title(dpy, ev.window)
+            if win_re.search(title):
+                on_match(title)
 
 
 def _notify_events(stdout):
