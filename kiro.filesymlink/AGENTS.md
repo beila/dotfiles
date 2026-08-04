@@ -10,7 +10,7 @@
 
 ## Settings
 
-- `settings/cli.json` — default agent: `builder`; default model: `claude-opus-4.7`.
+- `settings/cli.json` — default agent: `builder`; default model: `claude-opus-5`.
 
 ## Skills (`skills/`)
 
