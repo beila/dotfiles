@@ -187,8 +187,8 @@ in
     # rust
     # rust-analyzer                    # rust        LSP        my-rust.lua — from work-dotfiles, not nix
     # codelldb                         # rust        DAP        my-rust.lua (mason, shared with c/c++)
-    clippy                             # rust        linter     my-rust.lua (via rust-analyzer)
-    rustfmt                            # rust        formatter  my-rust.lua (via rust-analyzer)
+    # clippy                           # rust        linter     my-rust.lua — comes with the toolchain, not nix
+    # rustfmt                          # rust        formatter  my-rust.lua — comes with the toolchain, not nix
 
     # sql
     sqls                               # sql         LSP        my-sql.lua
