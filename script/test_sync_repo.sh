@@ -4,7 +4,7 @@
 #   - local-ahead: bookmark push path
 #   - divergence (non-conflicting edits): merge+push path
 #   - dead remote (fake ssh): timeout-guard exits in bounded time
-#   - no sync config: exits cleanly with NO-SYNC-CONFIG
+#   - no sync config: commits + describes locally, exits cleanly (NO-SYNC-CONFIG)
 #   - conflict divergence: REBASE-CONFLICT, no push
 #   - non-jj repo: silent skip
 #   - corrupted store: REPO-LOAD-FAIL at ERROR, exit 1, no push
@@ -288,11 +288,12 @@ else
 fi
 
 echo
-echo "=== Scenario 5: no sync config -> NO-SYNC-CONFIG, clean exit ==="
+echo "=== Scenario 5: no sync config -> local commit + describe, clean exit ==="
 # Old test asserted defensive behavior on empty BACKUP_URL drift. The new
 # script reads sync.remote-bookmark and sync.snapshot-url from jj config
 # directly (no git/jj remote discovery), so the relevant defensive case is
-# "user hasn't configured either key yet".
+# "user hasn't configured either key yet". Without a push target sync_repo
+# still finalizes local work (jj new + describe) before exiting.
 mkdir -p "$TMPDIR/repoNoConfig"
 (
     cd "$TMPDIR/repoNoConfig"
@@ -300,7 +301,11 @@ mkdir -p "$TMPDIR/repoNoConfig"
     jj config set --repo user.email 'test@example.com'
     jj config set --repo user.name  'Test User'
     echo x > f; jj commit -m "init"
+    # Dirty working copy: @ is non-empty and undescribed, so sync_repo has
+    # something to commit and describe.
+    echo y > wip
 ) >/dev/null 2>&1
+before_desc=$(cd "$TMPDIR/repoNoConfig" && jj log -r '@-' --no-graph -T 'description' 2>/dev/null)
 bash "$SYNC_REPO" "$TMPDIR/repoNoConfig" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -eq 0 ]; then
@@ -308,6 +313,23 @@ if [ "$rc" -eq 0 ]; then
     pass=$((pass+1))
 else
     echo "FAIL: sync_repo returned $rc with no sync config"
+    fail=$((fail+1))
+fi
+# The WIP change must now be a committed parent of a fresh empty @ ...
+if [ -z "$(cd "$TMPDIR/repoNoConfig" && jj log -r '@' --no-graph -T 'if(empty, "", "dirty")' 2>/dev/null)" ]; then
+    echo "PASS: working copy committed (@ is empty)"
+    pass=$((pass+1))
+else
+    echo "FAIL: working copy not committed (@ still non-empty)"
+    fail=$((fail+1))
+fi
+# ... and it must carry a description (commit-msg output, whatever it is).
+after_desc=$(cd "$TMPDIR/repoNoConfig" && jj log -r '@-' --no-graph -T 'description' 2>/dev/null)
+if [ -n "$after_desc" ] && [ "$after_desc" != "$before_desc" ]; then
+    echo "PASS: committed change described ($(printf '%s' "$after_desc" | head -1))"
+    pass=$((pass+1))
+else
+    echo "FAIL: committed change has no new description (before='$before_desc' after='$after_desc')"
     fail=$((fail+1))
 fi
 if grep -rq 'NO-SYNC-CONFIG' "$LOG_ROOT"/*/sync_repo.*repoNoConfig* 2>/dev/null; then
