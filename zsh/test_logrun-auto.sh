@@ -20,6 +20,7 @@ fi
 WIDGET_PATH="$WIDGET" zsh -f <<'ZSH'
 emulate -L zsh
 source "$WIDGET_PATH" || { echo "FAIL: widget did not load"; exit 1 }
+LOGRUN_AUTO_TUNING=0
 
 PASS=0; FAIL=0
 _check() {
@@ -36,7 +37,7 @@ _check() {
 # Mock zle so the widget can run outside a real zle context.
 zle() { return 0 }
 
-alias gst='git status'
+alias gst='ls'
 gco() { :; }
 my_long_func() { :; }
 LOGRUN_AUTO_FUNCTIONS=(my_long_func)
@@ -49,7 +50,7 @@ _classify() {
     print -r -- "$_logrun_decision"
 }
 _check "classify: external/ls"               "external"   "$(_classify 'ls -la')"
-_check "classify: external/git"              "external"   "$(_classify 'git status')"
+_check "classify: external/env"              "external"   "$(_classify '/usr/bin/env true')"
 _check "classify: alias->external"           "external"   "$(_classify 'gst')"
 _check "classify: function NOT in list"      "skip"       "$(_classify 'gco main')"
 _check "classify: function IN list"          "function"   "$(_classify 'my_long_func')"
@@ -91,6 +92,30 @@ rm -f "$_FN_FILE"
 unset "_logrun_file_cache[$_FN_FILE]" "_logrun_file_mtime[$_FN_FILE]"
 unset LOGRUN_AUTO_FUNCTIONS_FILE
 
+# Disabled entries override both the built-in array and additive file.
+_DISABLED_FILE=$(mktemp /tmp/test-logrun-auto-disabled.XXXXXX)
+print -r -- "my_long_func" > "$_DISABLED_FILE"
+LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE=$_DISABLED_FILE
+_check "classify: disabled function" "skip" "$(_classify 'my_long_func')"
+rm -f "$_DISABLED_FILE"
+unset "_logrun_file_cache[$_DISABLED_FILE]" "_logrun_file_mtime[$_DISABLED_FILE]"
+unset LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE
+
+# The copied commands must persistently toggle both additive and seeded names.
+_STATE_DIR=$(mktemp -d /tmp/test-logrun-auto-state.XXXXXX)
+_ENABLED_FILE="$_STATE_DIR/enabled"
+_DISABLED_FILE="$_STATE_DIR/disabled"
+_HELPER="${WIDGET_PATH:h:h}/bin/logrun-auto-function"
+LOGRUN_AUTO_FUNCTIONS_FILE=$_ENABLED_FILE LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE=$_DISABLED_FILE      "$_HELPER" add sample_fn >/dev/null
+_check "helper: add writes enabled" "1" "$(grep -cx sample_fn "$_ENABLED_FILE"; true)"
+LOGRUN_AUTO_FUNCTIONS_FILE=$_ENABLED_FILE LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE=$_DISABLED_FILE      "$_HELPER" remove sample_fn >/dev/null
+_check "helper: remove writes exclusion" "1" "$(grep -cx sample_fn "$_DISABLED_FILE"; true)"
+LOGRUN_AUTO_FUNCTIONS_FILE=$_ENABLED_FILE LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE=$_DISABLED_FILE      "$_HELPER" remove sample_fn >/dev/null
+_check "helper: remove deduplicates" "1" "$(grep -cx sample_fn "$_DISABLED_FILE"; true)"
+LOGRUN_AUTO_FUNCTIONS_FILE=$_ENABLED_FILE LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE=$_DISABLED_FILE      "$_HELPER" add sample_fn >/dev/null
+_check "helper: re-add clears exclusion" "0" "$(grep -cx sample_fn "$_DISABLED_FILE"; true)"
+rm -rf "$_STATE_DIR"
+
 # Compound buffers route to `function` (logrun --auto -c) so the inner
 # zsh parses the whole script body, including operators.
 _check "classify: pipeline"                  "function"   "$(_classify 'ls | wc -l')"
@@ -104,11 +129,11 @@ _check "classify: backtick substitution"     "function"   "$(_classify 'cat `dat
 
 # Metacharacters inside quotes are NOT operators; the buffer should be
 # treated as a normal `cmd args...` invocation. Without quote-aware
-# scanning, `bat 'foo;bar.txt'` would wrongly route through `-c` and
+# scanning, `/bin/cat 'foo;bar.txt'` would wrongly route through `-c` and
 # logrun would also end up with `;` baked into the log filename.
 # (Uses `bat`/`grep`/`cat` because zsh's `echo` is a builtin → classify
 # always says skip for those, regardless of arg quoting.)
-_check "classify: ';' inside single quotes"  "external"   "$(_classify "bat 'foo;bar.txt'")"
+_check "classify: ';' inside single quotes"  "external"   "$(_classify "/bin/cat 'foo;bar.txt'")"
 _check "classify: '|' inside single quotes"  "external"   "$(_classify "grep 'a|b' file")"
 _check "classify: '\$(' inside single quotes" "external"  "$(_classify "grep 'a\$(b)c' file")"
 _check "classify: '&' inside double quotes"  "external"   "$(_classify 'cat "a&b"')"
@@ -128,7 +153,7 @@ _rewrite() {
     print -r -- "$BUFFER"
 }
 _check "rewrite: external"          "logrun --auto --no-zshrc -- ls -la"      "$(_rewrite 'ls -la')"
-_check "rewrite: alias->external"   "logrun --auto --no-zshrc -- git status"  "$(_rewrite 'gst')"
+_check "rewrite: alias->external"   "logrun --auto --no-zshrc -- ls"  "$(_rewrite 'gst')"
 
 # Self-referential alias (`ls='ls --color=auto'`) used to expand 8 times
 # until the hop cap kicked in, repeating the flags. Must terminate at
@@ -165,6 +190,31 @@ _logrun_auto_zshaddhistory "ignored"
 _check "history: orig cleared after hook"   ""                                "$_logrun_orig_buffer"
 
 # ---- end-to-end: widget rewrite + actually invoke the resulting logrun ----
+
+# ---- bidirectional tuning advice ----
+LOGRUN_AUTO_SECONDS=1
+_check "tuning: wrapped overhead suggests remove" "remove" "$(_logrun_tune_action wrapped 1.0 0.7 0 0)"
+_check "tuning: low overhead stays quiet" "" "$(_logrun_tune_action wrapped 1.0 0.9 0 0)"
+_check "tuning: revealed run stays wrapped" "" "$(_logrun_tune_action wrapped 1.0 0.7 1 0)"
+_check "tuning: failed wrapped run ignored" "" "$(_logrun_tune_action wrapped 1.0 0.7 0 7)"
+_check "tuning: slow unwrapped suggests add" "add" "$(_logrun_tune_action unwrapped 1.2 '' '' 0)"
+_check "tuning: quick unwrapped stays quiet" "" "$(_logrun_tune_action unwrapped 0.8 '' '' 0)"
+_check "tuning: failed unwrapped ignored" "" "$(_logrun_tune_action unwrapped 1.2 '' '' 7)"
+unset LOGRUN_AUTO_SECONDS
+
+_CLIP_FILE=$(mktemp /tmp/test-logrun-auto-clip.XXXXXX)
+_ADVICE_FILE=$(mktemp /tmp/test-logrun-auto-advice.XXXXXX)
+c() { cat > "$_CLIP_FILE" }
+_logrun_tune_suggest remove sample_fn 1.0 0.7 2> "$_ADVICE_FILE"
+_check "advice: remove command copied" "logrun-auto-function remove sample_fn" "$(<"$_CLIP_FILE")"
+_check "advice: remove command printed" "1" "$(grep -c 'logrun-auto-function remove sample_fn' "$_ADVICE_FILE"; true)"
+: > "$_ADVICE_FILE"
+_logrun_tune_suggest add sample_fn 12 0 2> "$_ADVICE_FILE"
+_check "advice: once per session/name" "" "$(<"$_ADVICE_FILE")"
+_logrun_tune_suggest add slow_fn 12 0 2> "$_ADVICE_FILE"
+_check "advice: add command copied" "logrun-auto-function add slow_fn" "$(<"$_CLIP_FILE")"
+unfunction c
+rm -f "$_CLIP_FILE" "$_ADVICE_FILE"
 # These cases run the rewritten BUFFER in the same shell and observe the
 # real side effects (log file presence, banner, exit code). Locks down
 # the integration between the widget and bin/logrun.
@@ -201,7 +251,7 @@ logs=("$TMP"/log-*(N))
 _check "e2e/lines: log retained"    "1" "${#logs[@]}"
 rm -rf "$TMP"
 
-# E2E #3: failing external — non-zero exit yields FAILED.txt + banner.
+# E2E #3: a failing external under threshold stays invisible.
 # Uses /usr/bin/env bash to run an external (zsh's `false` is a builtin
 # so the widget would skip it; we want to exercise the failure branch
 # of logrun --auto, which only runs for wrapped commands).
@@ -210,9 +260,9 @@ out=$(_e2e_run "/usr/bin/env bash -c 'exit 7'" "build_dir=$TMP")
 rc=$?
 _check "e2e/fail: rc preserved"     "7" "$rc"
 failed=("$TMP"/*FAILED.txt(N))
-_check "e2e/fail: FAILED file"      "1" "${#failed[@]}"
+_check "e2e/fail: no FAILED file"   "0" "${#failed[@]}"
 banner=$(printf '%s\n' "$out" | grep -c '^Log: '; true)
-_check "e2e/fail: 1 banner"         "1" "$banner"
+_check "e2e/fail: no banner"       "0" "$banner"
 rm -rf "$TMP"
 
 # E2E #4: builtin `false` is correctly skipped (NOT wrapped). Confirms
@@ -223,11 +273,11 @@ _logrun_auto_accept_line
 _check "e2e/builtin: not rewritten" "false" "$BUFFER"
 
 # E2E #5: alias -> external still routes to fast path (`--no-zshrc`).
-alias gst='git status'
+alias gst='ls'
 TMP=$(mktemp -d /tmp/test_logrun-auto.XXXXXX)
 BUFFER="gst"
 _logrun_auto_accept_line
-[[ "$BUFFER" == "logrun --auto --no-zshrc -- git status" ]] && ok=1 || ok=0
+[[ "$BUFFER" == "logrun --auto --no-zshrc -- ls" ]] && ok=1 || ok=0
 _check "e2e/alias: --no-zshrc form" "1" "$ok"
 unalias gst
 rm -rf "$TMP"

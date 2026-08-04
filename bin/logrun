@@ -64,6 +64,12 @@ shell_mode=0
 shell_cmd=""
 auto_mode=0
 no_zshrc=0
+timing_file="${LOGRUN_AUTO_TIMING_FILE:-}"
+
+_logrun_write_timing_result() {
+    [[ -n "$timing_file" ]] || return 0
+    printf 'revealed=%s\nexit_code=%s\n' "${revealed:-0}" "${exit_code:-1}" >> "$timing_file" 2>/dev/null || true
+}
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -139,6 +145,24 @@ _logrun_pty_size_prefix() {
     [[ "$1" -gt 0 && "$2" -gt 0 ]] || return
     printf 'stty rows %s cols %s 2>/dev/null; ' "$1" "$2"
 }
+
+# The widget requests child-only timing for listed functions. This prologue
+# starts after zshrc has loaded, so parent elapsed time minus this duration is
+# the wrapper and shell-startup overhead that the tuning advice evaluates.
+if (( shell_mode )) && [[ -n "$timing_file" ]]; then
+    user_shell_cmd_q=$(printf '%q' "$shell_cmd")
+    timing_file_q=$(printf '%q' "$timing_file")
+    shell_cmd="zmodload zsh/datetime
+typeset _logrun_t0=\$EPOCHREALTIME _logrun_rc=0
+unset LOGRUN_AUTO_TIMING_FILE
+{
+    eval -- $user_shell_cmd_q
+    _logrun_rc=\$?
+} always {
+    printf 'in_cmd_seconds=%.9f\\n' \$(( EPOCHREALTIME - _logrun_t0 )) > $timing_file_q
+}
+exit \$_logrun_rc"
+fi
 
 if (( shell_mode )); then
     pty_prefix=$(_logrun_pty_wrap)
@@ -524,6 +548,7 @@ fi
 # The wrapped command called `logrun-nolog` → discard the log unconditionally.
 if [[ -s "$LOGRUN_NOLOG_FILE" ]]; then
     rm -f "$log_path"
+    _logrun_write_timing_result
     exit "$exit_code"
 fi
 
@@ -581,6 +606,7 @@ if (( auto_mode )); then
         fi
     fi
 
+    _logrun_write_timing_result
     exit "$exit_code"
 fi
 
@@ -592,5 +618,6 @@ if (( exit_code != 0 )) && [[ -n "$fail_suffix" ]]; then
     fi
 fi
 
+_logrun_write_timing_result
 echo "Log: $log_path" >&2
 exit "$exit_code"

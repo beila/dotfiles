@@ -621,6 +621,29 @@ check_grep   "case30c: --auto OSC 8 link text preserved" '^pre linktext post$' "
 check_nogrep "case30d: --auto log has no ESC bytes"      $'\e' "$log"
 
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Case 31: private function-timing side channel reports child-only duration,
+# threshold reveal state, and exit status for the parent-shell tuning hook.
+# -----------------------------------------------------------------------------
+new_logdir; d=$LOG_DIR
+timing="$d/timing"
+LOGRUN_AUTO_TIMING_FILE="$timing" LOGRUN_AUTO_SECONDS=5 LOGRUN_AUTO_LINES=999 "$UNDER_TEST" --auto --decorator cat --log-dir "$d" -c 'sleep 0.05; true' >/dev/null 2>/dev/null
+check_grep "case31a: timing records child duration" '^in_cmd_seconds=[0-9]+\.[0-9]+$' "$timing"
+check_grep "case31b: timing records under-threshold state" '^revealed=0$' "$timing"
+check_grep "case31c: timing records success" '^exit_code=0$' "$timing"
+
+new_logdir; d=$LOG_DIR
+timing="$d/timing"
+LOGRUN_AUTO_TIMING_FILE="$timing" LOGRUN_AUTO_LINES=1 "$UNDER_TEST" --auto --decorator cat --log-dir "$d" -c 'echo threshold-line' >/dev/null 2>/dev/null
+check_grep "case31d: timing records reveal" '^revealed=1$' "$timing"
+
+new_logdir; d=$LOG_DIR
+timing="$d/timing"
+LOGRUN_AUTO_TIMING_FILE="$timing" LOGRUN_AUTO_SECONDS=5 LOGRUN_AUTO_LINES=999 "$UNDER_TEST" --auto --decorator cat --log-dir "$d" -c 'exit 7' >/dev/null 2>/dev/null
+rc=$?
+check "case31e: timed failure status propagated" "7" "$rc"
+check_grep "case31f: timing records failure" '^exit_code=7$' "$timing"
+
 # Summary
 # -----------------------------------------------------------------------------
 pass=$(cat "$PASS_FILE"); fail=$(cat "$FAIL_FILE")

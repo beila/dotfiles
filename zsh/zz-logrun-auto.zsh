@@ -10,6 +10,8 @@
 # Re-source guard: our widget would call itself if installed twice.
 (( ${+functions[_logrun_auto_accept_line]} )) && return 0
 
+zmodload zsh/datetime 2>/dev/null
+
 # ----------------------------------------------------------------- config
 
 # TUI skiplist: UI tools whose terminal handling breaks under any
@@ -66,6 +68,9 @@ _logrun_user_skiplist() {
 _logrun_user_functions() {
     _logrun_read_user_file "${LOGRUN_AUTO_FUNCTIONS_FILE:-$HOME/.dotfiles/bin/logrun-auto-functions}"
 }
+_logrun_disabled_functions() {
+    _logrun_read_user_file "${LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE:-$HOME/.dotfiles/bin/logrun-auto-functions-disabled}"
+}
 
 # Functions opt-in for wrapping. Two layers, additive:
 #
@@ -85,6 +90,11 @@ _logrun_user_functions() {
 #                                       so cross-machine adds auto-merge.
 #                                       Read on every prompt via
 #                                       _logrun_user_functions (mtime-cached).
+#   $LOGRUN_AUTO_FUNCTIONS_DISABLED_FILE exclusion list, default
+#                                       ~/.dotfiles/bin/logrun-auto-functions-disabled.
+#                                       Entries override both additive layers,
+#                                       allowing the tuning helper to disable
+#                                       functions seeded in the array.
 typeset -ga LOGRUN_AUTO_FUNCTIONS
 LOGRUN_AUTO_FUNCTIONS=(
     j n ji ni jr njr nijr
@@ -95,6 +105,17 @@ LOGRUN_AUTO_FUNCTIONS=(
 
 # ----------------------------------------------------------------- helpers
 
+
+_logrun_function_is_wrapped() {
+    local name=$1 fn
+    for fn in ${=$(_logrun_disabled_functions)}; do
+        [[ "$name" == "$fn" ]] && return 1
+    done
+    for fn in "${LOGRUN_AUTO_FUNCTIONS[@]}" ${=$(_logrun_user_functions)}; do
+        [[ "$name" == "$fn" ]] && return 0
+    done
+    return 1
+}
 # Extract the last pipeline stage's first word from a buffer containing
 # pipes. For `foo | bar -x | bat`, returns `bat`. For non-pipe compound
 # commands (&&, ;, etc.) returns empty.
@@ -267,6 +288,7 @@ _logrun_has_unquoted_metachar() {
 # to one of: skip / external / function. Sets `_logrun_first` to the
 # resolved first word.
 _logrun_classify() {
+    _logrun_kind=""
     _logrun_decision="skip"
     _logrun_first=""
 
@@ -297,6 +319,7 @@ _logrun_classify() {
                 [[ "$last_cmd" == "$tui" ]] && return
             done
         fi
+        _logrun_kind="compound"
         _logrun_decision="function"
         _logrun_first="${buf%%[[:space:]]*}"
         return
@@ -337,14 +360,12 @@ _logrun_classify() {
     # subshell and lose the cwd change).
     local kind
     kind="${$(whence -w -- "$first" 2>/dev/null)##*: }"
+    _logrun_kind="$kind"
     case "$kind" in
         builtin|reserved|none|"") return ;;
         function)
-            # Opt-in only — array (machine default) ∪ user file.
-            local fn
-            for fn in "${LOGRUN_AUTO_FUNCTIONS[@]}" ${=$(_logrun_user_functions)}; do
-                [[ "$first" == "$fn" ]] && { _logrun_decision="function"; return ; }
-            done
+            # Opt-in only: (array ∪ user file) - disabled file.
+            _logrun_function_is_wrapped "$first" && _logrun_decision="function"
             return
             ;;
         command|alias)
@@ -355,16 +376,157 @@ _logrun_classify() {
     esac
 }
 
-# ----------------------------------------------------------------- widget
+typeset -gA _logrun_tune_suggested
+typeset -g _logrun_tune_mode="" _logrun_tune_name="" _logrun_tune_file="" _logrun_tune_started=""
 
+_logrun_tuning_enabled() {
+    [[ "${LOGRUN_AUTO_TUNING:-1}" != 0 ]] || return 1
+    [[ -o interactive || "${LOGRUN_AUTO_TUNING_TEST:-0}" == 1 ]] || return 1
+    [[ -n "${EPOCHREALTIME-}" ]]
+}
+
+_logrun_tune_clear() {
+    local timing_file="${_logrun_tune_file-}"
+    if [[ -n "$timing_file" && -e "$timing_file" ]]; then
+        command rm -f -- "$timing_file"
+    fi
+    _logrun_tune_mode=""
+    _logrun_tune_name=""
+    _logrun_tune_file=""
+    _logrun_tune_started=""
+}
+
+_logrun_tune_prepare() {
+    _logrun_tune_clear
+    _logrun_tuning_enabled || return
+    [[ "${_logrun_kind-}" == function ]] || return
+
+    _logrun_tune_name="$_logrun_first"
+    if [[ "$_logrun_decision" == function ]]; then
+        _logrun_tune_mode="wrapped"
+        if ! _logrun_tune_file=$(mktemp "${TMPDIR:-/tmp}/logrun-function-time.XXXXXX"); then
+            _logrun_tune_clear
+        fi
+    else
+        _logrun_tune_mode="unwrapped"
+    fi
+}
+
+_logrun_tune_action() {
+    local mode=$1 total=$2 in_cmd=$3 revealed=$4 command_status=$5
+    [[ "$command_status" == 0 ]] || return 1
+    [[ "$total" == <->(|.<->) ]] || return 1
+
+    case "$mode" in
+        wrapped)
+            [[ "$revealed" == 0 && "$in_cmd" == <->(|.<->) ]] || return 1
+            (( total - in_cmd > 0.2 )) && print -r -- remove
+            ;;
+        unwrapped)
+            local threshold="${LOGRUN_AUTO_SECONDS:-10}"
+            [[ "$threshold" == <->(|.<->) ]] || threshold=10
+            (( total >= threshold )) && print -r -- add
+            ;;
+    esac
+}
+
+_logrun_copy_tune_command() {
+    local command=$1
+    if (( ${+functions[c]} )); then
+        print -rn -- "$command" | c >/dev/null 2>&1 && return 0
+    fi
+    if [[ -n "${WAYLAND_DISPLAY-}" ]] && (( ${+commands[wl-copy]} )); then
+        print -rn -- "$command" | wl-copy >/dev/null 2>&1 && return 0
+    fi
+    if [[ -n "${DISPLAY-}" ]] && (( ${+commands[xclip]} )); then
+        print -rn -- "$command" | xclip -selection clipboard >/dev/null 2>&1 && return 0
+    fi
+    if (( ${+commands[pbcopy]} )); then
+        print -rn -- "$command" | pbcopy >/dev/null 2>&1 && return 0
+    fi
+    if (( ${+commands[clip.exe]} )); then
+        print -rn -- "$command" | clip.exe >/dev/null 2>&1 && return 0
+    fi
+    return 1
+}
+
+_logrun_tune_suggest() {
+    local action=$1 name=$2 total=$3 in_cmd=$4
+    [[ -n "${_logrun_tune_suggested[$name]-}" ]] && return
+    _logrun_tune_suggested[$name]=1
+
+    local command="logrun-auto-function $action ${(q)name}"
+    local copied=0
+    _logrun_copy_tune_command "$command" && copied=1
+
+    if [[ "$action" == remove ]]; then
+        local overhead_ms=$(( (total - in_cmd) * 1000 ))
+        local total_ms=$(( total * 1000 ))
+        printf "logrun: wrapped function %s stayed below threshold; %.0f ms of %.0f ms was wrapper overhead.\n" "$name" "$overhead_ms" "$total_ms" >&2
+    else
+        printf "logrun: unwrapped function %s ran for %.1f s; its output was not captured.\n" "$name" "$total" >&2
+    fi
+
+    if (( copied )); then
+        print -u2 -r -- "logrun: copied tuning command: $command"
+    else
+        print -u2 -r -- "logrun: tuning command: $command"
+    fi
+}
+
+_logrun_tune_preexec() {
+    [[ -n "${_logrun_tune_mode-}" ]] || return 0
+    _logrun_tune_started="$EPOCHREALTIME"
+}
+
+_logrun_tune_precmd() {
+    local command_status=$?
+    local mode="${_logrun_tune_mode-}" name="${_logrun_tune_name-}"
+    local timing_file="${_logrun_tune_file-}" started="${_logrun_tune_started-}"
+    if [[ -z "$mode" || -z "$name" || -z "$started" ]]; then
+        _logrun_tune_clear
+        return 0
+    fi
+
+    local total=$(( EPOCHREALTIME - started ))
+    local in_cmd="" revealed="" recorded_status=""
+    if [[ "$mode" == wrapped && -f "$timing_file" ]]; then
+        local key value
+        while IFS="=" read -r key value; do
+            case "$key" in
+                in_cmd_seconds) in_cmd=$value ;;
+                revealed) revealed=$value ;;
+                exit_code) recorded_status=$value ;;
+            esac
+        done < "$timing_file"
+    fi
+
+    local result_status="$command_status"
+    [[ "$mode" == wrapped ]] && result_status="$recorded_status"
+    local action=""
+    if ! action=$(_logrun_tune_action "$mode" "$total" "$in_cmd" "$revealed" "$result_status"); then
+        action=""
+    fi
+    _logrun_tune_clear
+    [[ -n "$action" ]] && _logrun_tune_suggest "$action" "$name" "$total" "$in_cmd"
+    return 0
+}
+
+# ----------------------------------------------------------------- widget
 # Save original buffer so we can restore it for history before zsh
 # parses the rewritten one (zshaddhistory hook).
 typeset -g _logrun_orig_buffer=""
 
 _logrun_auto_accept_line() {
     _logrun_orig_buffer="$BUFFER"
-    local _logrun_decision _logrun_first
+    local _logrun_decision _logrun_first _logrun_kind
     _logrun_classify
+    _logrun_tune_prepare
+
+    local _logrun_timing_prefix=""
+    if [[ "${_logrun_tune_mode-}" == wrapped && -n "${_logrun_tune_file-}" ]]; then
+        _logrun_timing_prefix="LOGRUN_AUTO_TIMING_FILE=${(q)_logrun_tune_file} "
+    fi
 
     # When the effective command (resolved through runner wrappers)
     # differs from the first word, pass --name so logrun uses it for
@@ -378,18 +540,14 @@ _logrun_auto_accept_line() {
 
     case "$_logrun_decision" in
         external)
-            # Externals: the widget already pre-expanded any aliases, so
-            # $BUFFER is now a plain "binary arg arg ..." line. Use the
-            # fast path (`--no-zshrc`) to avoid 800ms of zshrc replay.
+            # Externals use the fast path to avoid zshrc replay.
             BUFFER="logrun --auto ${_logrun_name_flag}--no-zshrc -- ${BUFFER}"
             ;;
         function)
-            # Functions need zsh -ic (or eval inside the widget) so that
-            # user functions resolve. Use logrun -c with the original
-            # buffer.
+            # Functions need zsh -ic so user-defined functions resolve.
             local q
             q="${(q)_logrun_orig_buffer}"
-            BUFFER="logrun --auto ${_logrun_name_flag}-c ${q}"
+            BUFFER="${_logrun_timing_prefix}logrun --auto ${_logrun_name_flag}-c ${q}"
             ;;
         skip|*) ;;
     esac
@@ -421,9 +579,17 @@ _logrun_nolog_accept_line() {
 if [[ -o interactive ]]; then
     zle -N accept-line _logrun_auto_accept_line
     zle -N _logrun-nolog-accept-line _logrun_nolog_accept_line
-    bindkey '\e^M' _logrun-nolog-accept-line
+    bindkey "\e^M" _logrun-nolog-accept-line
 
     autoload -Uz add-zsh-hook
     add-zsh-hook -d zshaddhistory _logrun_auto_zshaddhistory 2>/dev/null
     add-zsh-hook zshaddhistory _logrun_auto_zshaddhistory
+    add-zsh-hook -d preexec _logrun_tune_preexec 2>/dev/null
+    add-zsh-hook -d precmd _logrun_tune_precmd 2>/dev/null
+    add-zsh-hook preexec _logrun_tune_preexec
+    add-zsh-hook precmd _logrun_tune_precmd
+
+    # Capture command status before older precmd hooks can overwrite it.
+    preexec_functions=(_logrun_tune_preexec ${preexec_functions:#_logrun_tune_preexec})
+    precmd_functions=(_logrun_tune_precmd ${precmd_functions:#_logrun_tune_precmd})
 fi
