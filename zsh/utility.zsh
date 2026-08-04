@@ -83,6 +83,7 @@ alias lt='ll -tr'        # Lists sorted by date, most recent last.
 alias lc='lt -c'         # Lists sorted by date, most recent last, shows change time.
 alias lu='lt -u'         # Lists sorted by date, most recent last, shows access time.
 alias sl='ls'            # I often screw this up.
+alias z='zmx-select'     # zmx session picker
 
 #
 # Grep

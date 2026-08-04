@@ -94,7 +94,7 @@ No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own),
 
 ## zmx session picker
 
-`zmx-select` — fzf picker over `zmx list`. Enter attaches highlighted, Ctrl-N creates a new session with the typed name (auto-suffixes `-2`, `-3`... if the name is already in use), Ctrl-C exits. Skips the picker and attaches directly to a default session (CLI arg, `$ZMX_DEFAULT_SESSION`, or `main`) when no sessions exist.
+`zmx-select` — fzf picker over `zmx list`, aliased to `z` (`zsh/utility.zsh`). Enter attaches highlighted, Ctrl-N creates a new session with the typed name (auto-suffixes `-2`, `-3`... if the name is already in use), Ctrl-C exits. Preview shows the session's last 500 scrollback lines then streams live output (`zmx history … | tail`, then `exec zmx tail`), with `--preview-window=follow` pinned to the bottom. Skips the picker and attaches directly to a default session (CLI arg, `$ZMX_DEFAULT_SESSION`, or `main`) when no sessions exist.
 
 ## Notify-webhook dispatcher
 
