@@ -1,7 +1,9 @@
 import Control.Monad
+import Data.List (stripPrefix)
 import qualified Data.List as L (filter, find, isSuffixOf)
 import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
 import Data.Maybe
+import Text.Read (readMaybe)
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
 import qualified XMonad.StackSet as W
@@ -22,6 +24,7 @@ import XMonad.Util.EZConfig (additionalKeys)
 import qualified XMonad.Util.ExtensibleState as XS
 import XMonad.Util.Font (Align (..), XMonadFont, initXMF)
 import XMonad.Util.NamedScratchpad
+import XMonad.Util.Run (runProcessWithInput)
 import XMonad.Util.XUtils (createNewWindow, deleteWindow, fi, paintAndWrite, showWindow)
 
 import Graphics.X11.ExtraTypes.XF86
@@ -31,7 +34,13 @@ import Graphics.X11.Xlib.Window (raiseWindow)
 -- Main
 ------------------------------------------------------------------------
 
-main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
+main = do
+    -- Tag sizes are raw pixels, so they need the display scale applied. X's own
+    -- "resolution" is a nominal 96dpi lie on HiDPI panels (xdpyinfo reports 96
+    -- on a 3840x2400 screen); Xft.dpi in the resource DB is what GTK/Xft
+    -- actually honour, so read that. 96 (scale 1) when unset.
+    scale <- tagScale
+    xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg (myConfig scale)
   where
     -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
     fsHook = composeOne
@@ -39,7 +48,7 @@ main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ 
         , pure True -?> doFullFloat
         ]
 
-myConfig =
+myConfig scale =
     gnomeConfig
         { terminal = "gnome-terminal"
         , startupHook =
@@ -52,6 +61,7 @@ myConfig =
                 , fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep albert || albert"
+                , cleanStrayTags
                 , -- Safety net for fresh checkouts: map keycodes 198/202 →
                   -- F20/F24 for the keyd Super+V/C macro. system-deps.sh
                   -- patches inet durably; this xmodmap covers the gap until
@@ -59,14 +69,14 @@ myConfig =
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags scale
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
         , -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
           -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
           manageHook = myManageHook
-        , layoutHook = smartBorders $ avoidStruts $ decoration shrinkText tagTheme TopRightTag $ layoutHook gnomeConfig
+        , layoutHook = smartBorders $ avoidStruts $ decoration shrinkText (tagTheme scale) TopRightTag $ layoutHook gnomeConfig
         , -- Focus indicator: thin LEGO-orange edge (same accent as
           -- hangul-osd); picom adds a soft warm glow around the focused
           -- window (see home-manager picom.nix). Unfocused border painted
@@ -117,12 +127,12 @@ instance DecorationStyle TopRightTag Window where
       where
         tagW = min decoW ww
 
-tagTheme :: Theme
-tagTheme =
+tagTheme :: Double -> Theme
+tagTheme scale =
     def
-        { fontName = tagFontName
-        , decoWidth = tagWidth
-        , decoHeight = tagHeight
+        { fontName = tagFontName scale
+        , decoWidth = tagWidth scale
+        , decoHeight = tagHeight scale
         , activeColor = "#1d1d1d"
         , inactiveColor = "#1d1d1d"
         , activeBorderColor = "#F8BB3D"
@@ -136,12 +146,28 @@ tagTheme =
         , urgentTextColor = "#F8BB3D"
         }
 
-tagFontName :: String
-tagFontName = "xft:JetBrainsMono Nerd Font:size=9"
+tagScale :: IO Double
+tagScale = do
+    out <- runProcessWithInput "xrdb" ["-query"] ""
+    let dpi =
+            listToMaybe
+                [ d
+                | l <- lines out
+                , Just rest <- [stripPrefix "Xft.dpi:" l]
+                , Just d <- [readMaybe (dropWhile (`elem` " \t") rest) :: Maybe Double]
+                ]
+    return $ maybe 1 (/ 96) dpi
 
-tagWidth, tagHeight :: Dimension
-tagWidth = 320
-tagHeight = 20
+-- Base sizes are 96dpi-equivalent and multiplied by the scale. xmonad's Xft
+-- rendering ignores Xft.dpi (it takes the display's nominal 96), unlike GTK, so
+-- the font size has to be scaled by hand too or the text comes out half-size on
+-- a HiDPI panel.
+tagFontName :: Double -> String
+tagFontName scale = "xft:JetBrainsMono Nerd Font:size=" ++ show (max 6 (round (7 * scale) :: Int))
+
+tagWidth, tagHeight :: Double -> Dimension
+tagWidth scale = round (240 * scale)
+tagHeight scale = round (15 * scale)
 
 ------------------------------------------------------------------------
 -- Window tag for FLOATING windows
@@ -167,39 +193,43 @@ instance ExtensionClass TagFont where
     initialValue = TagFont Nothing
     extensionType = StateExtension
 
-tagFont :: X XMonadFont
-tagFont = do
+tagFont :: Double -> X XMonadFont
+tagFont scale = do
     TagFont cached <- XS.get
     case cached of
         Just f -> return f
         Nothing -> do
-            f <- initXMF tagFontName
+            f <- initXMF (tagFontName scale)
             XS.put (TagFont (Just f))
             return f
 
-floatTags :: X ()
-floatTags = withWindowSet $ \ws -> do
+floatTags :: Double -> X ()
+floatTags scale = withWindowSet $ \ws -> do
     let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
         floats = W.floating ws
         focused = W.peek ws
     candidates <- filterM (\w -> (&& M.member w floats) <$> runQuery (className =? "com.mitchellh.ghostty") w) visible
     FloatTags cache <- XS.get
-    font <- tagFont
+    font <- tagFont scale
     kept <- forM candidates $ \w -> do
         wa <- withDisplay $ \d -> io $ getWindowAttributes d w
         name <- runQuery title w
-        let cx = fi (wa_x wa) + fi (wa_width wa) - fi tagWidth
-            rect = Rectangle cx (fi (wa_y wa)) tagWidth tagHeight
+        let tagW = tagWidth scale
+            tagH = tagHeight scale
+            cx = fi (wa_x wa) + fi (wa_width wa) - fi tagW
+            rect = Rectangle cx (fi (wa_y wa)) tagW tagH
             active = focused == Just w
         tw <- case M.lookup w cache of
             Just (tw, oldRect, oldName)
                 | oldRect == rect && oldName == name -> return tw
                 | otherwise -> do
-                    withDisplay $ \d -> io $ moveResizeWindow d tw (rect_x rect) (rect_y rect) tagWidth tagHeight
+                    withDisplay $ \d -> io $ moveResizeWindow d tw (rect_x rect) (rect_y rect) tagW tagH
                     paintTag tw font name active
                     return tw
             Nothing -> do
                 tw <- createNewWindow rect Nothing "" True
+                -- Name it so cleanStrayTags can find leftovers after a restart.
+                withDisplay $ \d -> io $ setClassHint d tw (ClassHint "xmonad-float-tag" "xmonad")
                 showWindow tw
                 paintTag tw font name active
                 return tw
@@ -211,17 +241,18 @@ floatTags = withWindowSet $ \ws -> do
         unless (w `elem` candidates) $ deleteWindow tw
     XS.put (FloatTags (M.fromList kept))
   where
+    theme = tagTheme scale
     paintTag tw font name active =
         paintAndWrite
             tw
             font
-            tagWidth
-            tagHeight
-            (if active then activeBorderWidth tagTheme else inactiveBorderWidth tagTheme)
-            (if active then activeColor tagTheme else inactiveColor tagTheme)
-            (if active then activeBorderColor tagTheme else inactiveBorderColor tagTheme)
-            (if active then activeTextColor tagTheme else inactiveTextColor tagTheme)
-            (if active then activeColor tagTheme else inactiveColor tagTheme)
+            (tagWidth scale)
+            (tagHeight scale)
+            (if active then activeBorderWidth theme else inactiveBorderWidth theme)
+            (if active then activeColor theme else inactiveColor theme)
+            (if active then activeBorderColor theme else inactiveBorderColor theme)
+            (if active then activeTextColor theme else inactiveTextColor theme)
+            (if active then activeColor theme else inactiveColor theme)
             [AlignCenter]
             [name]
 
@@ -596,6 +627,21 @@ raiseFocused = withFocused $ \w -> do
             -- same guard as core: skip when the change came from the mouse.
             isMouseFocused <- asks mouseFocused
             unless isMouseFocused $ clearEvents enterWindowMask
+
+-- Destroy tag windows left behind by a previous xmonad process. `xmonad
+-- --restart` re-execs, and the float tag cache is non-persistent state, so the
+-- windows it created survive with nothing tracking them (visible as stale
+-- 20x20/320x20 leftovers piling up across restarts). Anything matching at
+-- startupHook time predates this process, since no layout has run yet.
+cleanStrayTags :: X ()
+cleanStrayTags = withDisplay $ \dpy -> do
+    root <- asks theRoot
+    io $ do
+        (_, _, children) <- queryTree dpy root
+        forM_ children $ \c -> do
+            hint <- getClassHint dpy c
+            when (resName hint `elem` ["xmonad-float-tag", "xmonad-decoration"]) $
+                destroyWindow dpy c
 
 -- Raise every xmonad decoration window above the clients. Decoration windows
 -- carry the resource NAME "xmonad-decoration" (their resource class is plain
