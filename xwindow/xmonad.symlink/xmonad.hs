@@ -1,6 +1,6 @@
 import Control.Monad
 import qualified Data.List as L (filter, find, isSuffixOf)
-import qualified Data.Map as M (keys, lookup, member)
+import qualified Data.Map as M (fromList, keys, lookup, member, toList)
 import Data.Maybe
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
@@ -20,7 +20,9 @@ import XMonad.Layout.Decoration
 import XMonad.Layout.NoBorders (smartBorders)
 import XMonad.Util.EZConfig (additionalKeys)
 import qualified XMonad.Util.ExtensibleState as XS
+import XMonad.Util.Font (Align (..), XMonadFont, initXMF)
 import XMonad.Util.NamedScratchpad
+import XMonad.Util.XUtils (createNewWindow, deleteWindow, fi, paintAndWrite, showWindow)
 
 import Graphics.X11.ExtraTypes.XF86
 import Graphics.X11.Xlib.Window (raiseWindow)
@@ -57,7 +59,7 @@ myConfig =
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
@@ -118,9 +120,9 @@ instance DecorationStyle TopRightTag Window where
 tagTheme :: Theme
 tagTheme =
     def
-        { fontName = "xft:JetBrainsMono Nerd Font:size=9"
-        , decoWidth = 320
-        , decoHeight = 20
+        { fontName = tagFontName
+        , decoWidth = tagWidth
+        , decoHeight = tagHeight
         , activeColor = "#1d1d1d"
         , inactiveColor = "#1d1d1d"
         , activeBorderColor = "#F8BB3D"
@@ -134,6 +136,95 @@ tagTheme =
         , urgentTextColor = "#F8BB3D"
         }
 
+tagFontName :: String
+tagFontName = "xft:JetBrainsMono Nerd Font:size=9"
+
+tagWidth, tagHeight :: Dimension
+tagWidth = 320
+tagHeight = 20
+
+------------------------------------------------------------------------
+-- Window tag for FLOATING windows
+------------------------------------------------------------------------
+
+-- Decoration (above) only ever sees windows the layout placed, so the two
+-- ghostty scratchpads -- floats -- never got a tag. That's the workflow that
+-- needs it most once they run zmx sessions, so floats get their own tag windows
+-- here: one small X window per visible floating ghostty, painted with the same
+-- theme and kept at the client's top-right corner.
+--
+-- Cached in state and only repainted when the title or rect actually changed;
+-- the logHook fires on every event and recreating windows there would flicker.
+data FloatTags = FloatTags (M.Map Window (Window, Rectangle, String))
+
+instance ExtensionClass FloatTags where
+    initialValue = FloatTags M.empty
+    extensionType = StateExtension
+
+data TagFont = TagFont (Maybe XMonadFont)
+
+instance ExtensionClass TagFont where
+    initialValue = TagFont Nothing
+    extensionType = StateExtension
+
+tagFont :: X XMonadFont
+tagFont = do
+    TagFont cached <- XS.get
+    case cached of
+        Just f -> return f
+        Nothing -> do
+            f <- initXMF tagFontName
+            XS.put (TagFont (Just f))
+            return f
+
+floatTags :: X ()
+floatTags = withWindowSet $ \ws -> do
+    let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
+        floats = W.floating ws
+        focused = W.peek ws
+    candidates <- filterM (\w -> (&& M.member w floats) <$> runQuery (className =? "com.mitchellh.ghostty") w) visible
+    FloatTags cache <- XS.get
+    font <- tagFont
+    kept <- forM candidates $ \w -> do
+        wa <- withDisplay $ \d -> io $ getWindowAttributes d w
+        name <- runQuery title w
+        let cx = fi (wa_x wa) + fi (wa_width wa) - fi tagWidth
+            rect = Rectangle cx (fi (wa_y wa)) tagWidth tagHeight
+            active = focused == Just w
+        tw <- case M.lookup w cache of
+            Just (tw, oldRect, oldName)
+                | oldRect == rect && oldName == name -> return tw
+                | otherwise -> do
+                    withDisplay $ \d -> io $ moveResizeWindow d tw (rect_x rect) (rect_y rect) tagWidth tagHeight
+                    paintTag tw font name active
+                    return tw
+            Nothing -> do
+                tw <- createNewWindow rect Nothing "" True
+                showWindow tw
+                paintTag tw font name active
+                return tw
+        -- Floats are raised on focus (see raiseFocused), which would bury a tag
+        -- that overlaps the client.
+        withDisplay $ \d -> io $ raiseWindow d tw
+        return (w, (tw, rect, name))
+    forM_ (M.toList cache) $ \(w, (tw, _, _)) ->
+        unless (w `elem` candidates) $ deleteWindow tw
+    XS.put (FloatTags (M.fromList kept))
+  where
+    paintTag tw font name active =
+        paintAndWrite
+            tw
+            font
+            tagWidth
+            tagHeight
+            (if active then activeBorderWidth tagTheme else inactiveBorderWidth tagTheme)
+            (if active then activeColor tagTheme else inactiveColor tagTheme)
+            (if active then activeBorderColor tagTheme else inactiveBorderColor tagTheme)
+            (if active then activeTextColor tagTheme else inactiveTextColor tagTheme)
+            (if active then activeColor tagTheme else inactiveColor tagTheme)
+            [AlignCenter]
+            [name]
+
 ------------------------------------------------------------------------
 -- Scratchpads
 ------------------------------------------------------------------------
@@ -144,12 +235,12 @@ tagTheme =
 myScratchpads =
     [ NS
         "ghostty1"
-        "ghostty --x11-instance-name=scratchpad1 --window-show-tab-bar=always --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
+        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
         (appName =? "scratchpad1")
         (adaptiveFloat True)
     , NS
         "ghostty2"
-        "ghostty --x11-instance-name=scratchpad2 --window-show-tab-bar=always --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
+        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
         (appName =? "scratchpad2")
         (adaptiveFloat False)
     ]
