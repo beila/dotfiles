@@ -119,7 +119,7 @@ tagTheme :: Theme
 tagTheme =
     def
         { fontName = "xft:JetBrainsMono Nerd Font:size=9"
-        , decoWidth = 190
+        , decoWidth = 320
         , decoHeight = 20
         , activeColor = "#1d1d1d"
         , inactiveColor = "#1d1d1d"
@@ -144,12 +144,12 @@ tagTheme =
 myScratchpads =
     [ NS
         "ghostty1"
-        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
+        "ghostty --x11-instance-name=scratchpad1 --window-show-tab-bar=always --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
         (appName =? "scratchpad1")
         (adaptiveFloat True)
     , NS
         "ghostty2"
-        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
+        "ghostty --x11-instance-name=scratchpad2 --window-show-tab-bar=always --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
         (appName =? "scratchpad2")
         (adaptiveFloat False)
     ]
@@ -507,8 +507,10 @@ raiseFocused = withFocused $ \w -> do
             unless isMouseFocused $ clearEvents enterWindowMask
 
 -- Raise every xmonad decoration window above the clients. Decoration windows
--- carry the resource class "xmonad-decoration" (set by XMonad.Layout.Decoration),
--- so a walk of the root's children finds them without tracking them ourselves.
+-- carry the resource NAME "xmonad-decoration" (their resource class is plain
+-- "xmonad", shared with every other xmonad window -- checking the class would
+-- match nothing useful), so a walk of the root's children finds them without
+-- tracking them ourselves.
 raiseDecorations :: X ()
 raiseDecorations = withDisplay $ \dpy -> do
     root <- asks theRoot
@@ -516,7 +518,7 @@ raiseDecorations = withDisplay $ \dpy -> do
         (_, _, children) <- queryTree dpy root
         forM_ children $ \c -> do
             hint <- getClassHint dpy c
-            when (resClass hint == "xmonad-decoration") $ raiseWindow dpy c
+            when (resName hint == "xmonad-decoration") $ raiseWindow dpy c
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot

@@ -44,11 +44,12 @@
 
 command = zsh -l
 gtk-titlebar = false
-# No titlebar and no panel tasklist means the OSC title has nowhere to show, so
-# keep the tab bar up even for a single tab — it renders the title (prefixed
-# with the zmx session by zsh/terminal.zsh) per window, including while a
-# long-running command owns the screen.
-window-show-tab-bar = always
+# Tiled windows get a compact top-right title tag from xmonad instead (see
+# xwindow/xmonad.symlink/xmonad.hs, TopRightTag), so the 46px full-width tab bar
+# stays off here. The scratchpad terminals are FLOATS, which xmonad decorations
+# never reach, so those two pass --window-show-tab-bar=always on their own
+# command line.
+window-show-tab-bar = never
 
 # Per-glyph fallback: Latin from JetBrainsMono Nerd Font, Hangul from LXGW WenKai Mono.
 font-family = JetBrainsMono Nerd Font
