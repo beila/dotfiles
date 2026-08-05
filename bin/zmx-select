@@ -40,10 +40,17 @@ done < <(zmx list 2>/dev/null | awk -F'\t' '
 ')
 
 row() {  # name -> display line; stopped sessions get placeholders
-    local name=$1 pid clients dir
+    local name=$1 pid clients dir cwd
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients dir <<<"${running[$name]}"
-        printf '%-14s  pid:%-8s  clients:%-2s  %s\n' "$name" "$pid" "$clients" "$dir"
+        # zmx list reports start_dir, which never moves. The shell's live cwd
+        # is what you actually want to recognise a session by, so read it from
+        # /proc and keep start_dir as the fallback (foreign pid, race on exit).
+        cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || cwd=""
+        [[ -n "$cwd" ]] || cwd="$dir"
+        # Quote the tilde: bash tilde-expands the replacement, so a bare ~ would
+        # substitute $HOME back in and the shortening would silently no-op.
+        printf '%-14s  pid:%-8s  clients:%-2s  %s\n' "$name" "$pid" "$clients" "${cwd/#$HOME/'~'}"
     else
         printf '%-14s  %-13s  %-12s\n' "$name" "-" "not started"
     fi
