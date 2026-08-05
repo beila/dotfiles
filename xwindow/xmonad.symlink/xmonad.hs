@@ -79,6 +79,62 @@ myConfig =
 myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
 
 ------------------------------------------------------------------------
+-- Window tag (top-right corner)
+------------------------------------------------------------------------
+
+-- A short title tab pinned to the top-right corner of each ghostty window.
+-- ghostty runs without window decorations and the panel has no tasklist, so the
+-- window title -- which zsh/terminal.zsh prefixes with the zmx session name --
+-- had nowhere to show. Unlike the prompt it survives a long-running command.
+--
+-- Only terminals get it: `decorate` (the X-monadic hook, unlike the pure
+-- `pureDecoration`) can run a Query, so everything that isn't ghostty returns
+-- Nothing and stays undecorated -- browsers and editors have their own titles.
+--
+-- `shrink` returns the window rect unchanged, so the tag is painted ON TOP of
+-- the client's top-right corner rather than reserving a full-width strip whose
+-- left half would just be empty background. It costs a few characters of the
+-- first row instead of a whole row.
+--
+-- Flush placement is deliberate: the tag's own top/right border lands on the
+-- client edge, right against the window's orange focus border, so what reads as
+-- new is only the left and bottom edge. Per-side borders aren't a thing in
+-- XMonad.Layout.Decoration -- the theme's border width applies to all four.
+data TopRightTag a = TopRightTag deriving (Show, Read)
+
+instance DecorationStyle TopRightTag Window where
+    describeDeco _ = "TopRightTag"
+    decorationCatchClicksHook _ = \_ _ _ -> return False
+    shrink _ _ r = r
+    decorate _ decoW decoH _ _ _ (w, Rectangle wx wy ww _) = do
+        tagged <- runQuery (className =? "com.mitchellh.ghostty") w
+        return $
+            if tagged
+                then Just $ Rectangle (wx + fromIntegral ww - fromIntegral tagW) wy tagW decoH
+                else Nothing
+      where
+        tagW = min decoW ww
+
+tagTheme :: Theme
+tagTheme =
+    def
+        { fontName = "xft:JetBrainsMono Nerd Font:size=9"
+        , decoWidth = 190
+        , decoHeight = 20
+        , activeColor = "#1d1d1d"
+        , inactiveColor = "#1d1d1d"
+        , activeBorderColor = "#F8BB3D"
+        , inactiveBorderColor = "#1d1d1d"
+        , activeBorderWidth = 1
+        , inactiveBorderWidth = 0
+        , activeTextColor = "#F8BB3D"
+        , inactiveTextColor = "#6f7683"
+        , urgentColor = "#1d1d1d"
+        , urgentBorderColor = "#F8BB3D"
+        , urgentTextColor = "#F8BB3D"
+        }
+
+------------------------------------------------------------------------
 -- Scratchpads
 ------------------------------------------------------------------------
 
@@ -436,6 +492,11 @@ raiseFocused = withFocused $ \w -> do
             withDisplay $ \dpy -> io $ do
                 raiseWindow dpy w
                 mapM_ (raiseWindow dpy) (M.keys floats)
+            -- Raising the client buries its TopRightTag decoration, which
+            -- overlaps the client's top-right corner (see `shrink` there). Lift
+            -- the decoration windows back above it; they're identifiable by
+            -- their resource class.
+            raiseDecorations
             -- Core purges restack-synthesized EnterNotify before the
             -- logHook runs; our raises here re-synthesize them, and with
             -- focusFollowsMouse they'd yank focus back to the window
@@ -444,6 +505,18 @@ raiseFocused = withFocused $ \w -> do
             -- same guard as core: skip when the change came from the mouse.
             isMouseFocused <- asks mouseFocused
             unless isMouseFocused $ clearEvents enterWindowMask
+
+-- Raise every xmonad decoration window above the clients. Decoration windows
+-- carry the resource class "xmonad-decoration" (set by XMonad.Layout.Decoration),
+-- so a walk of the root's children finds them without tracking them ourselves.
+raiseDecorations :: X ()
+raiseDecorations = withDisplay $ \dpy -> do
+    root <- asks theRoot
+    io $ do
+        (_, _, children) <- queryTree dpy root
+        forM_ children $ \c -> do
+            hint <- getClassHint dpy c
+            when (resClass hint == "xmonad-decoration") $ raiseWindow dpy c
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
