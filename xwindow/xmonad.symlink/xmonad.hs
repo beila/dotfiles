@@ -16,6 +16,7 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
+import XMonad.Layout.Decoration
 import XMonad.Layout.NoBorders (smartBorders)
 import XMonad.Util.EZConfig (additionalKeys)
 import qualified XMonad.Util.ExtensibleState as XS
@@ -63,7 +64,7 @@ myConfig =
         , -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
           -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
           manageHook = myManageHook
-        , layoutHook = smartBorders $ avoidStruts $ layoutHook gnomeConfig
+        , layoutHook = smartBorders $ avoidStruts $ decoration shrinkText tagTheme TopRightTag $ layoutHook gnomeConfig
         , -- Focus indicator: thin LEGO-orange edge (same accent as
           -- hangul-osd); picom adds a soft warm glow around the focused
           -- window (see home-manager picom.nix). Unfocused border painted
