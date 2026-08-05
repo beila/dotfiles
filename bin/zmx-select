@@ -13,9 +13,8 @@
 # the cursor back on the session you just left; Ctrl-C / Esc in the picker is
 # the way out.
 #
-# Presets are listed in file order so the picker layout stays put as sessions
-# start and stop. Non-preset running sessions follow, so ad-hoc ones stay
-# reachable. With neither presets nor running sessions the picker is skipped and
+# Ad-hoc running sessions are listed first, then the presets in file order so
+# that part of the layout stays put as sessions start and stop. With neither presets nor running sessions the picker is skipped and
 # a default session is attached directly: first CLI arg, or
 # $ZMX_DEFAULT_SESSION, or `main`. The first arg also seeds the fzf query.
 #
@@ -90,27 +89,38 @@ row() {  # name -> display line; stopped sessions are just the name
     fi
 }
 
-# Presets first (stable order), then running sessions that aren't presets.
-# Sets $display and $order (parallel array of names, for cursor positioning).
+# Ad-hoc running sessions first (they're the transient ones you came back for),
+# then the presets in file order — that part stays put as sessions start and
+# stop. Sets $display and $order (parallel array of names, for cursor
+# positioning).
 build_display() {
     local -A is_preset=()
     local name
     display=""
     order=()
+
     if [[ -r "$sessions_file" ]]; then
         while read -r name _; do
             [[ -z "$name" || "$name" == \#* ]] && continue
             is_preset["$name"]=1
+        done < "$sessions_file"
+    fi
+
+    # Sorted, because associative-array key order is a hash order — without this
+    # the top of the list would reshuffle between invocations.
+    while IFS= read -r name; do
+        [[ -n "$name" && -z "${is_preset[$name]:-}" ]] || continue
+        display+=$(row "$name")$'\n'
+        order+=("$name")
+    done < <(printf '%s\n' ${!running[@]+"${!running[@]}"} | sort)
+
+    if [[ -r "$sessions_file" ]]; then
+        while read -r name _; do
+            [[ -z "$name" || "$name" == \#* ]] && continue
             display+=$(row "$name")$'\n'
             order+=("$name")
         done < "$sessions_file"
     fi
-    for name in "${!running[@]}"; do
-        if [[ -z "${is_preset[$name]:-}" ]]; then
-            display+=$(row "$name")$'\n'
-            order+=("$name")
-        fi
-    done
 }
 
 last_session=""
