@@ -1,6 +1,6 @@
 import Control.Monad
 import qualified Data.List as L (filter, find, isSuffixOf)
-import qualified Data.Map as M (fromList, keys, lookup, member, toList)
+import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
 import Data.Maybe
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
