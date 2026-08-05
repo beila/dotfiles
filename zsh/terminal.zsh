@@ -34,9 +34,15 @@ function _terminal-set-titles-with-command {
   # detachable session's window from another.
   local prefix="${ZMX_SESSION:+[$ZMX_SESSION] }"
 
-  [[ "$TERM" == screen* ]] && printf '\ek%s%s\e\\' "$prefix" "$truncated_cmd"
-  printf '\e]1;%s%s\a' "$prefix" "$truncated_cmd"  # tab/pane title
-  printf '\e]2;%s%s\a' "$prefix" "$cmd"            # window title
+  # Keep the location in the title while a command runs. Without this the
+  # command replaced it, so a long build left the window (and the xmonad corner
+  # tag reading it) with no clue which directory it belonged to.
+  local absolute_path="${PWD:a}"
+  local location="${absolute_path/#$HOME/~}"
+
+  [[ "$TERM" == screen* ]] && printf '\ek%s%s · %s\e\\' "$prefix" "$location" "$truncated_cmd"
+  printf '\e]1;%s%s · %s\a' "$prefix" "$location" "$truncated_cmd"  # tab/pane title
+  printf '\e]2;%s%s · %s\a' "$prefix" "$location" "$cmd"            # window title
 }
 
 # Sets the tab and window titles with a given path.

@@ -108,11 +108,17 @@ build_display() {
 
     # Sorted, because associative-array key order is a hash order — without this
     # the top of the list would reshuffle between invocations.
-    while IFS= read -r name; do
-        [[ -n "$name" && -z "${is_preset[$name]:-}" ]] || continue
-        display+=$(row "$name")$'\n'
-        order+=("$name")
-    done < <(printf '%s\n' ${!running[@]+"${!running[@]}"} | sort)
+    local -a adhoc=()
+    for name in "${!running[@]}"; do
+        [[ -n "${is_preset[$name]:-}" ]] || adhoc+=("$name")
+    done
+    if ((${#adhoc[@]})); then
+        while IFS= read -r name; do
+            [[ -n "$name" ]] || continue
+            display+=$(row "$name")$'\n'
+            order+=("$name")
+        done < <(printf '%s\n' "${adhoc[@]}" | sort)
+    fi
 
     if [[ -r "$sessions_file" ]]; then
         while read -r name _; do

@@ -2,21 +2,21 @@
 # whether or not they're running — Enter on a stopped one starts it. Order here
 # is the order in the picker, so it stays stable as sessions come and go.
 # Override the file with $ZMX_SESSIONS_FILE.
-work
+work1
 work2
 work3
-whelp
+whelp1
 whelp2
 whelp3
-doc
+doc1
 doc2
 doc3
-dhelp
+dhelp1
 dhelp2
 dhelp3
-setup
+setup1
 setup2
 setup3
-shelp
+shelp1
 shelp2
 shelp3
