@@ -64,7 +64,7 @@ load_running() {
     ')
 }
 
-row() {  # name -> display line; stopped sessions get placeholders
+row() {  # name -> display line; stopped sessions get a placeholder
     local name=$1 pid clients cwd
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients <<<"${running[$name]}"
@@ -73,9 +73,12 @@ row() {  # name -> display line; stopped sessions get placeholders
         # would be worse than none. Quote the tilde: bash tilde-expands the
         # replacement, so a bare ~ substitutes $HOME back in and no-ops.
         cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null)
-        printf '%-14s  pid:%-8s  clients:%-2s  %s\n' "$name" "$pid" "$clients" "${cwd/#$HOME/'~'}"
+        # clients > 0 means it's open in another window; worth knowing before
+        # you attach a second client to the same session.
+        printf '%-14s  %s%s\n' "$name" "${cwd/#$HOME/'~'}" \
+            "$([[ ${clients:-0} -gt 0 ]] && printf '  (attached)')"
     else
-        printf '%-14s  %-13s  %-12s\n' "$name" "-" "not started"
+        printf '%-14s  %s\n' "$name" "not started"
     fi
 }
 

@@ -12,7 +12,7 @@
 ## Files
 
 - `environment.zsh` — smart URLs, setopt, jobs, colored man pages.
-- `terminal.zsh` — window/tab/pane titles via precmd/preexec.
+- `terminal.zsh` — window/tab/pane titles via precmd/preexec (OSC 1/2). Prefixed with `[$ZMX_SESSION]` inside a zmx session so ghostty's title says which session the window is attached to; zmx forwards the OSC to the client, verified by capturing an `attach` under `script` (`^[]2;[titleprobe3] ~/.dotfiles`). `zmx history` won't show it — that's the VT-rendered scrollback, not the raw stream.
 - `editor.zsh` — vi mode, dot expansion, key bindings, vim-surround, text objects. `KEYTIMEOUT=1` and `zle-line-init` forces insert mode on every new prompt so stray escape sequences (e.g. from zmx re-attach or kitty keyboard protocol) don't silently leave ZLE in vicmd mode. Bindkey setup is skipped when `! -o shinstdin` (e.g. under `zsh -ic 'cmd'`) because terminfo keycaps aren't populated yet.
 - `history.zsh` — 10M entries, dedup, `HIST_IGNORE_SPACE` disabled.
 - `directory.zsh` — `auto_cd`, `auto_pushd`, `extended_glob`, no clobber.

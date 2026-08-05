@@ -30,9 +30,13 @@ function _terminal-set-titles-with-command {
   local truncated_cmd="${cmd/(#m)?(#c15,)/${MATCH[1,12]}...}"
   unset MATCH
 
-  [[ "$TERM" == screen* ]] && printf '\ek%s\e\\' "$truncated_cmd"
-  printf '\e]1;%s\a' "$truncated_cmd"  # tab/pane title
-  printf '\e]2;%s\a' "$cmd"            # window title
+  # zmx exports ZMX_SESSION; naming it in the title is how you tell one
+  # detachable session's window from another.
+  local prefix="${ZMX_SESSION:+[$ZMX_SESSION] }"
+
+  [[ "$TERM" == screen* ]] && printf '\ek%s%s\e\\' "$prefix" "$truncated_cmd"
+  printf '\e]1;%s%s\a' "$prefix" "$truncated_cmd"  # tab/pane title
+  printf '\e]2;%s%s\a' "$prefix" "$cmd"            # window title
 }
 
 # Sets the tab and window titles with a given path.
@@ -44,9 +48,11 @@ function _terminal-set-titles-with-path {
   local truncated_path="${abbreviated_path/(#m)?(#c15,)/...${MATCH[-12,-1]}}"
   unset MATCH
 
-  [[ "$TERM" == screen* ]] && printf '\ek%s\e\\' "$truncated_path"
-  printf '\e]1;%s\a' "$truncated_path"  # tab/pane title
-  printf '\e]2;%s\a' "$abbreviated_path" # window title
+  local prefix="${ZMX_SESSION:+[$ZMX_SESSION] }"
+
+  [[ "$TERM" == screen* ]] && printf '\ek%s%s\e\\' "$prefix" "$truncated_path"
+  printf '\e]1;%s%s\a' "$prefix" "$truncated_path"  # tab/pane title
+  printf '\e]2;%s%s\a' "$prefix" "$abbreviated_path" # window title
 }
 
 autoload -Uz add-zsh-hook
