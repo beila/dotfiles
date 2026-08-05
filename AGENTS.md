@@ -75,7 +75,7 @@ Detailed design lives in per-directory `AGENTS.md`. Pick the one closest to your
 
 ## Cross-cutting notes
 
-- **User on LDAP** — can't `chsh`, so `$SHELL` is bash; zsh is started via `exec` from `.bashrc`. Affects every shell-feature decision.
+- **User on LDAP** — can't `chsh`, so `$SHELL` is bash; zsh is started by the terminal instead (`ghostty.configsymlink/config`: `command = zsh -l`). Anything that spawns `$SHELL` itself lands in bash and needs `zsh -l` passed explicitly — see `bin/zmx-select`. Affects every shell-feature decision.
 - **`apt` collision with the JDK's Annotation Processing Tool** — `home-manager.configsymlink/system-deps.sh` checks dnf/yum first.
 - **linuxbrew's `dbus-run-session` has a broken config** — `gnome.nix` is conditionally skipped when `/usr/bin/dconf` is absent.
 - **Hosts without per-user systemd** — when nix systemd ≥256 can't run (cgroup v1 hosts that can't be rebooted with `systemd.unified_cgroup_hierarchy=1`), `dotfiles.schedule` provides a cron backend instead. See `home-manager.configsymlink/AGENTS.md`.
