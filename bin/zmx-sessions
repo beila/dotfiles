@@ -1,0 +1,22 @@
+# Preset zmx session names, one per line, shown by `zmx-select` (alias `z`)
+# whether or not they're running — Enter on a stopped one starts it. Order here
+# is the order in the picker, so it stays stable as sessions come and go.
+# Override the file with $ZMX_SESSIONS_FILE.
+work
+work2
+work3
+whelp
+whelp2
+whelp3
+doc
+doc2
+doc3
+dhelp
+dhelp2
+dhelp3
+setup
+setup2
+setup3
+shelp
+shelp2
+shelp3

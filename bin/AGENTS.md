@@ -94,7 +94,9 @@ No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own),
 
 ## zmx session picker
 
-`zmx-select` — fzf picker over `zmx list`, aliased to `z` (`zsh/utility.zsh`). Enter attaches highlighted, Ctrl-N creates a new session with the typed name (auto-suffixes `-2`, `-3`... if the name is already in use), Ctrl-C exits. Preview shows the session's last 500 scrollback lines then streams live output (`zmx history … | tail`, then `exec zmx tail`), with `--preview-window=follow` pinned to the bottom. Skips the picker and attaches directly to a default session (CLI arg, `$ZMX_DEFAULT_SESSION`, or `main`) when no sessions exist.
+`zmx-select` — fzf picker over zmx sessions, aliased to `z` (`zsh/utility.zsh`). Lists the preset names from `bin/zmx-sessions` (override via `$ZMX_SESSIONS_FILE`) in file order — so the picker layout doesn't move as sessions start and stop — followed by any running session that isn't a preset. Enter attaches, starting the session if it's stopped (`zmx attach` creates on demand, so no separate create step); Ctrl-N forces a new session with the typed name (auto-suffixes `-2`, `-3`… if taken); Ctrl-C exits. Preview shows the session's last 500 scrollback lines then streams live output (`zmx history … | tail`, then `exec zmx tail`) with `--preview-window=follow`; stopped sessions show a one-line placeholder instead. Falls back to attaching a default session (CLI arg, `$ZMX_DEFAULT_SESSION`, or `main`) only when there are neither presets nor running sessions.
+
+Beware `zmx attach --help`: zmx takes it as a session name and attaches to a session called `--help` rather than printing usage — it looks like a hang. `zmx help` is the usage command.
 
 ## Notify-webhook dispatcher
 

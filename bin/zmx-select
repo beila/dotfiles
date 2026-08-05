@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 # zmx-select — interactive fzf picker for zmx sessions
 #
-# Lists existing zmx sessions with live scrollback preview. Actions:
-#   Enter    — attach to the highlighted session (or create with typed query if no match)
+# Lists the preset sessions from bin/zmx-sessions plus any other running
+# session, with live scrollback preview. Actions:
+#   Enter    — attach to the highlighted session, starting it if it isn't
+#              running (or create one named after the typed query if no match)
 #   Ctrl-N   — create a new session with the typed query; auto-suffixes -2, -3, ...
 #              if that name is already in use
 #   Ctrl-C   — exit without attaching
 #
-# If no sessions exist, the picker is skipped and a default session is attached
-# directly. The default name is the first CLI arg, or $ZMX_DEFAULT_SESSION,
-# or `main`. Optional first arg also seeds the fzf query when sessions exist.
+# Presets are listed in file order so the picker layout stays put as sessions
+# start and stop. Non-preset running sessions follow, so ad-hoc ones stay
+# reachable. With neither presets nor running sessions the picker is skipped and
+# a default session is attached directly: first CLI arg, or
+# $ZMX_DEFAULT_SESSION, or `main`. The first arg also seeds the fzf query.
 #
 # Adapted from https://github.com/neurosnap/zmx (session picker section).
 
@@ -17,35 +21,73 @@ set -euo pipefail
 
 initial_query="${1:-}"
 default_session="${ZMX_DEFAULT_SESSION:-main}"
+sessions_file="${ZMX_SESSIONS_FILE:-$(dirname "$(readlink -f "$0")")/zmx-sessions}"
 
-# Build display: "name  pid:N  clients:N  dir"
-# zmx list emits each field as "key=value" separated by tabs, with leading whitespace.
-display=$(zmx list 2>/dev/null | awk -F'\t' '
+# name -> "pid<TAB>clients<TAB>start_dir" for every running session.
+# zmx list emits each field as "key=value" separated by tabs, with leading
+# whitespace.
+declare -A running=()
+while IFS=$'\t' read -r name pid clients dir; do
+    [[ -n "$name" ]] && running["$name"]="$pid	$clients	$dir"
+done < <(zmx list 2>/dev/null | awk -F'\t' '
     {
-        # For each field, strip leading whitespace and everything up to the first "=".
         for (i=1; i<=NF; i++) {
             sub(/^[[:space:]]+/, "", $i)
             sub(/^[^=]*=/, "", $i)
         }
-        if ($1 != "") printf "%-30s  pid:%-8s  clients:%-2s  %s\n", $1, $2, $3, $5
+        if ($1 != "") print $1 "\t" $2 "\t" $3 "\t" $5
     }
 ')
 
-# No existing sessions: skip the picker and create the default session directly.
-# Use the initial query as the name if provided.
-if [[ -z "$display" ]]; then
+row() {  # name -> display line; stopped sessions get placeholders
+    local name=$1 pid clients dir
+    if [[ -n "${running[$name]:-}" ]]; then
+        IFS=$'\t' read -r pid clients dir <<<"${running[$name]}"
+        printf '%-14s  pid:%-8s  clients:%-2s  %s\n' "$name" "$pid" "$clients" "$dir"
+    else
+        printf '%-14s  %-13s  %-12s\n' "$name" "-" "not started"
+    fi
+}
+
+# Presets first (stable order), then running sessions that aren't presets.
+declare -A is_preset=()
+display=""
+if [[ -r "$sessions_file" ]]; then
+    while read -r name _; do
+        [[ -z "$name" || "$name" == \#* ]] && continue
+        is_preset["$name"]=1
+        display+=$(row "$name")$'\n'
+    done < "$sessions_file"
+fi
+for name in "${!running[@]}"; do
+    [[ -n "${is_preset[$name]:-}" ]] || display+=$(row "$name")$'\n'
+done
+
+# Nothing to show at all: create the default session directly.
+if [[ -z "${display//[$'\n']/}" ]]; then
     exec zmx attach "${initial_query:-$default_session}"
 fi
 
+# Preview: backlog then live output. `zmx tail` alone prints only NEW output, so
+# the history prefix is what makes a quiet session readable. Stopped sessions
+# have no history to show.
+preview_cmd='
+if zmx list --short 2>/dev/null | grep -Fxq -- "$1"; then
+    zmx history "$1" 2>/dev/null | tail -500
+    exec zmx tail "$1" 2>/dev/null
+else
+    printf "%s is not running — Enter starts it.\n" "$1"
+fi'
+
 rc=0
-output=$(echo "$display" | fzf \
+output=$(printf '%s' "$display" | fzf \
     --print-query \
     --expect=ctrl-n \
     --height=80% \
     --reverse \
     --prompt="zmx> " \
-    --header="Enter: attach | Ctrl-N: new session (auto-suffix if name exists) | Ctrl-C: exit" \
-    --preview='sh -c '\''zmx history "$1" 2>/dev/null | tail -500; exec zmx tail "$1" 2>/dev/null'\'' _ {1}' \
+    --header="Enter: attach (starts if stopped) | Ctrl-N: new session | Ctrl-C: exit" \
+    --preview="sh -c '$preview_cmd' _ {1}" \
     --preview-window=right:60%:follow \
     --query="$initial_query") || rc=$?
 
@@ -72,4 +114,6 @@ else
     exit 130
 fi
 
+# `attach` creates the session when it doesn't exist, so preset rows and typed
+# names need no separate create step.
 exec zmx attach "$session"
