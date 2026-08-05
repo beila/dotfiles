@@ -27,6 +27,23 @@ initial_query="${1:-}"
 default_session="${ZMX_DEFAULT_SESSION:-main}"
 sessions_file="${ZMX_SESSIONS_FILE:-$(dirname "$(readlink -f "$0")")/zmx-sessions}"
 
+# One marker per session we're currently attached to, holding this picker's PID.
+# It's how a `zmx-select` run *inside* a session knows a picker is waiting for it
+# out here: the session's shell can't see the client's process tree (its parent
+# is the zmx server), so the fact has to be recorded somewhere both sides see.
+marker_dir="${XDG_RUNTIME_DIR:-/tmp}/zmx-select"
+
+# Inside a session that this picker attached: detaching is what the user means by
+# running `z` again — it drops back to the picker loop below instead of nesting a
+# second picker (and a session inside a session). Stale marker (picker gone) or a
+# hand-attached session falls through to a normal picker.
+if [[ -n "${ZMX_SESSION-}" && -r "$marker_dir/$ZMX_SESSION" ]]; then
+    marker_pid=$(<"$marker_dir/$ZMX_SESSION")
+    if [[ -n "$marker_pid" ]] && kill -0 "$marker_pid" 2>/dev/null; then
+        exec zmx detach
+    fi
+fi
+
 # zmx spawns a login $SHELL, which on this account is bash (LDAP, no chsh), so a
 # fresh session would come up in bash. Ask for the same shell ghostty launches
 # (`command = zsh -l`) instead. Only applies at creation — re-attaching an
@@ -168,7 +185,12 @@ while true; do
     # `attach` creates the session when it doesn't exist, so preset rows and
     # typed names need no separate create step. Not exec'd: when the client
     # detaches or the shell exits we come back around to the picker.
+    mkdir -p "$marker_dir"
+    printf '%s\n' "$$" > "$marker_dir/$session"
+    trap 'rm -f "$marker_dir/$session"' EXIT
     zmx attach "$session" "${session_shell[@]}" || true
+    rm -f "$marker_dir/$session"
+    trap - EXIT
     last_session="$session"
     query=""
 done
