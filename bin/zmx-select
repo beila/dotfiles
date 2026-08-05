@@ -64,7 +64,7 @@ load_running() {
     ')
 }
 
-row() {  # name -> display line; stopped sessions get a placeholder
+row() {  # name -> display line; stopped sessions are just the name
     local name=$1 pid clients cwd
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients <<<"${running[$name]}"
@@ -78,7 +78,7 @@ row() {  # name -> display line; stopped sessions get a placeholder
         printf '%-14s  %s%s\n' "$name" "${cwd/#$HOME/'~'}" \
             "$([[ ${clients:-0} -gt 0 ]] && printf '  (attached)')"
     else
-        printf '%-14s  %s\n' "$name" "not started"
+        printf '%s\n' "$name"
     fi
 }
 

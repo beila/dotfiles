@@ -3,7 +3,7 @@
 # This template file has been automatically created at the following
 # path since Ghostty couldn't find any existing config files on your system:
 #
-#   /home/ANT.AMAZON.COM/hojin/.config/ghostty/config
+#   $USER_HOME/.config/ghostty/config
 #
 # The template does not set any default options, since Ghostty ships
 # with sensible defaults for all options. Users should only need to set
@@ -44,6 +44,11 @@
 
 command = zsh -l
 gtk-titlebar = false
+# No titlebar and no panel tasklist means the OSC title has nowhere to show, so
+# keep the tab bar up even for a single tab — it renders the title (prefixed
+# with the zmx session by zsh/terminal.zsh) per window, including while a
+# long-running command owns the screen.
+window-show-tab-bar = always
 
 # Per-glyph fallback: Latin from JetBrainsMono Nerd Font, Hangul from LXGW WenKai Mono.
 font-family = JetBrainsMono Nerd Font
