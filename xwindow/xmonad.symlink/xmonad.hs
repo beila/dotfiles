@@ -39,8 +39,8 @@ main = do
     -- "resolution" is a nominal 96dpi lie on HiDPI panels (xdpyinfo reports 96
     -- on a 3840x2400 screen); Xft.dpi in the resource DB is what GTK/Xft
     -- actually honour, so read that. 96 (scale 1) when unset.
-    scale <- tagScale
-    xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg (myConfig scale)
+    metrics <- tagMetrics
+    xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg (myConfig metrics)
   where
     -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
     fsHook = composeOne
@@ -48,7 +48,7 @@ main = do
         , pure True -?> doFullFloat
         ]
 
-myConfig scale =
+myConfig metrics =
     gnomeConfig
         { terminal = "gnome-terminal"
         , startupHook =
@@ -69,14 +69,14 @@ myConfig scale =
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags scale
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags metrics
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
         , -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
           -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
           manageHook = myManageHook
-        , layoutHook = smartBorders $ avoidStruts $ decoration shrinkText (tagTheme scale) TopRightTag $ layoutHook gnomeConfig
+        , layoutHook = smartBorders $ avoidStruts $ decoration shrinkText (tagTheme metrics) TopRightTag $ layoutHook gnomeConfig
         , -- Focus indicator: thin LEGO-orange edge (same accent as
           -- hangul-osd); picom adds a soft warm glow around the focused
           -- window (see home-manager picom.nix). Unfocused border painted
@@ -127,12 +127,12 @@ instance DecorationStyle TopRightTag Window where
       where
         tagW = min decoW ww
 
-tagTheme :: Double -> Theme
-tagTheme scale =
+tagTheme :: TagMetrics -> Theme
+tagTheme metrics =
     def
-        { fontName = tagFontName scale
-        , decoWidth = tagWidth scale
-        , decoHeight = tagHeight scale
+        { fontName = tagFontName metrics
+        , decoWidth = tagWidth metrics
+        , decoHeight = tagHeight metrics
         , activeColor = "#1d1d1d"
         , inactiveColor = "#1d1d1d"
         , activeBorderColor = "#F8BB3D"
@@ -146,28 +146,51 @@ tagTheme scale =
         , urgentTextColor = "#F8BB3D"
         }
 
-tagScale :: IO Double
-tagScale = do
+-- Tag metrics, resolved once at startup from the X resource database so the
+-- sizes can be tuned without touching this file:
+--
+--   echo 'xmonad.tag.height: 9' | xrdb -merge && xmonad --restart
+--   (then mod-shift-space per workspace -- see the layout-reset note in AGENTS)
+--
+-- Bases are 96dpi-equivalent and multiplied by Xft.dpi/96.
+data TagMetrics = TagMetrics
+    { tmFont :: Int
+    , tmWidth :: Dimension
+    , tmHeight :: Dimension
+    }
+
+tagMetrics :: IO TagMetrics
+tagMetrics = do
     out <- runProcessWithInput "xrdb" ["-query"] ""
-    let dpi =
-            listToMaybe
-                [ d
-                | l <- lines out
-                , Just rest <- [stripPrefix "Xft.dpi:" l]
-                , Just d <- [readMaybe (dropWhile (`elem` " \t") rest) :: Maybe Double]
-                ]
-    return $ maybe 1 (/ 96) dpi
+    let db =
+            [ (key, dropWhile (`elem` " \t") (drop 1 rest))
+            | l <- lines out
+            , let (key, rest) = break (== ':') l
+            , not (null rest)
+            ]
+        num k d = fromMaybe d (lookup k db >>= readMaybe) :: Double
+        -- X reports a nominal 96dpi on HiDPI panels (xdpyinfo says 96 on a
+        -- 3840x2400 screen), so the real scale has to come from Xft.dpi. And
+        -- xmonad's Xft rendering ignores Xft.dpi, unlike GTK, so the font size
+        -- gets scaled by hand too or the text lands at half size.
+        scale = num "Xft.dpi" 96 / 96
+    return
+        TagMetrics
+            { tmFont = max 6 (round (num "xmonad.tag.fontSize" 4.5 * scale))
+            , tmWidth = round (num "xmonad.tag.width" 320 * scale)
+            , tmHeight = round (num "xmonad.tag.height" 9 * scale)
+            }
 
 -- Base sizes are 96dpi-equivalent and multiplied by the scale. xmonad's Xft
 -- rendering ignores Xft.dpi (it takes the display's nominal 96), unlike GTK, so
 -- the font size has to be scaled by hand too or the text comes out half-size on
 -- a HiDPI panel.
-tagFontName :: Double -> String
-tagFontName scale = "xft:JetBrainsMono Nerd Font:size=" ++ show (max 6 (round (7 * scale) :: Int))
+tagFontName :: TagMetrics -> String
+tagFontName m = "xft:JetBrainsMono Nerd Font:size=" ++ show (tmFont m)
 
-tagWidth, tagHeight :: Double -> Dimension
-tagWidth scale = round (240 * scale)
-tagHeight scale = round (15 * scale)
+tagWidth, tagHeight :: TagMetrics -> Dimension
+tagWidth = tmWidth
+tagHeight = tmHeight
 
 ------------------------------------------------------------------------
 -- Window tag for FLOATING windows
@@ -193,29 +216,29 @@ instance ExtensionClass TagFont where
     initialValue = TagFont Nothing
     extensionType = StateExtension
 
-tagFont :: Double -> X XMonadFont
-tagFont scale = do
+tagFont :: TagMetrics -> X XMonadFont
+tagFont metrics = do
     TagFont cached <- XS.get
     case cached of
         Just f -> return f
         Nothing -> do
-            f <- initXMF (tagFontName scale)
+            f <- initXMF (tagFontName metrics)
             XS.put (TagFont (Just f))
             return f
 
-floatTags :: Double -> X ()
-floatTags scale = withWindowSet $ \ws -> do
+floatTags :: TagMetrics -> X ()
+floatTags metrics = withWindowSet $ \ws -> do
     let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
         floats = W.floating ws
         focused = W.peek ws
     candidates <- filterM (\w -> (&& M.member w floats) <$> runQuery (className =? "com.mitchellh.ghostty") w) visible
     FloatTags cache <- XS.get
-    font <- tagFont scale
+    font <- tagFont metrics
     kept <- forM candidates $ \w -> do
         wa <- withDisplay $ \d -> io $ getWindowAttributes d w
         name <- runQuery title w
-        let tagW = tagWidth scale
-            tagH = tagHeight scale
+        let tagW = tagWidth metrics
+            tagH = tagHeight metrics
             cx = fi (wa_x wa) + fi (wa_width wa) - fi tagW
             rect = Rectangle cx (fi (wa_y wa)) tagW tagH
             active = focused == Just w
@@ -241,13 +264,13 @@ floatTags scale = withWindowSet $ \ws -> do
         unless (w `elem` candidates) $ deleteWindow tw
     XS.put (FloatTags (M.fromList kept))
   where
-    theme = tagTheme scale
+    theme = tagTheme metrics
     paintTag tw font name active =
         paintAndWrite
             tw
             font
-            (tagWidth scale)
-            (tagHeight scale)
+            (tagWidth metrics)
+            (tagHeight metrics)
             (if active then activeBorderWidth theme else inactiveBorderWidth theme)
             (if active then activeColor theme else inactiveColor theme)
             (if active then activeBorderColor theme else inactiveBorderColor theme)
