@@ -90,7 +90,7 @@ No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own),
 
 ## Zellij session cycler
 
-`zellij-cycle` — wraps `zellij attach --create` in a loop. On detach, cycles to the next active session. Supports session names with spaces. Numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one (used by xmonad scratchpads — see `xwindow/AGENTS.md`).
+`zellij-cycle` — wraps `zellij attach --create` in a loop. On detach, cycles to the next active session. Supports session names with spaces. Numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one. Xmonad scratchpads now launch `zmx-select` instead (see `xwindow/AGENTS.md`).
 
 ## zmx session picker
 
