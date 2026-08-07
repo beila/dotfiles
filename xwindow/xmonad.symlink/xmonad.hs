@@ -284,17 +284,17 @@ floatTags metrics = withWindowSet $ \ws -> do
 ------------------------------------------------------------------------
 
 -- Two independent floating ghostty terminals
--- Each attaches to the Nth existing zellij session (1st/2nd); falls back to creating main-N
+-- Each opens the zmx session picker; session selection is independent per window
 -- Positioning handled by adaptiveFloat based on screen orientation
 myScratchpads =
     [ NS
         "ghostty1"
-        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 1"
+        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zmx-select"
         (appName =? "scratchpad1")
         (adaptiveFloat True)
     , NS
         "ghostty2"
-        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zellij-cycle 2"
+        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zmx-select"
         (appName =? "scratchpad2")
         (adaptiveFloat False)
     ]

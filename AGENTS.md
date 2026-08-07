@@ -27,9 +27,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
 - [x] switch nix neovim module to `hm-generated.lua` approach — nix writes `programs.neovim.initLua` (lua paths, providers, sibling-module appends) to `nvim/lua/hm-generated.lua` via `xdg.configFile`, the module's own `init.lua` output disabled with `mkForce false`; git-tracked `init.lua` restored with `pcall(require, 'hm-generated')` at top; `myinit.lua` merged into `init.lua` and deleted; `.gitignore` now ignores `/lua/hm-generated.lua` instead of `init.lua`. Verified: plugins (packpath), providers-off, vimrc chain, keymaps all load. See `home-manager.configsymlink/nvim.nix` and `nvim.configsymlink/AGENTS.md`.
 - [ ] fzf/functions.sh sets list width depending on the contents
 - [ ] fingerprint login + sudo (https://learn.omacom.io/2/the-omarchy-manual/77/fingerprint-fido2-authentication)
-- [ ] use zmx-select locally instead of zellij
-  - should switch between machines without blocking, and between sessions as easily as zellij session manager
-  - bring back something like fzf-zellij
+- [x] use zmx-select locally instead of zellij — both xmonad ghostty scratchpads launch `zmx-select`; each picker can independently attach to, create, detach from, and switch among sessions, with live scrollback preview. See `xwindow/AGENTS.md` and `bin/AGENTS.md`.
 - [ ] xdg-open fails to open html files due to container issue
 - [x] detect if I'm in a meeting before `say` actually says something — `say` now checks `pw-dump` for a `Stream/Input/Audio` from zoom/teams/meet/webex/slack/chime/discord (regex via `$SAY_MEETING_APP_REGEX`, bypass via `SAY_NO_MEETING_CHECK=1`). Works even when you're muted in the call. See `bin/AGENTS.md`.
 - [x] match sysmon color threshold to match the resolution of height, so that the same height doesn't show sometimes green and sometimes yellow — `severity()` now keys off the quantized dot-height (0..4) instead of raw percent, so a bar height maps to exactly one color (h1,h2→green, h3→yellow, h4→red). See `xwindow/bin/sysmon-genmon`.

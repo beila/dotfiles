@@ -46,9 +46,7 @@ command = zsh -l
 gtk-titlebar = false
 # Tiled windows get a compact top-right title tag from xmonad instead (see
 # xwindow/xmonad.symlink/xmonad.hs, TopRightTag), so the 46px full-width tab bar
-# stays off here. The scratchpad terminals are FLOATS, which xmonad decorations
-# never reach, so those two pass --window-show-tab-bar=always on their own
-# command line.
+# stays off here. Xmonad paints matching tags for the floating scratchpads.
 window-show-tab-bar = never
 
 # Per-glyph fallback: Latin from JetBrainsMono Nerd Font, Hangul from LXGW WenKai Mono.
