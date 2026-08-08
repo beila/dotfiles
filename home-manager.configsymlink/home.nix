@@ -43,7 +43,7 @@ in
     # pkgs.hello
 
     pkgs.albert
-    pkgs.anki
+    (config.lib.nixGL.wrap pkgs.anki)
     pkgs.bat
     pkgs.brightnessctl
     pkgs.btop
@@ -81,7 +81,7 @@ in
     pkgs.ripgrep
     pkgs.scrot
     pkgs.spacer
-    pkgs.uv # edge-tts runner for say-ko/say-es
+    pkgs.uv # edge-tts runner for say-en/say-ko/say-es
     pkgs.watchlog
     # battery-osd: invocation wrapper around the local `osd` library.
     # Single binary in PATH; no full Python (would conflict with awscli2).
