@@ -22,6 +22,7 @@ tmp=$(mktemp -d /tmp/test_say_preempt.XXXXXX)
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/bin"
 cp "$real_say" "$tmp/bin/say"
+cp "$dotfiles/bin/say-voice.sh" "$tmp/bin/say-voice.sh"
 
 cat >"$tmp/bin/say-en" <<'EOF'
 #!/usr/bin/env bash
@@ -71,7 +72,7 @@ for _ in $(seq 1 100); do
     sleep 0.05
 done
 assert_true "first backend was killed" "! kill -0 '$backend1' 2>/dev/null"
-assert_true "first backend recorded TERM via trap" "grep -q terminated '$events'"
+assert_true "first backend recorded TERM via trap" "rg -q terminated '$events'"
 
 # Wait for second to settle
 for _ in $(seq 1 50); do
