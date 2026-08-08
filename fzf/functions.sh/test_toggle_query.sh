@@ -220,6 +220,11 @@ assert_not "functions.sh: no toggle-preview (replaced by cycle)" \
   "ctrl-/:toggle-preview" "$(cat "$fns")"
 assert_not "functions.sh: no ctrl-/ binding (logic moved to fzf-zellij)" \
   "ctrl-/:" "$(cat "$fns")"
+fzf_down_body=$(sed -n '/^fzf_down()/,/^}/p' "$fns")
+assert "functions.sh: custom pickers use fullscreen fzf" \
+  "--no-height" "$fzf_down_body"
+assert_not "functions.sh: custom pickers have no fixed 50% height" \
+  "--height 50%" "$fzf_down_body"
 assert "fzf-zellij: defines up,50% override for non-reverse layouts" \
   "up,50%" "$(grep -h up,50% "$fzf_zellij")"
 

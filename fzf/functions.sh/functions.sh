@@ -16,6 +16,8 @@ is_in_jj_repo() {
 }
 
 fzf_down() {
+  # Custom pickers use the full terminal outside zellij. Inside zellij, the
+  # wrapper still provides its own floating-pane viewport.
   # ctrl-/ preview-layout cycle and the --reverse-aware vertical position
   # (top vs bottom) both live in fzf-zellij — see the binding logic there.
   # FZF_DEFAULT_OPTS provides the down,50% default for the --reverse case
@@ -23,7 +25,7 @@ fzf_down() {
   # of our log dispatchers); fzf-zellij flips that to up,50% when --reverse
   # is absent so prompt and preview always anchor opposite ends of the
   # screen.
-  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --height 50% --min-height 20 --border "$@"
+  "${_fzf_functions_sh%/functions.sh/functions.sh}/fzf-zellij" -- --no-height --border "$@"
 }
 
 # --- helpers (git) ---

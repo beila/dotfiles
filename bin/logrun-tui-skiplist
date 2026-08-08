@@ -12,3 +12,4 @@ jjui
 c
 tmux
 zmx-select
+ls|fzf
