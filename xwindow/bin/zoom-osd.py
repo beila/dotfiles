@@ -16,9 +16,9 @@ calls, which a monitor may not do — so the proven dbus-monitor text
 output is parsed instead.)
 
 When the Notify app_name matches $ZOOM_OSD_APP_REGEX (default: zoom,
-case-insensitive), fork a child running display_on_all_monitors() for a
-few seconds — fork-per-show exactly like hangul-osd, so a crash in the
-X/render path never takes down the monitor loop.
+case-insensitive), spawn this program in --show mode for a few seconds.
+The subprocess isolates X/render failures from the monitor loop and is
+safe to launch from either the main thread or the X watcher thread.
 
 Second trigger — Zoom's own popup window: the Linux client does NOT call
 org.freedesktop.Notifications for meeting invites; it draws its own X
@@ -89,10 +89,10 @@ def _format_text(summary: str, body: str) -> str:
     return f"  {text}  "
 
 
-_child_pid: int | None = None
+_child_proc: subprocess.Popen | None = None
 # _show/_hide are called from the dbus-monitor loop (main thread) AND the
 # X window-watcher thread.
-_show_lock = threading.Lock()
+_show_lock = threading.RLock()
 
 
 def _show(text: str, duration: float) -> None:
@@ -101,16 +101,36 @@ def _show(text: str, duration: float) -> None:
 
 
 def _show_locked(text: str, duration: float) -> None:
-    global _child_pid
+    global _child_proc
     _hide_locked()
-    pid = os.fork()
-    if pid == 0:
-        try:
-            display_on_all_monitors(text, duration, STYLE)
-        except Exception as e:
-            sys.stderr.write(f"zoom-osd[child]: {e}\n")
-        os._exit(0)
-    _child_pid = pid
+    program = shutil.which(sys.argv[0]) or os.path.abspath(sys.argv[0])
+    try:
+        proc = subprocess.Popen([
+            sys.executable,
+            program,
+            "--show",
+            text,
+            "--duration",
+            str(duration),
+        ])
+    except OSError as e:
+        sys.stderr.write(f"zoom-osd: failed to start display subprocess: {e}\n")
+        return
+    _child_proc = proc
+    threading.Thread(target=_reap_child, args=(proc,), daemon=True).start()
+
+
+def _reap_child(proc: subprocess.Popen) -> None:
+    global _child_proc
+    returncode = proc.wait()
+    with _show_lock:
+        if proc is not _child_proc:
+            return
+        _child_proc = None
+    if returncode != 0:
+        sys.stderr.write(
+            f"zoom-osd: display subprocess exited {returncode}\n"
+        )
 
 
 def _hide() -> None:
@@ -119,34 +139,16 @@ def _hide() -> None:
 
 
 def _hide_locked() -> None:
-    global _child_pid
-    if _child_pid is None:
+    global _child_proc
+    if _child_proc is None:
         return
-    pid = _child_pid
-    _child_pid = None
+    proc = _child_proc
+    _child_proc = None
     try:
-        os.kill(pid, signal.SIGTERM)
+        proc.terminate()
     except ProcessLookupError:
-        return
-    try:
-        os.waitpid(pid, 0)
-    except ChildProcessError:
         pass
-
-
-def _on_sigchld(*_a) -> None:
-    """Reap children that finished their display duration (also reaps a
-    dying dbus-monitor; its stdout EOF ends the main loop separately)."""
-    global _child_pid
-    while True:
-        try:
-            pid, _ = os.waitpid(-1, os.WNOHANG)
-        except ChildProcessError:
-            return
-        if pid == 0:
-            return
-        if pid == _child_pid:
-            _child_pid = None
+    proc.wait()
 
 
 def _dbus_monitor_bin() -> str | None:
@@ -234,8 +236,6 @@ def _run_daemon(duration: float) -> int:
 
     app_re = re.compile(os.environ.get("ZOOM_OSD_APP_REGEX", DEFAULT_APP_REGEX),
                         re.IGNORECASE)
-
-    signal.signal(signal.SIGCHLD, _on_sigchld)
 
     proc = subprocess.Popen([monitor, "--session", MATCH_RULE],
                             stdout=subprocess.PIPE, text=True)
