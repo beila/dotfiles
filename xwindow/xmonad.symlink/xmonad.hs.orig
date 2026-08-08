@@ -60,7 +60,7 @@ myConfig metrics =
                   startupHook gnomeConfig
                 , fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
-                , spawn "pgrep -x albert >/dev/null || albert"
+                , spawn "pgrep albert || albert"
                 , cleanStrayTags
                 , -- Safety net for fresh checkouts: map keycodes 198/202 →
                   -- F20/F24 for the keyd Super+V/C macro. system-deps.sh
@@ -521,7 +521,7 @@ myKeys =
     -- doesn't see these — keyd swallows the Super and emits a bare keysym
     -- which the focused app handles natively.
     , ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
-    , ((0, xF86XK_TouchpadToggle), spawn "if pgrep -x albert >/dev/null; then albert toggle; else albert; fi") -- Super tap via keyd (prog1 = f21)
+    , ((0, xF86XK_TouchpadToggle), spawn "albert toggle") -- Super tap via keyd (prog1 = f21)
     , ((0, xF86XK_TouchpadOn), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2 = f22)
     , ((0, xF86XK_TouchpadOff), scratchpadToggle "ghostty2") -- Alt_R tap via keyd (prog3 = f23)
     , ((0, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd up")

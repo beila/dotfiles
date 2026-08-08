@@ -42,13 +42,13 @@
     "file://README.md",
     "file://AGENTS.md",
     "file://.kiro/steering/**/*.md",
-    "file:///home/ANT.AMAZON.COM/hojin/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/context/amazon-builder/**/*.md"
+    "file://$USER_HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/context/amazon-builder/**/*.md"
   ],
   "useLegacyMcpJson": false,
   "mcpServers": {
     "builder-mcp": {
       "command": "builder-mcp",
-      "args": ["--skill-paths", "/home/ANT.AMAZON.COM/hojin/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/skills", "--skill-name-filter", "*"],
+      "args": ["--skill-paths", "$USER_HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/skills", "--skill-name-filter", "*"],
       "env": {
         "TOOL_PERSONALIZATION_ENABLED": "true",
         "TOOL_PERSONALIZATION_ROLLOUT_PERCENTAGE": "100"
@@ -61,6 +61,17 @@
   "hooks": {
     "agentSpawn": [{
       "command": "aim agents publish-metrics --agent-name 'amzn-builder' --agent-package 'AmazonBuilderCoreAIAgents-1.0' || true"
-    }]
+    }],
+    "postToolUse": [
+      {
+        "matcher": "fs_write",
+        "command": "env PROSE_LINT_OUTPUT=kiro-store \"$HOME/.claude/hooks/prose-lint.sh\""
+      }
+    ],
+    "userPromptSubmit": [
+      {
+        "command": "env PROSE_LINT_OUTPUT=kiro-load \"$HOME/.claude/hooks/prose-lint.sh\""
+      }
+    ]
   }
 }

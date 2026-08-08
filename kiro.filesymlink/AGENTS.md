@@ -6,7 +6,7 @@
 
 - `default.json` — MCP TTS server, `autoAllowReadonly`.
 - `no-mcp.json` — no MCP servers; used by `bin/commit-msg` to avoid orphaned MCP processes.
-- `builder.json` — local override of the AmazonBuilderCoreAIAgents `builder` agent: adds the TTS MCP server, narrowed `execute_bash` allowlist for read-only operations, and an `fs_write:*AGENTS.md` permission so Kiro can edit AGENTS.md without prompting.
+- `builder.json` — local override of the AmazonBuilderCoreAIAgents `builder` agent: adds the TTS MCP server, narrowed `execute_bash` allowlist for read-only operations, and an `fs_write:*AGENTS.md` permission so Kiro can edit AGENTS.md without prompting. Legacy Kiro v2 executes `postToolUse` commands but discards their output, so the `fs_write` hook stores prose findings by working directory and `userPromptSubmit` injects and consumes them on the next prompt; a later clean prose write clears stale findings. `agentSpawn` still publishes AIM metrics. When moving to Kiro CLI 3 hooks, replace this queue with a standalone agent-action hook rather than keeping both.
 
 ## Settings
 

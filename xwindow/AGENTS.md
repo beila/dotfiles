@@ -46,7 +46,7 @@ Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarR
 
 ## xmonad key bindings
 
-- Super tap → Albert toggle
+- Super tap → Albert toggle; starts Albert if its process has exited
 - Alt_L tap → ghostty scratchpad 1 (adaptive half-screen)
 - Alt_R tap → ghostty scratchpad 2 (adaptive half-screen)
 - Volume keys → `volume-osd`
