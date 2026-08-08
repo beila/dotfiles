@@ -12,7 +12,7 @@ Make your AI agent speak a summary aloud at the end of every response.
 
 ### 1. Install a TTS engine
 
-Pick one (or both):
+Pick one or use both as a quality-first online backend with an offline fallback:
 
 **Offline — piper-tts** (English, no internet needed):
 ```bash
@@ -30,7 +30,7 @@ uv run --with edge-tts -- edge-tts --list-voices
 
 ### 2. Create TTS scripts
 
-**`bin/say`** — English, offline:
+**Minimal offline English example**:
 ```bash
 #!/usr/bin/env bash
 MODEL="${PIPER_MODEL:-$HOME/.local/share/piper/en_GB-alba-medium.onnx}"
@@ -76,7 +76,7 @@ send_msg() { printf '%s\n' "$1"; }
 
 # Adapt these to your tools — name, description, and the command they run
 TOOLS='[
-  {"name":"say","description":"Speak English text aloud via piper-tts (offline)",
+  {"name":"say","description":"Speak English text aloud via Edge TTS with Piper fallback",
    "inputSchema":{"type":"object","properties":{"text":{"type":"string","description":"Text to speak"}},"required":["text"]}},
   {"name":"say_ko","description":"Speak Korean text aloud via edge-tts (online)",
    "inputSchema":{"type":"object","properties":{"text":{"type":"string","description":"Text to speak in Korean"}},"required":["text"]}}
@@ -145,7 +145,7 @@ A complete working implementation lives at
 | File | What it does |
 |------|-------------|
 | [`bin/say`](https://github.com/beila/dotfiles/blob/master/bin/say) | Hangul/English dispatcher with playback preemption and meeting suppression |
-| [`bin/say-en`](https://github.com/beila/dotfiles/blob/master/bin/say-en) | English TTS via piper-tts (offline, numbered voice pool, configurable speed) |
+| [`bin/say-en`](https://github.com/beila/dotfiles/blob/master/bin/say-en) | English TTS via Edge TTS with numbered Piper offline fallbacks |
 | [`bin/say-ko`](https://github.com/beila/dotfiles/blob/master/bin/say-ko) | Korean TTS via edge-tts (online, numbered voice pool, configurable speed) |
 | [`bin/say-es`](https://github.com/beila/dotfiles/blob/master/bin/say-es) | Spanish TTS via edge-tts (online, seven Spain/Mexico/US voices) |
 | [`bin/mcp-tts`](https://github.com/beila/dotfiles/blob/master/bin/mcp-tts) | MCP server exposing `say` and `say_ko` as tools |
@@ -169,7 +169,8 @@ remembers for the rest of the session.
 - **Spanish**: call `say-es` directly; Latin-script Spanish cannot be distinguished reliably from English by the `say` dispatcher's Hangul check
 - **English-only setup**: drop `say_ko` from the MCP server and just use `say`
 - **Voice selection**: `say-en`, `say-ko`, and `say-es` support `--list-voices` and one-based `--voice N`; omitting it retains deterministic automatic selection
-- **Speed**: pass `--speed 30`/`--speed +30%`/`--speed -10%`; Edge also accepts `$EDGE_TTS_RATE`
+- **Speed**: pass `--speed 30`/`--speed +30%`/`--speed -10%`; Edge also accepts `$EDGE_TTS_RATE`, and `say-en` preserves the requested rate if it falls back to Piper
+- **Force offline English**: set `$PIPER_MODEL` to bypass Edge TTS and use that Piper model directly
 - **Pause/resume**: tell the agent "pause tts" / "resume tts" mid-session — it remembers
 - **Pre-permission announcement**: tell the agent to call TTS before any tool that requires user permission, starting with a fixed phrase like "running a tool" followed by what specifically it's about to do (e.g. "Running a tool. Updating the TTS guide doc.")
 
@@ -177,7 +178,7 @@ remembers for the rest of the session.
 
 | Component | Purpose | Install |
 |-----------|---------|---------|
-| piper-tts | Offline English TTS | `nix profile install nixpkgs#piper-tts` |
+| piper-tts | Offline English fallback | `nix profile install nixpkgs#piper-tts` |
 | edge-tts | Online multilingual TTS | `uv run --with edge-tts` (or `pip install edge-tts`) |
 | ffmpeg | Audio format conversion (edge-tts) | `nix profile install nixpkgs#ffmpeg` |
 | jq | JSON parsing in MCP server | `nix profile install nixpkgs#jq` |

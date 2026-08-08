@@ -221,9 +221,17 @@ in
           envList = lib.optional (cfg.pathExtra != []) "PATH=${schedulePath}"
                  ++ lib.mapAttrsToList (k: v: "${k}=${v}") job.env;
         in {
-          Unit.Description = job.description;
+          Unit = {
+            Description = job.description;
+            # A timer job already in progress should finish. The next trigger
+            # uses the reloaded unit definition.
+            X-RestartIfChanged = false;
+          };
           Service =
-            { Type = "oneshot"; ExecStart = expandHome job.command; }
+            {
+              Type = "oneshot";
+              ExecStart = expandHome job.command;
+            }
             // (lib.optionalAttrs (job.nice != null) { Nice = job.nice; })
             // (lib.optionalAttrs (job.ioSchedulingClass != null) { IOSchedulingClass = job.ioSchedulingClass; })
             // (lib.optionalAttrs (envList != []) { Environment = envList; });

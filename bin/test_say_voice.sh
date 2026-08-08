@@ -72,7 +72,8 @@ echo "== backend command wiring (stubbed playback) =="
 mkdir -p "$tmp/fake-bin"
 cat >"$tmp/fake-bin/uv" <<'EOF_UV'
 #!/usr/bin/env bash
-printf '%s\n' "$*" >"$SAY_TEST_ARGS"
+printf '%s\n' "$*" >"${SAY_TEST_EDGE_ARGS:-$SAY_TEST_ARGS}"
+[ "${SAY_TEST_EDGE_FAIL:-0}" = 1 ] && exit 1
 while [ "$#" -gt 0 ]; do
     if [ "$1" = --write-media ]; then
         : >"$2"
@@ -91,7 +92,7 @@ cat >/dev/null
 EOF_APLAY
 cat >"$tmp/fake-bin/piper" <<'EOF_PIPER'
 #!/usr/bin/env bash
-printf '%s\n' "$*" >"$SAY_TEST_ARGS"
+printf '%s\n' "$*" >"${SAY_TEST_PIPER_ARGS:-$SAY_TEST_ARGS}"
 cat >/dev/null
 EOF_PIPER
 chmod +x "$tmp/fake-bin"/*
@@ -109,11 +110,32 @@ assert_file_contains "say-ko passes negative speed" "--rate -10%" "$edge_args"
 
 mkdir -p "$tmp/home/.local/share/piper"
 : >"$tmp/home/.local/share/piper/en_US-ryan-high.onnx"
+edge_en_args="$tmp/edge-en-args"
 piper_args="$tmp/piper-args"
-HOME="$tmp/home" PATH="$tmp/fake-bin:$PATH" SAY_TEST_ARGS="$piper_args" \
+HOME="$tmp/home" PATH="$tmp/fake-bin:$PATH" SAY_TEST_EDGE_ARGS="$edge_en_args" \
+    SAY_TEST_PIPER_ARGS="$piper_args" \
     "$dotfiles/bin/say-en" --voice 3 --speed +50% "hello"
-assert_file_contains "say-en voice 3 selects Ryan" "en_US-ryan-high.onnx" "$piper_args"
-assert_file_contains "say-en converts +50% to Piper length scale" "--length-scale 0.666667" "$piper_args"
+assert_file_contains "say-en voice 3 selects Andrew on Edge" \
+    "--voice en-US-AndrewMultilingualNeural" "$edge_en_args"
+assert_file_contains "say-en passes +50% to Edge" "--rate +50%" "$edge_en_args"
+assert_true "say-en does not invoke Piper after Edge succeeds" "[ ! -e '$piper_args' ]"
+
+HOME="$tmp/home" PATH="$tmp/fake-bin:$PATH" SAY_TEST_EDGE_ARGS="$edge_en_args" \
+    SAY_TEST_PIPER_ARGS="$piper_args" SAY_TEST_EDGE_FAIL=1 \
+    "$dotfiles/bin/say-en" --voice 3 --speed +50% "hello" >/dev/null 2>&1
+assert_file_contains "say-en Edge failure falls back to numbered Piper voice" \
+    "en_US-ryan-high.onnx" "$piper_args"
+assert_file_contains "say-en converts fallback +50% to Piper length scale" \
+    "--length-scale 0.666667" "$piper_args"
+
+custom_model="$tmp/home/custom.onnx"
+: >"$custom_model"
+rm -f "$edge_en_args"
+HOME="$tmp/home" PATH="$tmp/fake-bin:$PATH" SAY_TEST_EDGE_ARGS="$edge_en_args" \
+    SAY_TEST_PIPER_ARGS="$piper_args" PIPER_MODEL="$custom_model" \
+    "$dotfiles/bin/say-en" "hello"
+assert_file_contains "PIPER_MODEL retains the explicit Piper path" "$custom_model" "$piper_args"
+assert_true "PIPER_MODEL bypasses Edge" "[ ! -e '$edge_en_args' ]"
 
 assert_fails "say-es rejects an out-of-range voice before playback" \
     "'$dotfiles/bin/say-es' --voice 8 hola >/dev/null 2>&1"

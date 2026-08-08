@@ -398,6 +398,7 @@ shiftAllTo ws = composeAll . map (--> doShift ws)
 myManageHook =
     composeAll
         [ floatRules
+        , className =? "Anki" --> (ask >>= doF . W.focusWindow)
         , browserRules
         , mailRules
         , editorRules

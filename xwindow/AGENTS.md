@@ -33,6 +33,7 @@ Four things are load-bearing:
 - **Theme and geometry changes need a layout reset, not just `xmonad --restart`.** The layout (Decoration's `Theme` included) is serialized in the window set and restored on restart, so a recompiled `decoWidth`/colour silently keeps the old value — `decoWidth = 320` still produced 190×20 decoration windows until `mod-shift-space` (`setLayout $ XMonad.layoutHook conf`) reset the current workspace. Each workspace needs its own reset, or a full xmonad start.
 
 ## ManageHook
+- **Anki focus rule** — `className =? "Anki"` explicitly focuses a newly managed Anki window. Qt maps Anki normally on the current workspace but does not take focus here; under a full-window layout that leaves it completely hidden behind the focused client and looks like launch failed.
 
 Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarRules`, `meetingRules`, `messengerRules`.
 

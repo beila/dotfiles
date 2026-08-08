@@ -43,6 +43,7 @@ in
     # pkgs.hello
 
     pkgs.albert
+    pkgs.anki
     pkgs.bat
     pkgs.brightnessctl
     pkgs.btop

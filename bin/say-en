@@ -1,21 +1,22 @@
 #!/usr/bin/env bash
-# Text-to-speech via piper
+# English text-to-speech via Edge TTS, with Piper as the offline fallback.
 # Usage: say-en [--voice N] [--speed PERCENT] "text to speak"
 #
 # Voice is chosen from VOICE_POOL by the shared caller-key mapping in
-# say-voice.sh (the single place hashing lives); the selected model is
-# downloaded on demand. $PIPER_MODEL overrides automatic selection.
+# say-voice.sh. $EDGE_TTS_VOICE overrides automatic Edge selection, while
+# $PIPER_MODEL preserves the explicit offline/Piper path.
 source "$(dirname "$0")/say-voice.sh"
 PIPER_DIR="$HOME/.local/share/piper"
 HF_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"
 
-# "<name>|<huggingface relative dir>". First entry is the historical default.
+# "<edge voice>|<Piper name>|<Hugging Face relative dir>". Piper entries retain
+# the old numbered pool, paired by locale and gender where possible.
 VOICE_POOL=(
-    "en_GB-alba-medium|en/en_GB/alba/medium"
-    "en_US-amy-medium|en/en_US/amy/medium"
-    "en_US-ryan-high|en/en_US/ryan/high"
-    "en_GB-cori-high|en/en_GB/cori/high"
-    "en_US-lessac-medium|en/en_US/lessac/medium"
+    "en-GB-SoniaNeural|en_GB-alba-medium|en/en_GB/alba/medium"
+    "en-US-AvaMultilingualNeural|en_US-amy-medium|en/en_US/amy/medium"
+    "en-US-AndrewMultilingualNeural|en_US-ryan-high|en/en_US/ryan/high"
+    "en-GB-LibbyNeural|en_GB-cori-high|en/en_GB/cori/high"
+    "en-US-BrianMultilingualNeural|en_US-lessac-medium|en/en_US/lessac/medium"
 )
 
 list_voices() {
@@ -57,18 +58,52 @@ fi
 
 if [ -n "$SAY_CLI_VOICE_NUMBER" ]; then
     index="$(say_pick_index "${#VOICE_POOL[@]}" "$SAY_CLI_VOICE_NUMBER")" || exit
-    entry="${VOICE_POOL[$index]}"
-    name="${entry%%|*}"
-    HF_DIR="${entry#*|}"
-    MODEL="$PIPER_DIR/$name.onnx"
+else
+    index="$(say_pick_index "${#VOICE_POOL[@]}")"
+fi
+entry="${VOICE_POOL[$index]}"
+EDGE_VOICE="${entry%%|*}"
+fallback="${entry#*|}"
+name="${fallback%%|*}"
+HF_DIR="${fallback#*|}"
+MODEL="$PIPER_DIR/$name.onnx"
+
+FORCE_PIPER=0
+if [ -n "$SAY_CLI_VOICE_NUMBER" ]; then
+    VOICE="$EDGE_VOICE"
 elif [ -n "${PIPER_MODEL:-}" ]; then
+    FORCE_PIPER=1
     MODEL="$PIPER_MODEL"
     HF_DIR=""
 else
-    entry="${VOICE_POOL[$(say_pick_index "${#VOICE_POOL[@]}")]}"
-    name="${entry%%|*}"
-    HF_DIR="${entry#*|}"
-    MODEL="$PIPER_DIR/$name.onnx"
+    VOICE="${EDGE_TTS_VOICE:-$EDGE_VOICE}"
+fi
+
+if [ -n "$SAY_CLI_SPEED" ]; then
+    RATE="$(say_normalize_speed "$SAY_CLI_SPEED")" || exit
+elif [ "$FORCE_PIPER" = 0 ]; then
+    RATE="$(say_normalize_speed "${EDGE_TTS_RATE:-+0%}")" || exit
+else
+    RATE=
+fi
+
+if [ "${#SAY_CLI_TEXT_ARGS[@]}" -gt 0 ]; then
+    TEXT="${SAY_CLI_TEXT_ARGS[*]}"
+else
+    TEXT="$(cat)"
+fi
+[ -z "$TEXT" ] && exit 0
+
+if [ "$FORCE_PIPER" = 0 ]; then
+    TMP="$(mktemp /tmp/say-en-XXXXXX.mp3)"
+    trap 'rm -f "$TMP"' EXIT
+    if uv run --quiet --with edge-tts -- edge-tts --voice "$VOICE" --rate "$RATE" \
+        --text "$TEXT" --write-media "$TMP" 2>/dev/null; then
+        ffmpeg -v quiet -i "$TMP" -f wav -acodec pcm_s16le -ar 24000 -ac 1 pipe:1 2>/dev/null \
+          | aplay -q 2>/dev/null
+        exit
+    fi
+    printf '%s\n' 'Edge TTS unavailable; falling back to Piper.' >&2
 fi
 
 # Download the selected model on first use. Fall back to alba (the always-viable
@@ -90,8 +125,7 @@ if [ ! -f "$MODEL" ] && [ -n "$HF_DIR" ]; then
 fi
 
 PIPER_ARGS=(--model "$MODEL" --output-raw)
-if [ -n "$SAY_CLI_SPEED" ]; then
-    RATE="$(say_normalize_speed "$SAY_CLI_SPEED")" || exit
+if [ -n "$RATE" ]; then
     if ! LENGTH_SCALE="$(awk -v rate="${RATE%\%}" 'BEGIN {
         denominator = 100 + rate
         if (denominator <= 0) exit 1
@@ -103,8 +137,6 @@ if [ -n "$SAY_CLI_SPEED" ]; then
     PIPER_ARGS+=(--length-scale "$LENGTH_SCALE")
 fi
 
-if [ "${#SAY_CLI_TEXT_ARGS[@]}" -gt 0 ]; then
-    printf '%s\n' "${SAY_CLI_TEXT_ARGS[*]}"
-else
-    cat
-fi | piper "${PIPER_ARGS[@]}" 2>/dev/null | aplay -r 22050 -f S16_LE -c 1 -q 2>/dev/null
+printf '%s\n' "$TEXT" \
+  | piper "${PIPER_ARGS[@]}" 2>/dev/null \
+  | aplay -r 22050 -f S16_LE -c 1 -q 2>/dev/null
