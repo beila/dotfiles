@@ -24,6 +24,13 @@ let
     ];
     doCheck = false;
   };
+
+  jj-serialized = pkgs.writeShellScriptBin "jj" ''
+    export JJ_REAL_EXECUTABLE=${pkgs.jujutsu}/bin/jj
+    export JJ_FLOCK_EXECUTABLE=${pkgs.util-linux}/bin/flock
+    export JJ_TR_EXECUTABLE=${pkgs.coreutils}/bin/tr
+    exec ${../script/bin/jj-serialized} "$@"
+  '';
 in
 {
   # This value determines the Home Manager release that your configuration is
@@ -65,7 +72,7 @@ in
     pkgs.hishtory
     pkgs.jetbrains-mono # For OSD popups
     pkgs.nerd-fonts.jetbrains-mono # For OSD popups
-    pkgs.jujutsu
+    jj-serialized
     pkgs.just
     pkgs.keyd
     pkgs.lxgw-wenkai # calligraphic CJK monospace; ghostty Hangul fallback + hangul-osd font

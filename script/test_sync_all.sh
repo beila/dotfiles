@@ -70,6 +70,9 @@ export TEST_JJ_MAP="$TMPDIR/jj-map"
 : > "$TEST_JJ_MAP"
 cat > "$STUB_BIN/jj" <<'EOF'
 #!/usr/bin/env bash
+if [ "$1" = "--ignore-working-copy" ]; then
+    shift
+fi
 if [ "$1" = "root" ]; then
     cwd=$(pwd)
     mapped=$(grep -E "^$cwd=" "$TEST_JJ_MAP" 2>/dev/null | head -1 | cut -d= -f2-)

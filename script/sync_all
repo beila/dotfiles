@@ -52,7 +52,7 @@ while IFS= read -r marker; do
     [ -d "$dir" ] || continue
     # Canonical root: prefer jj root, fall back to git top-level, else the
     # marker-parent itself. Errors here are fine; we'll still iterate.
-    root=$(cd "$dir" 2>/dev/null && { jj root 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null; } || echo "$dir")
+    root=$(cd "$dir" 2>/dev/null && { jj --ignore-working-copy root 2>/dev/null || git rev-parse --show-toplevel 2>/dev/null; } || echo "$dir")
     if [ -z "${seen[$root]:-}" ]; then
         seen[$root]=1
         repos+=("$root")

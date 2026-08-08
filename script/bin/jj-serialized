@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -u
+
+REAL_JJ=${JJ_REAL_EXECUTABLE:?JJ_REAL_EXECUTABLE is required}
+FLOCK=${JJ_FLOCK_EXECUTABLE:-flock}
+TR=${JJ_TR_EXECUTABLE:-tr}
+
+# sync_repo already owns the repository lock for its complete transaction.
+if [ "${JJ_SERIALIZED_LOCK_HELD:-0}" = "1" ]; then
+    exec "$REAL_JJ" "$@"
+fi
+
+# Honor jj's global repository selector when the command runs outside the
+# target checkout. Relative paths are resolved from the caller's directory.
+repo_dir=$PWD
+expect_repo_path=0
+for arg in "$@"; do
+    if [ "$expect_repo_path" = "1" ]; then
+        repo_dir=$arg
+        expect_repo_path=0
+        continue
+    fi
+    case "$arg" in
+        -R|--repository) expect_repo_path=1 ;;
+        --repository=*) repo_dir=${arg#*=} ;;
+        -R?*) repo_dir=${arg#-R} ;;
+    esac
+done
+case "$repo_dir" in
+    /*) ;;
+    *) repo_dir="$PWD/$repo_dir" ;;
+esac
+
+# The read-only probe is safe before locking and gives all workspaces sharing
+# a backing Git store the same lock key. Outside a repository, pass through.
+if ! git_root=$(cd "$repo_dir" 2>/dev/null && "$REAL_JJ" --ignore-working-copy git root 2>/dev/null); then
+    exec "$REAL_JJ" "$@"
+fi
+
+lock_key=$(printf '%s' "$git_root" | "$TR" / _)
+lockfile="/tmp/sync_repo_${lock_key}.lock"
+
+# flock remains the lock owner while jj runs, but --close keeps the descriptor
+# out of jj and any long-lived child processes it may spawn.
+exec "$FLOCK" --exclusive --close "$lockfile" "$REAL_JJ" "$@"

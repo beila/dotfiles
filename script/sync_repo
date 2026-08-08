@@ -45,7 +45,13 @@ cd "$1" || {
 # any other plain-git repo. We don't sync those — converting a repo to jj
 # (`jj git init --colocate`) is the explicit opt-in. No log line: matches the
 # "no sync config" early-exit below in spirit (don't notify on no-ops).
-jj root &>/dev/null || exit 0
+jj --ignore-working-copy root &>/dev/null || exit 0
+
+# Per-repository kill switch. This must be checked with --ignore-working-copy
+# before any ordinary jj command: even read-looking commands snapshot @ and
+# can race interactive jj use, creating divergent working-copy commits.
+SYNC_ENABLED=$(jj --ignore-working-copy config get sync.enabled 2>/dev/null || true)
+[ "$SYNC_ENABLED" = "false" ] && exit 0
 
 # Per-repo lock to prevent concurrent syncs. Must key off the BACKING repo, not
 # the workspace, because multiple jj workspaces (e.g. ~/dev/{pro,pro2,sawt}/src/IgnitionX)
@@ -54,7 +60,7 @@ jj root &>/dev/null || exit 0
 # as branching `jj workspace update-stale` ops) and clobber the snapshot pushes.
 # `jj git root` returns the shared .git path; `jj root` would return the
 # per-workspace path and miss this.
-LOCK_PATH=$(jj git root 2>/dev/null || echo "$1")
+LOCK_PATH=$(jj --ignore-working-copy git root 2>/dev/null || echo "$1")
 LOCKFILE="/tmp/sync_repo_$(echo "$LOCK_PATH" | tr / _).lock"
 exec 9>"$LOCKFILE"
 # fd 9 is inherited across exec (bash marks neither `9>` nor `{fd}>` as
@@ -70,6 +76,10 @@ if ! flock -n 9; then
     echo "sync_repo already running for $LOCK_PATH, skipping (lock held by:${holders:- unknown})"
     exit 0
 fi
+
+# Home Manager's jj wrapper takes this same lock for interactive commands.
+# Nested jj calls must bypass it while this process owns the transaction lock.
+export JJ_SERIALIZED_LOCK_HELD=1
 
 # Run a command with the lock fd closed, so a daemonizing child can't inherit
 # the flock. Use for anything that may outlive us: LLM CLIs, git/ssh network

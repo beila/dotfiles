@@ -5,6 +5,7 @@
 #   - divergence (non-conflicting edits): merge+push path
 #   - dead remote (fake ssh): timeout-guard exits in bounded time
 #   - no sync config: commits + describes locally, exits cleanly (NO-SYNC-CONFIG)
+#   - sync.enabled=false: exits without snapshotting or logging
 #   - conflict divergence: REBASE-CONFLICT, no push
 #   - non-jj repo: silent skip
 #   - corrupted store: REPO-LOAD-FAIL at ERROR, exit 1, no push
@@ -822,6 +823,29 @@ else
     echo "PASS: no misleading 'remote not configured' skip for corrupted repo"
     pass=$((pass+1))
 fi
+
+echo
+echo "=== Scenario 15: sync.enabled=false -> no working-copy snapshot or log ==="
+mkdir -p "$TMPDIR/repoDisabled"
+(
+    cd "$TMPDIR/repoDisabled"
+    jj git init --colocate
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name 'Test User'
+    echo initial > tracked
+    jj commit -m "initial"
+    jj config set --repo sync.enabled false
+    echo dirty > wip
+) >/dev/null 2>&1
+disabled_before_op=$(cd "$TMPDIR/repoDisabled" && jj --ignore-working-copy op log --no-graph --limit 1 -T 'id')
+disabled_logs_before=$(find "$LOG_ROOT" -name 'sync_repo.*repoDisabled*' 2>/dev/null | wc -l)
+run_sync "$TMPDIR/repoDisabled"
+rc=$?
+check "disabled repo: sync_repo exits 0" "0" "$rc"
+disabled_after_op=$(cd "$TMPDIR/repoDisabled" && jj --ignore-working-copy op log --no-graph --limit 1 -T 'id')
+check "disabled repo: operation head unchanged" "$disabled_before_op" "$disabled_after_op"
+disabled_logs_after=$(find "$LOG_ROOT" -name 'sync_repo.*repoDisabled*' 2>/dev/null | wc -l)
+check "disabled repo: no log created" "$disabled_logs_before" "$disabled_logs_after"
 
 echo
 echo "=== Sample log file ==="
