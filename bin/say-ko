@@ -60,6 +60,6 @@ fi
 [ -z "$TEXT" ] && exit 0
 TMP="$(mktemp /tmp/say-ko-XXXXXX.mp3)"
 trap 'rm -f "$TMP"' EXIT
-uv run --quiet --with edge-tts -- edge-tts --voice "$VOICE" --rate "$RATE" --text "$TEXT" --write-media "$TMP" 2>/dev/null \
+uv run --quiet --with edge-tts -- edge-tts --voice "$VOICE" --rate="$RATE" --text "$TEXT" --write-media "$TMP" 2>/dev/null \
   && ffmpeg -v quiet -i "$TMP" -f wav -acodec pcm_s16le -ar 24000 -ac 1 pipe:1 2>/dev/null \
   | aplay -q 2>/dev/null

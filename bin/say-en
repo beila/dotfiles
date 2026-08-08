@@ -97,7 +97,7 @@ fi
 if [ "$FORCE_PIPER" = 0 ]; then
     TMP="$(mktemp /tmp/say-en-XXXXXX.mp3)"
     trap 'rm -f "$TMP"' EXIT
-    if uv run --quiet --with edge-tts -- edge-tts --voice "$VOICE" --rate "$RATE" \
+    if uv run --quiet --with edge-tts -- edge-tts --voice "$VOICE" --rate="$RATE" \
         --text "$TEXT" --write-media "$TMP" 2>/dev/null; then
         ffmpeg -v quiet -i "$TMP" -f wav -acodec pcm_s16le -ar 24000 -ac 1 pipe:1 2>/dev/null \
           | aplay -q 2>/dev/null

@@ -101,12 +101,12 @@ edge_args="$tmp/edge-args"
 PATH="$tmp/fake-bin:$PATH" SAY_TEST_ARGS="$edge_args" \
     "$dotfiles/bin/say-es" --voice 7 --speed 25 "hola mundo"
 assert_file_contains "say-es voice 7 selects Paloma" "--voice es-US-PalomaNeural" "$edge_args"
-assert_file_contains "say-es numeric speed becomes +25%" "--rate +25%" "$edge_args"
+assert_file_contains "say-es numeric speed becomes +25%" "--rate=+25%" "$edge_args"
 
 PATH="$tmp/fake-bin:$PATH" SAY_TEST_ARGS="$edge_args" EDGE_TTS_VOICE=custom-Korean \
     "$dotfiles/bin/say-ko" --speed -10% "test"
 assert_file_contains "say-ko retains EDGE_TTS_VOICE override" "--voice custom-Korean" "$edge_args"
-assert_file_contains "say-ko passes negative speed" "--rate -10%" "$edge_args"
+assert_file_contains "say-ko passes negative speed" "--rate=-10%" "$edge_args"
 
 mkdir -p "$tmp/home/.local/share/piper"
 : >"$tmp/home/.local/share/piper/en_US-ryan-high.onnx"
@@ -117,7 +117,7 @@ HOME="$tmp/home" PATH="$tmp/fake-bin:$PATH" SAY_TEST_EDGE_ARGS="$edge_en_args" \
     "$dotfiles/bin/say-en" --voice 3 --speed +50% "hello"
 assert_file_contains "say-en voice 3 selects Andrew on Edge" \
     "--voice en-US-AndrewMultilingualNeural" "$edge_en_args"
-assert_file_contains "say-en passes +50% to Edge" "--rate +50%" "$edge_en_args"
+assert_file_contains "say-en passes +50% to Edge" "--rate=+50%" "$edge_en_args"
 assert_true "say-en does not invoke Piper after Edge succeeds" "[ ! -e '$piper_args' ]"
 
 HOME="$tmp/home" PATH="$tmp/fake-bin:$PATH" SAY_TEST_EDGE_ARGS="$edge_en_args" \
