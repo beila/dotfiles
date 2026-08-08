@@ -117,9 +117,9 @@
     };
   };
 
-  # zoom-osd: battery-osd-style overlay when a Zoom desktop notification
-  # arrives. Monitors org.freedesktop.Notifications.Notify on the session
-  # bus (push, no polling) — same daemon lifecycle as hangul-osd.
+  # zoom-osd: battery-osd-style overlay for Zoom notifications.
+  # Watches session-bus Notify calls and Zoom reminder X windows (both push,
+  # no polling) with the same daemon lifecycle as hangul-osd.
   systemd.user.services.zoom-osd = {
     Unit = {
       Description = "Zoom notification OSD";

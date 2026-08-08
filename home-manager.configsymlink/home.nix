@@ -106,9 +106,9 @@ in
         "W503"
       ];
     } (builtins.readFile ../xwindow/bin/battery-osd.py))
-    # zoom-osd: battery-osd-style overlay when a Zoom desktop notification
-    # arrives. Daemon parses `dbus-monitor` output for Notifications.Notify
-    # calls — observes without replacing the notification daemon.
+    # zoom-osd: battery-osd-style overlay for Zoom notifications.
+    # Watches both Notifications.Notify calls and Zoom's own reminder X
+    # window, then starts a separate --show process for each match.
     (pkgs.writeShellScriptBin "zoom-osd" ''
       export ZOOM_OSD_DBUS_MONITOR=${pkgs.dbus}/bin/dbus-monitor
       exec ${

@@ -97,11 +97,14 @@ Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: Jet
 
 ## Zoom notification OSD
 
-`bin/zoom-osd.py` — battery-osd-style overlay (Zoom blue `#2D8CFF`, centered, `height_frac 0.25`, 6 s default) whenever a Zoom desktop notification appears. Long-lived daemon (`systemd.user.services.zoom-osd` in `gnome.nix`, same lifecycle as hangul-osd) that spawns `dbus-monitor "type='method_call',…member='Notify'"` and parses its stdout for `org.freedesktop.Notifications.Notify` calls — observes every notification without replacing gnome-flashback's notification daemon. App filter: `$ZOOM_OSD_APP_REGEX` (default `zoom`, case-insensitive) against the Notify `app_name`. Fork-per-show like hangul-osd so a render crash never kills the monitor loop; a new notification preempts the previous overlay.
+`bin/zoom-osd.py` — battery-osd-style overlay (Zoom blue `#2D8CFF`, centered, `height_frac 0.25`, 6 s default) whenever Zoom raises a notification. The long-lived daemon (`systemd.user.services.zoom-osd` in `gnome.nix`, same lifecycle as hangul-osd) watches two push sources:
 
+- **Freedesktop notifications**: spawns `dbus-monitor "type='method_call',…member='Notify'"` and parses its stdout for `org.freedesktop.Notifications.Notify` calls without replacing gnome-flashback's notification daemon. `$ZOOM_OSD_APP_REGEX` (default `zoom`, case-insensitive) filters the Notify `app_name`.
+- **Zoom reminder windows**: a daemon thread owns a separate X connection and watches root `SubstructureNotify` for a newly created then mapped window whose title matches `$ZOOM_OSD_WINDOW_REGEX` (default `zoom_linux_float_message_reminder`). The CreateNotify→MapNotify handshake suppresses xmonad `copyToAllHook` remaps on workspace changes. Limitation: an already-open reminder window updated in place does not fire a new event.
+- **Display process**: each match spawns the current script in `--show` mode. Do not replace this with `os.fork()` — the X watcher makes the daemon multi-threaded, and Python 3.14's forked child can deadlock before rendering. A lock preempts the previous display process, and a daemon reaper thread waits for normal expiry so no zombie remains.
 - **Why dbus-monitor, not dbus-python `BecomeMonitor`**: a dbus-python private connection granted BecomeMonitor never delivered the method-call messages to `add_message_filter` (only its own NameAcquired/NameLost signals arrived). `dbus-monitor` is the proven consumer of the monitoring interface, so the daemon parses its text output instead. Binary pinned via `$ZOOM_OSD_DBUS_MONITOR` by the `writeShellScriptBin` wrapper in `home.nix`.
 - **Parser contract**: per Notify call, the first 4 `string "…"` argument lines are app_name/app_icon/summary/body; `array [` terminates the fixed args (multi-line bodies lose their tail — acceptable for a glanceable OSD).
-- Test modes: `zoom-osd --show "text"` (render once and exit), `zoom-osd --render-png PATH` (offline), or `notify-send --app-name=Zoom summary body` against the running service for the full path.
+- Test modes: `zoom-osd --show "text"` (render once and exit), `zoom-osd --render-png PATH` (offline), `notify-send --app-name=Zoom summary body` for the D-Bus path, or a temporary X window titled `zoom_linux_float_message_reminder` for the window path.
 
 ## Hangul (Korean input) OSD
 

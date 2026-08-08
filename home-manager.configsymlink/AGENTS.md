@@ -21,7 +21,7 @@ Packages, the unfree predicate (albert + 8 nvim plugins reclassified upstream �
 
 Defines two inline derivations consumed by OSDs:
 
-- `osd` — local Python package built from `xwindow/osd/` (cairo + XShape primitives). Used by both `battery-osd` (a `writePython3Bin` invocation script) and `hangul-osd`.
+- `osd` — local Python package built from `xwindow/osd/` (cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, and `hangul-osd`.
 - `jejuhallasan-ttf` — single `fetchurl` of one ttf from `google/fonts` (SIL OFL 1.1). Avoids `pkgs.google-fonts` (2.3 GB).
 
 The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from the nix store + the gobject-introspection wrapper for cairo's `cairo-1.0.typelib`, which Pango pulls in transitively) and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl. Both env vars are required — see `xwindow/AGENTS.md` for the Pango/fontconfig rationale.
@@ -31,7 +31,7 @@ The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango 
 - dconf settings (key repeat, mouse speed, cursor size 64, Korean Sebeolsik 390, disable gnome-panel/desktop).
 - IBus integration (`pkgs.ibus` for the GTK4 IM module + `~/.config/environment.d/30-ibus.conf` for `GTK_IM_MODULE` etc.).
 - gnome-flashback systemd drop-ins (xmonad session requires `gnome-flashback.target` + service-restart override).
-- Declares `random-lockscreen` via `dotfiles.schedule.jobs` and `hangul-osd` as a `systemd.user.services.*` (`PartOf=graphical-session.target`) — both depend on a graphical session and ibus, so they're gnome-only.
+- Declares `random-lockscreen` via `dotfiles.schedule.jobs` plus `hangul-osd` and `zoom-osd` as `systemd.user.services.*` units (`PartOf=graphical-session.target`). All require the graphical session; hangul-osd additionally requires the gnome-flashback IBus integration.
 
 ## schedule.nix
 
