@@ -144,8 +144,10 @@ A complete working implementation lives at
 
 | File | What it does |
 |------|-------------|
-| [`bin/say`](https://github.com/beila/dotfiles/blob/master/bin/say) | English TTS via piper-tts (offline, auto-downloads voice model) |
-| [`bin/say-ko`](https://github.com/beila/dotfiles/blob/master/bin/say-ko) | Korean TTS via edge-tts (online, configurable voice/rate) |
+| [`bin/say`](https://github.com/beila/dotfiles/blob/master/bin/say) | Hangul/English dispatcher with playback preemption and meeting suppression |
+| [`bin/say-en`](https://github.com/beila/dotfiles/blob/master/bin/say-en) | English TTS via piper-tts (offline, numbered voice pool, configurable speed) |
+| [`bin/say-ko`](https://github.com/beila/dotfiles/blob/master/bin/say-ko) | Korean TTS via edge-tts (online, numbered voice pool, configurable speed) |
+| [`bin/say-es`](https://github.com/beila/dotfiles/blob/master/bin/say-es) | Spanish TTS via edge-tts (online, seven Spain/Mexico/US voices) |
 | [`bin/mcp-tts`](https://github.com/beila/dotfiles/blob/master/bin/mcp-tts) | MCP server exposing `say` and `say_ko` as tools |
 | [`kiro.filesymlink/agents/default.json`](https://github.com/beila/dotfiles/blob/master/kiro.filesymlink/agents/default.json) | Kiro agent config registering the MCP server |
 | [`.kiro/steering/instructions.md`](https://github.com/beila/dotfiles/blob/master/.kiro/steering/instructions.md) | Steering instruction telling the agent to call `say_ko` after every response |
@@ -164,9 +166,10 @@ remembers for the rest of the session.
 ## Customization
 
 - **Add more languages**: add another `say-<lang>` script using edge-tts with a different voice, register it in `mcp-tts`, and reference it in your steering instruction
+- **Spanish**: call `say-es` directly; Latin-script Spanish cannot be distinguished reliably from English by the `say` dispatcher's Hangul check
 - **English-only setup**: drop `say_ko` from the MCP server and just use `say`
-- **Voice selection**: edge-tts has 400+ voices — run `edge-tts --list-voices` and set `$EDGE_TTS_VOICE`
-- **Speed**: adjust `$EDGE_TTS_RATE` (e.g. `+30%`, `-10%`)
+- **Voice selection**: `say-en`, `say-ko`, and `say-es` support `--list-voices` and one-based `--voice N`; omitting it retains deterministic automatic selection
+- **Speed**: pass `--speed 30`/`--speed +30%`/`--speed -10%`; Edge also accepts `$EDGE_TTS_RATE`
 - **Pause/resume**: tell the agent "pause tts" / "resume tts" mid-session — it remembers
 - **Pre-permission announcement**: tell the agent to call TTS before any tool that requires user permission, starting with a fixed phrase like "running a tool" followed by what specifically it's about to do (e.g. "Running a tool. Updating the TTS guide doc.")
 

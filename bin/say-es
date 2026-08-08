@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
-# Korean text-to-speech via edge-tts (requires internet)
-# Usage: say-ko [--voice N] [--speed PERCENT] "한국어 텍스트"
+# Spanish text-to-speech via edge-tts (requires internet)
+# Usage: say-es [--voice N] [--speed PERCENT] "texto en español"
 #
 # Voice is chosen from VOICE_POOL by the shared caller-key mapping in
 # say-voice.sh (the single place hashing lives). $EDGE_TTS_VOICE overrides
 # automatic selection.
 source "$(dirname "$0")/say-voice.sh"
-VOICE_POOL=(ko-KR-SunHiNeural ko-KR-InJoonNeural ko-KR-HyunsuMultilingualNeural)
+VOICE_POOL=(
+    es-ES-AlvaroNeural
+    es-ES-ElviraNeural
+    es-ES-XimenaNeural
+    es-MX-DaliaNeural
+    es-MX-JorgeNeural
+    es-US-AlonsoNeural
+    es-US-PalomaNeural
+)
 
 list_voices() {
     local i
@@ -17,8 +25,8 @@ list_voices() {
 
 usage() {
     cat <<'EOF_USAGE'
-Usage: say-ko [OPTIONS] [TEXT...]
-       printf '%s\n' TEXT | say-ko [OPTIONS]
+Usage: say-es [OPTIONS] [TEXT...]
+       printf '%s\n' TEXT | say-es [OPTIONS]
 
 Options:
   -v, --voice N       Select a numbered voice instead of automatic selection
@@ -58,7 +66,7 @@ else
     TEXT="$(cat)"
 fi
 [ -z "$TEXT" ] && exit 0
-TMP="$(mktemp /tmp/say-ko-XXXXXX.mp3)"
+TMP="$(mktemp /tmp/say-es-XXXXXX.mp3)"
 trap 'rm -f "$TMP"' EXIT
 uv run --quiet --with edge-tts -- edge-tts --voice "$VOICE" --rate "$RATE" --text "$TEXT" --write-media "$TMP" 2>/dev/null \
   && ffmpeg -v quiet -i "$TMP" -f wav -acodec pcm_s16le -ar 24000 -ac 1 pipe:1 2>/dev/null \

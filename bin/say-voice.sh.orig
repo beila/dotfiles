@@ -33,8 +33,6 @@ say_resolve_key() {
 
 # Parse the common backend options into SAY_CLI_* globals. Options must precede
 # text so arbitrary text after the first positional argument remains untouched.
-# These outputs are consumed by scripts that source this helper.
-# shellcheck disable=SC2034
 say_parse_options() {
     SAY_CLI_VOICE_NUMBER=
     SAY_CLI_SPEED=

@@ -80,7 +80,7 @@ in
     pkgs.ripgrep
     pkgs.scrot
     pkgs.spacer
-    pkgs.uv # edge-tts runner for say-ko
+    pkgs.uv # edge-tts runner for say-ko/say-es
     pkgs.watchlog
     # battery-osd: invocation wrapper around the local `osd` library.
     # Single binary in PATH; no full Python (would conflict with awscli2).
@@ -149,7 +149,7 @@ in
         } (builtins.readFile ../xwindow/bin/hangul-osd.py)
       }/bin/hangul-osd-impl "$@"
     '')
-    pkgs.alsa-utils # aplay for say/say-ko
+    pkgs.alsa-utils # aplay for say-en/say-ko/say-es
     pkgs.wl-clipboard
     pkgs.xclip
     pkgs.xdotool # window/input automation (xmonad debugging, scripts)

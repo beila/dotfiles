@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Text-to-speech via piper
-# Usage: say "text to speak" or echo "text" | say
+# Usage: say-en [--voice N] [--speed PERCENT] "text to speak"
 #
 # Voice is chosen from VOICE_POOL by the shared caller-key mapping in
 # say-voice.sh (the single place hashing lives); the selected model is
-# downloaded on demand. $PIPER_MODEL overrides the whole mechanism.
+# downloaded on demand. $PIPER_MODEL overrides automatic selection.
 source "$(dirname "$0")/say-voice.sh"
 PIPER_DIR="$HOME/.local/share/piper"
 HF_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main"
@@ -18,7 +18,50 @@ VOICE_POOL=(
     "en_US-lessac-medium|en/en_US/lessac/medium"
 )
 
-if [ -n "${PIPER_MODEL:-}" ]; then
+list_voices() {
+    local i entry
+    for i in "${!VOICE_POOL[@]}"; do
+        entry="${VOICE_POOL[$i]}"
+        printf '%d\t%s\n' "$((i + 1))" "${entry%%|*}"
+    done
+}
+
+usage() {
+    cat <<'EOF_USAGE'
+Usage: say-en [OPTIONS] [TEXT...]
+       printf '%s\n' TEXT | say-en [OPTIONS]
+
+Options:
+  -v, --voice N       Select a numbered voice instead of automatic selection
+  -s, --speed PERCENT Speech-speed change, for example 25, +25%, or -10%
+  -l, --list-voices   List numbered voices
+  -h, --help          Show this help
+
+Voices:
+EOF_USAGE
+    list_voices
+}
+
+if ! say_parse_options "$@"; then
+    usage >&2
+    exit 2
+fi
+if [ "$SAY_CLI_SHOW_HELP" = 1 ]; then
+    usage
+    exit 0
+fi
+if [ "$SAY_CLI_LIST_VOICES" = 1 ]; then
+    list_voices
+    exit 0
+fi
+
+if [ -n "$SAY_CLI_VOICE_NUMBER" ]; then
+    index="$(say_pick_index "${#VOICE_POOL[@]}" "$SAY_CLI_VOICE_NUMBER")" || exit
+    entry="${VOICE_POOL[$index]}"
+    name="${entry%%|*}"
+    HF_DIR="${entry#*|}"
+    MODEL="$PIPER_DIR/$name.onnx"
+elif [ -n "${PIPER_MODEL:-}" ]; then
     MODEL="$PIPER_MODEL"
     HF_DIR=""
 else
@@ -45,8 +88,23 @@ if [ ! -f "$MODEL" ] && [ -n "$HF_DIR" ]; then
         fi
     fi
 fi
-if [ $# -gt 0 ]; then
-    echo "$*"
+
+PIPER_ARGS=(--model "$MODEL" --output-raw)
+if [ -n "$SAY_CLI_SPEED" ]; then
+    RATE="$(say_normalize_speed "$SAY_CLI_SPEED")" || exit
+    if ! LENGTH_SCALE="$(awk -v rate="${RATE%\%}" 'BEGIN {
+        denominator = 100 + rate
+        if (denominator <= 0) exit 1
+        printf "%.6f", 100 / denominator
+    }')"; then
+        printf 'speed must be greater than -100%%, got %s\n' "$RATE" >&2
+        exit 2
+    fi
+    PIPER_ARGS+=(--length-scale "$LENGTH_SCALE")
+fi
+
+if [ "${#SAY_CLI_TEXT_ARGS[@]}" -gt 0 ]; then
+    printf '%s\n' "${SAY_CLI_TEXT_ARGS[*]}"
 else
     cat
-fi | piper --model "$MODEL" --output-raw 2>/dev/null | aplay -r 22050 -f S16_LE -c 1 -q 2>/dev/null
+fi | piper "${PIPER_ARGS[@]}" 2>/dev/null | aplay -r 22050 -f S16_LE -c 1 -q 2>/dev/null
