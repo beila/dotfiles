@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+set -u
+
+if pgrep -fx albert >/dev/null; then
+    exec albert toggle
+fi
+
+albert >/dev/null 2>&1 &
+for _ in {1..30}; do
+    sleep 0.1
+    if albert show >/dev/null 2>&1; then
+        # Albert accepts RPC before startup's initial hide has completed.
+        sleep 0.5
+        exec albert show >/dev/null 2>&1
+    fi
+done
+
+exit 1
