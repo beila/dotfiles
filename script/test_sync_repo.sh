@@ -565,6 +565,39 @@ default_master_snap=$(git -C "$TMPDIR/remote.git" rev-parse --verify "refs/heads
 local_master=$(cd "$TMPDIR/repoMultiWs" && jj log -r master --no-graph -T 'commit_id')
 check "default: <host>/master pushed" "$local_master" "$default_master_snap"
 
+# Count only sync_repo's raw-git snapshot traffic. A newly added bookmark
+# should require one discovery plus one direct push (no failed delete), and a
+# subsequent unchanged run should require discovery only.
+REAL_GIT=$(command -v git)
+cat >"$TMPDIR/stubs/counting-git" <<STUB
+#!/bin/bash
+printf '%s\n' "\$*" >> "\$GIT_TRACE_FILE"
+exec "$REAL_GIT" "\$@"
+STUB
+chmod +x "$TMPDIR/stubs/counting-git"
+(
+    cd "$TMPDIR/repoMultiWs"
+    jj bookmark create snapshot-probe -r master
+) >/dev/null 2>&1
+
+new_ref_trace="$TMPDIR/new-ref-git-trace"
+GIT_TRACE_FILE="$new_ref_trace" GIT_EXECUTABLE="$TMPDIR/stubs/counting-git" \
+    run_sync "$TMPDIR/repoMultiWs"
+new_ref_queries=$(grep -c 'ls-remote' "$new_ref_trace" 2>/dev/null || true)
+new_ref_pushes=$(grep -c ' push ' "$new_ref_trace" 2>/dev/null || true)
+new_ref_deletes=$(grep -c ' --delete ' "$new_ref_trace" 2>/dev/null || true)
+check "new snapshot ref: one remote discovery" "1" "$new_ref_queries"
+check "new snapshot ref: one direct push" "1" "$new_ref_pushes"
+check "new snapshot ref: no delete request" "0" "$new_ref_deletes"
+
+unchanged_trace="$TMPDIR/unchanged-git-trace"
+GIT_TRACE_FILE="$unchanged_trace" GIT_EXECUTABLE="$TMPDIR/stubs/counting-git" \
+    run_sync "$TMPDIR/repoMultiWs"
+unchanged_queries=$(grep -c 'ls-remote' "$unchanged_trace" 2>/dev/null || true)
+unchanged_pushes=$(grep -c ' push ' "$unchanged_trace" 2>/dev/null || true)
+check "unchanged snapshots: one remote discovery" "1" "$unchanged_queries"
+check "unchanged snapshots: zero pushes" "0" "$unchanged_pushes"
+
 echo
 echo "=== Scenario 11: malformed sync.remote-bookmark -> ERROR + exit ==="
 mkdir -p "$TMPDIR/repoBadBm"

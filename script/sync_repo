@@ -190,10 +190,10 @@ classify_cmd() {
 
 # push_force_replace <tag> <url> <commit> <branch>
 # Emulate force-push via delete+push for servers that reject --force (gitfarm).
-# Only push if the delete actually removed the ref OR the ref didn't exist —
-# otherwise the push would fail non-fast-forward and the bogus OTHER-ERR masks
-# the real cause (concurrent push, transient network, server hook). Next
-# sync_repo run retries the cycle cleanly.
+# The caller has already confirmed that the branch exists and differs, so a
+# successful delete is required before the replacement push. Otherwise the
+# push would fail non-fast-forward and the bogus OTHER-ERR would mask the real
+# cause (concurrent push, transient network, server hook).
 #
 # Pushes to a URL directly (not a configured remote name) so git does NOT
 # update local refs/remotes/<remote>/* tracking refs. This keeps jj's view
@@ -201,14 +201,15 @@ classify_cmd() {
 # never in the local jj/git store.
 push_force_replace() {
     local tag=$1 url=$2 commit=$3 branch=$4
-    timeout_cmd "push-del $tag" git --git-dir="$GIT_DIR" push "$url" --delete "$branch"
+    timeout_cmd "push-del $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" --delete "$branch"
     local del_class=$_LAST_CLASSIFICATION
     case "$del_class" in
-        OK|BENIGN-DEL)
-            timeout_cmd "push $tag" git --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}" || true
+        OK)
+            timeout_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}"
             ;;
         *)
             log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
+            return 1
             ;;
     esac
 }
@@ -338,6 +339,46 @@ check_refused_snapshots() {
 # The snapshot is the safety net: it MUST run BEFORE step_sync_remote_bookmark
 # touches local state (rebase / bookmark advance / etc.), so a botched
 # bookmark sync never destroys work that hasn't been backed up.
+declare -A SNAPSHOT_REMOTE_COMMITS=()
+SNAPSHOT_REMOTE_REFS_READY=0
+
+# Query all snapshots for this host once. A failed discovery skips the whole
+# snapshot batch: retrying delete+push for every bookmark would multiply one
+# network outage into minutes of lock contention for interactive jj commands.
+load_snapshot_remote_refs() {
+    [ -n "$SNAPSHOT_URL" ] || return 0
+    local output commit ref
+    if ! output=$(timeout_cmd "snapshot-refs ${MACHINE_NAME}" \
+        "$GIT" ls-remote --heads "$SNAPSHOT_URL" "refs/heads/${MACHINE_NAME}/*"); then
+        log WARN "SKIP-PUSH snapshots: remote ref query failed; will retry next run"
+        return 1
+    fi
+    while read -r commit ref; do
+        [ -n "$commit" ] && [ -n "$ref" ] || continue
+        SNAPSHOT_REMOTE_COMMITS["$ref"]=$commit
+    done <<<"$output"
+    SNAPSHOT_REMOTE_REFS_READY=1
+}
+
+# Push only refs whose remote commit differs. New refs need one direct push;
+# existing refs still use delete+push because gitfarm rejects force pushes.
+push_snapshot_ref() {
+    local tag=$1 commit=$2 branch=$3
+    [ "$SNAPSHOT_REMOTE_REFS_READY" = "1" ] || return 0
+    local remote_commit=${SNAPSHOT_REMOTE_COMMITS["$branch"]:-}
+    if [ "$remote_commit" = "$commit" ]; then
+        log DEBUG "SKIP $tag: snapshot unchanged"
+        return 0
+    fi
+
+    if [ -z "$remote_commit" ]; then
+        timeout_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push \
+            "$SNAPSHOT_URL" "${commit}:${branch}" || return 1
+    else
+        push_force_replace "$tag" "$SNAPSHOT_URL" "$commit" "$branch" || return 1
+    fi
+    SNAPSHOT_REMOTE_COMMITS["$branch"]=$commit
+}
 
 step_push_workspace_snapshot() {
     [ -n "$SNAPSHOT_URL" ] || return 0
@@ -346,23 +387,30 @@ step_push_workspace_snapshot() {
     current_commit=$(jj log -r "$PUSH_REV" --no-graph -T 'commit_id' 2>/dev/null)
     [ -n "$current_commit" ] || return 0
     ws_branch="refs/heads/${MACHINE_NAME}/${WORKSPACE_NAME}"
-    push_force_replace "${MACHINE_NAME}/${WORKSPACE_NAME}" "$SNAPSHOT_URL" "$current_commit" "$ws_branch"
+    push_snapshot_ref "${MACHINE_NAME}/${WORKSPACE_NAME}" "$current_commit" "$ws_branch"
 }
 
 # Snapshot every non-host-prefixed local bookmark under MACHINE/<bookmark>.
 # Only runs in the default workspace: jj's local bookmarks are repo-scoped
 # (shared across all workspaces of a `.jj/repo`), so other workspaces would
 # just push redundant copies of the same refs the default workspace already
-# pushed. The grep filter excludes any leftover hostname-prefixed bookmarks
+# pushed. The name filter excludes any leftover hostname-prefixed bookmarks
 # from old sync_repo runs (the new flow doesn't create them locally).
 step_push_local_bookmark_snapshots() {
     [ -n "$SNAPSHOT_URL" ] || return 0
     [ "$WORKSPACE_NAME" = "default" ] || return 0
     local bm ref
-    for bm in $(jj bookmark list -T 'name ++ "\n"' 2>/dev/null | grep -v "^${MACHINE_NAME}/" | sort -u); do
-        ref=$(jj log -r "$bm" --no-graph -T 'commit_id' 2>/dev/null) || continue
-        push_force_replace "${MACHINE_NAME}/${bm}" "$SNAPSHOT_URL" "$ref" "refs/heads/${MACHINE_NAME}/${bm}"
-    done
+    while IFS=$'\t' read -r bm ref; do
+        [ -n "$bm" ] && [ -n "$ref" ] || continue
+        case "$bm" in
+            "${MACHINE_NAME}/"*) continue ;;
+        esac
+        push_snapshot_ref "${MACHINE_NAME}/${bm}" "$ref" "refs/heads/${MACHINE_NAME}/${bm}"
+    done < <(
+        jj bookmark list \
+            -T 'name ++ "\t" ++ if(normal_target, normal_target.commit_id(), "") ++ "\n"' \
+            2>/dev/null | sort -u
+    )
 }
 
 # --- Sync-bookmark sync (jj-mediated, may modify local state) -----------------
@@ -707,6 +755,7 @@ step_describe_local_chain
 # CRITICAL ORDER: snapshot push FIRST (purely additive, no local state mutation).
 # Whatever the user has in the working copy gets backed up to the snapshot URL
 # before any rebase / bookmark advance / merge probe can possibly disturb it.
+load_snapshot_remote_refs || true
 step_push_workspace_snapshot
 step_push_local_bookmark_snapshots
 
