@@ -513,12 +513,13 @@ _logrun_tune_precmd() {
 }
 
 # ----------------------------------------------------------------- widget
-# Save original buffer so we can restore it for history before zsh
-# parses the rewritten one (zshaddhistory hook).
+# Arm history replacement only for rewritten commands; skipped buffers must
+# retain native zsh history expansion behavior.
 typeset -g _logrun_orig_buffer=""
 
 _logrun_auto_accept_line() {
-    _logrun_orig_buffer="$BUFFER"
+    local _logrun_input_buffer="$BUFFER"
+    _logrun_orig_buffer=""
     local _logrun_decision _logrun_first _logrun_kind
     _logrun_classify
     _logrun_tune_prepare
@@ -541,12 +542,14 @@ _logrun_auto_accept_line() {
     case "$_logrun_decision" in
         external)
             # Externals use the fast path to avoid zshrc replay.
+            _logrun_orig_buffer="$_logrun_input_buffer"
             BUFFER="logrun --auto ${_logrun_name_flag}--no-zshrc -- ${BUFFER}"
             ;;
         function)
             # Functions need zsh -ic so user-defined functions resolve.
+            _logrun_orig_buffer="$_logrun_input_buffer"
             local q
-            q="${(q)_logrun_orig_buffer}"
+            q="${(q)_logrun_input_buffer}"
             BUFFER="${_logrun_timing_prefix}logrun --auto ${_logrun_name_flag}-c ${q}"
             ;;
         skip|*) ;;
@@ -555,14 +558,15 @@ _logrun_auto_accept_line() {
     zle .accept-line
 }
 
-# History hook: restore the user-typed buffer so ↑ recalls the original,
-# not "logrun --auto …".
+# Store the original command in main history with lexical word boundaries.
+# Save the rewritten wrapper in a temporary history context; zsh automatically
+# pops contexts pushed by zshaddhistory after processing the current line.
 _logrun_auto_zshaddhistory() {
     if [[ -n "$_logrun_orig_buffer" ]]; then
-        # The arg is the line zsh would record. Replace it.
-        print -sr -- "$_logrun_orig_buffer"
+        print -rS -- "$_logrun_orig_buffer"
         _logrun_orig_buffer=""
-        return 1   # tell zsh: skip default history append (we did it).
+        fc -p
+        return 0
     fi
     return 0
 }

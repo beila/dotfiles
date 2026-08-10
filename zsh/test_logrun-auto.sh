@@ -197,7 +197,7 @@ BUFFER="ls -la"
 _logrun_auto_accept_line
 _check "history: orig captured"     "ls -la"                                  "$_logrun_orig_buffer"
 
-# zshaddhistory hook resets the orig buffer to "" after consuming it.
+# zshaddhistory moves the wrapper into a temporary history context.
 _logrun_auto_zshaddhistory "ignored"
 _check "history: orig cleared after hook"   ""                                "$_logrun_orig_buffer"
 
