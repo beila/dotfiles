@@ -416,9 +416,6 @@ floatRules =
         , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
         , className =? "Tilda" --> doFloat
         , className =? "ignition" --> doFloat
-        , -- Calendar reminder popup: float AND copy to every workspace so it's
-          -- visible wherever you are, not just where it spawned.
-          className =? "Evolution-alarm-notify" --> doFloat <> copyToAllHook
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
@@ -426,18 +423,7 @@ floatRules =
 
 browserRules = shiftAllTo "1:browser" [className =? "firefox"]
 
--- All Evolution windows (main, compose, prefs, contacts, calendar) share the
--- WM_CLASS "Org.gnome.Evolution", so one class match sends them all to 2:mail.
--- The reminder popup ("Evolution-alarm-notify") is intentionally NOT here — it
--- floats on the current workspace (see floatRules) so reminders show wherever
--- you are, not only when 2:mail is visible.
---
--- "m365-auth" is the M365 OAuth sign-in window: bin/evolution-auth-browser
--- launches Edge with --class=m365-auth precisely so ONLY the auth window lands
--- next to Evolution here, without routing normal Edge/Firefox windows. The
--- broker's native dialog (title "Microsoft") is caught by title as a fallback,
--- since it doesn't go through our wrapper.
-mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird", className =? "evolution.real", className =? "Org.gnome.Evolution", className =? "m365-auth", title =? "Microsoft"]
+mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird"]
 
 editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 
