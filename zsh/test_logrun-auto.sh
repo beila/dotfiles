@@ -200,6 +200,11 @@ _check "history: orig captured"     "ls -la"                                  "$
 # zshaddhistory moves the wrapper into a temporary history context.
 _logrun_auto_zshaddhistory "ignored"
 _check "history: orig cleared after hook"   ""                                "$_logrun_orig_buffer"
+fc -P 2>/dev/null
+
+BUFFER="false"
+_logrun_auto_accept_line
+_check "history: skipped command does not arm replacement" "" "$_logrun_orig_buffer"
 
 # ---- end-to-end: widget rewrite + actually invoke the resulting logrun ----
 
@@ -310,6 +315,72 @@ rm -rf "$TMP"
 BUFFER="NOLOG=1 echo unwrapped"
 _logrun_auto_accept_line
 _check "e2e/nolog: passthrough"     "NOLOG=1 echo unwrapped" "$BUFFER"
+
+# Real ZLE regression: HIST_VERIFY must expose the original command, and
+# history word designators must use the original command's lexical words.
+zmodload zsh/zpty
+_logrun_history_read_until() {
+    local marker=$1 chunk i
+    _logrun_history_output=""
+    for i in {1..1000}; do
+        chunk=""
+        zpty -r -t "$_logrun_history_pty" chunk 2>/dev/null && _logrun_history_output+="$chunk"
+        [[ "$_logrun_history_output" == *"$marker"* ]] && return 0
+        sleep 0.01
+    done
+    return 1
+}
+
+typeset -g _logrun_history_output="" _logrun_history_pty="logrun_history"
+typeset -i _logrun_bang_ok=0 _logrun_last_arg_ok=0
+zpty -b logrun_history zsh -f
+zpty -w logrun_history "PS1='HIST''PROMPT> '; HISTFILE=/dev/null; HISTSIZE=100; SAVEHIST=100; setopt banghist histverify histnostore inc_append_history share_history; LOGRUN_AUTO_TUNING=0; source ${(q)WIDGET_PATH}"
+if _logrun_history_read_until 'HISTPROMPT> '; then
+    zpty -w logrun_history "/usr/bin/printf '<%s>\\n' alpha gamma; /usr/bin/true sentinel"
+    if _logrun_history_read_until 'HISTPROMPT> '; then
+        zpty -w logrun_history '!!'
+        if _logrun_history_read_until 'HISTPROMPT> '; then
+            [[ "$_logrun_history_output" == *'HISTPROMPT> /usr/bin/printf'* && "$_logrun_history_output" != *'HISTPROMPT> logrun '* ]] && _logrun_bang_ok=1
+            zpty -w -n logrun_history $'\n'
+            if _logrun_history_read_until 'HISTPROMPT> '; then
+                zpty -w logrun_history 'echo !$'
+                if _logrun_history_read_until 'HISTPROMPT> '; then
+                    [[ "$_logrun_history_output" == *'HISTPROMPT> echo sentinel'* ]] && _logrun_last_arg_ok=1
+                fi
+            fi
+        fi
+    fi
+fi
+_check "history/pty: !! expands original command" "1" "$_logrun_bang_ok"
+_check 'history/pty: !$ expands original last argument' "1" "$_logrun_last_arg_ok"
+zpty -d logrun_history 2>/dev/null
+_logrun_history_pty="logrun_history_related"
+typeset -i _logrun_all_args_ok=0 _logrun_event_ok=0
+typeset _logrun_target_event=""
+zpty -b "$_logrun_history_pty" zsh -f
+zpty -w "$_logrun_history_pty" "PS1='HIST''EVENT:%h> '; HISTFILE=/dev/null; HISTSIZE=100; SAVEHIST=100; setopt banghist histverify histnostore inc_append_history share_history; LOGRUN_AUTO_TUNING=0; source ${(q)WIDGET_PATH}"
+if _logrun_history_read_until 'HISTEVENT:'; then
+    zpty -w "$_logrun_history_pty" "/usr/bin/printf '<%s>\\n' alpha gamma"
+    if _logrun_history_read_until 'HISTEVENT:'; then
+        if [[ "$_logrun_history_output" =~ 'HISTEVENT:([0-9]+)> ' ]]; then
+            _logrun_target_event=$(( match[1] - 1 ))
+            zpty -w "$_logrun_history_pty" 'echo !*'
+            if _logrun_history_read_until 'HISTEVENT:'; then
+                [[ "$_logrun_history_output" == *'HISTEVENT:'*'> echo '* && "$_logrun_history_output" == *'alpha gamma'* && "$_logrun_history_output" != *'> echo logrun '* ]] && _logrun_all_args_ok=1
+                zpty -w -n "$_logrun_history_pty" $'\003'
+                if _logrun_history_read_until 'HISTEVENT:'; then
+                    zpty -w "$_logrun_history_pty" "!$_logrun_target_event"
+                    if _logrun_history_read_until 'HISTEVENT:'; then
+                        [[ "$_logrun_history_output" == *'HISTEVENT:'*'> /usr/bin/printf'* && "$_logrun_history_output" != *'> logrun '* ]] && _logrun_event_ok=1
+                    fi
+                fi
+            fi
+        fi
+    fi
+fi
+_check 'history/pty: !* expands original arguments' "1" "$_logrun_all_args_ok"
+_check 'history/pty: !N expands original event' "1" "$_logrun_event_ok"
+zpty -d "$_logrun_history_pty" 2>/dev/null
 
 echo
 echo "PASS: $PASS  FAIL: $FAIL"
