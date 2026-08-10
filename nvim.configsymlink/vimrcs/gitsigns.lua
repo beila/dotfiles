@@ -26,14 +26,27 @@ gs.setup {
 }
 
 -- Set diff base to jj's @- (parent of working copy) if in a jj repo
+local jj_base_pending = false
+
 local function update_jj_base()
-  local obj = vim.system({ 'jj', 'log', '-r', '@-', '-T', 'commit_id', '--no-graph' }, { text = true }):wait()
-  if obj.code == 0 and obj.stdout ~= '' then
-    gs.change_base(vim.trim(obj.stdout), true)
+  if jj_base_pending then
+    return
   end
+
+  jj_base_pending = true
+  vim.system(
+    { 'jj', 'log', '-r', '@-', '-T', 'commit_id', '--no-graph' },
+    { text = true, timeout = 2000 },
+    vim.schedule_wrap(function(obj)
+      jj_base_pending = false
+      if obj.code == 0 and obj.stdout and obj.stdout ~= '' then
+        gs.change_base(vim.trim(obj.stdout), true)
+      end
+    end)
+  )
 end
 
 vim.api.nvim_create_autocmd({ 'BufEnter', 'FocusGained' }, {
   group = vim.api.nvim_create_augroup('gitsigns_jj_base', { clear = true }),
-  callback = function() vim.schedule(update_jj_base) end,
+  callback = update_jj_base,
 })

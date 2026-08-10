@@ -51,7 +51,7 @@ Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analy
 - **Autoformat** (`vimrcs/my-autoformat.lua`) — format on autosave via `CursorHold` / `BufLeave` / `FocusLost`, checks `vim.b.autoformat_fts`; per-project `.nvim.lua` sets `vim.b.autoformat_fts`. `myvimrc` sets `updatetime=10000` because CursorHold-triggered LSP format bumps `b:changedtick` and resets yank-cycle state (YankRing `<C-n>`/`<C-p>`).
 - **Completion** (`vimrcs/blink-cmp.lua`) — blink.cmp.
 - **DAP UI** (`vimrcs/nvim-dap-ui.lua`) — auto-open/close debug UI, F7 toggle.
-- **Git gutter** (`vimrcs/gitsigns.lua`) — gitsigns.nvim with jj support (diffs against `@-` via `change_base`), `]c`/`[c` hunk nav, `<leader>hp` preview, `<leader>hr` reset, `<leader>hb` blame (no staging — safe for jj).
+- **Git gutter** (`vimrcs/gitsigns.lua`) — gitsigns.nvim with jj support (diffs against `@-` via `change_base`), `]c`/`[c` hunk nav, `<leader>hp` preview, `<leader>hr` reset, `<leader>hb` blame (no staging — safe for jj). The `jj log` base lookup is asynchronous, limited to one in-flight request, and times out after two seconds so `sync_repo` lock contention cannot freeze Neovim.
 - **LSP enhancements** (`vimrcs/lsp_signature.lua`) — inlay hints + auto signature help.
 - **LSP progress** (`vimrcs/fidget.lua`) — fidget.nvim.
 - **Treesitter textobjects** (`vimrcs/nvim-treesitter.lua`) — `vaf`/`vif` function, `vac`/`vic` class, `vaa`/`via` parameter, `<leader>a`/`<leader>A` swap parameter; manual global keymaps (buffer-local may not attach).
