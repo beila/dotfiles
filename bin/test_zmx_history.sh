@@ -58,6 +58,7 @@ printf 'alpha\n' > "$FAKE_ROOT/sessions"
 printf '%0120d TAIL-INITIAL\n' 0 > "$FAKE_ROOT/history-alpha"
 : > "$FAKE_ROOT/logs/alpha.log"
 : > "$FAKE_ROOT/history.calls"
+: > "$FAKE_ROOT/attach.calls"
 
 cat > "$STUBS/zmx" <<'EOF'
 #!/usr/bin/env bash
@@ -83,6 +84,9 @@ case "${1:-}" in
             sleep 0.3
         fi
         printf '%s\n' "$content"
+        ;;
+    attach)
+        printf '%s\n' "$*" >> "$FAKE_ROOT/attach.calls"
         ;;
     *)
         exit 2
@@ -154,6 +158,17 @@ ZMX_SESSION=alpha DOTFILES_ROOT="$(cd "$(dirname "$UNDER_TEST")/.." && pwd)" \
 check "zsh normal exit captures final output" \
     "normal exit final" "$("$UNDER_TEST" show alpha)"
 
+printf 'removable snapshot\n' > "$FAKE_ROOT/history-beta"
+"$UNDER_TEST" snapshot beta
+removable_snapshot=$("$UNDER_TEST" path beta)
+removable_name="${removable_snapshot%.history}.name"
+check "remove target exists before deletion" "yes" \
+    "$([[ -f "$removable_snapshot" && -f "$removable_name" ]] && printf yes || printf no)"
+"$UNDER_TEST" remove beta
+check "remove deletes snapshot and name index" "no" \
+    "$([[ -e "$removable_snapshot" || -e "$removable_name" ]] && printf yes || printf no)"
+check "remove preserves other saved sessions" "alpha" "$("$UNDER_TEST" list)"
+
 real_zmx=$(command -v zmx || true)
 if [[ -n "$real_zmx" && -n "$(command -v script)" ]]; then
     repo_root=$(cd "$(dirname "$UNDER_TEST")/.." && pwd)
@@ -174,21 +189,48 @@ if [[ -n "$real_zmx" && -n "$(command -v script)" ]]; then
 fi
 
 : > "$FAKE_ROOT/sessions"
-: > "$TMP/empty-sessions"
 cat > "$STUBS/fzf" <<'EOF'
 #!/usr/bin/env bash
 cat > "$FZF_INPUT"
+if [[ -s "${FZF_OUTPUT_FILE:-}" ]]; then
+    cat "$FZF_OUTPUT_FILE"
+    : > "$FZF_OUTPUT_FILE"
+    exit 0
+fi
 exit 130
 EOF
 chmod +x "$STUBS/fzf"
 export FZF_INPUT="$TMP/fzf-input"
-PATH="$STUBS:$PATH" ZMX_SESSIONS_FILE="$TMP/empty-sessions" \
-    "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
+export FZF_OUTPUT_FILE="$TMP/fzf-output"
+: > "$FZF_OUTPUT_FILE"
+PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
 if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2
 fi
 saved_row=$(rg -N '^alpha.*\(saved\)$' "$FZF_INPUT" || true)
-check "picker lists stopped ad-hoc sessions with snapshots" "alpha           (saved)" "$saved_row"
+check "picker lists stopped sessions with snapshots" "alpha           (saved)" "$saved_row"
+check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" || true)"
+
+printf '\nctrl-d\nalpha           (saved)\n' > "$FZF_OUTPUT_FILE"
+: > "$FAKE_ROOT/attach.calls"
+select_rc=0
+PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-remove.stderr" || select_rc=$?
+check "Ctrl-D exits after removing the final saved entry" "0" "$select_rc"
+alpha_saved=yes
+"$UNDER_TEST" has alpha || alpha_saved=no
+check "Ctrl-D removes the stopped session snapshot" "no" "$alpha_saved"
+check "Ctrl-D does not attach a replacement session" "" "$(cat "$FAKE_ROOT/attach.calls")"
+
+printf 'running snapshot\n' > "$FAKE_ROOT/history-gamma"
+"$UNDER_TEST" snapshot gamma
+printf 'gamma\n' > "$FAKE_ROOT/sessions"
+printf '\nctrl-d\ngamma\n' > "$FZF_OUTPUT_FILE"
+PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-running.stderr" || true
+gamma_saved=no
+"$UNDER_TEST" has gamma && gamma_saved=yes
+check "Ctrl-D preserves a running session snapshot" "yes" "$gamma_saved"
+: > "$FAKE_ROOT/sessions"
+"$UNDER_TEST" remove gamma
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ $FAIL -eq 0 ]]
