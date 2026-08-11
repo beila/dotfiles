@@ -79,7 +79,7 @@ first=$!
 wait_for_event start:one
 JJ_SERIALIZED_LOCK_HELD=1 TEST_GIT_ROOT="$TMPDIR/repo-a/.git" TEST_ID=two TEST_SLEEP=0 "$WRAPPER" hold
 wait "$first"
-check "sync_repo lock owner bypasses nested locking" \
+check "sync_repo local-lock owner bypasses nested locking" \
     "start:one start:two end:two end:one" \
     "$(tr '\n' ' ' < "$EVENTS" | sed 's/ $//')"
 

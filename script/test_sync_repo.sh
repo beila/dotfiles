@@ -583,7 +583,7 @@ chmod +x "$TMPDIR/stubs/counting-git"
 new_ref_trace="$TMPDIR/new-ref-git-trace"
 GIT_TRACE_FILE="$new_ref_trace" GIT_EXECUTABLE="$TMPDIR/stubs/counting-git" \
     run_sync "$TMPDIR/repoMultiWs"
-new_ref_queries=$(grep -c 'ls-remote' "$new_ref_trace" 2>/dev/null || true)
+new_ref_queries=$(grep -F -c "refs/heads/${TESTHOST}/*" "$new_ref_trace" 2>/dev/null || true)
 new_ref_pushes=$(grep -c ' push ' "$new_ref_trace" 2>/dev/null || true)
 new_ref_deletes=$(grep -c ' --delete ' "$new_ref_trace" 2>/dev/null || true)
 check "new snapshot ref: one remote discovery" "1" "$new_ref_queries"
@@ -593,7 +593,7 @@ check "new snapshot ref: no delete request" "0" "$new_ref_deletes"
 unchanged_trace="$TMPDIR/unchanged-git-trace"
 GIT_TRACE_FILE="$unchanged_trace" GIT_EXECUTABLE="$TMPDIR/stubs/counting-git" \
     run_sync "$TMPDIR/repoMultiWs"
-unchanged_queries=$(grep -c 'ls-remote' "$unchanged_trace" 2>/dev/null || true)
+unchanged_queries=$(grep -F -c "refs/heads/${TESTHOST}/*" "$unchanged_trace" 2>/dev/null || true)
 unchanged_pushes=$(grep -c ' push ' "$unchanged_trace" 2>/dev/null || true)
 check "unchanged snapshots: one remote discovery" "1" "$unchanged_queries"
 check "unchanged snapshots: zero pushes" "0" "$unchanged_pushes"
@@ -879,6 +879,94 @@ disabled_after_op=$(cd "$TMPDIR/repoDisabled" && jj --ignore-working-copy op log
 check "disabled repo: operation head unchanged" "$disabled_before_op" "$disabled_after_op"
 disabled_logs_after=$(find "$LOG_ROOT" -name 'sync_repo.*repoDisabled*' 2>/dev/null | wc -l)
 check "disabled repo: no log created" "$disabled_logs_before" "$disabled_logs_after"
+
+echo
+echo "=== Scenario 16: network phase releases local lock but keeps job lock ==="
+git -C "$TMPDIR" init --bare -q -b master lock-phase-remote.git
+mkdir -p "$TMPDIR/repoLockPhase"
+(
+    cd "$TMPDIR/repoLockPhase"
+    jj git init --colocate
+    jj config set --repo sync.snapshot-url "$TMPDIR/lock-phase-remote.git"
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name 'Test User'
+    echo initial > tracked
+    jj commit -m "initial"
+) >/dev/null 2>&1
+
+lock_ready="$TMPDIR/lock-network-ready"
+lock_release="$TMPDIR/lock-network-release"
+cat >"$TMPDIR/stubs/blocking-git" <<STUB
+#!/bin/bash
+for arg in "\$@"; do
+    if [ "\$arg" = "ls-remote" ]; then
+        : > "$lock_ready"
+        while [ ! -e "$lock_release" ]; do sleep 0.01; done
+        break
+    fi
+done
+exec "$REAL_GIT" "\$@"
+STUB
+chmod +x "$TMPDIR/stubs/blocking-git"
+
+lock_path=$(cd "$TMPDIR/repoLockPhase" && jj --ignore-working-copy git root)
+lock_key=$(printf '%s' "$lock_path" | tr / _)
+local_lock="/tmp/sync_repo_${lock_key}.lock"
+job_lock="/tmp/sync_repo_job_${lock_key}.lock"
+GIT_EXECUTABLE="$TMPDIR/stubs/blocking-git" \
+    bash "$SYNC_REPO" "$TMPDIR/repoLockPhase" >"$TMPDIR/lock-first.out" 2>&1 &
+lock_sync_pid=$!
+
+for ((i = 0; i < 500; i++)); do
+    [ -e "$lock_ready" ] && break
+    sleep 0.01
+done
+if [ -e "$lock_ready" ]; then
+    echo "PASS: sync reached blocked network phase"
+    pass=$((pass+1))
+else
+    echo "FAIL: sync did not reach blocked network phase"
+    fail=$((fail+1))
+fi
+
+if flock -n "$local_lock" true; then
+    echo "PASS: local-state lock released during network phase"
+    pass=$((pass+1))
+else
+    echo "FAIL: local-state lock remained held during network phase"
+    fail=$((fail+1))
+fi
+
+if timeout 3 bash -c 'cd "$1" && jj status >/dev/null' _ "$TMPDIR/repoLockPhase"; then
+    echo "PASS: interactive jj completes during network phase"
+    pass=$((pass+1))
+else
+    echo "FAIL: interactive jj blocked during network phase"
+    fail=$((fail+1))
+fi
+
+if flock -n "$job_lock" true; then
+    echo "FAIL: whole-run job lock was released during network phase"
+    fail=$((fail+1))
+else
+    echo "PASS: whole-run job lock remains held during network phase"
+    pass=$((pass+1))
+fi
+
+GIT_EXECUTABLE="$TMPDIR/stubs/blocking-git" \
+    timeout 3 bash "$SYNC_REPO" "$TMPDIR/repoLockPhase" >"$TMPDIR/lock-second.out" 2>&1
+if grep -q 'sync_repo already running' "$TMPDIR/lock-second.out"; then
+    echo "PASS: second sync_repo exits at the job lock"
+    pass=$((pass+1))
+else
+    echo "FAIL: second sync_repo was not rejected by the job lock"
+    fail=$((fail+1))
+fi
+
+: > "$lock_release"
+wait "$lock_sync_pid"
+rc=$?
+check "first sync completes after network release" "0" "$rc"
 
 echo
 echo "=== Sample log file ==="

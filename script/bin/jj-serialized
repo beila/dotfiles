@@ -6,7 +6,7 @@ REAL_JJ=${JJ_REAL_EXECUTABLE:?JJ_REAL_EXECUTABLE is required}
 FLOCK=${JJ_FLOCK_EXECUTABLE:-flock}
 TR=${JJ_TR_EXECUTABLE:-tr}
 
-# sync_repo already owns the repository lock for its complete transaction.
+# sync_repo already owns the local-state lock for its current jj phase.
 if [ "${JJ_SERIALIZED_LOCK_HELD:-0}" = "1" ]; then
     exec "$REAL_JJ" "$@"
 fi
