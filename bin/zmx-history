@@ -2,7 +2,7 @@
 # Persist the latest rendered scrollback for every live zmx session.
 
 set -uo pipefail
-umask 0027
+umask 0077
 
 zmx_bin="${ZMX_BIN:-zmx}"
 history_dir="${ZMX_HISTORY_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/zmx/history}"
@@ -38,10 +38,9 @@ write_name_file() {
     name_path="${target%.history}.name"
     name_tmp="$name_path.tmp.$$"
     if printf '%s\n' "$session" > "$name_tmp"; then
-        chmod 0640 "$name_tmp"
+        chmod 0600 "$name_tmp"
         sync -d "$name_tmp" 2>/dev/null || true
         mv -f "$name_tmp" "$name_path"
-        sync -d "$name_path" 2>/dev/null || true
     else
         rm -f "$name_tmp"
     fi
@@ -65,11 +64,11 @@ snapshot_session() {
 
     persist_tmp="$target.tmp.$$"
     if cp "$runtime_tmp" "$persist_tmp"; then
-        chmod 0640 "$persist_tmp"
+        chmod 0600 "$persist_tmp"
         sync -d "$persist_tmp" 2>/dev/null || true
         mv -f "$persist_tmp" "$target"
-        sync -d "$target" 2>/dev/null || true
         write_name_file "$session" "$target"
+        sync "$history_dir" 2>/dev/null || true
     else
         rm -f "$persist_tmp"
     fi
@@ -103,7 +102,7 @@ log_signature() {
 }
 
 serve() {
-    mkdir -p -m 0750 "$history_dir" "$runtime_dir"
+    install -d -m 0700 "$history_dir" "$runtime_dir"
 
     exec 9>"$history_dir/.lock"
     flock -n 9 || exit 0
@@ -134,6 +133,7 @@ serve() {
             signature=$(log_signature "$session")
             if [[ "$signature" == "missing" || "$signature" != "${signatures[$session]}" ]]; then
                 snapshot_session "$session"
+                signatures["$session"]=$(log_signature "$session")
             fi
         done
 
@@ -144,17 +144,12 @@ serve() {
             active["$session"]=1
             if [[ -z "${signatures[$session]:-}" ]]; then
                 snapshot_session "$session"
+                signatures["$session"]=$(log_signature "$session")
             fi
         done
 
         for session in "${!signatures[@]}"; do
             [[ -n "${active[$session]:-}" ]] || unset 'signatures[$session]'
-        done
-        for session in "${sessions[@]}"; do
-            [[ -n "$session" ]] || continue
-            # Capture the signature after snapshots so the next loop only
-            # reacts to subsequent session output.
-            signatures["$session"]=$(log_signature "$session")
         done
     done
 }

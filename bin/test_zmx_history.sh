@@ -48,6 +48,10 @@ wait_for() {
     return 1
 }
 
+calls_exceed() {
+    [[ $(wc -l < "$1") -gt $2 ]]
+}
+
 mkdir -p "$FAKE_ROOT/logs" "$HISTORY_DIR" "$RUNTIME_DIR" "$STUBS"
 printf 'alpha\n' > "$FAKE_ROOT/sessions"
 printf '%0120d TAIL-INITIAL\n' 0 > "$FAKE_ROOT/history-alpha"
@@ -96,6 +100,8 @@ snapshot=$("$UNDER_TEST" path alpha)
 snapshot_size=$(wc -c < "$snapshot")
 snapshot_tail=$("$UNDER_TEST" show alpha | tail -n 1)
 check "initial snapshot is capped" "yes" "$([[ $snapshot_size -le 64 ]] && printf yes || printf no)"
+check "history directory is private" "700" "$(stat -c '%a' "$HISTORY_DIR")"
+check "snapshot file is private" "600" "$(stat -c '%a' "$snapshot")"
 check "initial snapshot keeps newest output" "yes" \
     "$(printf '%s\n' "$snapshot_tail" | rg -q 'TAIL-INITIAL$' && printf yes || printf no)"
 check "saved session is discoverable" "alpha" "$("$UNDER_TEST" list)"
@@ -111,7 +117,7 @@ inode_before=$(stat -c '%i' "$snapshot")
 calls_before=$(wc -l < "$FAKE_ROOT/history.calls")
 printf 'terminal output with unchanged screen\n' >> "$FAKE_ROOT/logs/alpha.log"
 wait_for "unchanged history comparison" \
-    bash -c '[[ $(wc -l < "$1") -gt $2 ]]' _ "$FAKE_ROOT/history.calls" "$calls_before"
+    calls_exceed "$FAKE_ROOT/history.calls" "$calls_before"
 inode_after=$(stat -c '%i' "$snapshot")
 check "unchanged history is not rewritten" "$inode_before" "$inode_after"
 
@@ -130,7 +136,10 @@ EOF
 chmod +x "$STUBS/fzf"
 export FZF_INPUT="$TMP/fzf-input"
 PATH="$STUBS:$PATH" ZMX_SESSIONS_FILE="$TMP/empty-sessions" \
-    "$SELECT_UNDER_TEST" >/dev/null 2>&1 || true
+    "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
+if [[ ! -e "$FZF_INPUT" ]]; then
+    cat "$TMP/select.stderr" >&2
+fi
 saved_row=$(rg -N '^alpha.*\(saved\)$' "$FZF_INPUT" || true)
 check "picker lists stopped ad-hoc sessions with snapshots" "alpha           (saved)" "$saved_row"
 

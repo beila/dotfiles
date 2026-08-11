@@ -14,7 +14,8 @@
 # the way out.
 #
 # Ad-hoc running sessions are listed first, then the presets in file order so
-# that part of the layout stays put as sessions start and stop. With neither presets nor running sessions the picker is skipped and
+# that part of the layout stays put as sessions start and stop. With no presets,
+# running sessions, or saved snapshots, the picker is skipped and
 # a default session is attached directly: first CLI arg, or
 # $ZMX_DEFAULT_SESSION, or `main`. The first arg also seeds the fzf query.
 #
@@ -37,9 +38,11 @@ command -v zsh >/dev/null 2>&1 && session_shell=(zsh -l)
 
 # Preview: backlog then live output. `zmx tail` alone prints only NEW output, so
 # the history prefix is what makes a quiet session readable. Stopped sessions
-# have no history to show.
+# use their most recent persisted snapshot when available.
+# The preview's `sh -c` expands these variables later.
+# shellcheck disable=SC2016
 preview_cmd='
-if zmx list --short 2>/dev/null | grep -Fxq -- "$1"; then
+if zmx list --short 2>/dev/null | rg -Fxq -- "$1"; then
     zmx history "$1" 2>/dev/null | tail -500
     exec zmx tail "$1" 2>/dev/null
 elif [ -x "$ZMX_HISTORY_HELPER" ] && "$ZMX_HISTORY_HELPER" has "$1"; then
@@ -91,7 +94,7 @@ session_cwd() {
     printf '%s' "${cwd/#$HOME/'~'}"
 }
 
-row() {  # name -> display line; stopped sessions are just the name
+row() {  # name -> display line; stopped snapshots are marked as saved
     local name=$1 pid clients
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients <<<"${running[$name]}"
@@ -154,11 +157,12 @@ query="$initial_query"
 
 while true; do
     load_running
+    load_saved
     build_display
 
     # While the picker is up the window belongs to no session; say so, otherwise
     # the tag keeps advertising the session you just left.
-    printf '\033]1;zmx\007\033]2;zmx\007' > /dev/tty 2>/dev/null || true
+    (printf '\033]1;zmx\007\033]2;zmx\007' > /dev/tty) 2>/dev/null || true
 
     # Nothing to show at all: create the default session directly.
     if [[ -z "${display//[$'\n']/}" ]]; then
@@ -201,7 +205,7 @@ while true; do
         base="$query"
         session="$base"
         n=2
-        while zmx list --short 2>/dev/null | grep -Fxq -- "$session"; do
+        while zmx list --short 2>/dev/null | rg -Fxq -- "$session"; do
             session="$base-$n"
             n=$((n + 1))
         done
@@ -221,7 +225,7 @@ while true; do
     tag="[$session]"
     cwd=$(session_cwd "$session")
     [[ -n "$cwd" ]] && tag="$tag $cwd"
-    printf '\033]1;%s\007\033]2;%s\007' "$tag" "$tag" > /dev/tty 2>/dev/null || true
+    (printf '\033]1;%s\007\033]2;%s\007' "$tag" "$tag" > /dev/tty) 2>/dev/null || true
 
     # `attach` creates the session when it doesn't exist, so preset rows and
     # typed names need no separate create step. Not exec'd: when the client
