@@ -77,7 +77,20 @@ snapshot_session() {
 }
 
 list_sessions() {
-    "$zmx_bin" list --short 2>/dev/null || true
+    if [[ -n "${ZMX_HISTORY_SESSIONS_FILE:-}" ]]; then
+        cat "$ZMX_HISTORY_SESSIONS_FILE" 2>/dev/null || true
+        return
+    fi
+
+    local socket
+    local -a sockets=()
+    shopt -s nullglob
+    sockets=("$zmx_socket_dir"/*)
+    shopt -u nullglob
+    for socket in "${sockets[@]}"; do
+        [[ -S "$socket" ]] || continue
+        basename -- "$socket"
+    done
 }
 
 log_signature() {
@@ -95,10 +108,14 @@ serve() {
     exec 9>"$history_dir/.lock"
     flock -n 9 || exit 0
 
-    zmx_log_dir=$(
-        "$zmx_bin" version 2>/dev/null \
-            | awk '$1 == "log_dir" { print $2; exit }'
-    )
+    local zmx_info
+    zmx_info=$("$zmx_bin" version 2>/dev/null || true)
+    zmx_log_dir=$(printf '%s\n' "$zmx_info" | awk '$1 == "log_dir" { print $2; exit }')
+    zmx_socket_dir=$(printf '%s\n' "$zmx_info" | awk '$1 == "socket_dir" { print $2; exit }')
+    [[ -n "$zmx_socket_dir" || -n "${ZMX_HISTORY_SESSIONS_FILE:-}" ]] || {
+        echo "zmx-history: zmx did not report a socket directory" >&2
+        exit 1
+    }
 
     local session signature
     local -a sessions=()
@@ -113,8 +130,6 @@ serve() {
     done
 
     while sleep "$scan_seconds"; do
-        # Check activity before `zmx list`: listing connects to every session and
-        # changes its diagnostic log, which must not count as terminal output.
         for session in "${!signatures[@]}"; do
             signature=$(log_signature "$session")
             if [[ "$signature" == "missing" || "$signature" != "${signatures[$session]}" ]]; then
@@ -137,8 +152,8 @@ serve() {
         done
         for session in "${sessions[@]}"; do
             [[ -n "$session" ]] || continue
-            # Capture the signature after snapshots and list probes so the next
-            # loop only reacts to subsequent session output.
+            # Capture the signature after snapshots so the next loop only
+            # reacts to subsequent session output.
             signatures["$session"]=$(log_signature "$session")
         done
     done
@@ -169,6 +184,7 @@ case "$command" in
         shopt -s nullglob
         names=("$history_dir"/*.name)
         for name_file in "${names[@]}"; do
+            session=""
             IFS= read -r session < "$name_file" || true
             [[ -n "${session:-}" ]] && printf '%s\n' "$session"
         done | sort -u

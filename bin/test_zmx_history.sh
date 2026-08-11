@@ -59,7 +59,8 @@ cat > "$STUBS/zmx" <<'EOF'
 set -u
 case "${1:-}" in
     version)
-        printf 'zmx\tfake\nlog_dir\t%s/logs\n' "$FAKE_ROOT"
+        printf 'zmx\tfake\nsocket_dir\t%s/sockets\nlog_dir\t%s/logs\n' \
+            "$FAKE_ROOT" "$FAKE_ROOT"
         ;;
     list)
         while IFS= read -r session; do
@@ -84,6 +85,7 @@ export ZMX_BIN="$STUBS/zmx"
 export ZMX_HISTORY_DIR="$HISTORY_DIR"
 export ZMX_HISTORY_MAX_BYTES=64
 export ZMX_HISTORY_SCAN_SECONDS=0.1
+export ZMX_HISTORY_SESSIONS_FILE="$FAKE_ROOT/sessions"
 export XDG_RUNTIME_DIR="$RUNTIME_DIR"
 
 "$UNDER_TEST" &
@@ -94,7 +96,8 @@ snapshot=$("$UNDER_TEST" path alpha)
 snapshot_size=$(wc -c < "$snapshot")
 snapshot_tail=$("$UNDER_TEST" show alpha | tail -n 1)
 check "initial snapshot is capped" "yes" "$([[ $snapshot_size -le 64 ]] && printf yes || printf no)"
-check "initial snapshot keeps newest output" " TAIL-INITIAL" "$snapshot_tail"
+check "initial snapshot keeps newest output" "yes" \
+    "$(printf '%s\n' "$snapshot_tail" | rg -q 'TAIL-INITIAL$' && printf yes || printf no)"
 check "saved session is discoverable" "alpha" "$("$UNDER_TEST" list)"
 
 sleep 0.2

@@ -23,4 +23,17 @@ let
 in
 {
   home.packages = [ zmx ];
+
+  # zmx keeps scrollback only in memory. Persist bounded rendered snapshots so
+  # the picker can still show the last output after a crash or forced reboot.
+  systemd.user.services.zmx-history = {
+    Unit.Description = "Persist zmx session scrollback";
+    Service = {
+      ExecStart = "%h/.dotfiles/bin/zmx-history";
+      Environment = [ "ZMX_BIN=${zmx}/bin/zmx" ];
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
 }
