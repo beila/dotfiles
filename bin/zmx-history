@@ -13,6 +13,7 @@ scan_seconds="${ZMX_HISTORY_SCAN_SECONDS:-5}"
 usage() {
     cat >&2 <<'EOF'
 Usage: zmx-history [serve]
+       zmx-history snapshot SESSION
        zmx-history path SESSION
        zmx-history has SESSION
        zmx-history show SESSION
@@ -46,8 +47,15 @@ write_name_file() {
     fi
 }
 
-snapshot_session() {
+prepare_dirs() {
+    install -d -m 0700 "$history_dir" "$runtime_dir"
+}
+
+snapshot_session() (
     local session=$1 target runtime_tmp persist_tmp
+    exec 8>"$history_dir/.snapshot.lock"
+    flock 8 || return
+
     target=$(history_path "$session")
     runtime_tmp=$(mktemp "$runtime_dir/snapshot.XXXXXX") || return
 
@@ -73,7 +81,7 @@ snapshot_session() {
         rm -f "$persist_tmp"
     fi
     rm -f "$runtime_tmp"
-}
+)
 
 list_sessions() {
     if [[ -n "${ZMX_HISTORY_SESSIONS_FILE:-}" ]]; then
@@ -102,7 +110,7 @@ log_signature() {
 }
 
 serve() {
-    install -d -m 0700 "$history_dir" "$runtime_dir"
+    prepare_dirs
 
     exec 9>"$history_dir/.lock"
     flock -n 9 || exit 0
@@ -159,6 +167,11 @@ case "$command" in
     serve)
         [[ $# -le 1 ]] || usage
         serve
+        ;;
+    snapshot)
+        [[ $# -eq 2 ]] || usage
+        prepare_dirs
+        snapshot_session "$2"
         ;;
     path)
         [[ $# -eq 2 ]] || usage

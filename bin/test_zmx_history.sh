@@ -5,6 +5,7 @@ set -uo pipefail
 
 UNDER_TEST="$(cd "$(dirname "$0")" && pwd)/zmx-history"
 SELECT_UNDER_TEST="$(cd "$(dirname "$0")" && pwd)/zmx-select"
+ZSH_HOOK="$(cd "$(dirname "$0")/../zsh" && pwd)/zmx-history.zsh"
 TMP=$(mktemp -d)
 FAKE_ROOT="$TMP/fake"
 HISTORY_DIR="$TMP/history"
@@ -75,7 +76,13 @@ case "${1:-}" in
     history)
         printf '%s\n' "$2" >> "$FAKE_ROOT/history.calls"
         printf 'history\n' >> "$FAKE_ROOT/logs/$2.log"
-        cat "$FAKE_ROOT/history-$2"
+        content=$(cat "$FAKE_ROOT/history-$2")
+        if [[ -e "$FAKE_ROOT/history.delay" ]]; then
+            rm -f "$FAKE_ROOT/history.delay"
+            : > "$FAKE_ROOT/history.delay.started"
+            sleep 0.3
+        fi
+        printf '%s\n' "$content"
         ;;
     *)
         exit 2
@@ -125,6 +132,46 @@ kill -KILL "$DAEMON_PID"
 wait "$DAEMON_PID" 2>/dev/null || true
 DAEMON_PID=""
 check "snapshot survives abrupt daemon stop" "second snapshot" "$("$UNDER_TEST" show alpha)"
+
+printf 'one-shot final\n' > "$FAKE_ROOT/history-alpha"
+"$UNDER_TEST" snapshot alpha
+check "one-shot command captures final output" "one-shot final" "$("$UNDER_TEST" show alpha)"
+
+printf 'stale concurrent capture\n' > "$FAKE_ROOT/history-alpha"
+: > "$FAKE_ROOT/history.delay"
+"$UNDER_TEST" snapshot alpha &
+snapshot_pid=$!
+wait_for "delayed snapshot start" test -e "$FAKE_ROOT/history.delay.started"
+printf 'serialized final\n' > "$FAKE_ROOT/history-alpha"
+"$UNDER_TEST" snapshot alpha
+wait "$snapshot_pid"
+check "serialized snapshots keep the newest output" \
+    "serialized final" "$("$UNDER_TEST" show alpha)"
+
+printf 'normal exit final\n' > "$FAKE_ROOT/history-alpha"
+ZMX_SESSION=alpha DOTFILES_ROOT="$(cd "$(dirname "$UNDER_TEST")/.." && pwd)" \
+    zsh -f -c "source '$ZSH_HOOK'"
+check "zsh normal exit captures final output" \
+    "normal exit final" "$("$UNDER_TEST" show alpha)"
+
+real_zmx=$(command -v zmx || true)
+if [[ -n "$real_zmx" && -n "$(command -v script)" ]]; then
+    repo_root=$(cd "$(dirname "$UNDER_TEST")/.." && pwd)
+    real_history="$TMP/real-history"
+    printf -v real_command 'env -u ZMX_SESSION %q attach real-normal-exit zsh -lic %q' \
+        "$real_zmx" "print -r -- FINAL-ZMX-MARKER"
+    real_rc=0
+    ZMX_DIR="$TMP/real-zmx" ZMX_HISTORY_DIR="$real_history" \
+        ZMX_BIN="$real_zmx" DOTFILES_ROOT="$repo_root" \
+        script -qefc "$real_command" /dev/null >/dev/null || real_rc=$?
+    check "real zmx session exits cleanly" "0" "$real_rc"
+    real_snapshot=$(ZMX_HISTORY_DIR="$real_history" "$UNDER_TEST" path real-normal-exit)
+    real_marker=no
+    if rg -Fq 'FINAL-ZMX-MARKER' "$real_snapshot"; then
+        real_marker=yes
+    fi
+    check "real zmx normal exit captures final output" "yes" "$real_marker"
+fi
 
 : > "$FAKE_ROOT/sessions"
 : > "$TMP/empty-sessions"
