@@ -1,32 +1,27 @@
 #!/usr/bin/env bash
 # zmx-select — interactive fzf picker for zmx sessions
 #
-# Lists the preset sessions from bin/zmx-sessions plus any other running
-# session, with live scrollback preview. Actions:
+# Lists running sessions and stopped sessions with saved scrollback. Actions:
 #   Enter    — attach to the highlighted session, starting it if it isn't
 #              running (or create one named after the typed query if no match)
 #   Ctrl-N   — create a new session with the typed query; auto-suffixes -2, -3, ...
 #              if that name is already in use
+#   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
 #   Ctrl-C   — exit without attaching
 #
 # Detaching (ctrl-\) or exiting the session's shell returns to the picker with
 # the cursor back on the session you just left; Ctrl-C / Esc in the picker is
 # the way out.
 #
-# Ad-hoc running sessions are listed first, then the presets in file order so
-# that part of the layout stays put as sessions start and stop. With no presets,
-# running sessions, or saved snapshots, the picker is skipped and
-# a default session is attached directly: first CLI arg, or
-# $ZMX_DEFAULT_SESSION, or `main`. The first arg also seeds the fzf query.
+# Running and saved session names are sorted together. The first argument seeds
+# the fzf query.
 #
 # Adapted from https://github.com/neurosnap/zmx (session picker section).
 
 set -uo pipefail
 
 initial_query="${1:-}"
-default_session="${ZMX_DEFAULT_SESSION:-main}"
 script_dir=$(dirname "$(readlink -f "$0")")
-sessions_file="${ZMX_SESSIONS_FILE:-$script_dir/zmx-sessions}"
 export ZMX_HISTORY_HELPER="$script_dir/zmx-history"
 
 # zmx spawns a login $SHELL, which on this account is bash (LDAP, no chsh), so a
@@ -109,51 +104,33 @@ row() {  # name -> display line; stopped snapshots are marked as saved
     fi
 }
 
-# Ad-hoc running sessions first (they're the transient ones you came back for),
-# then the presets in file order — that part stays put as sessions start and
-# stop. Sets $display and $order (parallel array of names, for cursor
-# positioning).
+# Sets $display and $order (parallel array of names, for cursor positioning).
 build_display() {
-    local -A is_preset=()
+    local -A sessions=()
     local name
     display=""
     order=()
 
-    if [[ -r "$sessions_file" ]]; then
-        while read -r name _; do
-            [[ -z "$name" || "$name" == \#* ]] && continue
-            is_preset["$name"]=1
-        done < "$sessions_file"
-    fi
-
     # Sorted, because associative-array key order is a hash order — without this
     # the top of the list would reshuffle between invocations.
-    local -A is_adhoc=()
     for name in "${!running[@]}"; do
-        [[ -n "${is_preset[$name]:-}" ]] || is_adhoc["$name"]=1
+        sessions["$name"]=1
     done
     for name in "${!saved[@]}"; do
-        [[ -n "${is_preset[$name]:-}" ]] || is_adhoc["$name"]=1
+        sessions["$name"]=1
     done
-    if ((${#is_adhoc[@]})); then
+    if ((${#sessions[@]})); then
         while IFS= read -r name; do
             [[ -n "$name" ]] || continue
             display+=$(row "$name")$'\n'
             order+=("$name")
-        done < <(printf '%s\n' "${!is_adhoc[@]}" | sort)
-    fi
-
-    if [[ -r "$sessions_file" ]]; then
-        while read -r name _; do
-            [[ -z "$name" || "$name" == \#* ]] && continue
-            display+=$(row "$name")$'\n'
-            order+=("$name")
-        done < "$sessions_file"
+        done < <(printf '%s\n' "${!sessions[@]}" | sort)
     fi
 }
 
 last_session=""
 query="$initial_query"
+removed_entry=false
 
 while true; do
     load_running
@@ -164,10 +141,12 @@ while true; do
     # the tag keeps advertising the session you just left.
     (printf '\033]1;zmx\007\033]2;zmx\007' > /dev/tty) 2>/dev/null || true
 
-    # Nothing to show at all: create the default session directly.
-    if [[ -z "${display//[$'\n']/}" ]]; then
-        exec zmx attach "${initial_query:-$default_session}" "${session_shell[@]}"
+    # Removing the final saved row is a completed action, not a request to
+    # create an unrelated replacement session.
+    if [[ -z "$display" && "$removed_entry" == true ]]; then
+        exit 0
     fi
+    removed_entry=false
 
     # Put the cursor back on the session we just came out of. pos() indexes the
     # list from the top, matching the order we emitted (with --reverse).
@@ -184,11 +163,11 @@ while true; do
     rc=0
     output=$(printf '%s' "$display" | fzf \
         --print-query \
-        --expect=ctrl-n \
+        --expect=ctrl-n,ctrl-d \
         --height=80% \
         --reverse \
         --prompt="zmx> " \
-        --header="Enter: attach (starts if stopped) | Ctrl-N: new session | Ctrl-C: exit" \
+        --header="Enter: attach | Ctrl-N: new | Ctrl-D: forget stopped saved | Ctrl-C: exit" \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         "${start_bind[@]}" \
@@ -198,7 +177,16 @@ while true; do
     key=$(printf '%s\n' "$output"   | sed -n '2p')
     selected=$(printf '%s\n' "$output" | sed -n '3p')
 
-    if [[ "$key" == "ctrl-n" && -n "$query" ]]; then
+    if [[ "$key" == "ctrl-d" ]]; then
+        session=$(printf '%s' "$selected" | awk '{print $1}')
+        if [[ -n "$session" && -z "${running[$session]:-}" && -n "${saved[$session]:-}" ]] \
+            && "$ZMX_HISTORY_HELPER" remove "$session"; then
+            [[ "$last_session" == "$session" ]] && last_session=""
+            query=""
+            removed_entry=true
+        fi
+        continue
+    elif [[ "$key" == "ctrl-n" && -n "$query" ]]; then
         # Force a NEW session. If a session with the requested name already
         # exists, append -2, -3, ... until we find a free name. This matches
         # the mental model of Ctrl-N = "create", not "reuse".
@@ -227,8 +215,8 @@ while true; do
     [[ -n "$cwd" ]] && tag="$tag $cwd"
     (printf '\033]1;%s\007\033]2;%s\007' "$tag" "$tag" > /dev/tty) 2>/dev/null || true
 
-    # `attach` creates the session when it doesn't exist, so preset rows and
-    # typed names need no separate create step. Not exec'd: when the client
+    # `attach` creates the session when it doesn't exist, so typed names need no
+    # separate create step. Not exec'd: when the client
     # detaches (ctrl-\) or the shell exits we come back around to the picker.
     zmx attach "$session" "${session_shell[@]}" || true
     last_session="$session"

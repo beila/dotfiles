@@ -17,7 +17,6 @@ Usage: zmx-history [serve]
        zmx-history path SESSION
        zmx-history has SESSION
        zmx-history show SESSION
-       zmx-history remove SESSION
        zmx-history list
 EOF
     exit 2
@@ -82,17 +81,6 @@ snapshot_session() (
         rm -f "$persist_tmp"
     fi
     rm -f "$runtime_tmp"
-)
-
-remove_session() (
-    local session=$1 target name_path
-    exec 8>"$history_dir/.snapshot.lock"
-    flock 8 || return
-
-    target=$(history_path "$session")
-    name_path="${target%.history}.name"
-    rm -f -- "$name_path" "$target"
-    sync "$history_dir" 2>/dev/null || true
 )
 
 list_sessions() {
@@ -198,11 +186,6 @@ case "$command" in
         target=$(history_path "$2")
         [[ -s "$target" ]] || exit 1
         tail -n 500 "$target"
-        ;;
-    remove)
-        [[ $# -eq 2 ]] || usage
-        prepare_dirs
-        remove_session "$2"
         ;;
     list)
         [[ $# -eq 1 ]] || usage
