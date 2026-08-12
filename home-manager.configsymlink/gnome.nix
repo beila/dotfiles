@@ -98,9 +98,9 @@
   };
 
   # hangul-osd: persistent OSD shown while ibus-hangul is in Hangul mode.
-  # Long-lived daemon — listens to gnome-flashback's InputSources `Changed`
-  # D-Bus signal (push, no polling). PartOf=graphical-session.target so it
-  # comes up with xmonad+gnome-flashback and dies when the session ends.
+  # Long-lived daemon — listens to the IBus panel's private InputMode property
+  # signals (push, no polling). PartOf=graphical-session.target so it comes up
+  # with xmonad+gnome-flashback and dies when the session ends.
   systemd.user.services.hangul-osd = {
     Unit = {
       Description = "Hangul (Korean input) OSD indicator";
@@ -108,7 +108,9 @@
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${config.home.profileDirectory}/bin/hangul-osd";
+      # Use the generated store path so Home Manager restarts the daemon when
+      # the embedded Python implementation changes.
+      ExecStart = "${config.home.path}/bin/hangul-osd";
       Restart = "on-failure";
       RestartSec = 5;
     };

@@ -128,10 +128,10 @@ in
         } (builtins.readFile ../xwindow/bin/zoom-osd.py)
       }/bin/zoom-osd-impl "$@"
     '')
-    # hangul-osd: persistent overlay while ibus's current engine is hangul.
-    # Same osd-library pattern as battery-osd, plus PyGObject for the IBus
-    # D-Bus signal subscription (no polling). The wrapper script sources
-    # the IBus GIR typelib at runtime so PyGObject can find it.
+    # hangul-osd: persistent overlay while ibus-hangul's InputMode is Hangul.
+    # Same osd-library pattern as battery-osd, plus PyGObject for direct
+    # subscriptions on the IBus private message bus (no polling). The wrapper
+    # exposes the required GIR typelibs at runtime.
     (pkgs.writeShellScriptBin "hangul-osd" ''
       export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
       # Path to JejuHallasan ttf — passed straight to fontconfig's

@@ -24,14 +24,14 @@ Defines two inline derivations consumed by OSDs:
 - `osd` — local Python package built from `xwindow/osd/` (cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, and `hangul-osd`.
 - `jejuhallasan-ttf` — single `fetchurl` of one ttf from `google/fonts` (SIL OFL 1.1). Avoids `pkgs.google-fonts` (2.3 GB).
 
-The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from the nix store + the gobject-introspection wrapper for cairo's `cairo-1.0.typelib`, which Pango pulls in transitively) and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl. Both env vars are required — see `xwindow/AGENTS.md` for the Pango/fontconfig rationale.
+The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from the nix store + the gobject-introspection wrapper for cairo's `cairo-1.0.typelib`, which Pango pulls in transitively) and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl. Both env vars are required — see `xwindow/AGENTS.md` for the Pango/fontconfig rationale. Its systemd unit uses `${config.home.path}/bin/hangul-osd`, not the stable profile symlink, so a changed embedded Python derivation changes `ExecStart` and Home Manager restarts the daemon.
 
 ## gnome.nix
 
 - dconf settings (key repeat, mouse speed, cursor size 64, Korean Sebeolsik 390, disable gnome-panel/desktop).
 - IBus integration (`pkgs.ibus` for the GTK4 IM module + `~/.config/environment.d/30-ibus.conf` for `GTK_IM_MODULE` etc.).
 - gnome-flashback systemd drop-ins (xmonad session requires `gnome-flashback.target` + service-restart override).
-- Declares `random-lockscreen` via `dotfiles.schedule.jobs` plus `hangul-osd` and `zoom-osd` as `systemd.user.services.*` units (`PartOf=graphical-session.target`). All require the graphical session; hangul-osd additionally requires the gnome-flashback IBus integration.
+- Declares `random-lockscreen` via `dotfiles.schedule.jobs` plus `hangul-osd` and `zoom-osd` as `systemd.user.services.*` units (`PartOf=graphical-session.target`). All require the graphical session; hangul-osd additionally requires the panel-private interface on the IBus private message bus.
 
 ## schedule.nix
 

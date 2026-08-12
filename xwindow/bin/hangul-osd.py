@@ -2,32 +2,24 @@
 hangul-osd — persistent overlay shown on every monitor while ibus's
 hangul engine is in Hangul (not English) input mode.
 
-Signal source: `org.gnome.Flashback.InputSources` D-Bus interface,
-member `Changed` (path `/org/gnome/Flashback/InputSources`). Emitted by
-gnome-flashback whenever ibus's tray-state changes — including the
-ibus-hangul engine-internal Hangul/English toggle (Shift+Space). The
-signal carries no payload, so we follow each notification with a
-synchronous `GetInputSources` call and inspect `icon-text`:
+Signal source: the IBus private message bus returned by
+`IBus.get_address()`, object `/org/freedesktop/IBus/Panel`, interface
+`com.canonical.IBus.Panel.Private`. The existing panel emits:
 
-    icon-text == '한'  → Hangul mode → show OSD
-    icon-text == 'EN' → English mode → hide OSD
+    PropertyUpdated(v)       on an engine-internal mode toggle
+    PropertiesRegistered(v) when focus changes to an input context
 
-Why this works under xmonad+gnome-flashback when other paths don't:
-
-- The IBus library `IBus.Bus` doesn't expose a `global-engine-changed`
-  PyGObject signal in this version (the binding raises
-  `unknown signal name`), and the underlying ibus daemon only
-  broadcasts on D-Bus when GNOME Shell drives source switches — which
-  isn't happening for us.
-- gnome-flashback runs in our session and synthesises its own
-  InputSources view by listening to ibus engine state, so it sees the
-  engine-internal Hangul/English toggle even when ibus stays on the
-  same source.
+Both payloads contain a serialized `IBusProperty` named `InputMode`.
+Its state is 0 for English and 1 for Hangul. The gnome-flashback
+`GetInputSources()` result cannot be used here: its `icon-text` says
+which engine is selected and stays `한` even while ibus-hangul is in
+English mode.
 
 On transition into hangul, fork() a child running
 display_on_all_monitors("한", duration=∞, style); on transition out,
 SIGTERM the child (the osd library installs a SIGTERM handler that
 tears its X windows down cleanly). Idle when no toggles happen.
+Startup stays hidden until the panel reports an `InputMode` property.
 
 Deps (via home-manager wrapper):
     osd (pycairo + python-xlib transitively)
@@ -84,6 +76,9 @@ TEXT = "한"
 # SIGTERM handler is what actually ends the run.
 FOREVER_SEC = 10**9
 
+IBUS_PANEL_PATH = "/org/freedesktop/IBus/Panel"
+IBUS_PANEL_PRIVATE_IFACE = "com.canonical.IBus.Panel.Private"
+
 
 _child_pid: int | None = None
 
@@ -132,36 +127,79 @@ def _on_sigchld(*_a) -> None:
             _child_pid = None
 
 
-def _is_hangul_mode(connection) -> bool:
-    """Query gnome-flashback for the current input-source state and
-    return True when the engine reports Hangul mode."""
-    from gi.repository import Gio
-    try:
-        result = connection.call_sync(
-            "org.gnome.Flashback",
-            "/org/gnome/Flashback/InputSources",
-            "org.gnome.Flashback.InputSources",
-            "GetInputSources",
-            None,
-            None,  # reply type — auto
-            Gio.DBusCallFlags.NONE,
-            500,   # timeout ms
-            None,  # cancellable
-        )
-    except Exception as e:
-        sys.stderr.write(f"hangul-osd: GetInputSources failed: {e}\n")
-        return False
-    # Signature: (a(ussb), a{sv}). The second element holds icon-text /
-    # InputMode property; the first element is the source list itself.
-    _sources, current = result.unpack()
-    return current.get("icon-text", "") == "한"
+def _deep_unpack(value):
+    """Convert nested GLib.Variant containers into Python values."""
+    unpack = getattr(value, "unpack", None)
+    if unpack is not None:
+        return _deep_unpack(unpack())
+    if isinstance(value, dict):
+        return {key: _deep_unpack(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return type(value)(_deep_unpack(item) for item in value)
+    return value
 
 
-def _on_changed(connection, sender, path, iface, signal_name, params, _user_data):
-    if _is_hangul_mode(connection):
-        show()
-    else:
-        hide()
+def _input_mode_from_payload(payload) -> bool | None:
+    """Return the serialized InputMode state, or None when absent."""
+    value = _deep_unpack(payload)
+
+    def find_input_mode(item):
+        if isinstance(item, dict):
+            children = item.values()
+        elif isinstance(item, (list, tuple)):
+            if (
+                len(item) >= 10
+                and item[0] == "IBusProperty"
+                and item[2] == "InputMode"
+            ):
+                state = item[9]
+                if type(state) is int and state in (0, 1):
+                    return bool(state)
+                return None
+            children = item
+        else:
+            return None
+
+        for child in children:
+            mode = find_input_mode(child)
+            if mode is not None:
+                return mode
+        return None
+
+    return find_input_mode(value)
+
+
+class ModeIndicator:
+    """Apply only real English/Hangul transitions to the OSD."""
+
+    def __init__(self, show_osd=show, hide_osd=hide):
+        self._show = show_osd
+        self._hide = hide_osd
+        self._mode = False
+
+    def observe(self, mode: bool | None) -> None:
+        if mode is None or mode == self._mode:
+            return
+        self._mode = mode
+        if mode:
+            self._show()
+        else:
+            self._hide()
+
+
+_indicator = ModeIndicator()
+
+
+def _on_property_signal(
+    connection,
+    sender,
+    path,
+    iface,
+    signal_name,
+    params,
+    _user_data,
+):
+    _indicator.observe(_input_mode_from_payload(params))
 
 
 def _run_daemon() -> int:
@@ -177,23 +215,36 @@ def _run_daemon() -> int:
     signal.signal(signal.SIGTERM, _cleanup)
     signal.signal(signal.SIGINT, _cleanup)
 
-    from gi.repository import Gio, GLib
+    import gi
 
-    bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
-    bus.signal_subscribe(
-        "org.gnome.Flashback",                  # sender
-        "org.gnome.Flashback.InputSources",     # interface
-        "Changed",                              # member
-        "/org/gnome/Flashback/InputSources",    # path
-        None,                                   # arg0
-        Gio.DBusSignalFlags.NONE,
-        _on_changed,
-        None,                                   # user_data
+    gi.require_version("IBus", "1.0")
+    from gi.repository import Gio, GLib, IBus
+
+    address = IBus.get_address()
+    if not address:
+        sys.stderr.write("hangul-osd: IBus private-bus address not found\n")
+        return 1
+
+    flags = (
+        Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT
+        | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION
     )
-
-    # Initial state: gnome-flashback may already be in hangul when we start.
-    if _is_hangul_mode(bus):
-        show()
+    bus = Gio.DBusConnection.new_for_address_sync(
+        address,
+        flags,
+        None,  # observer
+        None,  # cancellable
+    )
+    bus.signal_subscribe(
+        None,                       # sender: the private bus is already scoped
+        IBUS_PANEL_PRIVATE_IFACE,
+        None,                       # both supported signal members
+        IBUS_PANEL_PATH,
+        None,                       # arg0
+        Gio.DBusSignalFlags.NONE,
+        _on_property_signal,
+        None,                       # user_data
+    )
 
     GLib.MainLoop().run()
     return 0

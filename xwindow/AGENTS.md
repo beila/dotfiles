@@ -111,21 +111,27 @@ Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: Jet
 
 `bin/hangul-osd.py` — persistent overlay shown on every monitor while ibus-hangul is in Hangul mode. Long-lived systemd user service (`systemd.user.services.hangul-osd` in `gnome.nix`, `PartOf=graphical-session.target`). Built as a `writeShellScriptBin` wrapper that exports `GI_TYPELIB_PATH` and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl — see `home-manager.configsymlink/AGENTS.md`.
 
-### Mode-change source: `org.gnome.Flashback.InputSources`
+### Mode-change source: IBus panel-private `InputMode`
 
-Subscribes to the D-Bus signal `org.gnome.Flashback.InputSources.Changed` (path `/org/gnome/Flashback/InputSources`) via `Gio.DBusConnection.signal_subscribe`. Push, no polling. Each notification triggers `GetInputSources()` whose returned `current_source` dict contains `icon-text` — `'한'` when the engine is in Hangul mode, `'EN'` otherwise.
+Connects to the IBus private message bus from `IBus.get_address()` with `Gio.DBusConnection.new_for_address_sync`, then subscribes on `/org/freedesktop/IBus/Panel` to `com.canonical.IBus.Panel.Private.PropertyUpdated(v)` and `PropertiesRegistered(v)`. Push, no polling:
 
-**Why this signal source and not ibus directly**:
+- `PropertyUpdated` carries each ibus-hangul engine-internal toggle.
+- `PropertiesRegistered` carries the current state when focus enters an input context.
+- The serialized `IBusProperty` named `InputMode` has state `0` / symbol `EN` for English and state `1` / symbol `한` for Hangul.
 
-- IBus daemon doesn't grab the keyboard. Source-level hotkeys (`org.freedesktop.IBus.general.hotkey.triggers`) are processed by GNOME Shell — which is not running under xmonad+gnome-flashback. So a two-source `xkb:us` + `ibus:hangul` pattern with Shift+Space at the source level doesn't switch at all.
-- ibus-hangul's engine-internal `switch-keys` (Shift+Space) DOES toggle Hangul/English, because IBus IM clients forward keystrokes to the active engine regardless of WM. But IBus does not broadcast the engine-internal mode change on D-Bus (verified with `dbus-monitor`), and `IBus.Bus.connect("global-engine-changed", ...)` raises `unknown signal name` in this PyGObject binding.
-- `gnome-flashback` is running and watches ibus engine state out-of-band; its `InputSources` D-Bus interface emits `Changed` on every engine-internal mode flip and on every source switch. That's the only push signal that fires reliably here.
+The parser recursively unwraps `GLib.Variant` containers because the two signals nest the same property at different depths. Empty property lists and malformed states are ignored. The daemon starts hidden and remains hidden until it observes state `1`; repeated reports of the same state do not recreate or tear down OSD windows.
 
-Implementation requires `gnome-session=gnome-flashback-xmonad`. The alternative — a custom IBus PanelService — would also work and remove the gnome-flashback dependency, but adds a lot of code for no functional gain.
+**Why `org.gnome.Flashback.InputSources` is not the mode source**:
+
+- Its `GetInputSources()` `icon-text` identifies the selected engine. With the `hangul` engine selected it remains `한` in both the engine's English and Hangul modes, so treating it as mode state leaves the OSD permanently visible.
+- `IBus.Bus.connect("global-engine-changed", ...)` is also unsuitable: the selected engine does not change during an engine-internal Shift+Space toggle.
+- The existing IBus panel already exposes the engine property updates on its private bus, so no custom `IBus.PanelService` is needed.
+
+Implementation still requires an IBus panel implementing `com.canonical.IBus.Panel.Private`, provided by this xmonad+gnome-flashback session.
 
 ### Why a long-lived daemon, not a per-toggle script
 
-A previous design wired Shift+Space to xmonad's keybinding map and shelled out per-press, but xmonad's grab swallows the keystroke before it reaches ibus-hangul, so Hangul mode itself stops working. The daemon listening to gnome-flashback's signal sidesteps that — the user keeps using `Shift+Space` exactly as before, ibus-hangul handles the actual toggle, we just observe.
+A previous design wired Shift+Space to xmonad's keybinding map and shelled out per-press, but xmonad's grab swallows the keystroke before it reaches ibus-hangul, so Hangul mode itself stops working. The daemon observes the panel's mode-property signals instead — the user keeps using `Shift+Space` exactly as before, ibus-hangul handles the actual toggle, we just observe.
 
 ### Style
 
@@ -148,6 +154,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 
 - `hangul-osd --once` — shows the OSD on every monitor unconditionally; Ctrl-C / SIGTERM to clear. (`timeout 10 hangul-osd --once` for visual sanity.)
 - `hangul-osd --render-png PATH` — offline preview PNG.
+- `python3 xwindow/test_hangul_osd.py` — parser and mode-transition regression tests; stubs rendering dependencies.
 
 ## Scratchpad system
 
