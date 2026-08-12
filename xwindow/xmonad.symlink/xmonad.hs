@@ -69,7 +69,7 @@ myConfig metrics =
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags metrics
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> floatTags metrics >> raiseOsdWindows
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = myWorkspaces
@@ -666,6 +666,17 @@ raiseDecorations = withDisplay $ \dpy -> do
         forM_ children $ \c -> do
             hint <- getClassHint dpy c
             when (resName hint == "xmonad-decoration") $ raiseWindow dpy c
+
+-- Persistent override-redirect OSDs can be covered when raiseFocused lifts a
+-- client. Raise them last, after both clients and floating title tags.
+raiseOsdWindows :: X ()
+raiseOsdWindows = withDisplay $ \dpy -> do
+    root <- asks theRoot
+    io $ do
+        (_, _, children) <- queryTree dpy root
+        forM_ children $ \c -> do
+            hint <- getClassHint dpy c
+            when (resName hint == "osd") $ raiseWindow dpy c
 
 fullscreenStartupHook = withDisplay $ \dpy -> do
     r <- asks theRoot
