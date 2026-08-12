@@ -191,6 +191,7 @@ fi
 : > "$FAKE_ROOT/sessions"
 cat > "$STUBS/fzf" <<'EOF'
 #!/usr/bin/env bash
+printf '%s\n' "$@" > "$FZF_ARGS"
 cat > "$FZF_INPUT"
 if [[ -s "${FZF_OUTPUT_FILE:-}" ]]; then
     cat "$FZF_OUTPUT_FILE"
@@ -200,6 +201,7 @@ fi
 exit 130
 EOF
 chmod +x "$STUBS/fzf"
+export FZF_ARGS="$TMP/fzf-args"
 export FZF_INPUT="$TMP/fzf-input"
 export FZF_OUTPUT_FILE="$TMP/fzf-output"
 : > "$FZF_OUTPUT_FILE"
@@ -210,6 +212,9 @@ fi
 saved_row=$(rg -N '^alpha.*\(saved\)$' "$FZF_INPUT" || true)
 check "picker lists stopped sessions with snapshots" "alpha           (saved)" "$saved_row"
 check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" || true)"
+preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
+check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle" \
+    "$(rg -N -Fx -- "$preview_cycle" "$FZF_ARGS" || true)"
 
 printf '\nctrl-d\nalpha           (saved)\n' > "$FZF_OUTPUT_FILE"
 : > "$FAKE_ROOT/attach.calls"

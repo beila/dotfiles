@@ -7,6 +7,7 @@
 #   Ctrl-N   — create a new session with the typed query; auto-suffixes -2, -3, ...
 #              if that name is already in use
 #   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
+#   Ctrl-/   — cycle horizontal, vertical, and hidden preview layouts
 #   Ctrl-C   — exit without attaching
 #
 # Detaching (ctrl-\) or exiting the session's shell returns to the picker with
@@ -167,9 +168,10 @@ while true; do
         --height=80% \
         --reverse \
         --prompt="zmx> " \
-        --header="Enter: attach | Ctrl-N: new | Ctrl-D: forget stopped saved | Ctrl-C: exit" \
+        --header="Enter: attach | Ctrl-N: new | Ctrl-D: forget stopped saved | Ctrl-/: preview | Ctrl-C: exit" \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
+        --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \
         "${start_bind[@]}" \
         --query="$query") || rc=$?
 
