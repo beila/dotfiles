@@ -159,7 +159,8 @@ unset LOGRUN_AUTO_TIMING_FILE
     eval -- $user_shell_cmd_q
     _logrun_rc=\$?
 } always {
-    printf 'in_cmd_seconds=%.9f\\n' \$(( EPOCHREALTIME - _logrun_t0 )) > $timing_file_q
+    # The widget allocates this path with mktemp, while zshrc enables NO_CLOBBER.
+    printf 'in_cmd_seconds=%.9f\\n' \$(( EPOCHREALTIME - _logrun_t0 )) >| $timing_file_q
 }
 exit \$_logrun_rc"
 fi

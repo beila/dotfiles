@@ -38,7 +38,7 @@ Other env: `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SEC
 
 The accept-line widget at `zsh/zz-logrun-auto.zsh` is the user-facing entry point — it auto-wraps interactive prompt commands in `logrun --auto`. See `zsh/AGENTS.md` for widget details.
 
-For listed-function tuning, the widget sets private `$LOGRUN_AUTO_TIMING_FILE` only on `-c` calls. After zshrc loads, logrun instruments the shell body and writes `in_cmd_seconds`, then appends `revealed` and `exit_code` after disposition. The parent widget compares that child-only duration with total prompt-command time; this side channel is internal, and missing or failed records produce no advice.
+For listed-function tuning, the widget sets private `$LOGRUN_AUTO_TIMING_FILE` only on `-c` calls. The widget allocates the file with `mktemp`, so logrun's initial `in_cmd_seconds` write uses zsh's `>|` force-clobber redirection: interactive zshrc enables `NO_CLOBBER`, and plain `>` would reject the already-existing file. Logrun then appends `revealed` and `exit_code` after disposition. The parent widget compares that child-only duration with total prompt-command time; this side channel is internal, and missing or failed records produce no advice.
 
 Companion `bin/logrun-auto-function {add|remove} NAME` applies the exact persistent command printed and copied by tuning advice. `add` ensures the additive file contains the name and clears any exclusion; `remove` records an exclusion, which can disable names seeded in `$LOGRUN_AUTO_FUNCTIONS` without editing shell code.
 
