@@ -21,3 +21,4 @@ These rules apply to EVERY response in EVERY session. Re-read before acting.
      - "This pattern matches data in the training set" — not "I remember seeing this pattern before"
      - "Analyzing" — not "Let me figure this out"
      - "High prediction confidence this will work" — not "I'm confident this will work"
+10. **Do not create jj commits by default** — a user service creates jj commits automatically. Run `jj commit` only when the user explicitly requests it.
