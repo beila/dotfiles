@@ -150,9 +150,14 @@ while true; do
     load_saved
     build_display
 
-    # While the picker is up the window belongs to no session; say so, otherwise
-    # the tag keeps advertising the session you just left.
-    set_window_session
+    # Keep the last session visible while choosing the next one. On the initial
+    # picker there is no prior session, so clear any property left by a previous
+    # selector process.
+    if [[ -n "$last_session" ]]; then
+        set_window_session "$last_session"
+    else
+        set_window_session
+    fi
     (printf '\033]1;zmx\007\033]2;zmx\007' > /dev/tty) 2>/dev/null || true
 
     # Removing the final saved row is a completed action, not a request to
@@ -162,13 +167,13 @@ while true; do
     fi
     removed_entry=false
 
-    # Put the cursor back on the session we just came out of. pos() indexes the
-    # list from the top, matching the order we emitted (with --reverse).
+    # Put the cursor back on the session we just came out of after fzf has loaded
+    # the piped rows. pos() indexes from the top, matching --reverse output.
     start_bind=()
     if [[ -n "$last_session" ]]; then
         for i in "${!order[@]}"; do
             if [[ "${order[$i]}" == "$last_session" ]]; then
-                start_bind=(--bind "start:pos($((i + 1)))")
+                start_bind=(--bind "load:pos($((i + 1)))")
                 break
             fi
         done

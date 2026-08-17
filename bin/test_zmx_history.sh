@@ -201,6 +201,13 @@ fi
 exit 130
 EOF
 chmod +x "$STUBS/fzf"
+cat > "$STUBS/xprop" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$XPROP_CALLS"
+EOF
+chmod +x "$STUBS/xprop"
+export XPROP_CALLS="$TMP/xprop-calls"
+: > "$XPROP_CALLS"
 export FZF_ARGS="$TMP/fzf-args"
 export FZF_INPUT="$TMP/fzf-input"
 export FZF_OUTPUT_FILE="$TMP/fzf-output"
@@ -236,6 +243,19 @@ gamma_saved=no
 check "Ctrl-D preserves a running session snapshot" "yes" "$gamma_saved"
 : > "$FAKE_ROOT/sessions"
 "$UNDER_TEST" remove gamma
+
+printf 'previous snapshot\n' > "$FAKE_ROOT/history-previous"
+"$UNDER_TEST" snapshot previous
+printf '\n\nprevious\n' > "$FZF_OUTPUT_FILE"
+: > "$XPROP_CALLS"
+WINDOWID=123 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-previous.stderr" || true
+check "picker reselects previous session after attach returns" "load:pos(1)" \
+    "$(rg -N '^load:pos' "$FZF_ARGS" || true)"
+check "picker keeps previous session in title property" \
+    "-id 123 -f _ZMX_SESSION 8u -set _ZMX_SESSION previous" \
+    "$(tail -n 1 "$XPROP_CALLS")"
+"$UNDER_TEST" remove previous
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ $FAIL -eq 0 ]]
