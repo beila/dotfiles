@@ -32,6 +32,18 @@ export ZMX_HISTORY_HELPER="$script_dir/zmx-history"
 session_shell=()
 command -v zsh >/dev/null 2>&1 && session_shell=(zsh -l)
 
+# Keep the session identity outside the OSC title: foreground TUIs can replace
+# that title at any time. XMonad reads this property and adds the stable prefix.
+set_window_session() {
+    [[ -n "${WINDOWID:-}" ]] || return 0
+    if [[ -n "${1:-}" ]]; then
+        xprop -id "$WINDOWID" -f _ZMX_SESSION 8u \
+            -set _ZMX_SESSION "$1" >/dev/null 2>&1 || true
+    else
+        xprop -id "$WINDOWID" -remove _ZMX_SESSION >/dev/null 2>&1 || true
+    fi
+}
+
 # Preview: backlog then live output. `zmx tail` alone prints only NEW output, so
 # the history prefix is what makes a quiet session readable. Stopped sessions
 # use their most recent persisted snapshot when available.
@@ -140,6 +152,7 @@ while true; do
 
     # While the picker is up the window belongs to no session; say so, otherwise
     # the tag keeps advertising the session you just left.
+    set_window_session
     (printf '\033]1;zmx\007\033]2;zmx\007' > /dev/tty) 2>/dev/null || true
 
     # Removing the final saved row is a completed action, not a request to
@@ -212,6 +225,7 @@ while true; do
     # an already-running session would otherwise leave the window — and the
     # xmonad corner tag reading it — showing whatever was there before. Written
     # to /dev/tty so it can never leak into a caller's pipeline.
+    set_window_session "$session"
     tag="[$session]"
     cwd=$(session_cwd "$session")
     [[ -n "$cwd" ]] && tag="$tag $cwd"

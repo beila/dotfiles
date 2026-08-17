@@ -161,6 +161,7 @@ in
     pkgs.wl-clipboard
     pkgs.xclip
     pkgs.xdotool # window/input automation (xmonad debugging, scripts)
+    pkgs.xprop # zmx-select stores the session name on its Ghostty window
     pkgs.xz # liblzma needed by zstd for ollama .tar.zst extraction
     pkgs.xournalpp
     pkgs.zellij

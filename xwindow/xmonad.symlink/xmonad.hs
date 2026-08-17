@@ -1,8 +1,11 @@
 import Control.Monad
+import qualified Data.ByteString as BS
 import Data.List (stripPrefix)
-import qualified Data.List as L (filter, find, isSuffixOf)
+import qualified Data.List as L (filter, find, isPrefixOf, isSuffixOf)
 import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
 import Data.Maybe
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import Text.Read (readMaybe)
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, setCurrentDirectory)
@@ -90,8 +93,8 @@ myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8
 
 -- A short title tag pinned over the top-right corner of each visible ghostty.
 -- ghostty runs without window decorations and the panel has no tasklist, so the
--- window title -- which zsh/terminal.zsh prefixes with the zmx session name --
--- had nowhere to show. Unlike the prompt it survives a long-running command.
+-- window title had nowhere to show. zmx-select stores the session name in a
+-- separate property because foreground programs are free to replace the title.
 --
 -- One overlay path handles both tiled and floating windows. Keeping tags out of
 -- the layout avoids stale, serialized Decoration themes after a DPI change.
@@ -182,6 +185,23 @@ tagFont metrics = do
             XS.put (TagFont (Just (name, f)))
             return f
 
+windowPropertyUtf8 :: String -> Window -> X (Maybe String)
+windowPropertyUtf8 property w = do
+    atom <- getAtom property
+    withDisplay $ \d -> io $
+        fmap (T.unpack . TE.decodeUtf8 . BS.pack . map fromIntegral)
+            <$> getWindowProperty8 d atom w
+
+withSessionPrefix :: Maybe String -> String -> String
+withSessionPrefix Nothing name = name
+withSessionPrefix (Just "") name = name
+withSessionPrefix (Just session) name
+    | prefix `L.isPrefixOf` name = name
+    | null name = prefix
+    | otherwise = prefix ++ " " ++ name
+  where
+    prefix = "[" ++ session ++ "]"
+
 windowTags :: X ()
 windowTags = withWindowSet $ \ws -> do
     TagMetricsState metrics <- XS.get
@@ -192,7 +212,9 @@ windowTags = withWindowSet $ \ws -> do
     font <- tagFont metrics
     kept <- forM candidates $ \w -> do
         wa <- withDisplay $ \d -> io $ getWindowAttributes d w
-        name <- runQuery title w
+        titleName <- runQuery title w
+        session <- windowPropertyUtf8 "_ZMX_SESSION" w
+        let name = withSessionPrefix session titleName
         let tagW = min (tagWidth metrics) (fi (wa_width wa))
             tagH = tagHeight metrics
             cx = fi (wa_x wa) + fi (wa_width wa) - fi tagW
