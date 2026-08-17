@@ -216,8 +216,10 @@ windowTags = withWindowSet $ \ws -> do
         withDisplay $ \d -> io $ raiseWindow d tw
         return (w, (tw, rect, name, active, metrics))
     forM_ (M.toList cache) $ \(w, (tw, _, _, _, _)) ->
-        unless (w `elem` candidates) $ deleteWindow tw
+        unless (w `elem` candidates) $ do
+            deleteWindow tw
     XS.put (WindowTags (M.fromList kept))
+
 paintTag :: Window -> XMonadFont -> Dimension -> Dimension -> String -> Bool -> X ()
 paintTag tw font tagW tagH name active =
     paintAndWrite
@@ -442,7 +444,7 @@ followToCurrentWorkspace q = withWindowSet $ \ws -> do
 ------------------------------------------------------------------------
 
 -- After monitor hotplug, swap NSP off any visible screen
-monitorHotplugCfg = def{afterRescreenHook = hideNSPWorkspace}
+monitorHotplugCfg = def{afterRescreenHook = hideNSPWorkspace >> refreshTagMetrics}
 hideNSPWorkspace = withWindowSet $ \ws -> do
     let visibleTags = map (W.tag . W.workspace) (W.current ws : W.visible ws)
     when ("NSP" `elem` visibleTags) $
@@ -578,11 +580,6 @@ raiseFocused = withFocused $ \w -> do
             withDisplay $ \dpy -> io $ do
                 raiseWindow dpy w
                 mapM_ (raiseWindow dpy) (M.keys floats)
-            -- Raising the client buries its TopRightTag decoration, which
-            -- overlaps the client's top-right corner (see `shrink` there). Lift
-            -- the decoration windows back above it; they're identifiable by
-            -- their resource class.
-            raiseDecorations
             -- Core purges restack-synthesized EnterNotify before the
             -- logHook runs; our raises here re-synthesize them, and with
             -- focusFollowsMouse they'd yank focus back to the window
@@ -593,10 +590,9 @@ raiseFocused = withFocused $ \w -> do
             unless isMouseFocused $ clearEvents enterWindowMask
 
 -- Destroy tag windows left behind by a previous xmonad process. `xmonad
--- --restart` re-execs, and the float tag cache is non-persistent state, so the
+-- --restart` re-execs, and the tag cache is non-persistent state, so the
 -- windows it created survive with nothing tracking them (visible as stale
--- 20x20/320x20 leftovers piling up across restarts). Anything matching at
--- startupHook time predates this process, since no layout has run yet.
+-- leftovers piling up across restarts). Old class names remain as cleanup.
 cleanStrayTags :: X ()
 cleanStrayTags = withDisplay $ \dpy -> do
     root <- asks theRoot
@@ -604,25 +600,12 @@ cleanStrayTags = withDisplay $ \dpy -> do
         (_, _, children) <- queryTree dpy root
         forM_ children $ \c -> do
             hint <- getClassHint dpy c
-            when (resName hint `elem` ["xmonad-float-tag", "xmonad-decoration"]) $
+            when (resName hint `elem` ["xmonad-window-tag", "xmonad-float-tag", "xmonad-decoration"]) $
                 destroyWindow dpy c
-
--- Raise every xmonad decoration window above the clients. Decoration windows
--- carry the resource NAME "xmonad-decoration" (their resource class is plain
--- "xmonad", shared with every other xmonad window -- checking the class would
--- match nothing useful), so a walk of the root's children finds them without
--- tracking them ourselves.
-raiseDecorations :: X ()
-raiseDecorations = withDisplay $ \dpy -> do
-    root <- asks theRoot
-    io $ do
-        (_, _, children) <- queryTree dpy root
-        forM_ children $ \c -> do
-            hint <- getClassHint dpy c
-            when (resName hint == "xmonad-decoration") $ raiseWindow dpy c
+    XS.put (WindowTags M.empty)
 
 -- Persistent override-redirect OSDs can be covered when raiseFocused lifts a
--- client. Raise them last, after both clients and floating title tags.
+-- client. Raise them last, after both clients and title tags.
 raiseOsdWindows :: X ()
 raiseOsdWindows = withDisplay $ \dpy -> do
     root <- asks theRoot
