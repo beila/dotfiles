@@ -15,7 +15,7 @@ local function fileset(path)
 	return string.format('"%s"', path:gsub("\\", "\\\\"):gsub('"', '\\"'))
 end
 
-local function run_jj(root, args)
+local function run_jj(root, args, report_error)
 	local cmd = { "jj", "--ignore-working-copy", "--quiet" }
 	vim.list_extend(cmd, args)
 	local result = vim.system(cmd, {
@@ -25,8 +25,10 @@ local function run_jj(root, args)
 	}):wait()
 
 	if result.code ~= 0 then
-		local detail = vim.trim(result.stderr or "")
-		notify(detail ~= "" and detail or "command failed")
+		if report_error ~= false then
+			local detail = vim.trim(result.stderr or "")
+			notify(detail ~= "" and detail or "command failed")
+		end
 		return nil
 	end
 
@@ -55,20 +57,28 @@ local function source_context()
 	return bufnr, file, jj_root(start_dir)
 end
 
-local function selected_commit_ids(selected)
+local function selected_ids(selected, field, pattern)
 	local ids = {}
 	local seen = {}
 
 	for _, line in ipairs(selected) do
 		local fields = vim.split(fzf_utils.strip_ansi_coloring(line), "\t", { plain = true })
-		local id = fields[#fields]
-		if id and id:match("^%x+$") and not seen[id] then
+		local id = fields[field]
+		if id and id ~= "" and (not pattern or id:match(pattern)) and not seen[id] then
 			seen[id] = true
 			table.insert(ids, id)
 		end
 	end
 
 	return ids
+end
+
+local function selected_change_ids(selected)
+	return selected_ids(selected, 2)
+end
+
+local function selected_commit_ids(selected)
+	return selected_ids(selected, 4, "^%x+$")
 end
 
 local function resolve_range(root, selected)
@@ -123,14 +133,44 @@ local function resolve_range(root, selected)
 	return parents[1], heads[1]
 end
 
-local function preview_command(path)
-	local path_arg = path and (" -- " .. vim.fn.shellescape(fileset(path))) or ""
+local function configured_log_revset(root)
+	local lines = run_jj(root, { "config", "get", "revsets.log" }, false)
+	return lines and #lines > 0 and table.concat(lines, "\n") or "log()"
+end
+
+local function active_revset(state)
+	return state.full_log and state.full_revset or state.default_revset
+end
+
+local function log_template(state)
+	local template = state.full_log and "fzf_oneline_author" or "fzf_oneline"
+	return state.files and (template .. " ++ fzf_files_suffix") or template
+end
+
+local function log_args(state, color)
+	local args = {
+		"log",
+		"--no-pager",
+		"--color=" .. color,
+		"-T",
+		log_template(state),
+		"-r",
+		active_revset(state),
+	}
+	if state.path then
+		vim.list_extend(args, { "--", fileset(state.path) })
+	end
+	return args
+end
+
+local function preview_command(state)
 	local commands = {
 		[[id=$(printf '%s\n' {} | cut -s -f2 | sed 's/\x1b\[[0-9;]*m//g')]],
+		[[path=$(printf '%s\n' {} | cut -s -f3 | sed 's/\x1b\[[0-9;]*m//g')]],
 		[[test -n "$id" || exit 0]],
 	}
 
-	if path then
+	if state.files then
 		table.insert(
 			commands,
 			[[jj --ignore-working-copy --quiet log --no-graph --color=always -r "$id" -T builtin_log_detailed]]
@@ -139,25 +179,34 @@ local function preview_command(path)
 		table.insert(commands, [[jj --ignore-working-copy --quiet show --summary --color=always "$id"]])
 		table.insert(commands, [[printf '\n']])
 	end
-	table.insert(commands, [[jj --ignore-working-copy --quiet diff --color=always -r "$id"]] .. path_arg)
 
+	if state.path then
+		table.insert(commands, [[test -n "$path" || path=]] .. vim.fn.shellescape(state.path))
+	end
+	table.insert(
+		commands,
+		[[if test -n "$path"; then jj --ignore-working-copy --quiet diff --color=always -r "$id" -- "$path"; else jj --ignore-working-copy --quiet diff --color=always -r "$id"; fi]]
+	)
 	return table.concat(commands, "; ")
 end
 
-local function log_command(path)
-	local args = {
-		"jj",
-		"--quiet",
-		"log",
-		"--no-pager",
-		"--color=always",
-		"-T",
-		path and "fzf_oneline_author" or "fzf_oneline",
-	}
-	if path then
-		vim.list_extend(args, { "-r", "all()", "--", fileset(path) })
-	end
+local function log_command(state)
+	local args = { "jj", "--quiet" }
+	vim.list_extend(args, log_args(state, "always"))
 	return shell_join(args)
+end
+
+local function find_position(state, change_id)
+	if not change_id then
+		return nil
+	end
+	local lines = run_jj(state.root, log_args(state, "never"), false)
+	for index, line in ipairs(lines or {}) do
+		if selected_change_ids({ line })[1] == change_id then
+			return index
+		end
+	end
+	return nil
 end
 
 local function open_codediff(root, source_buf, path, selected)
@@ -194,24 +243,117 @@ local function open_codediff(root, source_buf, path, selected)
 	vim.cmd({ cmd = "CodeDiff", args = args })
 end
 
-local function open_picker(root, source_buf, path)
-	fzf_lua.fzf_exec(log_command(path), {
-		cwd = root,
-		prompt = path and "jj file revisions> " or "jj revisions> ",
-		preview = preview_command(path),
+local function copy_commit_ids(selected)
+	local ids = selected_commit_ids(selected)
+	if #ids == 0 then
+		notify("select at least one revision")
+		return
+	end
+
+	local text = table.concat(ids, "\n")
+	local registers = {}
+	if vim.o.clipboard:match("unnamed") then
+		table.insert(registers, "*")
+	end
+	if vim.o.clipboard:match("unnamedplus") then
+		table.insert(registers, "+")
+	end
+	if #registers == 0 then
+		table.insert(registers, '"')
+	end
+	for _, register in ipairs(registers) do
+		vim.fn.setreg(register, text)
+	end
+	vim.fn.setreg("0", text)
+	notify(
+		string.format("%d commit ID%s copied to register %s", #ids, #ids == 1 and "" or "s", registers[1]),
+		vim.log.levels.INFO
+	)
+end
+
+local function picker_header(state)
+	return string.format(
+		"[%s] full log (ctrl-h)  [%s] files (ctrl-s)  insert after (ctrl-o)  copy commit-id (ctrl-x)",
+		state.full_log and "x" or " ",
+		state.files and "x" or " "
+	)
+end
+
+local open_picker
+
+local function reopen_action(state, mutate)
+	return {
+		fn = function(selected, opts)
+			local change_id = selected_change_ids(selected)[1]
+			mutate()
+			state.query = opts.last_query
+			state.pos = find_position(state, change_id) or tonumber(selected[2])
+			open_picker(state)
+		end,
+		exec_silent = true,
+		field_index = "{} $FZF_POS",
+		header = false,
+	}
+end
+
+open_picker = function(state)
+	fzf_lua.fzf_exec(log_command(state), {
+		cwd = state.root,
+		prompt = state.path and "jj file revisions> " or "jj revisions> ",
+		query = state.query,
+		locate = state.pos ~= nil,
+		__locate_pos = state.pos,
+		preview = preview_command(state),
 		fzf_opts = {
 			["--ansi"] = true,
 			["--delimiter"] = "[\t]",
+			["--header"] = picker_header(state),
 			["--multi"] = true,
 			["--no-sort"] = true,
 			["--with-nth"] = "1",
 		},
 		actions = {
 			enter = function(selected)
-				open_codediff(root, source_buf, path, selected)
+				open_codediff(state.root, state.source_buf, state.path, selected)
 			end,
+			["ctrl-h"] = reopen_action(state, function()
+				state.full_log = not state.full_log
+			end),
+			["ctrl-s"] = reopen_action(state, function()
+				state.files = not state.files
+			end),
+			["ctrl-o"] = {
+				fn = function(selected)
+					local change_id = selected_change_ids(selected)[1]
+					if not change_id then
+						notify("select a revision to insert after")
+						return
+					end
+					run_jj(state.root, { "new", "--no-edit", "--after", change_id })
+				end,
+				field_index = "{}",
+				header = false,
+				reload = true,
+			},
+			["ctrl-x"] = {
+				fn = copy_commit_ids,
+				exec_silent = true,
+				header = false,
+			},
 		},
 	})
+end
+
+local function new_state(root, source_buf, path)
+	return {
+		root = root,
+		source_buf = source_buf,
+		path = path,
+		default_revset = configured_log_revset(root),
+		full_revset = path and "all()" or "::workspace_view()",
+		full_log = path ~= nil,
+		files = false,
+	}
 end
 
 function M.revisions()
@@ -220,7 +362,7 @@ function M.revisions()
 		fzf_lua.git_commits()
 		return
 	end
-	open_picker(root, bufnr)
+	open_picker(new_state(root, bufnr))
 end
 
 function M.current_file_revisions()
@@ -239,7 +381,7 @@ function M.current_file_revisions()
 		notify("current file is outside the JJ repository")
 		return
 	end
-	open_picker(root, bufnr, relative)
+	open_picker(new_state(root, bufnr, relative))
 end
 
 return M
