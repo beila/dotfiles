@@ -638,13 +638,20 @@ new_logdir; d=$LOG_DIR
 timing="$d/timing"
 LOGRUN_AUTO_TIMING_FILE="$timing" LOGRUN_AUTO_LINES=1 "$UNDER_TEST" --auto --decorator cat --log-dir "$d" -c 'echo threshold-line' >/dev/null 2>/dev/null
 check_grep "case31e: timing records reveal" '^revealed=1$' "$timing"
+shopt -s nullglob; logs=("$d"/log-*); shopt -u nullglob
+fname=$(basename "${logs[0]:-NONE}")
+case "$fname" in
+    log-echo-threshold-line-*.txt) name_ok=1 ;;
+    *)                             name_ok=0 ;;
+esac
+check "case31f: timing prologue excluded from log filename" "1" "$name_ok"
 
 new_logdir; d=$LOG_DIR
 timing="$d/timing"
 LOGRUN_AUTO_TIMING_FILE="$timing" LOGRUN_AUTO_SECONDS=5 LOGRUN_AUTO_LINES=999 "$UNDER_TEST" --auto --decorator cat --log-dir "$d" -c 'exit 7' >/dev/null 2>/dev/null
 rc=$?
-check "case31f: timed failure status propagated" "7" "$rc"
-check_grep "case31g: timing records failure" '^exit_code=7$' "$timing"
+check "case31g: timed failure status propagated" "7" "$rc"
+check_grep "case31h: timing records failure" '^exit_code=7$' "$timing"
 
 # Summary
 # -----------------------------------------------------------------------------

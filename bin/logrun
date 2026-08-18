@@ -111,6 +111,7 @@ if [[ $# -gt 0 ]]; then
 else
     orig_argv_joined=""
 fi
+orig_shell_cmd="$shell_cmd"
 
 # Decide how to run the wrapped command. In --auto, every path wraps
 # in `script -qefc` (PTY) when available so color-aware tools see a
@@ -215,8 +216,8 @@ else
     # in `script`/`zsh -ic`). Falls back to the live $* for legacy
     # callers that bypass the captured forms.
     if [[ -z "$name" ]]; then
-        if [[ -n "$shell_cmd" ]]; then
-            name="$shell_cmd"
+        if [[ -n "$orig_shell_cmd" ]]; then
+            name="$orig_shell_cmd"
         elif [[ -n "$orig_argv_joined" ]]; then
             name="$orig_argv_joined"
         else
