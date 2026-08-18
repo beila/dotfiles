@@ -1,4 +1,5 @@
 local fzf_lua = require("fzf-lua")
+local jj_diff_picker = require("jj-diff-picker")
 
 fzf_lua.setup_fzfvim_cmds()
 
@@ -85,9 +86,21 @@ vim.keymap.set({ "n", "v", "i" }, "<C-g><C-t>",
     function() fzf_lua.git_tags() end,
     {})
 
-vim.keymap.set({ "n", "v", "i" }, "<C-g><C-h>",
-    function() fzf_lua.git_commits() end,
-    {})
+local function jj_revision_diff()
+    jj_diff_picker.revisions()
+end
+
+local function jj_current_file_revision_diff()
+    jj_diff_picker.current_file_revisions()
+end
+
+vim.keymap.set({ "n", "v", "i" }, "<C-g><C-h>", jj_revision_diff,
+    { desc = "JJ revision diff" })
+vim.keymap.set({ "n", "v", "i" }, "<C-g><C-l>", jj_current_file_revision_diff,
+    { desc = "JJ current-file revision diff" })
+vim.keymap.set({ "n", "v" }, "<leader>gh", jj_revision_diff, { desc = "JJ revision diff" })
+vim.keymap.set({ "n", "v" }, "<leader>gH", jj_current_file_revision_diff,
+    { desc = "JJ current-file revision diff" })
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-s>",
     function() fzf_lua.git_stash() end,
