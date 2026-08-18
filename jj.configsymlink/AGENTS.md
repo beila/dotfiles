@@ -2,6 +2,10 @@
 
 Symlinked to `~/.config/jj/`. User email kept in `private-dotfiles/jj/user.toml`, symlinked into `conf.d/user.toml`.
 
+## Merge editor
+
+`ui.merge-editor = "smerge"` uses jj's built-in Sublime Merge tool definition. The `smerge` executable comes from `pkgs.sublime-merge` in `home-manager.configsymlink/home.nix`.
+
 ## Revset aliases (`config.toml`)
 
 - `log()` — the default `jj log` view in THIS (global) config; `[revsets].log = "log()"` points here. `_jh` does NOT hardcode `log()` — it reads `jj config get revsets.log` at runtime so it matches a bare `jj log` *in whatever repo it runs in*, including repos that override `[revsets].log` in their own `.jj` config (e.g. IgnitionX redefines it; a hardcoded `log()` there showed 1438 revs vs the repo's actual 246). Falls back to `log()` if the lookup fails.

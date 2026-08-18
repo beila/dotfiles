@@ -2,7 +2,7 @@
 
 [ui]
 default-command = "log"
-merge-editor = "meld"
+merge-editor = "smerge"
 
 [merge-tools.vimdiff]
 program = "nvim"

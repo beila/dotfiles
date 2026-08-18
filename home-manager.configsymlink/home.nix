@@ -88,6 +88,7 @@ in
     pkgs.ripgrep
     pkgs.scrot
     pkgs.spacer
+    pkgs.sublime-merge
     pkgs.uv # edge-tts runner for say-en/say-ko/say-es
     pkgs.watchlog
     # battery-osd: invocation wrapper around the local `osd` library.
@@ -195,6 +196,7 @@ in
     pkg:
     builtins.elem (pkgs.lib.getName pkg) [
       "albert"
+      "sublime-merge"
       # Reclassified as unfree by upstream nixpkgs after 2026-05-23 flake update.
       # nvim plugins where the upstream repo lists a non-OSI license (or no
       # license at all, which nixpkgs now treats as unfree). We're not
