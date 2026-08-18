@@ -2,6 +2,15 @@
 
 let
   _vim-vint = pkgs.vim-vint.overrideAttrs (_: { doCheck = false; doInstallCheck = false; });
+  _codediff-nvim = pkgs.vimPlugins.codediff-nvim.overrideAttrs (_: {
+    version = "2.67.0";
+    src = pkgs.fetchFromGitHub {
+      owner = "esmuellert";
+      repo = "codediff.nvim";
+      tag = "v2.67.0";
+      hash = "sha256-LNDCn8OAbRXBC2B4pbAhxVxGWBCbOJmDAELlB0LuGvI=";
+    };
+  });
 in
 {
   # hm-generated.lua approach: nix writes its computed init content (lua
@@ -64,6 +73,7 @@ in
       vim-sleuth
       fidget-nvim
       gitsigns-nvim
+      _codediff-nvim
       limelight-vim
       indent-blankline-nvim
       mini-ai
