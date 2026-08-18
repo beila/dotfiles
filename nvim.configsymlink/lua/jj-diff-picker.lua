@@ -273,8 +273,9 @@ end
 
 local function picker_header(state)
 	return string.format(
-		"[%s] full log (ctrl-h)  [%s] files (ctrl-s)  insert after (ctrl-o)  copy commit-id (ctrl-x)",
+		"[%s] %s (ctrl-h)  [%s] files (ctrl-s)  insert after (ctrl-o)  copy commit-id (ctrl-x)",
 		state.full_log and "x" or " ",
+		state.path and "all file revisions" or "full log",
 		state.files and "x" or " "
 	)
 end
