@@ -99,7 +99,7 @@ vim.keymap.set({ "n", "v", "i" }, "<C-g><C-h>", jj_revision_diff,
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-l>", jj_current_file_revision_diff,
     { desc = "JJ current-file revision diff" })
 vim.keymap.set({ "n", "v" }, "<leader>gh", jj_revision_diff, { desc = "JJ revision diff" })
-vim.keymap.set({ "n", "v" }, "<leader>gH", jj_current_file_revision_diff,
+vim.keymap.set({ "n", "v" }, "<leader>gl", jj_current_file_revision_diff,
     { desc = "JJ current-file revision diff" })
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-s>",
