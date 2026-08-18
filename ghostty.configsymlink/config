@@ -48,6 +48,7 @@ gtk-titlebar = false
 # xwindow/xmonad.symlink/xmonad.hs, TopRightTag), so the 46px full-width tab bar
 # stays off here. Xmonad paints matching tags for the floating scratchpads.
 window-show-tab-bar = never
+clipboard-paste-protection = false
 
 # Per-glyph fallback: Latin from JetBrainsMono Nerd Font, Hangul from LXGW WenKai Mono.
 font-family = JetBrainsMono Nerd Font
