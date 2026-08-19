@@ -34,6 +34,7 @@ capture() { echo -n '' > "$_args_file"; "$@" 2>/dev/null; cat "$_args_file"; }
 echo "_jh:"
 out=$(capture _jh)
 assert_not "no args: no --query" "--query" "$out"
+assert "_jh disables fzf mouse handling" "--no-mouse" "$out"
 out=$(capture _jh "" "myquery")
 assert "with query: --query" "--query myquery" "$out"
 assert "become passes {q}" "{q}" "$out"
@@ -41,9 +42,23 @@ assert "become passes {q}" "{q}" "$out"
 echo "_jhh:"
 out=$(capture _jhh)
 assert_not "no args: no --query" "--query" "$out"
+assert "_jhh disables fzf mouse handling" "--no-mouse" "$out"
 out=$(capture _jhh "" "myquery")
 assert "with query: --query" "--query myquery" "$out"
 assert "become passes {q}" "{q}" "$out"
+
+capture_git_h() (
+  git() {
+    case "${1:-}" in
+      rev-parse) printf 'origin/main\n' ;;
+      merge-base) printf 'base\n' ;;
+      log) printf 'deadbee example\n' ;;
+    esac
+  }
+  _git_h
+)
+out=$(capture capture_git_h)
+assert "_git_h disables fzf mouse handling" "--no-mouse" "$out"
 
 echo "_jb:"
 out=$(capture _jb)

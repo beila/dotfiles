@@ -196,7 +196,10 @@ fzf_lua.setup({
             ["ctrl-p"] = "preview-half-page-up",
         }
     },
-    fzf_opts = { ['--layout'] = 'reverse-list' },
+    fzf_opts = {
+        ['--layout'] = 'reverse-list',
+        ['--no-mouse'] = true,
+    },
     defaults = { file_icons = false },
     grep = {
         rg_opts = '--follow --column --line-number --no-heading --color=always --smart-case --max-columns=4096 -e',

@@ -48,7 +48,7 @@ _gf_get_file() {
 }
 
 _git_log_fzf() {
-  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' \
+  fzf_down --ansi --no-sort --reverse --multi --bind 'ctrl-s:toggle-sort' "$@" \
     --header 'Press CTRL-S to toggle sort' \
     --preview 'grep -o "[a-f0-9]\{7,\}" <<< {} | head -1 | xargs git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always' |
   grep -o "[a-f0-9]\{7,\}" |
@@ -321,6 +321,7 @@ _jh() {
   rl_plain=$(_jj_log_reload 'fzf_oneline' "$rv")
   rl_files=$(_jj_log_reload 'fzf_oneline ++ fzf_files_suffix' "$rv")
   jj --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
+    --no-mouse \
     --prompt 'log> ' \
     --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
     --accept-nth=$_jj_change_field \
@@ -337,7 +338,7 @@ _git_h() {
   # %ad (author date) not %cd (committer date): match the jj side, which shows
   # the author/creation timestamp via the commit_timestamp template override.
   git log --date=short --format="%C(green)%C(bold)%ad %C(auto)%h%d %s (%an)" --graph --color=always HEAD "@{u}" "^${all_parents_of_merge_base}"|
-  _git_log_fzf
+  _git_log_fzf --no-mouse
 }
 
 _gh() { if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
@@ -374,6 +375,7 @@ _jhh() {
   rl_plain=$(_jj_log_reload 'fzf_oneline_author' "$rv")
   rl_files=$(_jj_log_reload 'fzf_oneline_author ++ fzf_files_suffix' "$rv")
   jj --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
+    --no-mouse \
     --prompt 'log> ' \
     --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
     --accept-nth=$_jj_change_field \
