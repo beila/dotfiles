@@ -1,0 +1,4 @@
+abi <abi/4.0>,
+profile bwrap-codex /usr/bin/bwrap flags=(unconfined) {
+  userns,
+}

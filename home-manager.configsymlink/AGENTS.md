@@ -83,6 +83,7 @@ Prebuilt zmx binary from `zmx.sh` (session persistence). Source build via zmx's 
 - Detects package manager (dnf/yum preferred for Amazon Linux). Installs GNOME + xmonad session files when `gnome-session` is present.
 - Copies keyd configs to `/etc/keyd` and enables the service when `/dev/input` exists. Runs `loginctl enable-linger`.
 - Idempotently patches `/usr/share/X11/xkb/symbols/inet` so keycodes 198/202 (`KEY_F20`/`KEY_F24`) map to `F20`/`F24` keysyms — keyd's Super+C/V macro emits these for neovide, and `setxkbmap` (called by ibus engine switches) would otherwise wipe an `xmodmap` override. See `keyd/AGENTS.md`.
+- Installs `bwrap-codex.apparmor` when Ubuntu's AppArmor user-namespace restriction is active, allowing `/usr/bin/bwrap` to initialize Codex's filesystem sandbox without disabling the host-wide restriction. The profile applies to every local caller of that binary, not only Codex.
 
 **Re-run `script/install` after `apt upgrade xkeyboard-config`** since the package may overwrite the file (backup at `inet.dotfiles-bak`).
 

@@ -91,6 +91,19 @@ EOF
   sudo udevadm trigger
 fi
 
+# Ubuntu 24.04's AppArmor policy otherwise strips the capabilities bwrap needs
+# to initialize Codex's filesystem sandbox. This applies to every local caller
+# of /usr/bin/bwrap, while retaining the host-wide userns restriction for other
+# executables.
+if [ -x /usr/bin/bwrap ] &&
+   [ -x /usr/sbin/apparmor_parser ] &&
+   [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ]; then
+  sudo install -m 0644 \
+    "$SCRIPT_DIR/bwrap-codex.apparmor" \
+    /etc/apparmor.d/bwrap-codex
+  sudo /usr/sbin/apparmor_parser -r /etc/apparmor.d/bwrap-codex
+fi
+
 # linger: keep systemd --user alive after logout so zellij servers,
 # sync timers, and other user services survive GNOME session restarts.
 # Without this, logging out stops the user manager and kills all children.
