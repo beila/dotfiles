@@ -11,6 +11,11 @@ let
       hash = "sha256-LNDCn8OAbRXBC2B4pbAhxVxGWBCbOJmDAELlB0LuGvI=";
     };
   });
+  # nixd defaults to <nixpkgs>; pin it to the same revision as Home Manager.
+  _nixd = pkgs.writeShellScriptBin "nixd" ''
+    export NIX_PATH="nixpkgs=${pkgs.path}''${NIX_PATH:+:$NIX_PATH}"
+    exec ${pkgs.nixd}/bin/nixd "$@"
+  '';
 in
 {
   # hm-generated.lua approach: nix writes its computed init content (lua
@@ -184,7 +189,7 @@ in
     nim                                # nim         formatter  my-nim.lua (nimpretty)
 
     # nix
-    nixd                               # nix         LSP        my-nix.lua
+    _nixd                              # nix         LSP        my-nix.lua
     statix                             # nix         linter     nvim-lint.lua
     deadnix                            # nix         linter     nvim-lint.lua
     nixfmt                             # nix         formatter  my-nix.lua

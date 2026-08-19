@@ -38,7 +38,7 @@ LSP via `vim.lsp.config.NAME = { ... }` + `vim.lsp.enable('NAME')`, DAP, filetyp
 
 Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-css, my-docker, my-glsl, my-haskell, my-html, my-java, my-jinja, my-js (js/ts), my-json, my-just, my-kotlin, my-lua, my-markdown, my-nim, my-nix, my-python, my-rust (rustaceanvim, not vim.lsp.config), my-sql, my-text, my-toml, my-vim, my-xml, my-yaml.
 
-Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analyzer**, which is configured from `work-dotfiles/`.
+Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analyzer**, which is configured from `work-dotfiles/`. nixd is installed through a small Home Manager wrapper that sets `NIX_PATH` to the same pinned nixpkgs revision; this prevents its package-evaluation helper from exiting on flake-only systems. `my-nix.lua` sends `vim.empty_dict()` because a plain empty Lua table is encoded as JSON `[]`, which nixd rejects.
 
 ## Shared config
 
