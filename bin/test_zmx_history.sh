@@ -193,6 +193,18 @@ cat > "$STUBS/fzf" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$FZF_ARGS"
 cat > "$FZF_INPUT"
+if [[ -n "${FZF_ESC_CALL:-}" ]]; then
+    count=0
+    [[ -f "$FZF_CALL_COUNT" ]] && read -r count < "$FZF_CALL_COUNT"
+    count=$((count + 1))
+    printf '%s\n' "$count" > "$FZF_CALL_COUNT"
+    if [[ "$count" -eq "$FZF_ESC_CALL" ]]; then
+        printf '\nesc\n\n'
+        exit 0
+    elif [[ "$count" -gt "$FZF_ESC_CALL" ]]; then
+        exit 130
+    fi
+fi
 if [[ -s "${FZF_OUTPUT_FILE:-}" ]]; then
     cat "$FZF_OUTPUT_FILE"
     : > "$FZF_OUTPUT_FILE"
@@ -211,6 +223,7 @@ export XPROP_CALLS="$TMP/xprop-calls"
 export FZF_ARGS="$TMP/fzf-args"
 export FZF_INPUT="$TMP/fzf-input"
 export FZF_OUTPUT_FILE="$TMP/fzf-output"
+export FZF_CALL_COUNT="$TMP/fzf-call-count"
 : > "$FZF_OUTPUT_FILE"
 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
 if [[ ! -e "$FZF_INPUT" ]]; then
@@ -256,6 +269,16 @@ check "picker keeps previous session in title property" \
     "-id 123 -f _ZMX_SESSION 8u -set _ZMX_SESSION previous" \
     "$(tail -n 1 "$XPROP_CALLS")"
 "$UNDER_TEST" remove previous
+
+printf 'return\n' > "$FAKE_ROOT/sessions"
+printf '\n\nreturn\n' > "$FZF_OUTPUT_FILE"
+: > "$FAKE_ROOT/attach.calls"
+: > "$FZF_CALL_COUNT"
+FZF_ESC_CALL=2 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-escape.stderr" || true
+check "Escape after detach reattaches the same session" \
+    $'attach return zsh -l\nattach return zsh -l' \
+    "$(cat "$FAKE_ROOT/attach.calls")"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ $FAIL -eq 0 ]]

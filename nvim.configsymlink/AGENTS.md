@@ -59,6 +59,7 @@ Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analy
 - **mini.ai** (`vimrcs/mini-ai.lua`) — extended a/i textobjects; treesitter-powered `F` (function def), `c` (class); pattern-based `f`/`a` work better than treesitter for C++ templates.
 - **nvim-surround** (`vimrcs/nvim-surround.lua`) — `ys`/`ds`/`cs` keybindings (matches zsh vi-mode surround).
 - **Treesitter incremental selection** — `<C-e>` init/expand node, `<C-d>` shrink node (manual global keymaps).
+- **Statusline** (`vimrcs/jj-statusline.lua`, `vimrcs/vim-airline.vimrc`) — airline section B keeps its Gitsigns hunk counts but shows the current JJ workspace name instead of the Git branch. The workspace lookup is asynchronous, uses `--ignore-working-copy`, is cached per window, refreshes when buffer/directory/focus/shell-command context changes, and stays blank outside JJ repositories.
 - **Tabline** (`vimrcs/my-tabline.lua`) — custom `&tabline` showing `<tabnr> <path>` per tab (strips `$HOME/`, elides middle with `…` under tight budgets). Replaces nvim's default (which prepended a window-count digit) and airline's tabline extension (disabled in `vim-airline.vimrc`). Tab number highlighted via `MyTabNum`.
 - **Indent detection** — vim-sleuth (auto-detects tabstop/shiftwidth).
 - **Limelight** (`my-text.lua`) — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit.
