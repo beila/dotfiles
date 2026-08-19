@@ -8,6 +8,7 @@
 #              if that name is already in use
 #   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
 #   Ctrl-/   — cycle horizontal, vertical, and hidden preview layouts
+#   Drag     — select and copy text from the preview
 #   Esc      — reattach the session just detached from, or exit on first launch
 #   Ctrl-C   — exit without attaching
 #
@@ -186,9 +187,10 @@ while true; do
         --print-query \
         --expect=ctrl-n,ctrl-d,esc \
         --height=80% \
+        --no-mouse \
         --reverse \
         --prompt="zmx> " \
-        --header="Enter: attach | Esc: return after detach | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit" \
+        --header="Enter: attach | Drag: copy | Esc: return after detach | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit" \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \

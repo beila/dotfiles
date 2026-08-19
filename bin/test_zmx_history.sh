@@ -235,6 +235,8 @@ check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" 
 preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
 check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle" \
     "$(rg -N -Fx -- "$preview_cycle" "$FZF_ARGS" || true)"
+check "picker leaves mouse dragging available for terminal text selection" "--no-mouse" \
+    "$(rg -N -Fx -- "--no-mouse" "$FZF_ARGS" || true)"
 
 printf '\nctrl-d\nalpha           (saved)\n' > "$FZF_OUTPUT_FILE"
 : > "$FAKE_ROOT/attach.calls"
