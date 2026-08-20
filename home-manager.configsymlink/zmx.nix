@@ -24,8 +24,9 @@ in
 {
   home.packages = [ zmx ];
 
-  # zmx keeps scrollback only in memory. Persist bounded rendered snapshots so
-  # the picker can still show the last output after a crash or forced reboot.
+  # zmx keeps scrollback only in memory. Persist bounded rendered snapshots and
+  # cwd metadata so the picker can restore context after a crash or forced
+  # reboot.
   systemd.user.services.zmx-history = {
     Unit.Description = "Persist zmx session scrollback";
     Service = {

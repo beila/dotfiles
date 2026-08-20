@@ -13,8 +13,9 @@ scan_seconds="${ZMX_HISTORY_SCAN_SECONDS:-5}"
 usage() {
     cat >&2 <<'EOF'
 Usage: zmx-history [serve]
-       zmx-history snapshot SESSION
+       zmx-history snapshot SESSION [CWD]
        zmx-history path SESSION
+       zmx-history cwd SESSION
        zmx-history has SESSION
        zmx-history show SESSION
        zmx-history remove SESSION
@@ -35,6 +36,12 @@ history_path() {
     printf '%s/%s-%s.history\n' "$history_dir" "$safe" "${hash:0:12}"
 }
 
+cwd_path() {
+    local target
+    target=$(history_path "$1")
+    printf '%s\n' "${target%.history}.cwd"
+}
+
 write_name_file() {
     local session=$1 target=$2 name_path name_tmp
     name_path="${target%.history}.name"
@@ -48,17 +55,61 @@ write_name_file() {
     fi
 }
 
+write_cwd_file() {
+    local session=$1 cwd=$2 target existing cwd_tmp
+    [[ "$cwd" == /* && "$cwd" != *$'\n'* ]] || return 0
+
+    target=$(cwd_path "$session")
+    if [[ -f "$target" ]]; then
+        existing=""
+        IFS= read -r existing < "$target" || true
+        [[ "$existing" == "$cwd" ]] && return 0
+    fi
+
+    cwd_tmp="$target.tmp.$$"
+    if printf '%s\n' "$cwd" > "$cwd_tmp"; then
+        chmod 0600 "$cwd_tmp"
+        sync -d "$cwd_tmp" 2>/dev/null || true
+        mv -f "$cwd_tmp" "$target"
+        sync "$history_dir" 2>/dev/null || true
+    else
+        rm -f "$cwd_tmp"
+    fi
+}
+
 prepare_dirs() {
     install -d -m 0700 "$history_dir" "$runtime_dir"
 }
 
+live_session_cwd() {
+    local session=$1 pid cwd
+    pid=$("$zmx_bin" list 2>/dev/null | awk -F'\t' -v wanted="$session" '
+        {
+            for (i=1; i<=NF; i++) {
+                sub(/^[[:space:]]+/, "", $i)
+                sub(/^[^=]*=/, "", $i)
+            }
+            if ($1 == wanted) {
+                print $2
+                exit
+            }
+        }
+    ')
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || return 1
+    [[ "$cwd" == /* ]] || return 1
+    printf '%s\n' "$cwd"
+}
+
 snapshot_session() (
-    local session=$1 target runtime_tmp persist_tmp
+    local session=$1 supplied_cwd=${2:-} cwd target runtime_tmp persist_tmp
     exec 8>"$history_dir/.snapshot.lock"
     flock 8 || return
 
     target=$(history_path "$session")
     runtime_tmp=$(mktemp "$runtime_dir/snapshot.XXXXXX") || return
+    cwd="$supplied_cwd"
+    [[ -n "$cwd" ]] || cwd=$(live_session_cwd "$session" 2>/dev/null || true)
 
     if ! "$zmx_bin" history "$session" 2>/dev/null \
         | tail -c "$max_bytes" > "$runtime_tmp"; then
@@ -67,6 +118,7 @@ snapshot_session() (
     fi
 
     if [[ -f "$target" ]] && cmp -s "$runtime_tmp" "$target"; then
+        [[ -n "$cwd" ]] && write_cwd_file "$session" "$cwd"
         rm -f "$runtime_tmp"
         return
     fi
@@ -77,6 +129,7 @@ snapshot_session() (
         sync -d "$persist_tmp" 2>/dev/null || true
         mv -f "$persist_tmp" "$target"
         write_name_file "$session" "$target"
+        [[ -n "$cwd" ]] && write_cwd_file "$session" "$cwd"
         sync "$history_dir" 2>/dev/null || true
     else
         rm -f "$persist_tmp"
@@ -85,13 +138,14 @@ snapshot_session() (
 )
 
 remove_session() (
-    local session=$1 target name_path
+    local session=$1 target name_path saved_cwd_path
     exec 8>"$history_dir/.snapshot.lock"
     flock 8 || return
 
     target=$(history_path "$session")
     name_path="${target%.history}.name"
-    rm -f -- "$name_path" "$target"
+    saved_cwd_path="${target%.history}.cwd"
+    rm -f -- "$name_path" "$saved_cwd_path" "$target"
     sync "$history_dir" 2>/dev/null || true
 )
 
@@ -181,13 +235,22 @@ case "$command" in
         serve
         ;;
     snapshot)
-        [[ $# -eq 2 ]] || usage
+        [[ $# -ge 2 && $# -le 3 ]] || usage
         prepare_dirs
-        snapshot_session "$2"
+        snapshot_session "$2" "${3:-}"
         ;;
     path)
         [[ $# -eq 2 ]] || usage
         history_path "$2"
+        ;;
+    cwd)
+        [[ $# -eq 2 ]] || usage
+        target=$(cwd_path "$2")
+        [[ -s "$target" ]] || exit 1
+        saved_cwd=""
+        IFS= read -r saved_cwd < "$target" || exit 1
+        [[ "$saved_cwd" == /* ]] || exit 1
+        printf '%s\n' "$saved_cwd"
         ;;
     has)
         [[ $# -eq 2 ]] || usage

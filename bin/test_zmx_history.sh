@@ -5,12 +5,14 @@ set -uo pipefail
 
 UNDER_TEST="$(cd "$(dirname "$0")" && pwd)/zmx-history"
 SELECT_UNDER_TEST="$(cd "$(dirname "$0")" && pwd)/zmx-select"
+RESTORE_UNDER_TEST="$(cd "$(dirname "$0")" && pwd)/zmx-restore"
 ZSH_HOOK="$(cd "$(dirname "$0")/../zsh" && pwd)/zmx-history.zsh"
 TMP=$(mktemp -d)
 FAKE_ROOT="$TMP/fake"
 HISTORY_DIR="$TMP/history"
 RUNTIME_DIR="$TMP/runtime"
 STUBS="$TMP/stubs"
+SAVED_CWD="$TMP/saved cwd"
 DAEMON_PID=""
 PASS=0
 FAIL=0
@@ -53,7 +55,7 @@ calls_exceed() {
     [[ $(wc -l < "$1") -gt $2 ]]
 }
 
-mkdir -p "$FAKE_ROOT/logs" "$HISTORY_DIR" "$RUNTIME_DIR" "$STUBS"
+mkdir -p "$FAKE_ROOT/logs" "$HISTORY_DIR" "$RUNTIME_DIR" "$STUBS" "$SAVED_CWD"
 printf 'alpha\n' > "$FAKE_ROOT/sessions"
 printf '%0120d TAIL-INITIAL\n' 0 > "$FAKE_ROOT/history-alpha"
 : > "$FAKE_ROOT/logs/alpha.log"
@@ -138,8 +140,18 @@ DAEMON_PID=""
 check "snapshot survives abrupt daemon stop" "second snapshot" "$("$UNDER_TEST" show alpha)"
 
 printf 'one-shot final\n' > "$FAKE_ROOT/history-alpha"
-"$UNDER_TEST" snapshot alpha
+"$UNDER_TEST" snapshot alpha "$SAVED_CWD"
 check "one-shot command captures final output" "one-shot final" "$("$UNDER_TEST" show alpha)"
+check "one-shot command captures cwd" "$SAVED_CWD" "$("$UNDER_TEST" cwd alpha)"
+check "cwd metadata is private" "600" "$(stat -c '%a' "${snapshot%.history}.cwd")"
+
+SECOND_CWD="$TMP/second cwd"
+mkdir -p "$SECOND_CWD"
+inode_before=$(stat -c '%i' "$snapshot")
+"$UNDER_TEST" snapshot alpha "$SECOND_CWD"
+inode_after=$(stat -c '%i' "$snapshot")
+check "cwd changes do not rewrite unchanged scrollback" "$inode_before" "$inode_after"
+check "cwd changes persist with unchanged scrollback" "$SECOND_CWD" "$("$UNDER_TEST" cwd alpha)"
 
 printf 'stale concurrent capture\n' > "$FAKE_ROOT/history-alpha"
 : > "$FAKE_ROOT/history.delay"
@@ -153,20 +165,27 @@ check "serialized snapshots keep the newest output" \
     "serialized final" "$("$UNDER_TEST" show alpha)"
 
 printf 'normal exit final\n' > "$FAKE_ROOT/history-alpha"
-ZMX_SESSION=alpha DOTFILES_ROOT="$(cd "$(dirname "$UNDER_TEST")/.." && pwd)" \
-    zsh -f -c "source '$ZSH_HOOK'"
+HOOK_CWD="$TMP/hook cwd"
+mkdir -p "$HOOK_CWD"
+(
+    cd "$HOOK_CWD" || exit
+    ZMX_SESSION=alpha DOTFILES_ROOT="$(cd "$(dirname "$UNDER_TEST")/.." && pwd)" \
+        zsh -f -c "source '$ZSH_HOOK'"
+)
 check "zsh normal exit captures final output" \
     "normal exit final" "$("$UNDER_TEST" show alpha)"
+check "zsh normal exit captures final cwd" "$HOOK_CWD" "$("$UNDER_TEST" cwd alpha)"
 
 printf 'removable snapshot\n' > "$FAKE_ROOT/history-beta"
-"$UNDER_TEST" snapshot beta
+"$UNDER_TEST" snapshot beta "$SAVED_CWD"
 removable_snapshot=$("$UNDER_TEST" path beta)
 removable_name="${removable_snapshot%.history}.name"
+removable_cwd="${removable_snapshot%.history}.cwd"
 check "remove target exists before deletion" "yes" \
-    "$([[ -f "$removable_snapshot" && -f "$removable_name" ]] && printf yes || printf no)"
+    "$([[ -f "$removable_snapshot" && -f "$removable_name" && -f "$removable_cwd" ]] && printf yes || printf no)"
 "$UNDER_TEST" remove beta
-check "remove deletes snapshot and name index" "no" \
-    "$([[ -e "$removable_snapshot" || -e "$removable_name" ]] && printf yes || printf no)"
+check "remove deletes snapshot and metadata" "no" \
+    "$([[ -e "$removable_snapshot" || -e "$removable_name" || -e "$removable_cwd" ]] && printf yes || printf no)"
 check "remove preserves other saved sessions" "alpha" "$("$UNDER_TEST" list)"
 
 real_zmx=$(command -v zmx || true)
@@ -187,6 +206,24 @@ if [[ -n "$real_zmx" && -n "$(command -v script)" ]]; then
     fi
     check "real zmx normal exit captures final output" "yes" "$real_marker"
 fi
+
+restore_snapshot="$TMP/restore.history"
+seq -f 'line-%g' 1 55 > "$restore_snapshot"
+cat > "$STUBS/restore-shell" <<'EOF'
+#!/usr/bin/env bash
+printf 'PROMPT:%s:%s\n' "$PWD" "$*"
+EOF
+chmod +x "$STUBS/restore-shell"
+restore_output=$(ZMX_RESTORE_SHELL="$STUBS/restore-shell" \
+    "$RESTORE_UNDER_TEST" "$restore_snapshot" "$HOOK_CWD")
+check "restore prints only the trailing output" "line-6" \
+    "$(printf '%s\n' "$restore_output" | sed -n '1p')"
+check "restore prints output before the shell prompt" "line-55" \
+    "$(printf '%s\n' "$restore_output" | sed -n '50p')"
+check "restore starts the shell in the saved cwd" "PROMPT:$HOOK_CWD:-l" \
+    "$(printf '%s\n' "$restore_output" | tail -n 1)"
+check "restore removes its staged snapshot" "no" \
+    "$([[ -e "$restore_snapshot" ]] && printf yes || printf no)"
 
 : > "$FAKE_ROOT/sessions"
 cat > "$STUBS/fzf" <<'EOF'
@@ -230,7 +267,8 @@ if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2
 fi
 saved_row=$(rg -N '^alpha.*\(saved\)$' "$FZF_INPUT" || true)
-check "picker lists stopped sessions with snapshots" "alpha           (saved)" "$saved_row"
+printf -v expected_saved_row '%-14s  %s  (saved)' alpha "$HOOK_CWD"
+check "picker lists stopped sessions with snapshots and cwd" "$expected_saved_row" "$saved_row"
 check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" || true)"
 preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
 check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle" \
@@ -238,7 +276,7 @@ check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle"
 check "picker leaves mouse dragging available for terminal text selection" "--no-mouse" \
     "$(rg -N -Fx -- "--no-mouse" "$FZF_ARGS" || true)"
 
-printf '\nctrl-d\nalpha           (saved)\n' > "$FZF_OUTPUT_FILE"
+printf '\nctrl-d\n%s\n' "$expected_saved_row" > "$FZF_OUTPUT_FILE"
 : > "$FAKE_ROOT/attach.calls"
 select_rc=0
 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-remove.stderr" || select_rc=$?
@@ -263,6 +301,7 @@ printf 'previous snapshot\n' > "$FAKE_ROOT/history-previous"
 "$UNDER_TEST" snapshot previous
 printf '\n\nprevious\n' > "$FZF_OUTPUT_FILE"
 : > "$XPROP_CALLS"
+: > "$FAKE_ROOT/attach.calls"
 WINDOWID=123 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
     >/dev/null 2>"$TMP/select-previous.stderr" || true
 check "picker reselects previous session after attach returns" "load:pos(1)" \
@@ -270,6 +309,10 @@ check "picker reselects previous session after attach returns" "load:pos(1)" \
 check "picker keeps previous session in title property" \
     "-id 123 -f _ZMX_SESSION 8u -set _ZMX_SESSION previous" \
     "$(tail -n 1 "$XPROP_CALLS")"
+restore_attach=no
+rg -q '^attach previous .*/zmx-restore .*/zmx-restore\.' \
+    "$FAKE_ROOT/attach.calls" && restore_attach=yes
+check "picker restores stopped sessions through the bootstrap" "yes" "$restore_attach"
 "$UNDER_TEST" remove previous
 
 printf 'return\n' > "$FAKE_ROOT/sessions"

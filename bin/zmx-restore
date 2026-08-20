@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Start a replacement shell with the visible tail and cwd of a saved session.
+
+set -uo pipefail
+
+if [[ $# -ne 2 ]]; then
+    echo "Usage: zmx-restore SNAPSHOT CWD" >&2
+    exit 2
+fi
+
+snapshot=$1
+saved_cwd=$2
+restore_lines="${ZMX_RESTORE_LINES:-50}"
+
+case "$restore_lines" in
+    ''|*[!0-9]*|0)
+        echo "zmx-restore: ZMX_RESTORE_LINES must be a positive integer" >&2
+        exit 2
+        ;;
+esac
+
+if [[ "$saved_cwd" == /* && -d "$saved_cwd" ]]; then
+    cd -- "$saved_cwd" 2>/dev/null || true
+fi
+
+if [[ -s "$snapshot" ]]; then
+    tail -n "$restore_lines" -- "$snapshot"
+    last_byte=$(tail -c 1 -- "$snapshot")
+    [[ -z "$last_byte" ]] || printf '\n'
+fi
+rm -f -- "$snapshot"
+
+if [[ -n "${ZMX_RESTORE_SHELL:-}" ]]; then
+    shell=$ZMX_RESTORE_SHELL
+elif command -v zsh >/dev/null 2>&1; then
+    shell=zsh
+elif [[ -x "${SHELL:-}" ]]; then
+    shell=$SHELL
+else
+    shell=bash
+fi
+
+exec "$shell" -l

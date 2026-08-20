@@ -74,7 +74,7 @@ firefox-container desktop entry + mimeapps.
 
 ## zmx.nix
 
-Prebuilt zmx binary from `zmx.sh` (session persistence). Source build via zmx's flake fails because `zig2nix` cannot vendor ghostty's `git+https?ref=HEAD` dependency. Also declares `zmx-history.service` under `default.target`; it runs `bin/zmx-history` with the exact packaged zmx path so bounded scrollback snapshots survive process crashes and forced reboots. See `bin/AGENTS.md`.
+Prebuilt zmx binary from `zmx.sh` (session persistence). Source build via zmx's flake fails because `zig2nix` cannot vendor ghostty's `git+https?ref=HEAD` dependency. Also declares `zmx-history.service` under `default.target`; it runs `bin/zmx-history` with the exact packaged zmx path so bounded scrollback snapshots and cwd metadata survive process crashes and forced reboots. See `bin/AGENTS.md`.
 
 ## system-deps.sh
 

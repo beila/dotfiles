@@ -2,8 +2,8 @@
 # zmx-select — interactive fzf picker for zmx sessions
 #
 # Lists running sessions and stopped sessions with saved scrollback. Actions:
-#   Enter    — attach to the highlighted session, starting it if it isn't
-#              running (or create one named after the typed query if no match)
+#   Enter    — attach to the highlighted session, restoring saved output and
+#              cwd when starting a stopped session (or create the typed name)
 #   Ctrl-N   — create a new session with the typed query; auto-suffixes -2, -3, ...
 #              if that name is already in use
 #   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
@@ -26,6 +26,7 @@ set -uo pipefail
 initial_query="${1:-}"
 script_dir=$(dirname "$(readlink -f "$0")")
 export ZMX_HISTORY_HELPER="$script_dir/zmx-history"
+restore_helper="$script_dir/zmx-restore"
 
 # zmx spawns a login $SHELL, which on this account is bash (LDAP, no chsh), so a
 # fresh session would come up in bash. Ask for the same shell ghostty launches
@@ -104,8 +105,14 @@ session_cwd() {
     printf '%s' "${cwd/#$HOME/'~'}"
 }
 
+saved_session_cwd() {
+    local cwd
+    cwd=$("$ZMX_HISTORY_HELPER" cwd "$1" 2>/dev/null) || return 0
+    printf '%s' "${cwd/#$HOME/'~'}"
+}
+
 row() {  # name -> display line; stopped snapshots are marked as saved
-    local name=$1 pid clients
+    local name=$1 pid clients cwd
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients <<<"${running[$name]}"
         # clients > 0 means it's open in another window; worth knowing before
@@ -113,7 +120,12 @@ row() {  # name -> display line; stopped snapshots are marked as saved
         printf '%-14s  %s%s\n' "$name" "$(session_cwd "$name")" \
             "$([[ ${clients:-0} -gt 0 ]] && printf '  (attached)')"
     elif [[ -n "${saved[$name]:-}" ]]; then
-        printf '%-14s  (saved)\n' "$name"
+        cwd=$(saved_session_cwd "$name")
+        if [[ -n "$cwd" ]]; then
+            printf '%-14s  %s  (saved)\n' "$name" "$cwd"
+        else
+            printf '%-14s  (saved)\n' "$name"
+        fi
     else
         printf '%s\n' "$name"
     fi
@@ -235,6 +247,11 @@ while true; do
         exit 130
     fi
 
+    restore_saved=false
+    if [[ "$key" != "ctrl-n" && -z "${running[$session]:-}" && -n "${saved[$session]:-}" ]]; then
+        restore_saved=true
+    fi
+
     # Name the window before handing it over. The session's shell only re-emits
     # its own OSC title (zsh/terminal.zsh) at its next prompt, so attaching to
     # an already-running session would otherwise leave the window — and the
@@ -243,13 +260,30 @@ while true; do
     set_window_session "$session"
     tag="[$session]"
     cwd=$(session_cwd "$session")
+    [[ -n "$cwd" || "$restore_saved" != true ]] || cwd=$(saved_session_cwd "$session")
     [[ -n "$cwd" ]] && tag="$tag $cwd"
     (printf '\033]1;%s\007\033]2;%s\007' "$tag" "$tag" > /dev/tty) 2>/dev/null || true
 
     # `attach` creates the session when it doesn't exist, so typed names need no
-    # separate create step. Not exec'd: when the client
-    # detaches (ctrl-\) or the shell exits we come back around to the picker.
-    zmx attach "$session" "${session_shell[@]}" || true
+    # separate create step. A stopped saved session starts through zmx-restore,
+    # which prints a staged copy of its output and changes directory before
+    # execing the login shell. Not exec'd: after detach (ctrl-\) or shell exit,
+    # the picker loop resumes.
+    if [[ "$restore_saved" == true && -x "$restore_helper" ]]; then
+        restore_snapshot=""
+        restore_runtime="${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}"
+        restore_snapshot=$(mktemp "$restore_runtime/zmx-restore.XXXXXX") || restore_snapshot=""
+        if [[ -n "$restore_snapshot" ]] \
+            && "$ZMX_HISTORY_HELPER" show "$session" > "$restore_snapshot"; then
+            restore_cwd=$("$ZMX_HISTORY_HELPER" cwd "$session" 2>/dev/null || true)
+            zmx attach "$session" "$restore_helper" "$restore_snapshot" "$restore_cwd" || true
+        else
+            zmx attach "$session" "${session_shell[@]}" || true
+        fi
+        [[ -z "$restore_snapshot" ]] || rm -f -- "$restore_snapshot"
+    else
+        zmx attach "$session" "${session_shell[@]}" || true
+    fi
     last_session="$session"
     if zmx list --short 2>/dev/null | rg -Fxq -- "$session"; then
         detached_session="$session"

@@ -7,9 +7,9 @@ if [[ -n ${ZMX_SESSION:-} ]]; then
     [[ -x "$helper" ]] || return 0
 
     if (( $+commands[timeout] )); then
-      command timeout 5 "$helper" snapshot "$ZMX_SESSION" >/dev/null 2>&1 || true
+      command timeout 5 "$helper" snapshot "$ZMX_SESSION" "$PWD" >/dev/null 2>&1 || true
     else
-      "$helper" snapshot "$ZMX_SESSION" >/dev/null 2>&1 || true
+      "$helper" snapshot "$ZMX_SESSION" "$PWD" >/dev/null 2>&1 || true
     fi
   }
 
