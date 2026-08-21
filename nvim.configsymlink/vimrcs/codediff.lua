@@ -1,5 +1,6 @@
 require("codediff").setup({
 	diff = {
+		cycle_next_hunk = false,
 		gutter_signs = {
 			insert_text = "+",
 			delete_text = "-",
