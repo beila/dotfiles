@@ -112,6 +112,49 @@ assert "ctrl-o reloads on success" "reload" "$out"
 assert "ctrl-o shows error on failure" "change-header" "$out"
 assert "header mentions ctrl-o" "ctrl-o" "$out"
 
+echo "jj picker repository loading:"
+assert "preview subprocesses skip repeated workspace snapshots" \
+  "--ignore-working-copy" "${_jj_log_preview-}"
+assert "default preview combines metadata, summary, and patch in one show" \
+  "builtin_log_detailed ++ diff.summary()" "${_jj_log_preview-}"
+default_preview=${_jj_log_preview-}
+default_preview=${default_preview##*else}
+default_preview=${default_preview%%fi}
+assert_not "default preview no longer starts a second jj diff process" \
+  "jj --ignore-working-copy --quiet diff" "$default_preview"
+assert "_jj_find_pos skips repeated workspace snapshots" \
+  "--ignore-working-copy" "$(functions _jj_find_pos)"
+assert "log reloads skip repeated workspace snapshots" \
+  "--ignore-working-copy" "$(_jj_log_reload fzf_oneline 'log()')"
+out=$(capture _jf)
+assert "_jf preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet diff" "$out"
+out=$(capture _file_browse)
+assert "_file_browse tracked reload skips repeated workspace snapshots" \
+  "reload(jj --ignore-working-copy file list)" "$out"
+out=$(capture _jb)
+assert "_jb preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet log" "$out"
+out=$(capture _jbr)
+assert "_jbr preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet log" "$out"
+out=$(capture _jbb)
+assert "_jbb preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet log" "$out"
+out=$(capture _jt)
+assert "_jt preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet log" "$out"
+out=$(capture _jy)
+assert "_jy preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet operation show" "$out"
+out=$(capture _jr)
+assert "_jr preview skips repeated workspace snapshots" \
+  "jj --ignore-working-copy --quiet log" "$out"
+assert_not "_jf initial producer still snapshots the workspace" \
+  "jj --ignore-working-copy --quiet diff --name-only" "$(functions _jf)"
+assert_not "_jy initial producer still snapshots the workspace" \
+  "jj --ignore-working-copy --quiet operation log" "$(functions _jy)"
+
 echo "_jhh ctrl-o (insert new revision):"
 out=$(capture _jhh)
 assert "has ctrl-o binding" "ctrl-o:" "$out"

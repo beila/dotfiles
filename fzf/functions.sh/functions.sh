@@ -82,8 +82,8 @@ _jj_extract_path='cut -s -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 # went through the change-id letter regex).
 # Preview command for the jj log views. Reads the hidden tab fields of the
 # focused line ({2}=change id, {3}=path) and branches three ways:
-#   • files view OFF (prompt is "log> "): commit line → `jj show --summary`
-#     (header + description + file list, like `jj -s`) then the full diff.
+#   • files view OFF (prompt is "log> "): one `jj show` whose template adds
+#     diff.summary() between the commit details and the normal full patch.
 #   • files view ON ("log+files> "), commit line (no path) → header + desc only
 #     (builtin_log_detailed via `jj log`), NO file list — the file names are
 #     already in the fzf list, so repeating them in the preview is noise.
@@ -91,16 +91,19 @@ _jj_extract_path='cut -s -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 #     file's diff.
 # $FZF_PROMPT is set by fzf for child processes; the ctrl-s toggle flips it
 # between "log> " and "log+files> " (see _jh/_jhh).
+# The initial _jh/_jhh log snapshots the workspace once. Preview, focus lookup,
+# and reload commands use --ignore-working-copy to avoid repeating that work.
 _jj_log_preview="\
 id=\$($_jj_extract_id); path=\$($_jj_extract_path);
 [ -z \"\$id\" ] && exit 0;
 if [ -n \"\$path\" ]; then
-  jj --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
-  jj --quiet diff --color=always -r \"\$id\" -- \"\$path\";
+  jj --ignore-working-copy --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  jj --ignore-working-copy --quiet diff --color=always -r \"\$id\" -- \"\$path\";
 elif [[ \$FZF_PROMPT == log+files* ]]; then
-  jj --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  jj --ignore-working-copy --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
 else
-  jj --quiet show --summary --color=always \"\$id\"; echo; jj --quiet diff --color=always -r \"\$id\";
+  jj --ignore-working-copy --quiet show --color=always \"\$id\" \
+    -T 'builtin_log_detailed ++ diff.summary() ++ \"\\n\"';
 fi"
 
 _jj_log_fzf() {
@@ -121,7 +124,7 @@ _dim_jj_op_ids() {
 _jf() {
   jj --quiet diff --name-only 2>/dev/null |
     fzf_down -m \
-      --preview 'jj --quiet diff --color=always -- {}'
+      --preview 'jj --ignore-working-copy --quiet diff --color=always -- {}'
 }
 
 _git_f() {
@@ -149,7 +152,7 @@ _file_browse() {
         --preview "$preview" \
         --bind 'ctrl-f:transform:[[ $FZF_PROMPT == tracked* ]] &&
           echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(fd --type f --hidden --no-ignore)" ||
-          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(jj file list)"'
+          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(jj --ignore-working-copy file list)"'
   elif is_in_git_repo; then
     git ls-files 2>/dev/null |
       fzf_down -m --prompt 'tracked> ' \
@@ -180,7 +183,7 @@ _jb() {
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jbr {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+        jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
@@ -197,7 +200,7 @@ _jbr() {
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+        jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
@@ -222,7 +225,7 @@ _jbb() {
       --header '☑ workspaces (ctrl-b)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
-      --preview 'jj --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
+      --preview 'jj --ignore-working-copy --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
 
@@ -244,7 +247,7 @@ _jt() {
   jj --quiet tag list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --quiet log --color=always -r "unique_boundary($name, tags())"' |
+        jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, tags())"' |
     awk '{gsub(/:$/,"",$1); print $1}'
 }
 
@@ -264,7 +267,7 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 _jj_change_id='cut -s -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
-_jj_find_pos() { jj --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
+_jj_find_pos() { jj --ignore-working-copy --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
 # TAB field index (with --delimiter='\t') of the change ID. The oneline
 # templates emit "<display>\t<change-id>\t<path>\t<commit-id>", so the change id
@@ -301,7 +304,7 @@ _jj_align_files="gawk -f ${_fzf_functions_sh%/functions.sh}/jj-align-files.awk"
 # _jj_align_files to fix the first-line indent. Toggle state is held in the fzf
 # prompt ("log> " vs "log+files> "), the same prompt-as-state pattern as
 # _file_browse; ctrl-o reads it back so an insert keeps the current view.
-_jj_log_reload() { printf "reload(jj --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
+_jj_log_reload() { printf "reload(jj --ignore-working-copy --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
 
 # shellcheck disable=SC2120
 _jh() {
@@ -409,7 +412,7 @@ _jy() {
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
-      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --quiet operation show --color=always %'
+      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --ignore-working-copy --quiet operation show --color=always %'
 }
 
 _git_y() {
@@ -424,7 +427,7 @@ _gy() { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi }
 _jr() {
   jj --quiet git remote list 2>/dev/null |
     fzf_down --tac \
-      --preview 'jj --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
+      --preview 'jj --ignore-working-copy --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
     awk '{print $1}'
 }
 
