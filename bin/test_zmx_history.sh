@@ -74,7 +74,16 @@ case "${1:-}" in
         while IFS= read -r session; do
             [[ -n "$session" ]] && printf 'list\n' >> "$FAKE_ROOT/logs/$session.log"
         done < "$FAKE_ROOT/sessions"
-        cat "$FAKE_ROOT/sessions"
+        if [[ -n "${ZMX_LIST_DETAILS_FILE:-}" && "${2:-}" != "--short" ]]; then
+            cat "$ZMX_LIST_DETAILS_FILE"
+        elif [[ "${2:-}" != "--short" ]]; then
+            while IFS= read -r session; do
+                [[ -n "$session" ]] \
+                    && printf 'name=%s\tpid=999\tclients=0\n' "$session"
+            done < "$FAKE_ROOT/sessions"
+        else
+            cat "$FAKE_ROOT/sessions"
+        fi
         ;;
     history)
         printf '%s\n' "$2" >> "$FAKE_ROOT/history.calls"
@@ -268,6 +277,12 @@ cat > "$STUBS/xprop" <<'EOF'
 printf '%s\n' "$*" >> "$XPROP_CALLS"
 EOF
 chmod +x "$STUBS/xprop"
+cat > "$STUBS/pgrep" <<'EOF'
+#!/usr/bin/env bash
+[[ "$*" == "-x zmx" ]] || exit 2
+[[ -n "${PGREP_OUTPUT_FILE:-}" ]] && cat "$PGREP_OUTPUT_FILE"
+EOF
+chmod +x "$STUBS/pgrep"
 export XPROP_CALLS="$TMP/xprop-calls"
 : > "$XPROP_CALLS"
 export FZF_ARGS="$TMP/fzf-args"
@@ -275,6 +290,31 @@ export FZF_INPUT="$TMP/fzf-input"
 export FZF_OUTPUT_FILE="$TMP/fzf-output"
 export FZF_CALL_COUNT="$TMP/fzf-call-count"
 : > "$FZF_OUTPUT_FILE"
+
+FAKE_PROC="$TMP/proc"
+ZMX_LIST_DETAILS="$TMP/zmx-list-details"
+PGREP_OUTPUT="$TMP/pgrep-output"
+mkdir -p "$FAKE_PROC"/{101,201,202,203,111,211,212}
+printf 'Name:\tzsh\nPPid:\t201\n' > "$FAKE_PROC/101/status"
+printf 'Name:\tzsh\nPPid:\t211\n' > "$FAKE_PROC/111/status"
+printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/201/cmdline"
+printf 'zmx\0tail\0attached\0' > "$FAKE_PROC/202/cmdline"
+printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/203/cmdline"
+printf 'zmx\0attach\0preview-only\0zsh\0-l\0' > "$FAKE_PROC/211/cmdline"
+printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
+printf '201\n202\n203\n211\n212\n' > "$PGREP_OUTPUT"
+printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\n' \
+    > "$ZMX_LIST_DETAILS"
+PATH="$STUBS:$PATH" ZMX_PROC_ROOT="$FAKE_PROC" \
+    ZMX_LIST_DETAILS_FILE="$ZMX_LIST_DETAILS" PGREP_OUTPUT_FILE="$PGREP_OUTPUT" \
+    "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-attached.stderr" || true
+check "picker marks a real attach client despite a concurrent preview" "yes" \
+    "$(rg -q '^attached 🔗' "$FZF_INPUT" && printf yes || printf no)"
+check "picker does not mark a server with only a preview client" "yes" \
+    "$(rg -q '^preview-only[[:space:]]' "$FZF_INPUT" \
+        && ! rg -q '^preview-only .*🔗' "$FZF_INPUT" \
+        && printf yes || printf no)"
+
 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
 if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2

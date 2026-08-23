@@ -67,19 +67,21 @@ else
     printf "%s is not running — Enter starts it.\n" "$1"
 fi'
 
-# name -> "pid<TAB>clients" for every running session. zmx list emits each field
-# as "key=value" separated by tabs, with leading whitespace.
+# name -> pid for every running session. zmx list emits each field as
+# "key=value" separated by tabs, with leading whitespace.
+proc_root=${ZMX_PROC_ROOT:-/proc}
 declare -A running=()
 declare -A running_cwd=()
 declare -A running_cwd_pid=()
+declare -A attached=()
 declare -A saved=()
 declare -A saved_cwd=()
 
 refresh_session_cwd() {
     local name=$1 pid cwd
     [[ -n "${running[$name]:-}" ]] || return 0
-    IFS=$'\t' read -r pid _ <<<"${running[$name]}"
-    if cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null); then
+    pid=${running[$name]}
+    if cwd=$(readlink "$proc_root/$pid/cwd" 2>/dev/null); then
         running_cwd["$name"]="${cwd/#$HOME/'~'}"
         running_cwd_pid["$name"]="$pid"
     else
@@ -89,21 +91,21 @@ refresh_session_cwd() {
 
 load_running() {
     running=()
-    local name pid clients
-    while IFS=$'\t' read -r name pid clients; do
-        [[ -n "$name" ]] && running["$name"]="$pid	$clients"
+    local name pid
+    while IFS=$'\t' read -r name pid; do
+        [[ -n "$name" ]] && running["$name"]="$pid"
     done < <(zmx list 2>/dev/null | awk -F'\t' '
         {
             for (i=1; i<=NF; i++) {
                 sub(/^[[:space:]]+/, "", $i)
                 sub(/^[^=]*=/, "", $i)
             }
-            if ($1 != "") print $1 "\t" $2 "\t" $3
+            if ($1 != "") print $1 "\t" $2
         }
     ')
 
     for name in "${!running[@]}"; do
-        IFS=$'\t' read -r pid _ <<<"${running[$name]}"
+        pid=${running[$name]}
         if [[ "${running_cwd_pid[$name]:-}" != "$pid" ]]; then
             refresh_session_cwd "$name"
         fi
@@ -113,6 +115,39 @@ load_running() {
             unset 'running_cwd[$name]' 'running_cwd_pid[$name]'
         fi
     done
+}
+
+load_attached() {
+    attached=()
+    local -A server_pids=()
+    local -a argv=()
+    local name session_pid key value server_pid candidate
+
+    # The parent of each session shell is a persistent `zmx attach` server.
+    # Exclude it so only terminal-side attach clients produce the marker.
+    for name in "${!running[@]}"; do
+        session_pid=${running[$name]}
+        [[ -r "$proc_root/$session_pid/status" ]] || continue
+        server_pid=""
+        while read -r key value _; do
+            if [[ "$key" == "PPid:" ]]; then
+                server_pid=$value
+                break
+            fi
+        done < "$proc_root/$session_pid/status"
+        [[ -n "$server_pid" ]] && server_pids["$server_pid"]=1
+    done
+
+    while IFS= read -r candidate; do
+        [[ "$candidate" =~ ^[0-9]+$ ]] || continue
+        [[ -z "${server_pids[$candidate]:-}" ]] || continue
+        argv=()
+        mapfile -d '' -t argv 2>/dev/null < "$proc_root/$candidate/cmdline" || continue
+        ((${#argv[@]} >= 3)) || continue
+        [[ "${argv[1]}" == "attach" ]] || continue
+        name=${argv[2]}
+        [[ -n "${running[$name]:-}" ]] && attached["$name"]=1
+    done < <(pgrep -x zmx 2>/dev/null)
 }
 
 load_saved() {
@@ -142,7 +177,7 @@ saved_session_cwd() {
 }
 
 format_row() {  # name -> $row_text
-    local name=$1 pid clients cwd status="" display_name
+    local name=$1 cwd status="" display_name
     if [[ "$name" == "$last_session" ]]; then
         status+="🥇"
     elif [[ "$name" == "$previous_session" ]]; then
@@ -150,8 +185,7 @@ format_row() {  # name -> $row_text
     fi
 
     if [[ -n "${running[$name]:-}" ]]; then
-        IFS=$'\t' read -r pid clients <<<"${running[$name]}"
-        [[ ${clients:-0} -gt 0 ]] && status+="🔗"
+        [[ -n "${attached[$name]:-}" ]] && status+="🔗"
         display_name="$name${status:+ $status}"
         printf -v row_text '%-14s  %s' "$display_name" "${running_cwd[$name]:-}"
     elif [[ -n "${saved[$name]:-}" ]]; then
@@ -201,6 +235,7 @@ removed_entry=false
 
 while true; do
     load_running
+    load_attached
     load_saved
     build_display
 
