@@ -19,6 +19,9 @@
 #     ioSchedulingClass  = "idle";
 #     randomizedDelaySec = 7200;   # native under systemd; emitted as `sleep $((RANDOM % N))` prefix under cron
 #     persistent         = true;   # native under systemd; cron has no equivalent (best-effort no-op)
+#     onStartupSec       = 1;      # optional systemd monotonic startup trigger
+#     onUnitInactiveSec  = 1;      # optional systemd interval after service completion
+#     accuracySec        = 1;      # optional systemd timer coalescing window
 #     env                = { FOO = "bar"; };  # per-job env (cron: prefixed via /usr/bin/env on the command line)
 #   };
 { config, lib, pkgs, ... }:
@@ -67,6 +70,21 @@ let
         type = lib.types.bool;
         default = false;
         description = "Run missed jobs after wake. Native under systemd; no-op under cron.";
+      };
+      onStartupSec = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+        description = "Optional systemd OnStartupSec value. When set with onUnitInactiveSec, replaces OnCalendar.";
+      };
+      onUnitInactiveSec = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+        description = "Optional systemd interval measured from service deactivation. Replaces OnCalendar.";
+      };
+      accuracySec = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+        description = "Optional systemd AccuracySec value.";
       };
       env = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
@@ -237,16 +255,32 @@ in
             // (lib.optionalAttrs (envList != []) { Environment = envList; });
         }) enabledJobs;
 
-      systemd.user.timers = lib.mapAttrs (_: job: {
-        Unit.Description = "${job.description} (timer)";
-        Timer =
-          { OnCalendar = job.schedule.systemd; }
-          // (lib.optionalAttrs (job.randomizedDelaySec != null) {
-               RandomizedDelaySec = "${toString job.randomizedDelaySec}s";
-             })
-          // (lib.optionalAttrs job.persistent { Persistent = true; });
-        Install.WantedBy = [ "timers.target" ];
-      }) enabledJobs;
+      systemd.user.timers = lib.mapAttrs (_: job:
+        let
+          trigger =
+            if job.onUnitInactiveSec != null
+            then
+              {
+                OnUnitInactiveSec = "${toString job.onUnitInactiveSec}s";
+              }
+              // (lib.optionalAttrs (job.onStartupSec != null) {
+                OnStartupSec = "${toString job.onStartupSec}s";
+              })
+            else
+              { OnCalendar = job.schedule.systemd; };
+        in {
+          Unit.Description = "${job.description} (timer)";
+          Timer =
+            trigger
+            // (lib.optionalAttrs (job.randomizedDelaySec != null) {
+                 RandomizedDelaySec = "${toString job.randomizedDelaySec}s";
+               })
+            // (lib.optionalAttrs (job.accuracySec != null) {
+                 AccuracySec = "${toString job.accuracySec}s";
+               })
+            // (lib.optionalAttrs job.persistent { Persistent = true; });
+          Install.WantedBy = [ "timers.target" ];
+        }) enabledJobs;
     })
 
     # ----- cron backend ----------------------------------------------------
