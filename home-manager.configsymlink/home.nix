@@ -332,6 +332,21 @@ in
     ioSchedulingClass = "idle";
   };
 
+  # Collect selected Facebook profiles at irregular times. The oneshot unit
+  # and the collector's nonblocking flock both prevent overlapping runs.
+  dotfiles.schedule.jobs.facebook-instapaper = {
+    description = "Publish new Facebook posts to Instapaper";
+    command = "%h/hjdocs/instapaper-picker/facebook-to-instapaper run --execute";
+    schedule = {
+      systemd = "*-*-* 00,06,12,18:17:00";
+      cron = "17 0,6,12,18 * * *";
+    };
+    randomizedDelaySec = 14400; # 4h
+    persistent = true;
+    nice = 10;
+    ioSchedulingClass = "idle";
+  };
+
   # CopyQ clipboard manager daemon (persistent history at ~/.config/copyq/).
   # Long-running graphical-session.target service — not a scheduled job, so
   # it stays a direct systemd.user.services declaration. Only relevant on
