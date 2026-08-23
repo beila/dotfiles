@@ -17,7 +17,7 @@
 - `history.zsh` — 10M entries, dedup, `HIST_IGNORE_SPACE` disabled.
 - `directory.zsh` — `auto_cd`, `auto_pushd`, `extended_glob`, no clobber.
 - `zmx-history.zsh` — only active when `$ZMX_SESSION` is set. Registers a `zshexit` hook that synchronously runs `bin/zmx-history snapshot <session> "$PWD"` (bounded by a five-second `timeout`) while the zmx socket still exists, so a normal shell exit preserves output produced since the daemon's last poll and the exact final directory. The helper's snapshot lock serializes this with daemon captures so an older concurrent snapshot cannot overwrite the final state.
-- `utility.zsh` — correction, `nocorrect`/`noglob` aliases, colored ls/grep.
+- `utility.zsh` — correction, `nocorrect`/`noglob` aliases, colored ls/grep, and the interactive `rm` trash wrapper described below.
 - `config.zsh` — preexec/precmd timer that triggers `say_done` for commands taking >10s on desktop machines.
 - `functions.zsh` — autoloads everything in `functions/`; turns `aliased_<name>` files into `<name>` aliases (smart_sudo idiom). Also autoloads `exa_functions/` when `eza` is on PATH.
 - `fuzzy_completion.zsh` — single `zstyle` setting case-insensitive partial-word matching for the completion system.
@@ -38,6 +38,24 @@
 - `say_done` — TTS notification when commands >10s finish; only on desktop machines; runs in a subshell. Calls `bin/say` (see `bin/AGENTS.md`).
 - `ju` — jj unique
 - `jda` — jj describe with AI commit-msg; prints the generated description
+
+## Interactive `rm` Trash Wrapper
+
+When `gio` is available, `utility.zsh` defines interactive `rm` as a wrapper
+around `gio trash`. All documented GNU `rm` options are translated:
+`-i`/`-I` and `--interactive` prompt before moving items, `-v` reports
+successful moves, and `-f` passes `--force`. Recursive, directory, and
+filesystem-boundary options need no traversal because `gio` moves each
+top-level directory as one item. Root-preservation options are enforced before
+calling `gio`, and `--help`/`--version` describe the wrapper. `--` protects
+paths beginning with a dash. Use `command rm` for an explicit permanent
+deletion. Hosts without `gio` do not define the function and retain the
+original `rm`.
+
+Test harness: `zsh/test_rm-trash.sh` uses a mock `gio` to cover option
+translation, prompts, root protection, leading-dash paths, the
+permanent-delete bypass, and the no-`gio` fallback. Drive:
+`bash zsh/test_rm-trash.sh`.
 
 ## fzf-tab tab completion
 

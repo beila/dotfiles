@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   # GTK4 IM module for ibus, ABI-matched against the gtk4 closure ghostty links.
   # The system's ibus-gtk4 lives outside that closure so the nix gtk4 can't see it.
@@ -25,7 +30,10 @@
     # through the ibus IM client lib regardless of WM.
     "org/gnome/desktop/input-sources" = {
       sources = [
-        (lib.gvariant.mkTuple [ "ibus" "hangul" ])
+        (lib.gvariant.mkTuple [
+          "ibus"
+          "hangul"
+        ])
       ];
     };
     # ibus-hangul: Sebeolsik 390. The hangul engine comes from the system
@@ -56,6 +64,10 @@
     };
     "org/gnome/desktop/interface" = {
       cursor-size = 64;
+    };
+    "org/gnome/desktop/privacy" = {
+      old-files-age = lib.gvariant.mkUint32 30;
+      remove-old-trash-files = true;
     };
     "org/gnome/desktop/peripherals/mouse" = {
       speed = 0.75;
@@ -93,7 +105,10 @@
   dotfiles.schedule.jobs.random-lockscreen = {
     description = "Set random lock screen wallpaper";
     command = "%h/.dotfiles/xwindow/bin/random-lockscreen";
-    schedule = { systemd = "daily"; cron = "0 0 * * *"; };
+    schedule = {
+      systemd = "daily";
+      cron = "0 0 * * *";
+    };
     persistent = true;
   };
 

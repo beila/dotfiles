@@ -33,6 +33,191 @@ alias ln='nocorrect ln'
 alias man='nocorrect man'
 alias mkdir='nocorrect mkdir'
 alias mv='nocorrect mv'
+
+# Keep the familiar rm interface while making interactive deletion recoverable.
+if is-callable 'gio'; then
+  function rm {
+    emulate -L zsh
+    setopt local_options
+
+    local -a gio_options targets target_stat parent_stat
+    local arg char reply target target_abs parent
+    local interactive=never
+    local -i force=0 options=1 recursive=0 verbose=0
+    local -i preserve_root=1 preserve_all=0 exit_status=0 gio_status
+
+    for arg in "$@"; do
+      if (( options )); then
+        case "$arg" in
+          --)
+            options=0
+            continue
+            ;;
+          --force)
+            force=1
+            interactive=never
+            continue
+            ;;
+          --interactive)
+            interactive=always
+            continue
+            ;;
+          --interactive=never|--interactive=once|--interactive=always)
+            interactive=${arg#*=}
+            continue
+            ;;
+          --interactive=*)
+            print -u2 -r -- "rm: invalid argument '${arg#*=}' for --interactive"
+            return 2
+            ;;
+          --recursive)
+            recursive=1
+            continue
+            ;;
+          --dir|--one-file-system)
+            continue
+            ;;
+          --no-preserve-root)
+            preserve_root=0
+            preserve_all=0
+            continue
+            ;;
+          --preserve-root)
+            preserve_root=1
+            preserve_all=0
+            continue
+            ;;
+          --preserve-root=all)
+            preserve_root=1
+            preserve_all=1
+            continue
+            ;;
+          --preserve-root=*)
+            print -u2 -r -- "rm: invalid argument '${arg#*=}' for --preserve-root"
+            return 2
+            ;;
+          --verbose)
+            verbose=1
+            continue
+            ;;
+          --help)
+            print -r -- 'Usage: rm [OPTION]... [FILE]...
+Move FILEs and directories to the trash with gio.
+
+  -f, --force              ignore nonexistent files and never prompt
+  -i, --interactive=always prompt before every file
+  -I, --interactive=once   prompt once for recursion or more than three files
+  -r, -R, --recursive      accepted; gio already handles directories
+  -d, --dir                accepted; gio already handles directories
+      --one-file-system    accepted; gio does not recursively unlink files
+      --preserve-root[=all] protect root or separate-device arguments
+      --no-preserve-root   disable root protection
+  -v, --verbose            print each successfully trashed path
+      --help               display this help and exit
+      --version            output wrapper and gio versions
+
+Use command rm for permanent deletion.'
+            return 0
+            ;;
+          --version)
+            print -r -- 'rm (dotfiles gio trash wrapper)'
+            command gio --version
+            return $?
+            ;;
+          --*)
+            print -u2 -r -- "rm: unrecognized option '$arg'"
+            return 2
+            ;;
+          -?*)
+            for char in ${(s::)${arg#-}}; do
+              case "$char" in
+                f)
+                  force=1
+                  interactive=never
+                  ;;
+                i)
+                  interactive=always
+                  ;;
+                I)
+                  interactive=once
+                  ;;
+                r|R)
+                  recursive=1
+                  ;;
+                d)
+                  ;;
+                v)
+                  verbose=1
+                  ;;
+                *)
+                  print -u2 -r -- "rm: invalid option -- '$char'"
+                  return 2
+                  ;;
+              esac
+            done
+            continue
+            ;;
+        esac
+      fi
+      targets+=("$arg")
+    done
+
+    if (( ! ${#targets} )); then
+      print -u2 -r -- "rm: missing operand"
+      return 1
+    fi
+
+    (( force )) && gio_options+=(--force)
+
+    if [[ "$interactive" == once ]] &&
+      (( recursive || ${#targets} > 3 )); then
+      printf 'rm: trash %d arguments? ' "${#targets}" >&2
+      IFS= read -r reply
+      [[ "$reply" == [yY]* ]] || return 0
+    fi
+
+    (( preserve_all )) && zmodload -F zsh/stat b:zstat
+
+    for target in "${targets[@]}"; do
+      target_abs=${target:a}
+      if (( preserve_root )) && [[ "$target_abs" == / ]]; then
+        print -u2 -r -- "rm: refusing to trash root directory '$target'"
+        exit_status=1
+        continue
+      fi
+
+      if (( preserve_all )); then
+        parent=${target_abs:h}
+        target_stat=()
+        parent_stat=()
+        zstat -L -A target_stat +device -- "$target" 2>/dev/null
+        zstat -L -A parent_stat +device -- "$parent" 2>/dev/null
+        if (( ${#target_stat} && ${#parent_stat} )) &&
+          [[ "$target_stat[1]" != "$parent_stat[1]" ]]; then
+          print -u2 -r -- "rm: refusing separate-device argument '$target'"
+          exit_status=1
+          continue
+        fi
+      fi
+
+      if [[ "$interactive" == always ]]; then
+        printf 'rm: trash %q? ' "$target" >&2
+        IFS= read -r reply
+        [[ "$reply" == [yY]* ]] || continue
+      fi
+
+      command gio trash "${gio_options[@]}" -- "$target"
+      gio_status=$?
+      if (( gio_status )); then
+        exit_status=$gio_status
+      elif (( verbose )); then
+        printf 'trashed %q\n' "$target"
+      fi
+    done
+
+    return $exit_status
+  }
+fi
 alias rm='nocorrect rm'
 
 # Disable globbing for commands that do their own.

@@ -25,6 +25,20 @@ let
     doCheck = false;
   };
 
+  anki = config.lib.nixGL.wrap pkgs.anki;
+  ankiDesktopEntry = profile: {
+    name = "${profile}Anki";
+    comment = "Anki with isolated data for ${profile}";
+    exec = "${anki}/bin/anki --base ${config.xdg.dataHome}/Anki2-${profile}";
+    icon = "anki";
+    type = "Application";
+    terminal = false;
+    categories = [
+      "Education"
+      "Languages"
+    ];
+  };
+
   jj-serialized = pkgs.writeShellScriptBin "jj" ''
     export JJ_REAL_EXECUTABLE=${pkgs.jujutsu}/bin/jj
     export JJ_FLOCK_EXECUTABLE=${pkgs.util-linux}/bin/flock
@@ -50,7 +64,7 @@ in
     # pkgs.hello
 
     pkgs.albert
-    (config.lib.nixGL.wrap pkgs.anki)
+    anki
     pkgs.bat
     pkgs.brightnessctl
     pkgs.btop
@@ -191,6 +205,13 @@ in
     #   echo "Hello, ${config.home.username}!"
     # '')
   ];
+
+  xdg.desktopEntries = {
+    anki-hojin = ankiDesktopEntry "Hojin";
+    anki-insuk = ankiDesktopEntry "Insuk";
+    anki-haren = ankiDesktopEntry "Haren";
+    anki-irun = ankiDesktopEntry "Irun";
+  };
 
   nixpkgs.config.allowUnfreePredicate =
     pkg:
