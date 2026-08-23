@@ -19,6 +19,7 @@
 #     ioSchedulingClass  = "idle";
 #     randomizedDelaySec = 7200;   # native under systemd; emitted as `sleep $((RANDOM % N))` prefix under cron
 #     persistent         = true;   # native under systemd; cron has no equivalent (best-effort no-op)
+#     onActiveSec        = 1;      # optional systemd trigger relative to timer activation
 #     onStartupSec       = 1;      # optional systemd monotonic startup trigger
 #     onUnitInactiveSec  = 1;      # optional systemd interval after service completion
 #     accuracySec        = 1;      # optional systemd timer coalescing window
@@ -70,6 +71,11 @@ let
         type = lib.types.bool;
         default = false;
         description = "Run missed jobs after wake. Native under systemd; no-op under cron.";
+      };
+      onActiveSec = lib.mkOption {
+        type = lib.types.nullOr lib.types.int;
+        default = null;
+        description = "Optional systemd OnActiveSec value. Used to bootstrap an OnUnitInactiveSec timer after activation.";
       };
       onStartupSec = lib.mkOption {
         type = lib.types.nullOr lib.types.int;
@@ -263,6 +269,9 @@ in
               {
                 OnUnitInactiveSec = "${toString job.onUnitInactiveSec}s";
               }
+              // (lib.optionalAttrs (job.onActiveSec != null) {
+                OnActiveSec = "${toString job.onActiveSec}s";
+              })
               // (lib.optionalAttrs (job.onStartupSec != null) {
                 OnStartupSec = "${toString job.onStartupSec}s";
               })
