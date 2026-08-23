@@ -241,7 +241,8 @@ check "restore removes its staged snapshot" "no" \
 cat > "$STUBS/fzf" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$FZF_ARGS"
-cat > "$FZF_INPUT"
+cat > "$FZF_RAW_INPUT"
+sed $'s/\033\\[[0-9;]*m//g' "$FZF_RAW_INPUT" > "$FZF_INPUT"
 if [[ -n "${FZF_ESC_CALL:-}" ]]; then
     count=0
     [[ -f "$FZF_CALL_COUNT" ]] && read -r count < "$FZF_CALL_COUNT"
@@ -287,6 +288,7 @@ export XPROP_CALLS="$TMP/xprop-calls"
 : > "$XPROP_CALLS"
 export FZF_ARGS="$TMP/fzf-args"
 export FZF_INPUT="$TMP/fzf-input"
+export FZF_RAW_INPUT="$TMP/fzf-raw-input"
 export FZF_OUTPUT_FILE="$TMP/fzf-output"
 export FZF_CALL_COUNT="$TMP/fzf-call-count"
 : > "$FZF_OUTPUT_FILE"
@@ -303,7 +305,7 @@ printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/203/cmdline"
 printf 'zmx\0attach\0preview-only\0zsh\0-l\0' > "$FAKE_PROC/211/cmdline"
 printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
 printf '201\n202\n203\n211\n212\n' > "$PGREP_OUTPUT"
-printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\n' \
+printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\nname=shelp2\tpid=121\tclients=0\n' \
     > "$ZMX_LIST_DETAILS"
 PATH="$STUBS:$PATH" ZMX_PROC_ROOT="$FAKE_PROC" \
     ZMX_LIST_DETAILS_FILE="$ZMX_LIST_DETAILS" PGREP_OUTPUT_FILE="$PGREP_OUTPUT" \
@@ -314,6 +316,14 @@ check "picker does not mark a server with only a preview client" "yes" \
     "$(rg -q '^preview-only[[:space:]]' "$FZF_INPUT" \
         && ! rg -q '^preview-only .*🔗' "$FZF_INPUT" \
         && printf yes || printf no)"
+highlighted_help_name=$'\033[1ms\033[22;2mhelp\033[22;1m2\033[22m'
+check "picker dims help and highlights the rest of session names" "yes" \
+    "$(rg -Fq "$highlighted_help_name" "$FZF_RAW_INPUT" && printf yes || printf no)"
+highlighted_plain_name=$'\033[1mattached\033[22m'
+check "picker highlights session names without help" "yes" \
+    "$(rg -Fq "$highlighted_plain_name" "$FZF_RAW_INPUT" && printf yes || printf no)"
+check "picker enables ANSI row styling" "--ansi" \
+    "$(rg -N -Fx -- "--ansi" "$FZF_ARGS" || true)"
 
 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
 if [[ ! -e "$FZF_INPUT" ]]; then
