@@ -242,6 +242,16 @@ if [[ -n "${FZF_ESC_CALL:-}" ]]; then
         exit 130
     fi
 fi
+if [[ -n "${FZF_RESPONSES_DIR:-}" ]]; then
+    count=0
+    [[ -f "$FZF_CALL_COUNT" ]] && read -r count < "$FZF_CALL_COUNT"
+    count=$((count + 1))
+    printf '%s\n' "$count" > "$FZF_CALL_COUNT"
+    response="$FZF_RESPONSES_DIR/$count"
+    [[ -f "$response" ]] || exit 130
+    cat "$response"
+    exit 0
+fi
 if [[ -s "${FZF_OUTPUT_FILE:-}" ]]; then
     cat "$FZF_OUTPUT_FILE"
     : > "$FZF_OUTPUT_FILE"
@@ -275,6 +285,10 @@ check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle"
     "$(rg -N -Fx -- "$preview_cycle" "$FZF_ARGS" || true)"
 check "picker leaves mouse dragging available for terminal text selection" "--no-mouse" \
     "$(rg -N -Fx -- "--no-mouse" "$FZF_ARGS" || true)"
+expected_ctrl_backslash_arg="--expect=ctrl-n,ctrl-d,esc,ctrl-\\"
+check "picker recognizes Ctrl-backslash for previous-session switching" \
+    "$expected_ctrl_backslash_arg" \
+    "$(rg -N -F -- "$expected_ctrl_backslash_arg" "$FZF_ARGS" || true)"
 
 printf '\nctrl-d\n%s\n' "$expected_saved_row" > "$FZF_OUTPUT_FILE"
 : > "$FAKE_ROOT/attach.calls"
@@ -323,6 +337,21 @@ FZF_ESC_CALL=2 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
     >/dev/null 2>"$TMP/select-escape.stderr" || true
 check "Escape after detach reattaches the same session" \
     $'attach return zsh -l\nattach return zsh -l' \
+    "$(cat "$FAKE_ROOT/attach.calls")"
+
+printf 'first\nsecond\n' > "$FAKE_ROOT/sessions"
+responses="$TMP/fzf-responses"
+mkdir -p "$responses"
+printf '\n\nfirst\n' > "$responses/1"
+printf '\n\nsecond\n' > "$responses/2"
+printf '\nctrl-\\\n\n' > "$responses/3"
+printf '\nctrl-\\\n\n' > "$responses/4"
+: > "$FAKE_ROOT/attach.calls"
+: > "$FZF_CALL_COUNT"
+FZF_RESPONSES_DIR="$responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-toggle.stderr" || true
+check "repeated Ctrl-backslash alternates between the last two sessions" \
+    $'attach first zsh -l\nattach second zsh -l\nattach first zsh -l\nattach second zsh -l' \
     "$(cat "$FAKE_ROOT/attach.calls")"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"

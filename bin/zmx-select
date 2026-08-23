@@ -8,13 +8,15 @@
 #              if that name is already in use
 #   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
 #   Ctrl-/   — cycle horizontal, vertical, and hidden preview layouts
+#   Ctrl-\   — switch back to the previously attached running session
 #   Drag     — select and copy text from the preview
 #   Esc      — reattach the session just detached from, or exit on first launch
 #   Ctrl-C   — exit without attaching
 #
 # Detaching (ctrl-\) or exiting the session's shell returns to the picker with
-# the cursor back on the session you just left. After a detach, Esc returns to
-# that session; Ctrl-C exits the picker.
+# the cursor back on the session you just left. After a detach, another ctrl-\
+# switches to the prior session, so repeated presses alternate between the two.
+# Esc returns to the session just detached from; Ctrl-C exits the picker.
 #
 # Running and saved session names are sorted together. The first argument seeds
 # the fzf query.
@@ -156,7 +158,9 @@ build_display() {
 }
 
 last_session=""
+previous_session=""
 detached_session=""
+ctrl_backslash="ctrl-\\"
 query="$initial_query"
 removed_entry=false
 
@@ -197,12 +201,12 @@ while true; do
     rc=0
     output=$(printf '%s' "$display" | fzf \
         --print-query \
-        --expect=ctrl-n,ctrl-d,esc \
+        --expect="ctrl-n,ctrl-d,esc,$ctrl_backslash" \
         --height=80% \
         --no-mouse \
         --reverse \
         --prompt="zmx> " \
-        --header="Enter: attach | Drag: copy | Esc: return after detach | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit" \
+        --header="Enter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit" \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \
@@ -225,6 +229,12 @@ while true; do
     elif [[ "$key" == "esc" ]]; then
         if [[ -n "$detached_session" && -n "${running[$detached_session]:-}" ]]; then
             session="$detached_session"
+        else
+            exit 130
+        fi
+    elif [[ "$key" == "$ctrl_backslash" ]]; then
+        if [[ -n "$previous_session" && -n "${running[$previous_session]:-}" ]]; then
+            session="$previous_session"
         else
             exit 130
         fi
@@ -263,6 +273,12 @@ while true; do
     [[ -n "$cwd" || "$restore_saved" != true ]] || cwd=$(saved_session_cwd "$session")
     [[ -n "$cwd" ]] && tag="$tag $cwd"
     (printf '\033]1;%s\007\033]2;%s\007' "$tag" "$tag" > /dev/tty) 2>/dev/null || true
+
+    # Preserve the prior attachment before switching. Reattaching the current
+    # session with Esc does not disturb the two-session toggle pair.
+    if [[ -n "$last_session" && "$session" != "$last_session" ]]; then
+        previous_session="$last_session"
+    fi
 
     # `attach` creates the session when it doesn't exist, so typed names need no
     # separate create step. A stopped saved session starts through zmx-restore,
