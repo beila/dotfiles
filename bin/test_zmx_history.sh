@@ -279,8 +279,8 @@ PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || tr
 if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2
 fi
-saved_row=$(rg -N '^alpha.*\(saved\)$' "$FZF_INPUT" || true)
-printf -v expected_saved_row '%-14s  %s  (saved)' alpha "$HOOK_CWD"
+saved_row=$(rg -N '^alpha[[:space:]]' "$FZF_INPUT" || true)
+printf -v expected_saved_row '%-14s  %s' alpha "$HOOK_CWD"
 check "picker lists stopped sessions with snapshots and cwd" "$expected_saved_row" "$saved_row"
 check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" || true)"
 preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
@@ -360,10 +360,10 @@ switch_expect_arg="--expect=ctrl-n,ctrl-d,esc,ctrl-\\"
 check "picker binds Ctrl-backslash when a switch target exists" \
     "$switch_expect_arg" \
     "$(rg -N -F -- "$switch_expect_arg" "$FZF_ARGS" || true)"
-check "picker marks the last session with a compact glyph" "yes" \
-    "$(rg -q '^second Ⓛ' "$FZF_INPUT" && printf yes || printf no)"
-check "picker marks the previous session with a compact glyph" "yes" \
-    "$(rg -q '^first Ⓟ' "$FZF_INPUT" && printf yes || printf no)"
+check "picker marks the last session with a compact rank" "yes" \
+    "$(rg -q '^second 🥇' "$FZF_INPUT" && printf yes || printf no)"
+check "picker marks the previous session with a compact rank" "yes" \
+    "$(rg -q '^first 🥈' "$FZF_INPUT" && printf yes || printf no)"
 
 printf 'only\n' > "$FAKE_ROOT/sessions"
 single_responses="$TMP/fzf-single-responses"
@@ -378,8 +378,8 @@ check "Ctrl-backslash reattaches the latest session before a previous one exists
     $'attach only zsh -l\nattach only zsh -l' \
     "$(cat "$FAKE_ROOT/attach.calls")"
 check "single-session picker marks only the last session" "yes" \
-    "$(rg -q '^only Ⓛ' "$FZF_INPUT" \
-        && ! rg -q 'Ⓟ' "$FZF_INPUT" \
+    "$(rg -q '^only 🥇' "$FZF_INPUT" \
+        && ! rg -q '🥈' "$FZF_INPUT" \
         && printf yes || printf no)"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"

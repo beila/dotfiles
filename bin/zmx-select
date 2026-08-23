@@ -141,30 +141,29 @@ saved_session_cwd() {
     printf '%s' "${saved_cwd[$1]:-}"
 }
 
-format_row() {  # name -> $row_text; stopped snapshots are marked as saved
-    local name=$1 pid clients cwd attached_marker="" display_name=$1
+format_row() {  # name -> $row_text
+    local name=$1 pid clients cwd status="" display_name
     if [[ "$name" == "$last_session" ]]; then
-        display_name+=" Ⓛ"
+        status+="🥇"
     elif [[ "$name" == "$previous_session" ]]; then
-        display_name+=" Ⓟ"
+        status+="🥈"
     fi
 
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients <<<"${running[$name]}"
-        # clients > 0 means it's open in another window; worth knowing before
-        # you attach a second client to the same session.
-        [[ ${clients:-0} -gt 0 ]] && attached_marker="  (attached)"
-        printf -v row_text '%-14s  %s%s' "$display_name" \
-            "${running_cwd[$name]:-}" "$attached_marker"
+        [[ ${clients:-0} -gt 0 ]] && status+="🔗"
+        display_name="$name${status:+ $status}"
+        printf -v row_text '%-14s  %s' "$display_name" "${running_cwd[$name]:-}"
     elif [[ -n "${saved[$name]:-}" ]]; then
+        display_name="$name${status:+ $status}"
         cwd=${saved_cwd[$name]:-}
         if [[ -n "$cwd" ]]; then
-            printf -v row_text '%-14s  %s  (saved)' "$display_name" "$cwd"
+            printf -v row_text '%-14s  %s' "$display_name" "$cwd"
         else
-            printf -v row_text '%-14s  (saved)' "$display_name"
+            row_text="$display_name"
         fi
     else
-        row_text="$display_name"
+        row_text="$name${status:+ $status}"
     fi
 }
 
@@ -248,7 +247,7 @@ while true; do
         --no-mouse \
         --reverse \
         --prompt="zmx> " \
-        --header="Enter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit" \
+        --header=$'🥇 last  🥈 previous  🔗 attached\nEnter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit' \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \
