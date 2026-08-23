@@ -12,7 +12,7 @@ is_in_git_repo() {
 }
 
 is_in_jj_repo() {
-  jj root > /dev/null 2>&1
+  _jj_pin_operation
 }
 
 fzf_down() {
@@ -57,6 +57,20 @@ _git_log_fzf() {
 
 # --- helpers (jj) ---
 
+# Snapshot once and return the exact resulting operation. Every picker keeps
+# this value locally exported so fzf preview shells and become targets inherit
+# the same repository view.
+_jj_snapshot_operation() {
+  jj --quiet operation log --no-graph --limit 1 --color=never \
+    -T 'self.id() ++ "\n"' 2>/dev/null
+}
+
+_jj_pin_operation() {
+  [[ -n "${JJ_FZF_OPERATION:-}" ]] ||
+    JJ_FZF_OPERATION=$(_jj_snapshot_operation)
+  [[ -n "$JJ_FZF_OPERATION" ]]
+}
+
 # shellcheck disable=SC2120
 # Extract the jj change ID from an fzf line. The oneline templates put the id
 # in the 2nd TAB field (see fzf_oneline in jj config.toml), so cut -f2 — robust
@@ -91,18 +105,18 @@ _jj_extract_path='cut -s -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 #     file's diff.
 # $FZF_PROMPT is set by fzf for child processes; the ctrl-s toggle flips it
 # between "log> " and "log+files> " (see _jh/_jhh).
-# The initial _jh/_jhh log snapshots the workspace once. Preview, focus lookup,
-# and reload commands use --ignore-working-copy to avoid repeating that work.
+# The picker has already snapshotted and exported JJ_FZF_OPERATION. Preview,
+# focus lookup, and reload commands stay on that exact operation.
 _jj_log_preview="\
 id=\$($_jj_extract_id); path=\$($_jj_extract_path);
 [ -z \"\$id\" ] && exit 0;
 if [ -n \"\$path\" ]; then
-  jj --ignore-working-copy --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
-  jj --ignore-working-copy --quiet diff --color=always -r \"\$id\" -- \"\$path\";
+  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet diff --color=always -r \"\$id\" -- \"\$path\";
 elif [[ \$FZF_PROMPT == log+files* ]]; then
-  jj --ignore-working-copy --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
 else
-  jj --ignore-working-copy --quiet show --color=always \"\$id\" \
+  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet show --color=always \"\$id\" \
     -T 'builtin_log_detailed ++ diff.summary() ++ \"\\n\"';
 fi"
 
@@ -122,9 +136,11 @@ _dim_jj_op_ids() {
 # --- files ---
 
 _jf() {
-  jj --quiet diff --name-only 2>/dev/null |
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --name-only 2>/dev/null |
     fzf_down -m \
-      --preview 'jj --ignore-working-copy --quiet diff --color=always -- {}'
+      --preview 'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --color=always -- {}'
 }
 
 _git_f() {
@@ -139,20 +155,21 @@ _git_f() {
     _gf_get_file
 }
 
-_gf() { if is_in_jj_repo; then _jf; elif is_in_git_repo; then _git_f; fi }
+_gf() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jf; elif is_in_git_repo; then _git_f; fi }
 
 # --- file browser (ctrl-f toggle between tracked and all files) ---
 
 _file_browse() {
   local preview='bat --style=numbers --color=always -- {} 2>/dev/null || cat {}'
+  local -x JJ_FZF_OPERATION=
   if is_in_jj_repo; then
-    jj file list 2>/dev/null |
+    jj --at-operation "$JJ_FZF_OPERATION" file list 2>/dev/null |
       fzf_down -m --prompt 'tracked> ' \
         --header '☐ all files (ctrl-f)' \
         --preview "$preview" \
         --bind 'ctrl-f:transform:[[ $FZF_PROMPT == tracked* ]] &&
           echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(fd --type f --hidden --no-ignore)" ||
-          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(jj --ignore-working-copy file list)"'
+          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(jj --at-operation \"$JJ_FZF_OPERATION\" file list)"'
   elif is_in_git_repo; then
     git ls-files 2>/dev/null |
       fzf_down -m --prompt 'tracked> ' \
@@ -170,12 +187,14 @@ _file_browse() {
 # --- bookmarks / branches ---
 
 _jb() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   # Preview uses unique_boundary() revset alias (see jj config.toml)
   # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
   # prefix them with the parent bookmark name so they become "nix@hj ..."
-  jj --quiet bookmark list --color=always 2>/dev/null |
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet bookmark list --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☐ workspaces (ctrl-b) · ☐ remotes (ctrl-r)' \
@@ -183,16 +202,18 @@ _jb() {
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jbr {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+        jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
 # _jb with --all-remotes: every tracked + untracked remote bookmark, even
 # those whose target matches local. Toggled from _jb via ctrl-r (become).
 _jbr() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --quiet bookmark list --all-remotes --color=always 2>/dev/null |
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet bookmark list --all-remotes --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☐ workspaces (ctrl-b) · ☑ remotes (ctrl-r)' \
@@ -200,7 +221,7 @@ _jbr() {
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+        jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
@@ -213,19 +234,21 @@ _git_b() {
   sed 's#^remotes/##'
 }
 
-_gb() { if is_in_jj_repo; then _jb; elif is_in_git_repo; then _git_b; fi }
+_gb() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jb; elif is_in_git_repo; then _git_b; fi }
 
 # --- workspaces / worktrees ---
 
 _jbb() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --quiet workspace list --color=always 2>/dev/null |
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet workspace list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☑ workspaces (ctrl-b)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
-      --preview 'jj --ignore-working-copy --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
+      --preview 'jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
 
@@ -238,16 +261,18 @@ _git_bb() {
     cut -d' ' -f1
 }
 
-_gbb() { if is_in_jj_repo; then _jbb; elif is_in_git_repo; then _git_bb; fi }
+_gbb() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jbb; elif is_in_git_repo; then _git_bb; fi }
 
 # --- tags ---
 
 _jt() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   # Preview uses unique_boundary() revset alias (see jj config.toml)
-  jj --quiet tag list --color=always 2>/dev/null |
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet tag list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, tags())"' |
+        jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, tags())"' |
     awk '{gsub(/:$/,"",$1); print $1}'
 }
 
@@ -257,7 +282,7 @@ _git_t() {
     --preview 'git show --abbrev-commit --decorate --remerge-diff --patch-with-stat --color=always {}'
 }
 
-_gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
+_gt() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 
 # --- log upstream ---
 
@@ -267,7 +292,7 @@ _gt() { if is_in_jj_repo; then _jt; elif is_in_git_repo; then _git_t; fi }
 _jj_change_id='cut -s -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
-_jj_find_pos() { jj --ignore-working-copy --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
+_jj_find_pos() { jj --at-operation "$JJ_FZF_OPERATION" --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
 # TAB field index (with --delimiter='\t') of the change ID. The oneline
 # templates emit "<display>\t<change-id>\t<path>\t<commit-id>", so the change id
@@ -304,17 +329,19 @@ _jj_align_files="gawk -f ${_fzf_functions_sh%/functions.sh}/jj-align-files.awk"
 # _jj_align_files to fix the first-line indent. Toggle state is held in the fzf
 # prompt ("log> " vs "log+files> "), the same prompt-as-state pattern as
 # _file_browse; ctrl-o reads it back so an insert keeps the current view.
-_jj_log_reload() { printf "reload(jj --ignore-working-copy --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
+_jj_log_reload() { printf "reload(jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
 
 # shellcheck disable=SC2120
 _jh() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   # rv = whatever `[revsets].log` resolves to IN THIS REPO, so `_jh` shows
   # exactly what a bare `jj log` shows. Read it dynamically (not hardcoded to
   # `log()`) because a repo can override revsets.log in its own .jj config —
   # e.g. IgnitionX redefines it, and a hardcoded alias diverged badly there.
   # Fall back to `log()` if the lookup fails (e.g. very old jj).
   local pos_bind=() rv
-  rv=$(jj config get revsets.log 2>/dev/null) || rv='log()'
+  rv=$(jj --at-operation "$JJ_FZF_OPERATION" config get revsets.log 2>/dev/null) || rv='log()'
   [[ -z "$rv" ]] && rv='log()'
   if [[ -n "${1:-}" ]]; then
     local pos; pos=$(_jj_find_pos "$1" "$rv")
@@ -323,7 +350,7 @@ _jh() {
   local rl_plain rl_files
   rl_plain=$(_jj_log_reload 'fzf_oneline' "$rv")
   rl_files=$(_jj_log_reload 'fzf_oneline ++ fzf_files_suffix' "$rv")
-  jj --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --no-mouse \
     --prompt 'log> ' \
     --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
@@ -344,14 +371,16 @@ _git_h() {
   _git_log_fzf --no-mouse
 }
 
-_gh() { if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
+_gh() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
 
 # --- log all ---
 
 _jyy() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
     --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
@@ -363,12 +392,14 @@ _git_yy() {
   _git_log_fzf
 }
 
-_gyy() { if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
+_gyy() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jyy; elif is_in_git_repo; then _git_yy; fi }
 
 # --- log ---
 
 # shellcheck disable=SC2120
 _jhh() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   local pos_bind=() rv='::workspace_view()'
   if [[ -n "${1:-}" ]]; then
     local pos; pos=$(_jj_find_pos "$1" "$rv" 'fzf_oneline_author')
@@ -377,7 +408,7 @@ _jhh() {
   local rl_plain rl_files
   rl_plain=$(_jj_log_reload 'fzf_oneline_author' "$rv")
   rl_files=$(_jj_log_reload 'fzf_oneline_author ++ fzf_files_suffix' "$rv")
-  jj --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --no-mouse \
     --prompt 'log> ' \
     --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
@@ -394,7 +425,7 @@ _git_hh() {
   _git_log_fzf
 }
 
-_ghh() { if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
+_ghh() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
 
 # --- reflog / operation log ---
 
@@ -403,16 +434,18 @@ _ghh() { if is_in_jj_repo; then _jhh; elif is_in_git_repo; then _git_hh; fi }
 # above: extraction lives inside fzf, so the ctrl-y toggle (become-swap to
 # _jyy and back) cannot mangle either leaf's output.
 _jy() {
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
     _dim_jj_op_ids |
     fzf_down --ansi --no-sort --reverse --multi \
       --accept-nth=-1 \
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
-      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --ignore-working-copy --quiet operation show --color=always %'
+      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --at-operation "$JJ_FZF_OPERATION" --quiet operation show --color=always %'
 }
 
 _git_y() {
@@ -420,14 +453,16 @@ _git_y() {
   _git_log_fzf
 }
 
-_gy() { if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi }
+_gy() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jy; elif is_in_git_repo; then _git_y; fi }
 
 # --- remotes ---
 
 _jr() {
-  jj --quiet git remote list 2>/dev/null |
+  local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
+  _jj_pin_operation || return
+  jj --at-operation "$JJ_FZF_OPERATION" --quiet git remote list 2>/dev/null |
     fzf_down --tac \
-      --preview 'jj --ignore-working-copy --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
+      --preview 'jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
     awk '{print $1}'
 }
 
@@ -438,7 +473,7 @@ _git_r() {
   cut -d$'\t' -f1
 }
 
-_gr() { if is_in_jj_repo; then _jr; elif is_in_git_repo; then _git_r; fi }
+_gr() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jr; elif is_in_git_repo; then _git_r; fi }
 
 # --- stash (git only) ---
 

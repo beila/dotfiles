@@ -22,6 +22,8 @@ assert_not() {
 }
 
 source "${0:a:h}/functions.sh"
+snapshot_operation_body=$(functions _jj_snapshot_operation)
+_jj_snapshot_operation() { printf '%s\n' test-operation-id; }
 
 # Mock fzf — write args to temp file (survives pipes/subshells)
 _args_file=$(mktemp)
@@ -112,8 +114,16 @@ assert "ctrl-o reloads on success" "reload" "$out"
 assert "ctrl-o shows error on failure" "change-header" "$out"
 assert "header mentions ctrl-o" "ctrl-o" "$out"
 
-echo "jj picker repository loading:"
-assert "preview subprocesses skip repeated workspace snapshots" \
+echo "jj picker operation pinning:"
+assert "initial snapshot returns the resulting operation ID" \
+  "operation log --no-graph --limit 1" "$snapshot_operation_body"
+assert "initial snapshot requests the full operation ID" \
+  'self.id() ++ "\n"' "$snapshot_operation_body"
+assert_not "initial snapshot is not based on an older operation" \
+  "--at-operation" "$snapshot_operation_body"
+assert "preview subprocesses use the captured operation" \
+  '--at-operation "$JJ_FZF_OPERATION"' "${_jj_log_preview-}"
+assert_not "preview subprocesses do not follow the current operation" \
   "--ignore-working-copy" "${_jj_log_preview-}"
 assert "default preview combines metadata, summary, and patch in one show" \
   "builtin_log_detailed ++ diff.summary()" "${_jj_log_preview-}"
@@ -121,39 +131,41 @@ default_preview=${_jj_log_preview-}
 default_preview=${default_preview##*else}
 default_preview=${default_preview%%fi}
 assert_not "default preview no longer starts a second jj diff process" \
-  "jj --ignore-working-copy --quiet diff" "$default_preview"
-assert "_jj_find_pos skips repeated workspace snapshots" \
-  "--ignore-working-copy" "$(functions _jj_find_pos)"
-assert "log reloads skip repeated workspace snapshots" \
-  "--ignore-working-copy" "$(_jj_log_reload fzf_oneline 'log()')"
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff' "$default_preview"
+assert "_jj_find_pos uses the captured operation" \
+  "--at-operation" "$(functions _jj_find_pos)"
+assert "log reloads use the captured operation" \
+  '--at-operation "$JJ_FZF_OPERATION"' "$(_jj_log_reload fzf_oneline 'log()')"
 out=$(capture _jf)
-assert "_jf preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet diff" "$out"
+assert "_jf preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff' "$out"
 out=$(capture _file_browse)
-assert "_file_browse tracked reload skips repeated workspace snapshots" \
-  "reload(jj --ignore-working-copy file list)" "$out"
+assert "_file_browse tracked reload uses the captured operation" \
+  'reload(jj --at-operation \"$JJ_FZF_OPERATION\" file list)' "$out"
 out=$(capture _jb)
-assert "_jb preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet log" "$out"
+assert "_jb preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet log' "$out"
 out=$(capture _jbr)
-assert "_jbr preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet log" "$out"
+assert "_jbr preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet log' "$out"
 out=$(capture _jbb)
-assert "_jbb preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet log" "$out"
+assert "_jbb preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet log' "$out"
 out=$(capture _jt)
-assert "_jt preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet log" "$out"
+assert "_jt preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet log' "$out"
 out=$(capture _jy)
-assert "_jy preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet operation show" "$out"
+assert "_jy preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet operation show' "$out"
 out=$(capture _jr)
-assert "_jr preview skips repeated workspace snapshots" \
-  "jj --ignore-working-copy --quiet log" "$out"
-assert_not "_jf initial producer still snapshots the workspace" \
-  "jj --ignore-working-copy --quiet diff --name-only" "$(functions _jf)"
-assert_not "_jy initial producer still snapshots the workspace" \
-  "jj --ignore-working-copy --quiet operation log" "$(functions _jy)"
+assert "_jr preview uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet log' "$out"
+assert "_jf initial producer uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --name-only' "$(functions _jf)"
+assert "_jy initial producer uses the captured operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" --quiet operation log' "$(functions _jy)"
+assert_not "mutating jj new is not run at a historical operation" \
+  'jj --at-operation "$JJ_FZF_OPERATION" new' "$(functions _jh _jhh)"
 
 echo "_jhh ctrl-o (insert new revision):"
 out=$(capture _jhh)
@@ -166,6 +178,7 @@ assert "header mentions ctrl-o" "ctrl-o" "$out"
 echo "_jh / _jhh / _jyy / _jy pass --accept-nth so fzf does the extraction:"
 # Re-source so the real bodies are live; mock fzf_down to capture args.
 source "${0:a:h}/functions.sh"
+_jj_snapshot_operation() { printf '%s\n' test-operation-id; }
 fzf_down() { echo "$*" > "$_args_file"; }
 _jj_log_fzf() { fzf_down "$@"; }
 out=$(capture _jh);   assert "_jh has --accept-nth=2"   "--accept-nth=2"  "$out"
@@ -187,14 +200,18 @@ echo
 echo "_gh / _gy / _gyy real-fzf end-to-end (uses the real fzf binary in filter mode):"
 # Re-source again so any stubs from the previous block are gone.
 source "${0:a:h}/functions.sh"
-is_in_jj_repo() { return 0; }
+is_in_jj_repo() { JJ_FZF_OPERATION=test-operation-id; return 0; }
 is_in_git_repo(){ return 1; }
 # Stub jj to emit FZF_LINE on `jj log` / `jj operation log` calls; ignore
 # everything else (any positional args, color flags, templates).
 jj() {
-  case "${1:-}" in
-    --quiet) shift ;;
-  esac
+  while (( $# )); do
+    case "${1:-}" in
+      --at-operation) shift 2 ;;
+      --quiet) shift ;;
+      *) break ;;
+    esac
+  done
   case "${1:-}" in
     log|operation) printf '%s\n' "$FZF_LINE" ;;
     *) : ;;
