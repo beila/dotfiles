@@ -24,11 +24,12 @@ assert_not() {
 source "${0:a:h}/functions.sh"
 snapshot_operation_body=$(functions _jj_snapshot_operation)
 _jj_snapshot_operation() { printf '%s\n' test-operation-id; }
+jj() { :; }
 
 # Mock fzf — write args to temp file (survives pipes/subshells)
 _args_file=$(mktemp)
 trap "rm -f $_args_file" EXIT
-fzf() { echo "$*" > "$_args_file"; }
+fzf() { echo "OP=${JJ_FZF_OPERATION:-} $*" > "$_args_file"; }
 fzf_down() { fzf "$@"; }
 _jj_log_fzf() { fzf "$@"; }
 capture() { echo -n '' > "$_args_file"; "$@" 2>/dev/null; cat "$_args_file"; }
@@ -37,6 +38,7 @@ echo "_jh:"
 out=$(capture _jh)
 assert_not "no args: no --query" "--query" "$out"
 assert "_jh disables fzf mouse handling" "--no-mouse" "$out"
+assert "_jh exports the captured operation to fzf" "OP=test-operation-id" "$out"
 out=$(capture _jh "" "myquery")
 assert "with query: --query" "--query myquery" "$out"
 assert "become passes {q}" "{q}" "$out"
@@ -302,6 +304,8 @@ assert_not "functions.sh: custom pickers have no fixed 50% height" \
   "--height 50%" "$fzf_down_body"
 assert "fzf-zellij: defines up,50% override for non-reverse layouts" \
   "up,50%" "$(grep -h up,50% "$fzf_zellij")"
+assert "fzf-zellij: forwards the pinned jj operation" \
+  'export JJ_FZF_OPERATION=' "$(grep -h JJ_FZF_OPERATION "$fzf_zellij")"
 
 echo
 echo "fzf-zellij: ctrl-/ override depends on --reverse:"
@@ -312,9 +316,21 @@ _tmp_zj=$(mktemp -d)
 trap "rm -rf '$_tmp_zj'; rm -f '$_args_file'" EXIT
 cat > "$_tmp_zj/fzf" <<'STUB'
 #!/usr/bin/env bash
-echo "$*" > "$FZ_TEST_OUT"
+echo "OP=${JJ_FZF_OPERATION:-} ARGS=$*" > "$FZ_TEST_OUT"
 STUB
 chmod +x "$_tmp_zj/fzf"
+cat > "$_tmp_zj/zellij" <<'STUB'
+#!/usr/bin/env bash
+while (( $# )); do
+  if [[ $1 == -- ]]; then
+    shift
+    exec "$@"
+  fi
+  shift
+done
+exit 2
+STUB
+chmod +x "$_tmp_zj/zellij"
 
 run_zellij() {
   export FZ_TEST_OUT
@@ -359,6 +375,15 @@ assert "argv has --tac (no --reverse): up,50% override added" "up,50%" "$out"
 # FZF_DEFAULT_OPTS' down,50%)
 out=$(FZF_DEFAULT_OPTS='' run_zellij -- --reverse)
 assert_not "reversed: no ctrl-/ binding emitted by fzf-zellij" "ctrl-/" "$out"
+
+FZ_TEST_OUT=$(mktemp)
+export FZ_TEST_OUT
+PATH="$_tmp_zj:$PATH" ZELLIJ=1 FZF_ZELLIJ= JJ_FZF_OPERATION=test-operation-id \
+  "$fzf_zellij" -- --filter none </dev/null
+out=$(cat "$FZ_TEST_OUT")
+rm -f "$FZ_TEST_OUT"
+assert "floating pane receives the pinned jj operation" \
+  "OP=test-operation-id" "$out"
 
 echo
 echo "$pass passed, $fail failed"

@@ -128,6 +128,7 @@ touch "$output"
   # falls back to its --walker.
   [[ -n ${FZF_DEFAULT_COMMAND:-} ]] && echo "export FZF_DEFAULT_COMMAND=$(printf %q "$FZF_DEFAULT_COMMAND")"
   [[ -n ${BAT_THEME:-} ]] && echo "export BAT_THEME=$(printf %q "$BAT_THEME")"
+  [[ -n ${JJ_FZF_OPERATION:-} ]] && echo "export JJ_FZF_OPERATION=$(printf %q "$JJ_FZF_OPERATION")"
   echo "trap 'touch $(printf %q "$tmpdir/done")' EXIT"
   echo -n "\"$fzf\""
   for a in "${args[@]}"; do printf ' %q' "$a"; done
