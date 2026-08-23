@@ -144,6 +144,9 @@ printf 'one-shot final\n' > "$FAKE_ROOT/history-alpha"
 check "one-shot command captures final output" "one-shot final" "$("$UNDER_TEST" show alpha)"
 check "one-shot command captures cwd" "$SAVED_CWD" "$("$UNDER_TEST" cwd alpha)"
 check "cwd metadata is private" "600" "$(stat -c '%a' "${snapshot%.history}.cwd")"
+check "list can return saved cwd metadata in one call" \
+    $'alpha\t'"${SAVED_CWD/#$HOME/'~'}" \
+    "$("$UNDER_TEST" list --with-cwd | rg '^alpha\t')"
 
 SECOND_CWD="$TMP/second cwd"
 mkdir -p "$SECOND_CWD"
@@ -285,10 +288,10 @@ check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle"
     "$(rg -N -Fx -- "$preview_cycle" "$FZF_ARGS" || true)"
 check "picker leaves mouse dragging available for terminal text selection" "--no-mouse" \
     "$(rg -N -Fx -- "--no-mouse" "$FZF_ARGS" || true)"
-expected_ctrl_backslash_arg="--expect=ctrl-n,ctrl-d,esc,ctrl-\\"
-check "picker recognizes Ctrl-backslash for previous-session switching" \
-    "$expected_ctrl_backslash_arg" \
-    "$(rg -N -F -- "$expected_ctrl_backslash_arg" "$FZF_ARGS" || true)"
+initial_expect_arg="--expect=ctrl-n,ctrl-d,esc"
+check "initial picker leaves Ctrl-backslash unbound" \
+    "$initial_expect_arg" \
+    "$(rg -N -F -- "$initial_expect_arg" "$FZF_ARGS" || true)"
 
 printf '\nctrl-d\n%s\n' "$expected_saved_row" > "$FZF_OUTPUT_FILE"
 : > "$FAKE_ROOT/attach.calls"
@@ -353,6 +356,31 @@ FZF_RESPONSES_DIR="$responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
 check "repeated Ctrl-backslash alternates between the last two sessions" \
     $'attach first zsh -l\nattach second zsh -l\nattach first zsh -l\nattach second zsh -l' \
     "$(cat "$FAKE_ROOT/attach.calls")"
+switch_expect_arg="--expect=ctrl-n,ctrl-d,esc,ctrl-\\"
+check "picker binds Ctrl-backslash when a switch target exists" \
+    "$switch_expect_arg" \
+    "$(rg -N -F -- "$switch_expect_arg" "$FZF_ARGS" || true)"
+check "picker marks the last session with a compact glyph" "yes" \
+    "$(rg -q '^second Ⓛ' "$FZF_INPUT" && printf yes || printf no)"
+check "picker marks the previous session with a compact glyph" "yes" \
+    "$(rg -q '^first Ⓟ' "$FZF_INPUT" && printf yes || printf no)"
+
+printf 'only\n' > "$FAKE_ROOT/sessions"
+single_responses="$TMP/fzf-single-responses"
+mkdir -p "$single_responses"
+printf '\n\nonly\n' > "$single_responses/1"
+printf '\nctrl-\\\n\n' > "$single_responses/2"
+: > "$FAKE_ROOT/attach.calls"
+: > "$FZF_CALL_COUNT"
+FZF_RESPONSES_DIR="$single_responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-single-toggle.stderr" || true
+check "Ctrl-backslash reattaches the latest session before a previous one exists" \
+    $'attach only zsh -l\nattach only zsh -l' \
+    "$(cat "$FAKE_ROOT/attach.calls")"
+check "single-session picker marks only the last session" "yes" \
+    "$(rg -q '^only Ⓛ' "$FZF_INPUT" \
+        && ! rg -q 'Ⓟ' "$FZF_INPUT" \
+        && printf yes || printf no)"
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ $FAIL -eq 0 ]]

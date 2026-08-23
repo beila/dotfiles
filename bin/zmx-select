@@ -8,7 +8,8 @@
 #              if that name is already in use
 #   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
 #   Ctrl-/   — cycle horizontal, vertical, and hidden preview layouts
-#   Ctrl-\   — switch back to the previously attached running session
+#   Ctrl-\   — switch to the previous session, or reattach the latest one when
+#              there is no previous session yet
 #   Drag     — select and copy text from the preview
 #   Esc      — reattach the session just detached from, or exit on first launch
 #   Ctrl-C   — exit without attaching
@@ -16,6 +17,7 @@
 # Detaching (ctrl-\) or exiting the session's shell returns to the picker with
 # the cursor back on the session you just left. After a detach, another ctrl-\
 # switches to the prior session, so repeated presses alternate between the two.
+# Until a prior session exists, it reattaches the session just detached from.
 # Esc returns to the session just detached from; Ctrl-C exits the picker.
 #
 # Running and saved session names are sorted together. The first argument seeds
@@ -68,7 +70,23 @@ fi'
 # name -> "pid<TAB>clients" for every running session. zmx list emits each field
 # as "key=value" separated by tabs, with leading whitespace.
 declare -A running=()
+declare -A running_cwd=()
+declare -A running_cwd_pid=()
 declare -A saved=()
+declare -A saved_cwd=()
+
+refresh_session_cwd() {
+    local name=$1 pid cwd
+    [[ -n "${running[$name]:-}" ]] || return 0
+    IFS=$'\t' read -r pid _ <<<"${running[$name]}"
+    if cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null); then
+        running_cwd["$name"]="${cwd/#$HOME/'~'}"
+        running_cwd_pid["$name"]="$pid"
+    else
+        unset 'running_cwd[$name]' 'running_cwd_pid[$name]'
+    fi
+}
+
 load_running() {
     running=()
     local name pid clients
@@ -83,15 +101,31 @@ load_running() {
             if ($1 != "") print $1 "\t" $2 "\t" $3
         }
     ')
+
+    for name in "${!running[@]}"; do
+        IFS=$'\t' read -r pid _ <<<"${running[$name]}"
+        if [[ "${running_cwd_pid[$name]:-}" != "$pid" ]]; then
+            refresh_session_cwd "$name"
+        fi
+    done
+    for name in "${!running_cwd[@]}"; do
+        if [[ -z "${running[$name]:-}" ]]; then
+            unset 'running_cwd[$name]' 'running_cwd_pid[$name]'
+        fi
+    done
 }
 
 load_saved() {
     saved=()
+    saved_cwd=()
     [[ -x "$ZMX_HISTORY_HELPER" ]] || return
-    local name
-    while IFS= read -r name; do
-        [[ -n "$name" ]] && saved["$name"]=1
-    done < <("$ZMX_HISTORY_HELPER" list 2>/dev/null)
+    local name cwd
+    while IFS=$'\t' read -r name cwd; do
+        if [[ -n "$name" ]]; then
+            saved["$name"]=1
+            saved_cwd["$name"]="$cwd"
+        fi
+    done < <("$ZMX_HISTORY_HELPER" list --with-cwd 2>/dev/null)
 }
 
 # name -> the session shell's live cwd, $HOME-shortened, empty if unknown.
@@ -100,36 +134,37 @@ load_saved() {
 # the tilde: bash tilde-expands the replacement, so a bare ~ substitutes $HOME
 # back in and no-ops.
 session_cwd() {
-    local name=$1 pid cwd
-    [[ -n "${running[$name]:-}" ]] || return 0
-    IFS=$'\t' read -r pid _ <<<"${running[$name]}"
-    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || return 0
-    printf '%s' "${cwd/#$HOME/'~'}"
+    printf '%s' "${running_cwd[$1]:-}"
 }
 
 saved_session_cwd() {
-    local cwd
-    cwd=$("$ZMX_HISTORY_HELPER" cwd "$1" 2>/dev/null) || return 0
-    printf '%s' "${cwd/#$HOME/'~'}"
+    printf '%s' "${saved_cwd[$1]:-}"
 }
 
-row() {  # name -> display line; stopped snapshots are marked as saved
-    local name=$1 pid clients cwd
+format_row() {  # name -> $row_text; stopped snapshots are marked as saved
+    local name=$1 pid clients cwd attached_marker="" display_name=$1
+    if [[ "$name" == "$last_session" ]]; then
+        display_name+=" Ⓛ"
+    elif [[ "$name" == "$previous_session" ]]; then
+        display_name+=" Ⓟ"
+    fi
+
     if [[ -n "${running[$name]:-}" ]]; then
         IFS=$'\t' read -r pid clients <<<"${running[$name]}"
         # clients > 0 means it's open in another window; worth knowing before
         # you attach a second client to the same session.
-        printf '%-14s  %s%s\n' "$name" "$(session_cwd "$name")" \
-            "$([[ ${clients:-0} -gt 0 ]] && printf '  (attached)')"
+        [[ ${clients:-0} -gt 0 ]] && attached_marker="  (attached)"
+        printf -v row_text '%-14s  %s%s' "$display_name" \
+            "${running_cwd[$name]:-}" "$attached_marker"
     elif [[ -n "${saved[$name]:-}" ]]; then
-        cwd=$(saved_session_cwd "$name")
+        cwd=${saved_cwd[$name]:-}
         if [[ -n "$cwd" ]]; then
-            printf '%-14s  %s  (saved)\n' "$name" "$cwd"
+            printf -v row_text '%-14s  %s  (saved)' "$display_name" "$cwd"
         else
-            printf '%-14s  (saved)\n' "$name"
+            printf -v row_text '%-14s  (saved)' "$display_name"
         fi
     else
-        printf '%s\n' "$name"
+        row_text="$display_name"
     fi
 }
 
@@ -151,7 +186,8 @@ build_display() {
     if ((${#sessions[@]})); then
         while IFS= read -r name; do
             [[ -n "$name" ]] || continue
-            display+=$(row "$name")$'\n'
+            format_row "$name"
+            display+="$row_text"$'\n'
             order+=("$name")
         done < <(printf '%s\n' "${!sessions[@]}" | sort)
     fi
@@ -198,10 +234,16 @@ while true; do
         done
     fi
 
+    expect_keys="ctrl-n,ctrl-d,esc"
+    if [[ (-n "$previous_session" && -n "${running[$previous_session]:-}") \
+        || (-n "$detached_session" && -n "${running[$detached_session]:-}") ]]; then
+        expect_keys+=",$ctrl_backslash"
+    fi
+
     rc=0
     output=$(printf '%s' "$display" | fzf \
         --print-query \
-        --expect="ctrl-n,ctrl-d,esc,$ctrl_backslash" \
+        --expect="$expect_keys" \
         --height=80% \
         --no-mouse \
         --reverse \
@@ -235,8 +277,10 @@ while true; do
     elif [[ "$key" == "$ctrl_backslash" ]]; then
         if [[ -n "$previous_session" && -n "${running[$previous_session]:-}" ]]; then
             session="$previous_session"
+        elif [[ -n "$detached_session" && -n "${running[$detached_session]:-}" ]]; then
+            session="$detached_session"
         else
-            exit 130
+            continue
         fi
     elif [[ "$key" == "ctrl-n" && -n "$query" ]]; then
         # Force a NEW session. If a session with the requested name already
@@ -300,6 +344,7 @@ while true; do
     else
         zmx attach "$session" "${session_shell[@]}" || true
     fi
+    refresh_session_cwd "$session"
     last_session="$session"
     if zmx list --short 2>/dev/null | rg -Fxq -- "$session"; then
         detached_session="$session"

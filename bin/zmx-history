@@ -19,7 +19,7 @@ Usage: zmx-history [serve]
        zmx-history has SESSION
        zmx-history show SESSION
        zmx-history remove SESSION
-       zmx-history list
+       zmx-history list [--with-cwd]
 EOF
     exit 2
 }
@@ -268,13 +268,23 @@ case "$command" in
         remove_session "$2"
         ;;
     list)
-        [[ $# -eq 1 ]] || usage
+        [[ $# -eq 1 || ($# -eq 2 && "$2" == "--with-cwd") ]] || usage
         shopt -s nullglob
         names=("$history_dir"/*.name)
         for name_file in "${names[@]}"; do
             session=""
             IFS= read -r session < "$name_file" || true
-            [[ -n "${session:-}" ]] && printf '%s\n' "$session"
+            [[ -n "${session:-}" ]] || continue
+            if [[ "${2:-}" == "--with-cwd" ]]; then
+                saved_cwd=""
+                saved_cwd_file="${name_file%.name}.cwd"
+                if [[ -s "$saved_cwd_file" ]]; then
+                    IFS= read -r saved_cwd < "$saved_cwd_file" || saved_cwd=""
+                fi
+                printf '%s\t%s\n' "$session" "${saved_cwd/#$HOME/'~'}"
+            else
+                printf '%s\n' "$session"
+            fi
         done | sort -u
         ;;
     *)
