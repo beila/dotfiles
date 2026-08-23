@@ -177,26 +177,31 @@ saved_session_cwd() {
 }
 
 format_row() {  # name -> $row_text
-    local name=$1 cwd status="" display_name padded_name styled_name
+    local name=$1 cwd status="" status_icons=0 display_name padded_name styled_name
     if [[ "$name" == "$last_session" ]]; then
         status+="🥇"
+        status_icons=$((status_icons + 1))
     elif [[ "$name" == "$previous_session" ]]; then
         status+="🥈"
+        status_icons=$((status_icons + 1))
     fi
 
     styled_name=$'\033[1m'"${name//help/$'\033[22;2mhelp\033[22;1m'}"$'\033[22m'
 
     if [[ -n "${running[$name]:-}" ]]; then
-        [[ -n "${attached[$name]:-}" ]] && status+="🔗"
+        if [[ -n "${attached[$name]:-}" ]]; then
+            status+="🔗"
+            status_icons=$((status_icons + 1))
+        fi
         display_name="$name${status:+ $status}"
-        printf -v padded_name '%-14s' "$display_name"
+        printf -v padded_name '%-*s' "$((14 + status_icons * 2))" "$display_name"
         printf -v row_text '%s%s  %s' \
             "$styled_name" "${padded_name#"$name"}" "${running_cwd[$name]:-}"
     elif [[ -n "${saved[$name]:-}" ]]; then
         display_name="$name${status:+ $status}"
         cwd=${saved_cwd[$name]:-}
         if [[ -n "$cwd" ]]; then
-            printf -v padded_name '%-14s' "$display_name"
+            printf -v padded_name '%-*s' "$((14 + status_icons * 2))" "$display_name"
             printf -v row_text '%s%s  %s' \
                 "$styled_name" "${padded_name#"$name"}" "$cwd"
         else

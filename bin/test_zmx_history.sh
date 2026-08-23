@@ -296,7 +296,9 @@ export FZF_CALL_COUNT="$TMP/fzf-call-count"
 FAKE_PROC="$TMP/proc"
 ZMX_LIST_DETAILS="$TMP/zmx-list-details"
 PGREP_OUTPUT="$TMP/pgrep-output"
-mkdir -p "$FAKE_PROC"/{101,201,202,203,111,211,212}
+mkdir -p "$FAKE_PROC"/{101,121,201,202,203,111,211,212}
+ln -s "$HOOK_CWD" "$FAKE_PROC/101/cwd"
+ln -s "$HOOK_CWD" "$FAKE_PROC/121/cwd"
 printf 'Name:\tzsh\nPPid:\t201\n' > "$FAKE_PROC/101/status"
 printf 'Name:\tzsh\nPPid:\t211\n' > "$FAKE_PROC/111/status"
 printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/201/cmdline"
@@ -324,6 +326,12 @@ check "picker highlights session names without help" "yes" \
     "$(rg -Fq "$highlighted_plain_name" "$FZF_RAW_INPUT" && printf yes || printf no)"
 check "picker enables ANSI row styling" "--ansi" \
     "$(rg -N -Fx -- "--ansi" "$FZF_ARGS" || true)"
+attached_row=$(rg -N '^attached[[:space:]]' "$FZF_INPUT")
+plain_row=$(rg -N '^shelp2[[:space:]]' "$FZF_INPUT")
+check "status emoji preserve the cwd column" "16" \
+    "$(printf '%s' "${attached_row%"$HOOK_CWD"}" | wc -L)"
+check "unmarked sessions use the same cwd column" "16" \
+    "$(printf '%s' "${plain_row%"$HOOK_CWD"}" | wc -L)"
 
 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
 if [[ ! -e "$FZF_INPUT" ]]; then
