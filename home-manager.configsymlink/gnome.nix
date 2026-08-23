@@ -65,6 +65,7 @@
     "org/gnome/desktop/interface" = {
       cursor-size = 64;
     };
+    # Let GNOME housekeeping purge trash entries after the shared age limit.
     "org/gnome/desktop/privacy" = {
       old-files-age = lib.gvariant.mkUint32 30;
       remove-old-trash-files = true;

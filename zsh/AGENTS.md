@@ -41,16 +41,22 @@
 
 ## Interactive `rm` Trash Wrapper
 
-When `gio` is available, `utility.zsh` defines interactive `rm` as a wrapper
-around `gio trash`. All documented GNU `rm` options are translated:
+`utility.zsh` is loaded by interactive zsh sessions, so shell scripts and zsh
+invocations that are not interactive keep the system `rm`. When `gio` is
+available, interactive `rm` becomes a wrapper around `gio trash`. All
+documented GNU `rm` options are translated:
 `-i`/`-I` and `--interactive` prompt before moving items, `-v` reports
 successful moves, and `-f` passes `--force`. Recursive, directory, and
 filesystem-boundary options need no traversal because `gio` moves each
 top-level directory as one item. Root-preservation options are enforced before
 calling `gio`, and `--help`/`--version` describe the wrapper. `--` protects
-paths beginning with a dash. Use `command rm` for an explicit permanent
-deletion. Hosts without `gio` do not define the function and retain the
-original `rm`.
+paths beginning with a dash.
+
+Each target is sent to `gio trash` separately so later targets are still
+attempted after one fails and `--verbose` only reports successful moves. A
+runtime trash failure is returned to the caller and never retried through the
+permanent system `rm`. Use `command rm` for an explicit permanent deletion.
+Hosts without `gio` do not define the function and retain the original `rm`.
 
 Test harness: `zsh/test_rm-trash.sh` uses a mock `gio` to cover option
 translation, prompts, root protection, leading-dash paths, the

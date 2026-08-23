@@ -34,7 +34,7 @@ alias man='nocorrect man'
 alias mkdir='nocorrect mkdir'
 alias mv='nocorrect mv'
 
-# Keep the familiar rm interface while making interactive deletion recoverable.
+# zshrc-only wrapper; scripts and `command rm` retain permanent deletion.
 if is-callable 'gio'; then
   function rm {
     emulate -L zsh
@@ -74,6 +74,7 @@ if is-callable 'gio'; then
             recursive=1
             continue
             ;;
+          # gio moves a top-level directory without traversing its children.
           --dir|--one-file-system)
             continue
             ;;
@@ -176,6 +177,7 @@ Use command rm for permanent deletion.'
       [[ "$reply" == [yY]* ]] || return 0
     fi
 
+    # Avoid external stat calls unless the stronger root policy was requested.
     (( preserve_all )) && zmodload -F zsh/stat b:zstat
 
     for target in "${targets[@]}"; do
@@ -209,6 +211,7 @@ Use command rm for permanent deletion.'
       command gio trash "${gio_options[@]}" -- "$target"
       gio_status=$?
       if (( gio_status )); then
+        # Never turn a trash failure into an unexpected permanent deletion.
         exit_status=$gio_status
       elif (( verbose )); then
         printf 'trashed %q\n' "$target"

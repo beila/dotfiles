@@ -28,7 +28,8 @@ The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango 
 
 ## gnome.nix
 
-- dconf settings (key repeat, mouse speed, cursor size 64, Korean Sebeolsik 390, disable gnome-panel/desktop, automatically remove trash older than 30 days).
+- dconf settings (key repeat, mouse speed, cursor size 64, Korean Sebeolsik 390, disable gnome-panel/desktop).
+- GNOME housekeeping is enabled through `org/gnome/desktop/privacy`: `remove-old-trash-files = true` purges trash entries older than the shared `old-files-age = 30` day limit.
 - IBus integration (`pkgs.ibus` for the GTK4 IM module + `~/.config/environment.d/30-ibus.conf` for `GTK_IM_MODULE` etc.).
 - gnome-flashback systemd drop-ins (xmonad session requires `gnome-flashback.target` + service-restart override).
 - Declares `random-lockscreen` via `dotfiles.schedule.jobs` plus `hangul-osd` and `zoom-osd` as `systemd.user.services.*` units (`PartOf=graphical-session.target`). All require the graphical session; hangul-osd additionally requires the panel-private interface on the IBus private message bus.
