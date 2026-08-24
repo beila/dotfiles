@@ -122,8 +122,8 @@ in
       ];
     } (builtins.readFile ../xwindow/bin/battery-osd.py))
     # zoom-osd: battery-osd-style overlay for Zoom notifications.
-    # Watches both Notifications.Notify calls and Zoom's own reminder X
-    # window, then starts a separate --show process for each match.
+    # Watches Notifications.Notify calls plus Zoom reminder/meeting X
+    # windows, then starts a separate --show process for each match.
     (pkgs.writeShellScriptBin "zoom-osd" ''
       export ZOOM_OSD_DBUS_MONITOR=${pkgs.dbus}/bin/dbus-monitor
       exec ${

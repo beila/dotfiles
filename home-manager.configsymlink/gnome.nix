@@ -136,8 +136,8 @@
   };
 
   # zoom-osd: battery-osd-style overlay for Zoom notifications.
-  # Watches session-bus Notify calls and Zoom reminder X windows (both push,
-  # no polling) with the same daemon lifecycle as hangul-osd.
+  # Watches session-bus Notify calls and Zoom reminder/meeting X windows (both
+  # push, no polling) with the same daemon lifecycle as hangul-osd.
   systemd.user.services.zoom-osd = {
     Unit = {
       Description = "Zoom notification OSD";
@@ -145,7 +145,9 @@
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${config.home.profileDirectory}/bin/zoom-osd";
+      # Keep the generated path in the unit so implementation changes restart
+      # the long-lived watcher during Home Manager activation.
+      ExecStart = "${config.home.path}/bin/zoom-osd";
       Restart = "on-failure";
       RestartSec = 5;
     };

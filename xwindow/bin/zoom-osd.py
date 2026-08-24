@@ -20,15 +20,22 @@ case-insensitive), spawn this program in --show mode for a few seconds.
 The subprocess isolates X/render failures from the monitor loop and is
 safe to launch from either the main thread or the X watcher thread.
 
-Second trigger — Zoom's own popup window: the Linux client does NOT call
-org.freedesktop.Notifications for meeting invites; it draws its own X
-window titled `zoom_linux_float_message_reminder`. A daemon thread
-watches root SubstructureNotify and fires the OSD on the first MapNotify
-of a newly *created* window whose title matches $ZOOM_OSD_WINDOW_REGEX.
-The created-set handshake keeps workspace-switch remaps (xmonad
-unmaps/remaps the copyToAllHook'd popup on every switch) from
-retriggering. Limitation: if Zoom updates an already-open reminder
-window in place for a later notification, no event fires.
+Second trigger — Zoom's own popup windows: the Linux client does NOT call
+org.freedesktop.Notifications for meeting invites or the meeting startup
+window. A daemon thread watches root SubstructureNotify and fires the OSD
+on the first MapNotify of a newly *created* window when either:
+
+* its title matches $ZOOM_OSD_WINDOW_REGEX (default:
+  `zoom_linux_float_message_reminder`), or
+* it has the new meeting-window signature: title `Zoom Workplace`, Zoom
+  WM_CLASS, and `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`.
+
+The full signature avoids matching Zoom's ordinary main window, which
+uses the same generic title. The created-set handshake keeps
+workspace-switch remaps (xmonad unmaps/remaps the copyToAllHook'd popup
+on every switch) from retriggering. Limitation: if Zoom updates an
+already-open reminder window in place for a later notification, no
+event fires.
 
 Deps (via home-manager: writers.writePython3Bin with libraries=[osd]):
     osd (pycairo + python-xlib transitively)
@@ -67,6 +74,8 @@ STYLE = OSDStyle(
 DEFAULT_DURATION = 6.0
 DEFAULT_APP_REGEX = "zoom"
 DEFAULT_WINDOW_REGEX = "zoom_linux_float_message_reminder"
+ZOOM_WORKPLACE_TITLE = "Zoom Workplace"
+KDE_OVERRIDE_WINDOW_TYPE = "_KDE_NET_WM_WINDOW_TYPE_OVERRIDE"
 
 MATCH_RULE = ("type='method_call',"
               "interface='org.freedesktop.Notifications',member='Notify'")
@@ -173,9 +182,34 @@ def _window_title(dpy, win) -> str:
         return ""
 
 
+def _is_zoom_popup(dpy, win, title: str, win_re: re.Pattern) -> bool:
+    """Match legacy title-based popups and Zoom's generic-titled meeting
+    startup window without treating the ordinary main window as a popup."""
+    if win_re.search(title):
+        return True
+    if title != ZOOM_WORKPLACE_TITLE:
+        return False
+
+    try:
+        wm_class = win.get_wm_class() or ()
+        if not any(str(value).lower() == "zoom" for value in wm_class):
+            return False
+
+        type_atom = dpy.get_atom("_NET_WM_WINDOW_TYPE")
+        override_atom = dpy.get_atom(KDE_OVERRIDE_WINDOW_TYPE,
+                                     only_if_exists=True)
+        prop = win.get_full_property(type_atom, Xatom.ATOM)
+        return (override_atom != X.NONE
+                and prop is not None
+                and override_atom in prop.value)
+    except Exception:
+        # The client may disappear between MapNotify and the property reads.
+        return False
+
+
 def _watch_windows(win_re: re.Pattern, on_match) -> None:
     """Watch root SubstructureNotify for newly created-and-mapped windows
-    whose title matches win_re; call on_match(title) for each.
+    matching _is_zoom_popup; call on_match(title) for each.
 
     Runs in a daemon thread with its own Display connection (python-xlib
     connections aren't thread-safe to share). Title is read at MapNotify
@@ -197,7 +231,7 @@ def _watch_windows(win_re: re.Pattern, on_match) -> None:
         elif ev.type == X.MapNotify and ev.window.id in created:
             created.discard(ev.window.id)
             title = _window_title(dpy, ev.window)
-            if win_re.search(title):
+            if _is_zoom_popup(dpy, ev.window, title, win_re):
                 on_match(title)
 
 
@@ -254,7 +288,9 @@ def _run_daemon(duration: float) -> int:
 
     def _on_window(title: str) -> None:
         sys.stderr.write(f"zoom-osd: window: {title}\n")
-        _show(_format_text("Zoom meeting reminder", ""), duration)
+        summary = ("Zoom meeting" if title == ZOOM_WORKPLACE_TITLE
+                   else "Zoom meeting reminder")
+        _show(_format_text(summary, ""), duration)
 
     threading.Thread(target=_watch_windows, args=(win_re, _on_window),
                      daemon=True).start()
