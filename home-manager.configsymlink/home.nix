@@ -104,6 +104,7 @@ in
     pkgs.spacer
     pkgs.sublime-merge
     pkgs.uv # edge-tts runner for say-en/say-ko/say-es
+    pkgs.vivaldi
     pkgs.watchlog
     # battery-osd: invocation wrapper around the local `osd` library.
     # Single binary in PATH; no full Python (would conflict with awscli2).
@@ -218,6 +219,7 @@ in
     builtins.elem (pkgs.lib.getName pkg) [
       "albert"
       "sublime-merge"
+      "vivaldi"
       # Reclassified as unfree by upstream nixpkgs after 2026-05-23 flake update.
       # nvim plugins where the upstream repo lists a non-OSI license (or no
       # license at all, which nixpkgs now treats as unfree). We're not
