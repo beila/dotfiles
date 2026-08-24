@@ -19,6 +19,8 @@ At eval time, reads `/etc/hostname` (FQDN and short form both tried) and exposes
 
 Packages, the unfree predicate (albert, Sublime Merge, Vivaldi, and 8 nvim plugins reclassified upstream — see "Flake update watchdog" in `script/AGENTS.md`), the `copyq` daemon, and `dotfiles.schedule.jobs` declarations (see `schedule.nix`). Anki is nixGL-wrapped so its Qt/OpenGL initialization works when launched from the desktop environment on non-NixOS hosts. Home Manager also generates Albert-visible `HojinAnki`, `InsukAnki`, `HarenAnki`, and `IrunAnki` desktop entries with isolated bases under `$XDG_DATA_HOME/Anki2-{Hojin,Insuk,Haren,Irun}`; the package's default `Anki` entry and `$XDG_DATA_HOME/Anki2` base remain unchanged. Sublime Merge supplies the `smerge` command used by jj's default merge editor. The installed `jj` package is a serialized wrapper around `pkgs.jujutsu`; see `script/AGENTS.md`.
 
+Vivaldi uses `pkgs.vivaldi.override { proprietaryCodecs = true; }` so Nix links the compatible `libffmpeg.so` into the package. The plain package relies on Vivaldi's timed runtime downloader and failed before startup when the codec was not downloaded.
+
 Defines two inline derivations consumed by OSDs:
 
 - `osd` — local Python package built from `xwindow/osd/` (cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, and `hangul-osd`.

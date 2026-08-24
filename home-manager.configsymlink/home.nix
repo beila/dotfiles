@@ -26,6 +26,7 @@ let
   };
 
   anki = config.lib.nixGL.wrap pkgs.anki;
+  vivaldi = pkgs.vivaldi.override { proprietaryCodecs = true; };
   ankiDesktopEntry = profile: {
     name = "${profile}Anki";
     comment = "Anki with isolated data for ${profile}";
@@ -104,7 +105,7 @@ in
     pkgs.spacer
     pkgs.sublime-merge
     pkgs.uv # edge-tts runner for say-en/say-ko/say-es
-    pkgs.vivaldi
+    vivaldi
     pkgs.watchlog
     # battery-osd: invocation wrapper around the local `osd` library.
     # Single binary in PATH; no full Python (would conflict with awscli2).
