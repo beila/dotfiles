@@ -30,8 +30,8 @@ jj() { :; }
 _args_file=$(mktemp)
 trap "rm -f $_args_file" EXIT
 fzf() { echo "OP=${JJ_FZF_OPERATION:-} $*" > "$_args_file"; }
-fzf_down() { fzf "$@"; }
-_jj_log_fzf() { fzf "$@"; }
+fzf_down() { fzf --no-height --border --no-mouse "$@"; }
+_jj_log_fzf() { fzf_down "$@"; }
 capture() { echo -n '' > "$_args_file"; "$@" 2>/dev/null; cat "$_args_file"; }
 
 echo "_jh:"
@@ -92,6 +92,7 @@ assert "become passes {n} {q}" "{n} {q}" "$out"
 echo "_jy:"
 out=$(capture _jy)
 assert_not "no args: no --query" "--query" "$out"
+assert "_jy disables fzf mouse handling" "--no-mouse" "$out"
 out=$(capture _jy "3" "myquery")
 assert "with query: --query" "--query myquery" "$out"
 assert "with pos: result:pos(4)" "result:pos(4)" "$out"
@@ -300,6 +301,8 @@ assert_not "functions.sh: no ctrl-/ binding (logic moved to fzf-zellij)" \
 fzf_down_body=$(sed -n '/^fzf_down()/,/^}/p' "$fns")
 assert "functions.sh: custom pickers use fullscreen fzf" \
   "--no-height" "$fzf_down_body"
+assert "functions.sh: all custom pickers disable fzf mouse handling" \
+  "--no-mouse" "$fzf_down_body"
 assert_not "functions.sh: custom pickers have no fixed 50% height" \
   "--height 50%" "$fzf_down_body"
 assert "fzf-zellij: defines up,50% override for non-reverse layouts" \
