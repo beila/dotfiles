@@ -91,17 +91,22 @@ EOF
   sudo udevadm trigger
 fi
 
-# Ubuntu 24.04's AppArmor policy otherwise strips the capabilities bwrap needs
-# to initialize Codex's filesystem sandbox. This applies to every local caller
-# of /usr/bin/bwrap, while retaining the host-wide userns restriction for other
-# executables.
-if [ -x /usr/bin/bwrap ] &&
-   [ -x /usr/sbin/apparmor_parser ] &&
+# Ubuntu 24.04's AppArmor policy otherwise blocks user namespaces needed by
+# bwrap and Chromium. Keep the host-wide restriction and grant userns only to
+# the exact executables that need it.
+if [ -x /usr/sbin/apparmor_parser ] &&
    [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null)" = 1 ]; then
+  if [ -x /usr/bin/bwrap ]; then
+    sudo install -m 0644 \
+      "$SCRIPT_DIR/bwrap-codex.apparmor" \
+      /etc/apparmor.d/bwrap-codex
+    sudo /usr/sbin/apparmor_parser -r /etc/apparmor.d/bwrap-codex
+  fi
+
   sudo install -m 0644 \
-    "$SCRIPT_DIR/bwrap-codex.apparmor" \
-    /etc/apparmor.d/bwrap-codex
-  sudo /usr/sbin/apparmor_parser -r /etc/apparmor.d/bwrap-codex
+    "$SCRIPT_DIR/vivaldi.apparmor" \
+    /etc/apparmor.d/vivaldi-dotfiles
+  sudo /usr/sbin/apparmor_parser -r /etc/apparmor.d/vivaldi-dotfiles
 fi
 
 # linger: keep systemd --user alive after logout so zellij servers,

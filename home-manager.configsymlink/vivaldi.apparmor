@@ -1,0 +1,4 @@
+abi <abi/4.0>,
+profile vivaldi-dotfiles /nix/store/*-vivaldi-*/opt/vivaldi/vivaldi-bin flags=(unconfined) {
+  userns,
+}

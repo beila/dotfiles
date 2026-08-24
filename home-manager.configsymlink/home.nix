@@ -26,7 +26,12 @@ let
   };
 
   anki = config.lib.nixGL.wrap pkgs.anki;
-  vivaldi = pkgs.vivaldi.override { proprietaryCodecs = true; };
+  vivaldi = pkgs.vivaldi.override {
+    proprietaryCodecs = true;
+    # The immutable Nix store cannot provide Chromium's root-owned SUID helper.
+    # system-deps.sh grants userns to vivaldi-bin through a narrow AppArmor rule.
+    commandLineArgs = "--disable-setuid-sandbox";
+  };
   ankiDesktopEntry = profile: {
     name = "${profile}Anki";
     comment = "Anki with isolated data for ${profile}";
