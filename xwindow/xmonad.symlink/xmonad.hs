@@ -1,5 +1,7 @@
+import Control.Exception (IOException, try)
 import Control.Monad
 import qualified Data.ByteString as BS
+import Data.Either (fromRight)
 import Data.List (stripPrefix)
 import qualified Data.List as L (filter, find, isPrefixOf, isSuffixOf)
 import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
@@ -8,7 +10,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Text.Read (readMaybe)
 import Data.Monoid (All (..))
-import System.Directory (getHomeDirectory, setCurrentDirectory)
+import System.Directory (getHomeDirectory, listDirectory, setCurrentDirectory)
 import qualified XMonad.StackSet as W
 
 import XMonad
@@ -31,6 +33,7 @@ import XMonad.Util.XUtils (createNewWindow, deleteWindow, fi, paintAndWrite, sho
 
 import Graphics.X11.ExtraTypes.XF86
 import Graphics.X11.Xlib.Window (raiseWindow)
+import qualified Graphics.X11.Xrandr as RR
 
 ------------------------------------------------------------------------
 -- Main
@@ -474,6 +477,74 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
             (w : _) -> windows $ W.greedyView (W.tag w)
             [] -> return ()
 
+data MonitorTarget = DellMonitor | SamsungMonitor | LaptopMonitor
+
+focusMonitor :: MonitorTarget -> X ()
+focusMonitor target = do
+    targetRect <- withDisplay $ \dpy -> do
+        root <- asks theRoot
+        io $ findMonitorRect dpy root target
+    forM_ targetRect $ \rect ->
+        withWindowSet $ \ws ->
+            forM_ (L.find ((== rect) . screenRect . W.screenDetail) $ W.screens ws) $
+                windows . W.view . W.tag . W.workspace
+
+findMonitorRect :: Display -> Window -> MonitorTarget -> IO (Maybe Rectangle)
+findMonitorRect dpy root target = do
+    resources <- RR.xrrGetScreenResourcesCurrent dpy root
+    case resources of
+        Nothing -> return Nothing
+        Just rs -> do
+            matches <- forM (RR.xrr_sr_outputs rs) $ \output -> do
+                outputInfo <- RR.xrrGetOutputInfo dpy rs output
+                case outputInfo of
+                    Just oi | RR.xrr_oi_crtc oi /= 0 -> do
+                        matchesTarget <- monitorMatches target (RR.xrr_oi_name oi)
+                        if matchesTarget
+                            then do
+                                crtcInfo <- RR.xrrGetCrtcInfo dpy rs (RR.xrr_oi_crtc oi)
+                                return $ fmap crtcRect crtcInfo
+                            else return Nothing
+                    _ -> return Nothing
+            return $ listToMaybe $ catMaybes matches
+  where
+    crtcRect ci =
+        Rectangle
+            (fromIntegral $ RR.xrr_ci_x ci)
+            (fromIntegral $ RR.xrr_ci_y ci)
+            (fromIntegral $ RR.xrr_ci_width ci)
+            (fromIntegral $ RR.xrr_ci_height ci)
+
+monitorMatches :: MonitorTarget -> String -> IO Bool
+monitorMatches LaptopMonitor output = return $ "eDP-" `L.isPrefixOf` output
+monitorMatches DellMonitor output = externalMonitorMatches output $ BS.pack [0x10, 0xac] -- DEL
+monitorMatches SamsungMonitor output = externalMonitorMatches output $ BS.pack [0x4c, 0x2d] -- SAM
+
+externalMonitorMatches :: String -> BS.ByteString -> IO Bool
+externalMonitorMatches output expectedVendor
+    | "eDP-" `L.isPrefixOf` output = return False
+    | otherwise = do
+        vendor <- readEdidVendor output
+        return $ vendor == Just expectedVendor
+
+readEdidVendor :: String -> IO (Maybe BS.ByteString)
+readEdidVendor output = do
+    result <-
+        try
+            ( do
+                connectors <- listDirectory "/sys/class/drm"
+                case L.find (L.isSuffixOf $ "-" ++ output) connectors of
+                    Nothing -> return Nothing
+                    Just connector -> do
+                        edid <- BS.readFile $ "/sys/class/drm/" ++ connector ++ "/edid"
+                        return $
+                            if BS.length edid >= 10
+                                then Just $ BS.take 2 $ BS.drop 8 edid
+                                else Nothing
+            ) ::
+            IO (Either IOException (Maybe BS.ByteString))
+    return $ fromRight Nothing result
+
 ------------------------------------------------------------------------
 -- Key bindings
 ------------------------------------------------------------------------
@@ -495,6 +566,9 @@ myKeys =
     , ((0, xF86XK_MonBrightnessDown), spawn "$HOME/.dotfiles/xwindow/bin/brightness-osd down")
     , ((mod4Mask, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-output")
     , ((mod4Mask, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-input")
+    , ((mod4Mask, xK_w), focusMonitor DellMonitor)
+    , ((mod4Mask, xK_e), focusMonitor SamsungMonitor)
+    , ((mod4Mask, xK_r), focusMonitor LaptopMonitor)
     , -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
       ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)

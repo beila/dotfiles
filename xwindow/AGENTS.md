@@ -51,6 +51,9 @@ Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarR
 - Brightness keys → `brightness-osd` (5% steps ≤20%, 10% above)
 - Super+VolumeUp → `cycle-audio-output`
 - Super+VolumeDown → `cycle-audio-input`
+- Super+W → focus the active Dell monitor by EDID manufacturer
+- Super+E → focus the active external Samsung monitor by EDID manufacturer
+- Super+R → focus the active laptop panel by its `eDP-*` output
 - Super+N → `W.view` (focus workspace without swapping monitors)
 - Ctrl+Super+N → `W.greedyView` (bring workspace to current monitor)
 - Super+Shift+Enter → gnome-terminal
@@ -189,7 +192,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 
 ## Monitors
 
-Multi-monitor configurations vary by location; `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens after hotplug. xfce4-panel bottom bar: 48px, using `avoidStruts`.
+Multi-monitor configurations vary by location. After monitor connection changes, `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens. Super+W, Super+E, and Super+R resolve active RandR outputs to XMonad screen rectangles on each keypress instead of relying on mutable screen IDs. External displays use the two-byte EDID manufacturer IDs for Dell (`DEL`) and Samsung (`SAM`); the laptop uses the internal `eDP-*` output. A disconnected target is a no-op. xfce4-panel bottom bar: 48px, using `avoidStruts`.
 
 ## Known issues
 
