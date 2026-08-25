@@ -22,8 +22,8 @@ safe to launch from either the main thread or the X watcher thread.
 
 Second trigger — Zoom's own popup windows: the Linux client does NOT call
 org.freedesktop.Notifications for meeting invites or the meeting startup
-window. A daemon thread watches root SubstructureNotify and fires the OSD
-on the first MapNotify of a newly *created* window when either:
+window. A daemon thread watches newly created root windows and fires the
+OSD as soon as their properties or first map reveal either:
 
 * its title matches $ZOOM_OSD_WINDOW_REGEX (default:
   `zoom_linux_float_message_reminder`), or
@@ -31,11 +31,12 @@ on the first MapNotify of a newly *created* window when either:
   WM_CLASS, and `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`.
 
 The full signature avoids matching Zoom's ordinary main window, which
-uses the same generic title. The created-set handshake keeps
-workspace-switch remaps (xmonad unmaps/remaps the copyToAllHook'd popup
-on every switch) from retriggering. Limitation: if Zoom updates an
-already-open reminder window in place for a later notification, no
-event fires.
+uses the same generic title. Property watching is required because xmonad
+can shift the meeting window to a hidden workspace before it is ever
+mapped. The created-set handshake keeps workspace-switch remaps (xmonad
+unmaps/remaps the copyToAllHook'd popup on every switch) from retriggering.
+Limitation: if Zoom updates an already-open reminder window in place for
+a later notification, no event fires.
 
 Deps (via home-manager: writers.writePython3Bin with libraries=[osd]):
     osd (pycairo + python-xlib transitively)
@@ -207,32 +208,70 @@ def _is_zoom_popup(dpy, win, title: str, win_re: re.Pattern) -> bool:
         return False
 
 
+def _stop_tracking_window(win, pending: set[int]) -> None:
+    pending.discard(win.id)
+    try:
+        win.change_attributes(event_mask=X.NoEventMask)
+    except Exception:
+        pass
+
+
+def _match_pending_window(dpy, win, win_re: re.Pattern,
+                          pending: set[int], on_match) -> bool:
+    """Match a newly created window once and stop tracking it."""
+    if win.id not in pending:
+        return False
+    title = _window_title(dpy, win)
+    if not _is_zoom_popup(dpy, win, title, win_re):
+        return False
+    _stop_tracking_window(win, pending)
+    on_match(title)
+    return True
+
+
+def _handle_window_event(dpy, ev, win_re: re.Pattern,
+                         pending: set[int], on_match) -> None:
+    """Update watcher state for one root/child event."""
+    if ev.type == X.CreateNotify:
+        pending.add(ev.window.id)
+        try:
+            # Hidden-workspace clients may never map, so observe the
+            # identifying properties directly. sync() closes the race where
+            # Zoom set them before this client selected PropertyChangeMask.
+            ev.window.change_attributes(event_mask=X.PropertyChangeMask)
+            dpy.sync()
+        except Exception:
+            pending.discard(ev.window.id)
+            return
+        _match_pending_window(dpy, ev.window, win_re, pending, on_match)
+    elif ev.type == X.DestroyNotify:
+        pending.discard(ev.window.id)
+    elif ev.type == X.PropertyNotify:
+        _match_pending_window(dpy, ev.window, win_re, pending, on_match)
+    elif ev.type == X.MapNotify and ev.window.id in pending:
+        if not _match_pending_window(dpy, ev.window, win_re,
+                                     pending, on_match):
+            _stop_tracking_window(ev.window, pending)
+
+
 def _watch_windows(win_re: re.Pattern, on_match) -> None:
-    """Watch root SubstructureNotify for newly created-and-mapped windows
-    matching _is_zoom_popup; call on_match(title) for each.
+    """Watch newly created root windows for _is_zoom_popup matches.
 
     Runs in a daemon thread with its own Display connection (python-xlib
-    connections aren't thread-safe to share). Title is read at MapNotify
-    time — Zoom sets it before mapping. Only windows seen in a
-    CreateNotify during our watch count: xmonad unmaps/remaps the
+    connections aren't thread-safe to share). Properties are checked from
+    creation until the first map, allowing a Zoom meeting window shifted
+    directly to a hidden workspace to trigger without MapNotify. Only windows
+    seen in a CreateNotify during our watch count: xmonad unmaps/remaps the
     copyToAllHook'd reminder popup on every workspace switch, and those
     remaps must not retrigger the OSD."""
     dpy = display.Display()
     root = dpy.screen().root
     root.change_attributes(event_mask=X.SubstructureNotifyMask)
     dpy.flush()
-    created: set[int] = set()
+    pending: set[int] = set()
     while True:
-        ev = dpy.next_event()
-        if ev.type == X.CreateNotify:
-            created.add(ev.window.id)
-        elif ev.type == X.DestroyNotify:
-            created.discard(ev.window.id)
-        elif ev.type == X.MapNotify and ev.window.id in created:
-            created.discard(ev.window.id)
-            title = _window_title(dpy, ev.window)
-            if _is_zoom_popup(dpy, ev.window, title, win_re):
-                on_match(title)
+        _handle_window_event(dpy, dpy.next_event(), win_re,
+                             pending, on_match)
 
 
 def _notify_events(stdout):
