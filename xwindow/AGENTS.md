@@ -162,7 +162,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 - `scratchpadToggle`: per-scratchpad (left-alt → ghostty1, right-alt → ghostty2); behavior branches on whether the window is fullscreen. Fullscreen is detected from xmonad's **float map** (`W.floating` entry == `RationalRect 0 0 1 1`, what `doFullFloat` sets), **not** the `_NET_WM_STATE_FULLSCREEN` atom — exiting fullscreen runs `doSink`, which leaves that atom stale on a now-tiled window:
   - **Fullscreen** — stuck in its own workspace, never hidden: focused → `toggleWS' ["NSP"]` jumps back to the previously viewed workspace (pressing again returns, toggling between the two); parked elsewhere → jump to its workspace and focus, preserving fullscreen.
   - **Not fullscreen** (half-screen float) — classic per-window show/hide: focused → hide to NSP; visible on another screen → focus; hidden → bring to current workspace + float + focus.
-- `adaptiveFloat` manage hook: landscape → side-by-side halves, portrait → stacked halves, 2% margins.
+- `adaptiveFloat` manage hook: landscape → side-by-side halves, portrait → stacked halves. Both orientations keep a 1% gap between scratchpads; outer margins remain unchanged.
 - `refloatAdaptive`: repositions scratchpad to match current screen orientation on every show.
 
 ## Zoom notification

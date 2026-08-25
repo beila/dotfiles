@@ -289,8 +289,8 @@ scratchpadRect isLeftOrTop (Rectangle _ _ sw sh)
             else W.RationalRect 0.505 0.03 0.485 0.94
     | otherwise =
         if isLeftOrTop
-            then W.RationalRect 0.01 0.03 0.98 0.475
-            else W.RationalRect 0.01 0.505 0.98 0.475
+            then W.RationalRect 0.01 0.03 0.98 0.47
+            else W.RationalRect 0.01 0.51 0.98 0.47
 
 -- Float scratchpad as half the screen, adapting to orientation
 adaptiveFloat :: Bool -> ManageHook

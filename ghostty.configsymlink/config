@@ -49,8 +49,6 @@ gtk-titlebar = false
 # stays off here. Xmonad paints matching tags for the floating scratchpads.
 window-show-tab-bar = never
 clipboard-paste-protection = false
-# Keep vertically stacked terminals flush; XMonad's border already separates them.
-window-padding-y = 0
 
 # Per-glyph fallback: Latin from JetBrainsMono Nerd Font, Hangul from LXGW WenKai Mono.
 font-family = JetBrainsMono Nerd Font
