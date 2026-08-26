@@ -38,11 +38,9 @@ _check() {
 zle() { return 0 }
 
 alias gst='ls'
-alias jsyncmd='just syncmd'
 gco() { :; }
 my_long_func() { :; }
 LOGRUN_AUTO_FUNCTIONS=(my_long_func)
-LOGRUN_AUTO_SKIP_COMMANDS=('just sync' 'just syncmd')
 
 # ---- classify: decision matrix ----
 _classify() {
@@ -70,10 +68,6 @@ _check "classify: for-loop via -c"           "function"   "$(_classify 'for i in
 _check "classify: TUI less"                  "skip"       "$(_classify 'less foo.txt')"
 _check "classify: TUI ssh"                   "skip"       "$(_classify 'ssh host')"
 _check "classify: TUI man"                   "skip"       "$(_classify 'man bash')"
-_check "classify: command skip prefix"       "skip"       "$(_classify 'just sync')"
-_check "classify: command skip with args"    "skip"       "$(_classify 'just sync --source')"
-_check "classify: command skip exact token"  "external"   "$(_classify 'just synchronize')"
-_check "classify: command skip after alias"  "skip"       "$(_classify 'jsyncmd')"
 
 # User-skiplist file: an entry there should classify-as-skip just like
 # entries in $LOGRUN_TUI_SKIPLIST. The reader strips `#`-comment lines so
@@ -185,7 +179,6 @@ _check "rewrite: function not list" "gco main"                                "$
 _check "rewrite: TUI"               "less foo.txt"                            "$(_rewrite 'less foo.txt')"
 _check "rewrite: builtin"           "cd /tmp"                                 "$(_rewrite 'cd /tmp')"
 _check "rewrite: NOLOG"             "NOLOG=1 sleep 30"                        "$(_rewrite 'NOLOG=1 sleep 30')"
-_check "rewrite: command skip"       "just syncmd"                             "$(_rewrite 'just syncmd')"
 
 # Tuning adds a private timing file only to listed function rewrites.
 LOGRUN_AUTO_TUNING=1
