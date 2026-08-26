@@ -35,6 +35,11 @@ if [[ -z "${LOGRUN_TUI_SKIPLIST-}" ]]; then
     export LOGRUN_TUI_SKIPLIST="less more ssh man top nano watch"
 fi
 
+# Multi-word command prefixes that must bypass the wrapper itself. Unlike
+# logrun-nolog, these are checked before a PTY or output pipeline is created.
+# Private/work config can append entries such as "tool special-subcommand".
+typeset -ga LOGRUN_AUTO_SKIP_COMMANDS
+
 # zstat from zsh/stat: mtime probe without forking. Falls through to
 # stat(1) below when zstat isn't loadable.
 zmodload -F zsh/stat b:zstat 2>/dev/null
@@ -116,6 +121,31 @@ _logrun_function_is_wrapped() {
     done
     return 1
 }
+
+_logrun_command_is_skipped() {
+    (( ${#LOGRUN_AUTO_SKIP_COMMANDS[@]} )) || return 1
+
+    local buffer=$1 pattern
+    local -a command_words pattern_words
+    local -i i matched
+    command_words=("${(z)buffer}")
+
+    for pattern in "${LOGRUN_AUTO_SKIP_COMMANDS[@]}"; do
+        pattern_words=("${(z)pattern}")
+        (( ${#pattern_words[@]} > 0 && ${#command_words[@]} >= ${#pattern_words[@]} )) || continue
+
+        matched=1
+        for (( i = 1; i <= ${#pattern_words[@]}; i++ )); do
+            if [[ "${command_words[i]}" != "${pattern_words[i]}" ]]; then
+                matched=0
+                break
+            fi
+        done
+        (( matched )) && return 0
+    done
+    return 1
+}
+
 # Extract the last pipeline stage's first word from a buffer containing
 # pipes. For `foo | bar -x | bat`, returns `bat`. For non-pipe compound
 # commands (&&, ;, etc.) returns empty.
@@ -341,6 +371,10 @@ _logrun_classify() {
     # Reentrancy / explicit logrun call → never wrap again.
     [[ "$first" == "logrun" ]] && return
     [[ -n "${LOGRUN_PID-}" ]] && return
+
+    # Configured command prefixes bypass logrun entirely. This runs after
+    # alias expansion so aliases for excluded commands behave identically.
+    _logrun_command_is_skipped "$BUFFER" && return
 
     # TUI skiplist match — env-var (machine default) ∪ user file (auto-managed).
     # Also resolves the effective command name through runner wrappers
