@@ -91,7 +91,14 @@ local function jj_revision_diff()
 end
 
 local function jj_current_file_revision_diff()
-    jj_diff_picker.current_file_revisions()
+    local mode = vim.fn.mode()
+    local line_range
+    if mode == "v" or mode == "V" or mode == "\22" then
+        local cursor_line = vim.fn.line(".")
+        local visual_line = vim.fn.line("v")
+        line_range = { math.min(cursor_line, visual_line), math.max(cursor_line, visual_line) }
+    end
+    jj_diff_picker.current_file_revisions(line_range)
 end
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-h>", jj_revision_diff,

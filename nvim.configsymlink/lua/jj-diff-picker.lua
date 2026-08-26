@@ -3,6 +3,8 @@ local M = {}
 local fzf_lua = require("fzf-lua")
 local fzf_utils = require("fzf-lua.utils")
 
+local line_history_tempfiles = {}
+
 local function notify(message, level)
 	vim.notify("jj diff: " .. message, level or vim.log.levels.ERROR)
 end
@@ -15,9 +17,7 @@ local function fileset(path)
 	return string.format('"%s"', path:gsub("\\", "\\\\"):gsub('"', '\\"'))
 end
 
-local function run_jj(root, args, report_error)
-	local cmd = { "jj", "--ignore-working-copy", "--quiet" }
-	vim.list_extend(cmd, args)
+local function run_command(root, cmd, report_error)
 	local result = vim.system(cmd, {
 		cwd = root,
 		text = true,
@@ -32,8 +32,27 @@ local function run_jj(root, args, report_error)
 		return nil
 	end
 
-	return vim.split(result.stdout or "", "\n", { plain = true, trimempty = true })
+	return result.stdout or ""
 end
+
+local function run_jj(root, args, report_error)
+	local cmd = { "jj", "--ignore-working-copy", "--quiet" }
+	vim.list_extend(cmd, args)
+	local output = run_command(root, cmd, report_error)
+	return output and vim.split(output, "\n", { plain = true, trimempty = true }) or nil
+end
+
+local function clear_line_history_tempfiles()
+	for path in pairs(line_history_tempfiles) do
+		vim.fn.delete(path)
+		line_history_tempfiles[path] = nil
+	end
+end
+
+vim.api.nvim_create_autocmd("VimLeavePre", {
+	group = vim.api.nvim_create_augroup("JjDiffPickerCleanup", { clear = true }),
+	callback = clear_line_history_tempfiles,
+})
 
 local function jj_root(start_dir)
 	local result = vim.system(
@@ -45,6 +64,70 @@ local function jj_root(start_dir)
 		return nil
 	end
 	return vim.trim(result.stdout)
+end
+
+local function build_line_history(root, path, line_range)
+	local commit_output = run_command(root, {
+		"jj",
+		"--quiet",
+		"log",
+		"--no-graph",
+		"-r",
+		"@",
+		"-T",
+		'commit_id ++ "\n"',
+	})
+	local start_commit = commit_output and vim.trim(commit_output) or ""
+	if not start_commit:match("^%x+$") then
+		notify("could not resolve the current JJ commit")
+		return nil
+	end
+
+	local range_arg = string.format("-L%d,%d:%s", line_range[1], line_range[2], path)
+	local output = run_command(root, {
+		"git",
+		"--no-pager",
+		"log",
+		"--color=always",
+		"--no-merges",
+		"--date=short",
+		"--format=%x1e%H%ncommit %C(yellow)%H%C(reset)%nAuthor: %an <%ae>%nDate: %ad%n%n    %s",
+		range_arg,
+		start_commit,
+	})
+	if not output then
+		return nil
+	end
+
+	local ids = {}
+	local seen = {}
+	for id in output:gmatch("\30(%x+)") do
+		if not seen[id] then
+			seen[id] = true
+			table.insert(ids, id)
+		end
+	end
+	if #ids == 0 then
+		notify("no revisions found for the selected lines", vim.log.levels.INFO)
+		return nil
+	end
+
+	clear_line_history_tempfiles()
+	local preview_path = vim.fn.tempname()
+	local write_result = vim.fn.writefile(vim.split(output, "\n", { plain = true }), preview_path, "b")
+	if write_result ~= 0 then
+		vim.fn.delete(preview_path)
+		notify("could not cache the line-history preview")
+		return nil
+	end
+	line_history_tempfiles[preview_path] = true
+
+	return {
+		active = true,
+		range = line_range,
+		revset = table.concat(ids, " | "),
+		preview_path = preview_path,
+	}
 end
 
 local function source_context()
@@ -139,6 +222,9 @@ local function configured_log_revset(root)
 end
 
 local function active_revset(state)
+	if state.line_history and state.line_history.active then
+		return state.line_history.revset
+	end
 	return state.full_log and state.full_revset or state.default_revset
 end
 
@@ -164,6 +250,15 @@ local function log_args(state, color)
 end
 
 local function preview_command(state)
+	if state.line_history and state.line_history.active then
+		return table.concat({
+			[[commit=$(printf '%s\n' {} | cut -s -f4 | sed 's/\x1b\[[0-9;]*m//g')]],
+			[[test -n "$commit" || exit 0]],
+			[[awk -v commit="$commit" 'BEGIN { marker = sprintf("%c", 30) } substr($0, 1, 1) == marker { selected = index(substr($0, 2), commit) == 1; next } selected { print }' ]]
+				.. vim.fn.shellescape(state.line_history.preview_path),
+		}, "; ")
+	end
+
 	local commands = {
 		[[id=$(printf '%s\n' {} | cut -s -f2 | sed 's/\x1b\[[0-9;]*m//g')]],
 		[[path=$(printf '%s\n' {} | cut -s -f3 | sed 's/\x1b\[[0-9;]*m//g')]],
@@ -272,10 +367,17 @@ local function copy_commit_ids(selected)
 end
 
 local function picker_header(state)
+	local history_checked = state.full_log
+	local history_label = state.path and "all file revisions" or "full log"
+	if state.line_history then
+		history_checked = state.line_history.active
+		history_label = string.format("lines %d-%d", state.line_history.range[1], state.line_history.range[2])
+	end
+
 	return string.format(
 		"[%s] %s (ctrl-h)  [%s] files (ctrl-s)  insert after (ctrl-o)  copy commit-id (ctrl-x)",
-		state.full_log and "x" or " ",
-		state.path and "all file revisions" or "full log",
+		history_checked and "x" or " ",
+		history_label,
 		state.files and "x" or " "
 	)
 end
@@ -300,7 +402,9 @@ end
 open_picker = function(state)
 	fzf_lua.fzf_exec(log_command(state), {
 		cwd = state.root,
-		prompt = state.path and "jj file revisions> " or "jj revisions> ",
+		prompt = state.line_history and state.line_history.active and "jj line revisions> "
+			or state.path and "jj file revisions> "
+			or "jj revisions> ",
 		query = state.query,
 		locate = state.pos ~= nil,
 		__locate_pos = state.pos,
@@ -318,7 +422,11 @@ open_picker = function(state)
 				open_codediff(state.root, state.source_buf, state.path, selected)
 			end,
 			["ctrl-h"] = reopen_action(state, function()
-				state.full_log = not state.full_log
+				if state.line_history then
+					state.line_history.active = not state.line_history.active
+				else
+					state.full_log = not state.full_log
+				end
 			end),
 			["ctrl-s"] = reopen_action(state, function()
 				state.files = not state.files
@@ -345,11 +453,12 @@ open_picker = function(state)
 	})
 end
 
-local function new_state(root, source_buf, path)
+local function new_state(root, source_buf, path, line_history)
 	return {
 		root = root,
 		source_buf = source_buf,
 		path = path,
+		line_history = line_history,
 		default_revset = configured_log_revset(root),
 		full_revset = path and "all()" or "::workspace_view()",
 		full_log = path ~= nil,
@@ -366,7 +475,7 @@ function M.revisions()
 	open_picker(new_state(root, bufnr))
 end
 
-function M.current_file_revisions()
+function M.current_file_revisions(line_range)
 	local bufnr, file, root = source_context()
 	if not root then
 		fzf_lua.git_bcommits()
@@ -382,7 +491,23 @@ function M.current_file_revisions()
 		notify("current file is outside the JJ repository")
 		return
 	end
-	open_picker(new_state(root, bufnr, relative))
+
+	local line_history
+	if line_range then
+		if vim.bo[bufnr].modified then
+			notify("save the current buffer before opening line history")
+			return
+		end
+		local line_count = vim.api.nvim_buf_line_count(bufnr)
+		local first = math.min(line_count, math.max(1, math.min(line_range[1], line_range[2])))
+		local last = math.min(line_count, math.max(line_range[1], line_range[2]))
+		line_history = build_line_history(root, relative, { first, last })
+		if not line_history then
+			return
+		end
+	end
+
+	open_picker(new_state(root, bufnr, relative, line_history))
 end
 
 return M
