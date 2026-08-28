@@ -192,6 +192,12 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 
 `copyq` (nix) — systemd user service. xmonad Super+Shift+V runs `copyq toggle`. Super+V is universal paste (see `keyd/AGENTS.md`).
 
+The local CopyQ automatic command `Strip Gmail Noto Emoji HTML` removes only
+the `text/html` flavor from captured items containing
+`fonts.gstatic.com/s/e/notoemoji/`; `text/plain` is preserved. This prevents
+CopyQ's rich-content loader from repeatedly probing Gmail's remote Noto Emoji
+image URLs and wedging the server.
+
 ## Monitors
 
 Multi-monitor configurations vary by location. After monitor connection changes, `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens. Super+W, Super+E, and Super+R use XMonad's default screen 0/1/2 ordering when no work display is detected, giving W=laptop and E=external at home. If an active external display has the two-byte EDID manufacturer ID for Dell (`DEL`) or Samsung (`SAM`), the work profile activates: W=Dell, E=Samsung, and R=the internal `eDP-*` laptop panel. Work targets resolve active RandR outputs to XMonad screen rectangles on each keypress instead of relying on mutable screen IDs; a disconnected work target is a no-op. xfce4-panel bottom bar: 48px, using `avoidStruts`.
