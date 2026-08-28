@@ -14,6 +14,9 @@ CELLS=15
 # byte-rate calculation; if you change one, change the other.
 POLL_SEC=20
 LEN=$(( CELLS * 2 ))  # 30 samples × 20s = 10 minutes
+# A single saturated CPU is easy to miss in the package-wide average. Mark
+# logical CPUs that stay this busy across one full polling interval.
+CORE_WARN_PCT=80
 
 # Braille pair lookup. Index = L*5 + R, where L,R ∈ 0..4 (dot height per side).
 # Generated from L bits {0,0x40,0x44,0x46,0x47} + R bits {0,0x80,0xA0,0xB0,0xB8}
@@ -89,7 +92,7 @@ push_hist() {
 }
 
 spark() {
-    local key=$1 inv=${2:-0} vals padded out=""
+    local key=$1 inv=${2:-0} vals out=""
     vals=$(read_hist "$key")
     # Left-pad with -1 ("no data") so empty cells stay blank instead of
     # rendering a 1-dot floor that looks like a real low reading.
@@ -221,18 +224,32 @@ prev_cores=/tmp/sysmon-cores-prev
 cur_cores=/tmp/sysmon-cores-cur
 awk '/^cpu[0-9]+/' /proc/stat > "$cur_cores"
 if [ -f "$prev_cores" ]; then
-    cores_tip=$(paste "$prev_cores" "$cur_cores" | awk 'NF>=20{
+    cores_tip=$(paste "$prev_cores" "$cur_cores" | awk -v warn="$CORE_WARN_PCT" 'NF>=20{
         pt=$2+$3+$4+$5+$6+$7+$8; pu=$2+$3+$4
         nt=$13+$14+$15+$16+$17+$18+$19; nu=$13+$14+$15
         dt=nt-pt; du=nu-pu
         pct=dt>0 ? int(du*100/dt) : 0
         c[NR-1]=pct
     } END {
+        peak_cpu=0; peak_pct=-1
+        for(i=0;i<length(c);i++) {
+            if(c[i]>peak_pct) {
+                peak_cpu=i
+                peak_pct=c[i]
+            }
+        }
+        printf "Peak: CPU %d = %d%%", peak_cpu, peak_pct
+        if(peak_pct>=warn) printf " [HIGH]"
+        printf "\n"
+
         s=0
         while(s<length(c)) {
             e=s+3; if(e>=length(c)) e=length(c)-1
             printf "%2d-%2d:", s, e
-            for(i=s;i<=e;i++) printf " %3d%%", c[i]
+            for(i=s;i<=e;i++) {
+                marker=c[i]>=warn ? "!" : " "
+                printf " %s%3d%%", marker, c[i]
+            }
             printf "\n"; s=e+1
         }
     }')
