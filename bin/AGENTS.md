@@ -120,6 +120,12 @@ Beware `zmx attach --help`: zmx takes it as a session name and attaches to a ses
 
 `notify-webhook` — dispatcher for structured alerts. Flags: `-t TITLE`, `-p {low|normal|high|urgent}`, `-u URL`. Backends live in `~/.dotfiles/script/logger/backends/<name>.sh` and must define `notify_send TITLE PRIORITY URL MESSAGE`. Selection priority: explicit `$NOTIFY_BACKEND` env var → auto-detect (`telegram.env` present → `telegram`) → `none`. Missing credentials or unknown backend = silent no-op (exit 0) so machines without configuration don't fail. See `script/logger/AGENTS.md` for backend details.
 
+## Dropbox Downloader
+
+`dropbox-get [--all] [--to DIR] [QUERY]` — one-way personal Dropbox downloader backed by `rclone` and `fzf`. The first run creates an rclone remote named `dropbox` and opens Dropbox's one-time browser authorization. The OAuth token remains mutable machine state at `~/.config/rclone/rclone.conf`, outside Home Manager and git. Config command output is suppressed so the token cannot reach the terminal or logs. Subsequent runs list remote file paths without downloading content, fuzzy-search only the path column, and preserve selected paths under `~/Downloads/Dropbox` by default. Tab multi-selects and Ctrl-A selects all current matches. `--all` performs an explicit full one-way `rclone copy`; neither mode deletes local files or uploads workstation files. `DROPBOX_REMOTE` and `DROPBOX_DOWNLOAD_DIR` override the defaults.
+
+The picker is in `LOGRUN_TUI_SKIPLIST` so the shell runs it directly and personal paths do not enter `logrun`. Use `fd PATTERN ~/Downloads/Dropbox` for local filename search and `rg PATTERN ~/Downloads/Dropbox` for content search after download. Dropbox is only for personal/public files; Amazon data must not be downloaded to or uploaded through the personal account. Test: `bash bin/test_dropbox_get.sh`.
+
 ## MCP TTS server
 
 `mcp-tts` — MCP server exposing `say` / `say_ko` tools to Kiro/Claude. Kills previous playback via `setsid` + `kill -PGID`. See `kiro.filesymlink/AGENTS.md` for the agent wiring. Test: `bash bin/test_mcp_tts.sh`.

@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+# Search a Dropbox account by path and explicitly download selected files.
+
+set -euo pipefail
+
+if command -v logrun-nolog >/dev/null 2>&1; then
+    logrun-nolog
+fi
+
+REMOTE=${DROPBOX_REMOTE:-dropbox}
+DESTINATION=${DROPBOX_DOWNLOAD_DIR:-"$HOME/Downloads/Dropbox"}
+QUERY=
+DOWNLOAD_ALL=0
+
+usage() {
+    cat <<'EOF'
+Usage: dropbox-get [--all] [--to DIRECTORY] [QUERY]
+
+Search Dropbox paths with fzf and download the selected files. Downloads
+preserve their Dropbox paths below ~/Downloads/Dropbox by default.
+
+Options:
+  --all             Download every file without opening the picker
+  --to DIRECTORY    Override the download directory
+  -h, --help        Show this help
+
+Environment:
+  DROPBOX_REMOTE        rclone remote name (default: dropbox)
+  DROPBOX_DOWNLOAD_DIR  default download directory
+EOF
+}
+
+while (($#)); do
+    case "$1" in
+        --all)
+            DOWNLOAD_ALL=1
+            shift
+            ;;
+        --to)
+            if (($# < 2)); then
+                printf 'dropbox-get: --to requires a directory\n' >&2
+                exit 2
+            fi
+            DESTINATION=$2
+            shift 2
+            ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            QUERY=${*:-}
+            break
+            ;;
+        -*)
+            printf 'dropbox-get: unknown option: %s\n' "$1" >&2
+            exit 2
+            ;;
+        *)
+            QUERY=$*
+            break
+            ;;
+    esac
+done
+
+if ! command -v rclone >/dev/null 2>&1; then
+    printf 'dropbox-get: required command not found: rclone\n' >&2
+    exit 127
+fi
+
+# rclone's OAuth token is mutable machine state and intentionally stays out of
+# Home Manager and git. listremotes exposes names only, never config secrets.
+REMOTE_CONFIGURED=0
+while IFS= read -r configured_remote; do
+    if [[ "$configured_remote" == "$REMOTE:" ]]; then
+        REMOTE_CONFIGURED=1
+        break
+    fi
+done < <(rclone listremotes 2>/dev/null)
+
+if ((!REMOTE_CONFIGURED)); then
+    printf 'Authorizing Dropbox as rclone remote %q...\n' "$REMOTE" >&2
+    printf 'Complete the one-time authentication in the browser.\n' >&2
+    rclone config create "$REMOTE" dropbox >/dev/null
+fi
+
+mkdir -p "$DESTINATION"
+
+if ((DOWNLOAD_ALL)); then
+    exec rclone copy "${REMOTE}:" "$DESTINATION" --progress
+fi
+
+if ! command -v fzf >/dev/null 2>&1; then
+    printf 'dropbox-get: required command not found: fzf\n' >&2
+    exit 127
+fi
+
+listing=$(mktemp "${TMPDIR:-/tmp}/dropbox-get-list.XXXXXX")
+selection=$(mktemp "${TMPDIR:-/tmp}/dropbox-get-selection.XXXXXX")
+cleanup() {
+    rm -f "$listing" "$selection"
+}
+trap cleanup EXIT
+
+printf 'Loading Dropbox paths...\n' >&2
+if ! rclone lsf \
+    --recursive \
+    --files-only \
+    --format pst \
+    --separator $'\t' \
+    "${REMOTE}:" >"$listing"; then
+    printf 'dropbox-get: failed to list Dropbox files\n' >&2
+    exit 1
+fi
+
+if [[ ! -s "$listing" ]]; then
+    printf 'dropbox-get: no files found\n' >&2
+    exit 0
+fi
+
+set +e
+fzf \
+    --multi \
+    --no-mouse \
+    --delimiter=$'\t' \
+    --with-nth=1,2,3 \
+    --nth=1 \
+    --query="$QUERY" \
+    --prompt='Dropbox> ' \
+    --header='Enter download | Tab select | Ctrl-A select all matches | size in bytes' \
+    --bind='ctrl-a:toggle-all' \
+    <"$listing" |
+    cut -f1 >"$selection"
+picker_status=${PIPESTATUS[0]}
+set -e
+
+if ((picker_status != 0)) || [[ ! -s "$selection" ]]; then
+    exit 0
+fi
+
+rclone copy \
+    "${REMOTE}:" \
+    "$DESTINATION" \
+    --files-from-raw "$selection" \
+    --progress
+
+printf 'Downloaded to %s\n' "$DESTINATION"
