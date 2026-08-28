@@ -51,9 +51,8 @@ Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarR
 - Brightness keys → `brightness-osd` (5% steps ≤20%, 10% above)
 - Super+VolumeUp → `cycle-audio-output`
 - Super+VolumeDown → `cycle-audio-input`
-- Super+W → focus the active Dell monitor by EDID manufacturer
-- Super+E → focus the active external Samsung monitor by EDID manufacturer
-- Super+R → focus the active laptop panel by its `eDP-*` output
+- Super+W/E/R → use XMonad's default screen 0/1/2 ordering unless a work Dell or Samsung display is active
+- At work, Super+W → Dell, Super+E → Samsung, and Super+R → laptop
 - Super+N → `W.view` (focus workspace without swapping monitors)
 - Ctrl+Super+N → `W.greedyView` (bring workspace to current monitor)
 - Super+Shift+Enter → gnome-terminal
@@ -193,7 +192,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 
 ## Monitors
 
-Multi-monitor configurations vary by location. After monitor connection changes, `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens. Super+W, Super+E, and Super+R resolve active RandR outputs to XMonad screen rectangles on each keypress instead of relying on mutable screen IDs. External displays use the two-byte EDID manufacturer IDs for Dell (`DEL`) and Samsung (`SAM`); the laptop uses the internal `eDP-*` output. A disconnected target is a no-op. xfce4-panel bottom bar: 48px, using `avoidStruts`.
+Multi-monitor configurations vary by location. After monitor connection changes, `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens. Super+W, Super+E, and Super+R use XMonad's default screen 0/1/2 ordering when no work display is detected, giving W=laptop and E=external at home. If an active external display has the two-byte EDID manufacturer ID for Dell (`DEL`) or Samsung (`SAM`), the work profile activates: W=Dell, E=Samsung, and R=the internal `eDP-*` laptop panel. Work targets resolve active RandR outputs to XMonad screen rectangles on each keypress instead of relying on mutable screen IDs; a disconnected work target is a no-op. xfce4-panel bottom bar: 48px, using `avoidStruts`.
 
 ## Known issues
 
