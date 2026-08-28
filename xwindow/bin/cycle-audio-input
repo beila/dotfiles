@@ -14,7 +14,7 @@ start_dzen() {
     (tail -f "$FIFO" | dzen2 -p -x $((100*scale)) -y $((320*scale)) -w $((1240*scale)) -h $((100*scale)) \
         -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
         -bg "#0d0d1a" -fg "#ff79c6" -title-name "audio-in-osd") &
-    sleep 0.2
+    osd-click-through "audio-in-osd" || true
 }
 
 if [ -f "$STATEFILE" ] && [ -p "$FIFO" ]; then

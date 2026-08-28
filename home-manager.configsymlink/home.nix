@@ -113,6 +113,10 @@ in
     pkgs.uv # edge-tts runner for say-en/say-ko/say-es
     vivaldi
     pkgs.watchlog
+    (pkgs.writers.writePython3Bin "osd-click-through" {
+      libraries = with pkgs.python3Packages; [ xlib ];
+      flakeIgnore = [ "E501" ];
+    } (builtins.readFile ../xwindow/bin/osd-click-through.py))
     # battery-osd: invocation wrapper around the local `osd` library.
     # Single binary in PATH; no full Python (would conflict with awscli2).
     (pkgs.writers.writePython3Bin "battery-osd" {

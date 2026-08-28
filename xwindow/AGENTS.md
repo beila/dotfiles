@@ -71,7 +71,7 @@ Local Python package built via `pkgs.python3Packages.buildPythonPackage` in `hom
 - `display_on_all_monitors(text, duration, style)` — one-shot show
 - `get_monitors(d, root)` — active monitor rects, 6-tuple `(x, y, w_px, h_px, w_mm, h_mm)`; mm is 0 when EDID didn't report it.
 
-Renders text with cairo (configurable fill / outline / drop shadow), then displays in override-redirect X windows whose XShape mask is derived from the rendered alpha channel — the "background" is genuinely transparent (XShape clips). Works without a compositor. Multi-monitor: one window per active CRTC. Splits cairo→X `PutImage` calls into row chunks because python-xlib doesn't use `BIG-REQUESTS` (16-bit length cap → ~256 KB per request). Catches `SIGTERM`/`SIGINT` for clean window teardown.
+Renders text with cairo (configurable fill / outline / drop shadow), then displays in override-redirect X windows whose XShape mask is derived from the rendered alpha channel — the "background" is genuinely transparent (XShape clips). Every window also receives an empty XShape `Input` region, so mouse and touch input pass through to the application below without changing the visible bounding shape. Works without a compositor. Multi-monitor: one window per active CRTC. Splits cairo→X `PutImage` calls into row chunks because python-xlib doesn't use `BIG-REQUESTS` (16-bit length cap → ~256 KB per request). Catches `SIGTERM`/`SIGINT` for clean window teardown.
 
 - **Sizing**: `width_frac`/`height_frac` (fraction of monitor) OR `width_mm`/`height_mm` (absolute mm — same physical size across monitors with different pixel densities; falls back to 96 DPI when EDID mm isn't available). hangul-osd uses mm; battery-osd uses frac.
 - **Anchoring**: `anchor_y` (`top|center|bottom`) + `offset_y_frac`, mirrored for `anchor_x` + `offset_x_frac`.
@@ -89,7 +89,9 @@ Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
 - `bin/cycle-audio-input` (`/tmp/audio-in-osd-fifo`) — pink, y=320
 - `bin/brightness-osd` — yellow, y=430. Uses `brightnessctl` (nix), 5% steps ≤20%, 10% above.
 
-Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: JetBrainsMono Nerd Font, size 36 bold. Auto-hide after 2–3 seconds.
+Each popup runs `osd-click-through` after starting dzen2. The helper waits for the popup's exact `WM_NAME`, then assigns an empty XShape `Input` region; this gives the dzen OSDs the same pointer pass-through behavior as the shared OSD library. Dimensions scale with `Xft.dpi` (base: x=100, w=1240, h=100 at 96dpi). Font: JetBrainsMono Nerd Font, size 36 bold. Auto-hide after 2–3 seconds.
+
+Regression test: `python3 xwindow/test_osd_click_through.py`.
 
 ## Battery OSD
 

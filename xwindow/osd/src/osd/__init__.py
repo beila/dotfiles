@@ -6,7 +6,9 @@ then displays it in an override-redirect X window. With a compositor
 (picom), uses a 32-bit ARGB visual for true alpha transparency — smooth
 edges, semi-transparent fills, real drop shadows. Without a compositor,
 falls back to an XShape mask (hard-clipped at alpha_threshold) for
-pseudo-transparency. Works in both environments.
+pseudo-transparency. Every OSD window has an empty XShape input region,
+so pointer events pass through to the window beneath it. Works in both
+environments.
 
 Multi-monitor: enumerates active CRTCs via Xrandr and shows one window
 per monitor sized to that monitor; falls back to the whole virtual
@@ -451,6 +453,18 @@ def _find_argb_visual(screen):
     return None, None
 
 
+def _make_click_through(win):
+    """Give an OSD no pointer-input region while preserving its pixels."""
+    win.shape_rectangles(
+        shape.SO.Set,
+        shape.SK.Input,
+        X.Unsorted,
+        0,
+        0,
+        [],
+    )
+
+
 def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
     """Create one OSD window anchored (per style) on `rect`, showing
     `surface`. Returns the window so it can be destroyed later.
@@ -494,6 +508,7 @@ def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
 
     win.set_wm_name("osd")
     win.set_wm_class("osd", "osd")
+    _make_click_through(win)
 
     if not use_argb:
         # Fallback: XShape mask for hard-clipped transparency.

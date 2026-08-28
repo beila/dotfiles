@@ -23,7 +23,8 @@ Vivaldi enables `proprietaryCodecs` so Nix links the compatible `libffmpeg.so` i
 
 Defines two inline derivations consumed by OSDs:
 
-- `osd` — local Python package built from `xwindow/osd/` (cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, and `hangul-osd`.
+- `osd` — local Python package built from `xwindow/osd/` (cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, and `hangul-osd`; its windows have empty XShape input regions so pointer input passes through.
+- `osd-click-through` — lightweight Python/Xlib helper that applies the same empty input region to the title-matched dzen2 volume, brightness, and audio-device OSD windows.
 - `jejuhallasan-ttf` — single `fetchurl` of one ttf from `google/fonts` (SIL OFL 1.1). Avoids `pkgs.google-fonts` (2.3 GB).
 
 The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from the nix store + the gobject-introspection wrapper for cairo's `cairo-1.0.typelib`, which Pango pulls in transitively) and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl. Both env vars are required — see `xwindow/AGENTS.md` for the Pango/fontconfig rationale. The `hangul-osd` and `zoom-osd` systemd units use `${config.home.path}/bin/...`, not the stable profile symlink, so a changed embedded Python derivation changes `ExecStart` and Home Manager restarts the daemon.

@@ -13,7 +13,7 @@ start_dzen() {
     (tail -f "$FIFO" | dzen2 -p -x $((100*scale)) -y $((210*scale)) -w $((1240*scale)) -h $((100*scale)) \
         -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
         -bg "#0d0d1a" -fg "#8be9fd" -title-name "audio-out-osd") &
-    sleep 0.2
+    osd-click-through "audio-out-osd" || true
 }
 
 # If popup is already showing, cycle to next
