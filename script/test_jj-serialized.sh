@@ -84,6 +84,16 @@ check "sync_repo local-lock owner bypasses nested locking" \
     "$(tr '\n' ' ' < "$EVENTS" | sed 's/ $//')"
 
 : > "$EVENTS"
+TEST_GIT_ROOT="$TMPDIR/repo-a/.git" TEST_ID=one TEST_SLEEP=0.4 "$WRAPPER" hold &
+first=$!
+wait_for_event start:one
+JJ_SERIALIZED_READ_ONLY=1 TEST_GIT_ROOT="$TMPDIR/repo-a/.git" TEST_ID=two TEST_SLEEP=0 "$WRAPPER" hold
+wait "$first"
+check "declared read-only command bypasses locking" \
+    "start:one start:two end:two end:one" \
+    "$(tr '\n' ' ' < "$EVENTS" | sed 's/ $//')"
+
+: > "$EVENTS"
 (
     cd "$TMPDIR" || exit
     TEST_ID=one TEST_SLEEP=0.4 "$WRAPPER" -R repo-a hold

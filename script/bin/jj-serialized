@@ -7,7 +7,10 @@ FLOCK=${JJ_FLOCK_EXECUTABLE:-flock}
 TR=${JJ_TR_EXECUTABLE:-tr}
 
 # sync_repo already owns the local-state lock for its current jj phase.
-if [ "${JJ_SERIALIZED_LOCK_HELD:-0}" = "1" ]; then
+# Operation-pinned readers cannot snapshot or mutate the working copy, so
+# callers that uphold that contract can run without the external sync lock.
+if [ "${JJ_SERIALIZED_LOCK_HELD:-0}" = "1" ] ||
+   [ "${JJ_SERIALIZED_READ_ONLY:-0}" = "1" ]; then
     exec "$REAL_JJ" "$@"
 fi
 

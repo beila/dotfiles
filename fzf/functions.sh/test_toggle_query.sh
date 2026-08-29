@@ -124,8 +124,12 @@ assert "initial snapshot requests the full operation ID" \
   'self.id() ++ "\n"' "$snapshot_operation_body"
 assert_not "initial snapshot is not based on an older operation" \
   "--at-operation" "$snapshot_operation_body"
+assert_not "initial snapshot remains serialized" \
+  "JJ_SERIALIZED_READ_ONLY" "$snapshot_operation_body"
 assert "preview subprocesses use the captured operation" \
   '--at-operation "$JJ_FZF_OPERATION"' "${_jj_log_preview-}"
+assert "preview subprocesses bypass the external lock" \
+  'JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION"' "${_jj_log_preview-}"
 assert_not "preview subprocesses do not follow the current operation" \
   "--ignore-working-copy" "${_jj_log_preview-}"
 assert "default preview combines metadata, summary, and patch in one show" \
@@ -134,17 +138,21 @@ default_preview=${_jj_log_preview-}
 default_preview=${default_preview##*else}
 default_preview=${default_preview%%fi}
 assert_not "default preview no longer starts a second jj diff process" \
-  'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff' "$default_preview"
+  'JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet diff' "$default_preview"
 assert "_jj_find_pos uses the captured operation" \
   "--at-operation" "$(functions _jj_find_pos)"
+assert "_jj_find_pos bypasses the external lock" \
+  "JJ_SERIALIZED_READ_ONLY=1" "$(functions _jj_find_pos)"
 assert "log reloads use the captured operation" \
   '--at-operation "$JJ_FZF_OPERATION"' "$(_jj_log_reload fzf_oneline 'log()')"
+assert "log reloads bypass the external lock" \
+  'reload(JJ_SERIALIZED_READ_ONLY=1 jj' "$(_jj_log_reload fzf_oneline 'log()')"
 out=$(capture _jf)
 assert "_jf preview uses the captured operation" \
   'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff' "$out"
 out=$(capture _file_browse)
 assert "_file_browse tracked reload uses the captured operation" \
-  'reload(jj --at-operation \"$JJ_FZF_OPERATION\" file list)' "$out"
+  'reload(JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"$JJ_FZF_OPERATION\" file list)' "$out"
 out=$(capture _jb)
 assert "_jb preview uses the captured operation" \
   'jj --at-operation "$JJ_FZF_OPERATION" --quiet log' "$out"
@@ -167,6 +175,8 @@ assert "_jf initial producer uses the captured operation" \
   'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --name-only' "$(functions _jf)"
 assert "_jy initial producer uses the captured operation" \
   'jj --at-operation "$JJ_FZF_OPERATION" --quiet operation log' "$(functions _jy)"
+assert "_jhh initial producer bypasses the external lock" \
+  'JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION"' "$(functions _jhh)"
 assert_not "mutating jj new is not run at a historical operation" \
   'jj --at-operation "$JJ_FZF_OPERATION" new' "$(functions _jh _jhh)"
 

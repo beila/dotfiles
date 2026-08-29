@@ -112,12 +112,12 @@ _jj_log_preview="\
 id=\$($_jj_extract_id); path=\$($_jj_extract_path);
 [ -z \"\$id\" ] && exit 0;
 if [ -n \"\$path\" ]; then
-  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
-  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet diff --color=always -r \"\$id\" -- \"\$path\";
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet diff --color=always -r \"\$id\" -- \"\$path\";
 elif [[ \$FZF_PROMPT == log+files* ]]; then
-  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
 else
-  jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet show --color=always \"\$id\" \
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet show --color=always \"\$id\" \
     -T 'builtin_log_detailed ++ diff.summary() ++ \"\\n\"';
 fi"
 
@@ -139,9 +139,9 @@ _dim_jj_op_ids() {
 _jf() {
   local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
   _jj_pin_operation || return
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --name-only 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --name-only 2>/dev/null |
     fzf_down -m \
-      --preview 'jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --color=always -- {}'
+      --preview 'JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet diff --color=always -- {}'
 }
 
 _git_f() {
@@ -164,13 +164,13 @@ _file_browse() {
   local preview='bat --style=numbers --color=always -- {} 2>/dev/null || cat {}'
   local -x JJ_FZF_OPERATION=
   if is_in_jj_repo; then
-    jj --at-operation "$JJ_FZF_OPERATION" file list 2>/dev/null |
+    JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" file list 2>/dev/null |
       fzf_down -m --prompt 'tracked> ' \
         --header '☐ all files (ctrl-f)' \
         --preview "$preview" \
         --bind 'ctrl-f:transform:[[ $FZF_PROMPT == tracked* ]] &&
           echo "change-prompt(all> )+change-header(☑ all files (ctrl-f))+reload(fd --type f --hidden --no-ignore)" ||
-          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(jj --at-operation \"$JJ_FZF_OPERATION\" file list)"'
+          echo "change-prompt(tracked> )+change-header(☐ all files (ctrl-f))+reload(JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"$JJ_FZF_OPERATION\" file list)"'
   elif is_in_git_repo; then
     git ls-files 2>/dev/null |
       fzf_down -m --prompt 'tracked> ' \
@@ -195,7 +195,7 @@ _jb() {
   # Preview uses unique_boundary() revset alias (see jj config.toml)
   # Preprocessing: indented lines ("  @hj ...") are remote tracking info;
   # prefix them with the parent bookmark name so they become "nix@hj ..."
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet bookmark list --color=always 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet bookmark list --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☐ workspaces (ctrl-b) · ☐ remotes (ctrl-r)' \
@@ -203,7 +203,7 @@ _jb() {
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jbr {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+        JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
@@ -214,7 +214,7 @@ _jbr() {
   _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet bookmark list --all-remotes --color=always 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet bookmark list --all-remotes --color=always 2>/dev/null |
     awk '{if(/^ /){gsub(/^ +/,""); $1=parent $1} else {parent=$1; gsub(/:$/,"",parent); gsub(/\033\[[0-9;]*m/,"",parent)} print}' |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☐ workspaces (ctrl-b) · ☑ remotes (ctrl-r)' \
@@ -222,7 +222,7 @@ _jbr() {
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jbb {n} {q}')" \
       --bind "ctrl-r:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
+        JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"' |
     awk '{gsub(/:$/,"",$1); gsub(/\033\[[0-9;]*m/,"",$1); print $1}'
 }
 
@@ -244,12 +244,12 @@ _jbb() {
   _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet workspace list --color=always 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet workspace list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --header '☑ workspaces (ctrl-b)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-b:become(zsh -c 'source $_fzf_functions_sh; _jb {n} {q}')" \
-      --preview 'jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
+      --preview 'JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "::($(awk "{print \$2}" <<< {}))"' |
     cut -d: -f1
 }
 
@@ -270,10 +270,10 @@ _jt() {
   local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
   _jj_pin_operation || return
   # Preview uses unique_boundary() revset alias (see jj config.toml)
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet tag list --color=always 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet tag list --color=always 2>/dev/null |
     fzf_down --ansi --multi --preview-window right:70% \
       --preview 'name=$(awk "{gsub(/:$/,\"\",\$1); gsub(/\033\[[0-9;]*m/,\"\",\$1); print \$1}" <<< {})
-        jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, tags())"' |
+        JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "unique_boundary($name, tags())"' |
     awk '{gsub(/:$/,"",$1); print $1}'
 }
 
@@ -293,7 +293,7 @@ _gt() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jt; elif is_in_git_r
 _jj_change_id='cut -s -f2 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 
 # Find line number of a change ID in jj log output (head -500 for SIGPIPE early exit)
-_jj_find_pos() { jj --at-operation "$JJ_FZF_OPERATION" --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
+_jj_find_pos() { JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log -T "${3:-fzf_oneline}" ${2:+-r "$2"} 2>/dev/null | head -500 | grep -n -m1 "$1" | cut -d: -f1; }
 
 # TAB field index (with --delimiter='\t') of the change ID. The oneline
 # templates emit "<display>\t<change-id>\t<path>\t<commit-id>", so the change id
@@ -330,7 +330,7 @@ _jj_align_files="gawk -f ${_fzf_functions_sh%/functions.sh}/jj-align-files.awk"
 # _jj_align_files to fix the first-line indent. Toggle state is held in the fzf
 # prompt ("log> " vs "log+files> "), the same prompt-as-state pattern as
 # _file_browse; ctrl-o reads it back so an insert keeps the current view.
-_jj_log_reload() { printf "reload(jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
+_jj_log_reload() { printf "reload(JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --color=always -T '%s' -r '%s' 2>/dev/null | %s)" "$1" "$2" "$_jj_align_files"; }
 
 # shellcheck disable=SC2120
 _jh() {
@@ -342,7 +342,7 @@ _jh() {
   # e.g. IgnitionX redefines it, and a hardcoded alias diverged badly there.
   # Fall back to `log()` if the lookup fails (e.g. very old jj).
   local pos_bind=() rv
-  rv=$(jj --at-operation "$JJ_FZF_OPERATION" config get revsets.log 2>/dev/null) || rv='log()'
+  rv=$(JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" config get revsets.log 2>/dev/null) || rv='log()'
   [[ -z "$rv" ]] && rv='log()'
   if [[ -n "${1:-}" ]]; then
     local pos; pos=$(_jj_find_pos "$1" "$rv")
@@ -351,7 +351,7 @@ _jh() {
   local rl_plain rl_files
   rl_plain=$(_jj_log_reload 'fzf_oneline' "$rv")
   rl_files=$(_jj_log_reload 'fzf_oneline ++ fzf_files_suffix' "$rv")
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
     --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
     --accept-nth=$_jj_change_field \
@@ -380,7 +380,7 @@ _jyy() {
   _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
     --accept-nth=$_jj_change_field \
     "${pos_bind[@]}" ${2:+--query "$2"} \
@@ -408,7 +408,7 @@ _jhh() {
   local rl_plain rl_files
   rl_plain=$(_jj_log_reload 'fzf_oneline_author' "$rv")
   rl_files=$(_jj_log_reload 'fzf_oneline_author ++ fzf_files_suffix' "$rv")
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
     --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
     --accept-nth=$_jj_change_field \
@@ -437,14 +437,14 @@ _jy() {
   _jj_pin_operation || return
   local pos_bind=()
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet operation log --no-graph --color=always -T 'self.time().start().ago() ++ " " ++ self.tags().first_line().remove_prefix("args: ") ++ " " ++ self.id().short() ++ "\n"' 2>/dev/null |
     _dim_jj_op_ids |
     fzf_down --ansi --no-sort --reverse --multi \
       --accept-nth=-1 \
       --header '☑ op log (ctrl-y)' \
       "${pos_bind[@]}" ${2:+--query "$2"} \
       --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jyy {n} {q}')" \
-      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% jj --at-operation "$JJ_FZF_OPERATION" --quiet operation show --color=always %'
+      --preview 'grep -o "[0-9a-f]\{12,\}" <<< {} | tail -1 | xargs -I% env JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet operation show --color=always %'
 }
 
 _git_y() {
@@ -459,9 +459,9 @@ _gy() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jy; elif is_in_git_r
 _jr() {
   local -x JJ_FZF_OPERATION=${JJ_FZF_OPERATION:-}
   _jj_pin_operation || return
-  jj --at-operation "$JJ_FZF_OPERATION" --quiet git remote list 2>/dev/null |
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet git remote list 2>/dev/null |
     fzf_down --tac \
-      --preview 'jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
+      --preview 'JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -r "remote_bookmarks(remote=\"$(awk "{print \$1}" <<< {})\")"' |
     awk '{print $1}'
 }
 
