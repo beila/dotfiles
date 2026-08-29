@@ -32,10 +32,10 @@ source "${0:a:h}/functions.sh"
 snapshot_operation_body=$(functions _jj_snapshot_operation)
 
 echo "subdirectory file previews:"
-repo_root=$(jj --ignore-working-copy root)
+repo_root=$(JJ_SERIALIZED_READ_ONLY=1 jj --at-operation @ root)
 subdir_row=$(
   cd "$repo_root/fzf" || exit 1
-  jj --ignore-working-copy log --no-graph \
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation @ log --no-graph \
     -r 'latest(files("functions.sh/functions.sh"), 1)' \
     -T 'fzf_files_suffix' |
     awk -F '\t' '$3 == "functions.sh/functions.sh" { print; exit }'
@@ -46,7 +46,8 @@ assert_eq "log template emits a cwd-relative hidden path" \
   "functions.sh/functions.sh" "$subdir_path"
 subdir_preview=$(
   cd "$repo_root/fzf" || exit 1
-  jj --ignore-working-copy diff --summary -r "$subdir_id" -- "$subdir_path"
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation @ \
+    diff --summary -r "$subdir_id" -- "$subdir_path"
 )
 assert "cwd-relative hidden path resolves in a real jj diff" \
   "functions.sh/functions.sh" "$subdir_preview"
