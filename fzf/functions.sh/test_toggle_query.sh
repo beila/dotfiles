@@ -20,9 +20,37 @@ assert_not() {
     echo "  ✗ $1"; echo "    unexpected: $2"; echo "    got: $3"; ((fail++))
   fi
 }
+assert_eq() {
+  if [[ "$3" == "$2" ]]; then
+    echo "  ✓ $1"; ((pass++))
+  else
+    echo "  ✗ $1"; echo "    expected: $2"; echo "    got: $3"; ((fail++))
+  fi
+}
 
 source "${0:a:h}/functions.sh"
 snapshot_operation_body=$(functions _jj_snapshot_operation)
+
+echo "subdirectory file previews:"
+repo_root=$(jj --ignore-working-copy root)
+subdir_row=$(
+  cd "$repo_root/fzf" || exit 1
+  jj --ignore-working-copy log --no-graph \
+    -r 'latest(files("functions.sh/functions.sh"), 1)' \
+    -T 'fzf_files_suffix' |
+    awk -F '\t' '$3 == "functions.sh/functions.sh" { print; exit }'
+)
+subdir_id=$(cut -f2 <<< "$subdir_row")
+subdir_path=$(cut -f3 <<< "$subdir_row")
+assert_eq "log template emits a cwd-relative hidden path" \
+  "functions.sh/functions.sh" "$subdir_path"
+subdir_preview=$(
+  cd "$repo_root/fzf" || exit 1
+  jj --ignore-working-copy diff --summary -r "$subdir_id" -- "$subdir_path"
+)
+assert "cwd-relative hidden path resolves in a real jj diff" \
+  "functions.sh/functions.sh" "$subdir_preview"
+
 _jj_snapshot_operation() { printf '%s\n' test-operation-id; }
 jj() { :; }
 

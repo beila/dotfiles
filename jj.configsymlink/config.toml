@@ -119,10 +119,12 @@ if(root, format_root_commit(self),
 # file lines. The id/path ride in the same two hidden tab fields as the commit
 # line (field 2 = change id, field 3 = path, field 4 = commit id), so Enter on a
 # file line yields its commit's change id, ctrl-x yields its commit id, and the
-# preview can diff just that path. Alignment of the first vs later file lines is
-# fixed downstream by _jj_align_files (gawk) in fzf/functions.sh, not here —
-# jj's graph indents the first continuation line one space less, which a
-# template can't compensate for.
+# preview can diff just that path. RepoPath.display() keeps both path fields
+# relative to the picker launch directory, matching jj's path argument rules
+# when _gh/_ghh runs below the workspace root. Alignment of the first vs later
+# file lines is fixed downstream by _jj_align_files (gawk) in fzf/functions.sh,
+# not here — jj's graph indents the first continuation line one space less,
+# which a template can't compensate for.
 'fzf_files_suffix' = '''
 separate("", diff.files().map(|f|
   label("diff " ++ f.status(),
@@ -131,8 +133,8 @@ separate("", diff.files().map(|f|
        if(f.status() == "removed",  "D",
        if(f.status() == "copied",   "C",
        if(f.status() == "renamed",  "R", "?")))))
-       ++ " " ++ f.path())
-  ++ "\t" ++ fzf_change_id(self) ++ "\t" ++ f.path() ++ "\t" ++ self.commit_id().shortest(7) ++ "\n"))
+       ++ " " ++ f.path().display())
+  ++ "\t" ++ fzf_change_id(self) ++ "\t" ++ f.path().display() ++ "\t" ++ self.commit_id().shortest(7) ++ "\n"))
 '''
 
 # `jj fix` tool that generalizes absolute home-directory paths to a
