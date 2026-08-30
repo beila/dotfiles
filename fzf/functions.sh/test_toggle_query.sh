@@ -55,6 +55,29 @@ assert "cwd-relative hidden path resolves in a real jj diff" \
 _jj_snapshot_operation() { printf '%s\n' test-operation-id; }
 jj() { :; }
 
+echo "_gh sync.remote-bookmark dispatch:"
+capture_gh_dispatch() (
+  _jh() { printf '%s\n' _jh; }
+  _jhh() { printf '%s\n' _jhh; }
+  _git_h() { printf '%s\n' _git_h; }
+  is_in_jj_repo() {
+    [[ "$TEST_REPO" == jj ]] || return 1
+    JJ_FZF_OPERATION=test-operation-id
+  }
+  is_in_git_repo() { [[ "$TEST_REPO" == git ]]; }
+  jj() {
+    [[ "$*" == *"config get sync.remote-bookmark"* ]] || return 1
+    [[ -n "${TEST_REMOTE_BOOKMARK:-}" ]]
+  }
+  _gh
+)
+assert_eq "jj without sync.remote-bookmark starts _jh" \
+  "_jh" "$(TEST_REPO=jj capture_gh_dispatch)"
+assert_eq "jj with sync.remote-bookmark starts _jhh" \
+  "_jhh" "$(TEST_REPO=jj TEST_REMOTE_BOOKMARK=main@origin capture_gh_dispatch)"
+assert_eq "git dispatch remains _git_h" \
+  "_git_h" "$(TEST_REPO=git capture_gh_dispatch)"
+
 # Mock fzf — write args to temp file (survives pipes/subshells)
 _args_file=$(mktemp)
 trap "rm -f $_args_file" EXIT
@@ -151,6 +174,10 @@ assert "initial snapshot returns the resulting operation ID" \
   "operation log --no-graph --limit 1" "$snapshot_operation_body"
 assert "initial snapshot requests the full operation ID" \
   'self.id() ++ "\n"' "$snapshot_operation_body"
+assert "_gh sync config probe uses the captured operation" \
+  '--at-operation "$JJ_FZF_OPERATION"' "$(functions _jj_has_sync_remote_bookmark)"
+assert "_gh sync config probe bypasses the external lock" \
+  "JJ_SERIALIZED_READ_ONLY=1" "$(functions _jj_has_sync_remote_bookmark)"
 assert_not "initial snapshot is not based on an older operation" \
   "--at-operation" "$snapshot_operation_body"
 assert_not "initial snapshot remains serialized" \

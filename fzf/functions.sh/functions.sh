@@ -371,7 +371,19 @@ _git_h() {
   _git_log_fzf
 }
 
-_gh() { local -x JJ_FZF_OPERATION=; if is_in_jj_repo; then _jh; elif is_in_git_repo; then _git_h; fi }
+_jj_has_sync_remote_bookmark() {
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" \
+    config get sync.remote-bookmark >/dev/null 2>&1
+}
+
+_gh() {
+  local -x JJ_FZF_OPERATION=
+  if is_in_jj_repo; then
+    if _jj_has_sync_remote_bookmark; then _jhh; else _jh; fi
+  elif is_in_git_repo; then
+    _git_h
+  fi
+}
 
 # --- log all ---
 
