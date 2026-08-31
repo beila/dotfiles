@@ -176,8 +176,34 @@ saved_session_cwd() {
     printf '%s' "${saved_cwd[$1]:-}"
 }
 
+# Sets $activity_state from the shell's foreground process group. An
+# interactive shell owns the terminal while showing a prompt; a foreground job
+# takes ownership until it finishes.
+session_activity() {
+    local name=$1 pid stat rest pgrp tpgid
+    activity_state=unknown
+    pid=${running[$name]:-}
+    [[ -n "$pid" ]] || {
+        activity_state=dead
+        return
+    }
+
+    if [[ -r "$proc_root/$pid/stat" ]] \
+        && IFS= read -r stat < "$proc_root/$pid/stat"; then
+        rest=${stat##*) }
+        if [[ "$rest" != "$stat" ]]; then
+            read -r _ _ pgrp _ _ tpgid _ <<< "$rest"
+            if [[ "$pgrp" =~ ^[0-9]+$ && "$tpgid" =~ ^-?[0-9]+$ ]]; then
+                activity_state=prompt
+                ((tpgid > 0 && tpgid != pgrp)) && activity_state=active
+            fi
+        fi
+    fi
+}
+
 format_row() {  # name -> $row_text
-    local name=$1 cwd status="" status_icons=0 display_name padded_name styled_name
+    local name=$1 cwd status="" status_icons=0 activity activity_styled
+    local display_name padded_name styled_name trailing
     if [[ "$name" == "$last_session" ]]; then
         status+="🥇"
         status_icons=$((status_icons + 1))
@@ -189,26 +215,50 @@ format_row() {  # name -> $row_text
     styled_name=$'\033[1m'"${name//help/$'\033[22;2mhelp\033[22;1m'}"$'\033[22m'
 
     if [[ -n "${running[$name]:-}" ]]; then
+        session_activity "$name"
+        cwd=${running_cwd[$name]:-}
         if [[ -n "${attached[$name]:-}" ]]; then
             status+="🔗"
             status_icons=$((status_icons + 1))
         fi
-        display_name="$name${status:+ $status}"
-        printf -v padded_name '%-*s' "$((14 + status_icons * 2))" "$display_name"
-        printf -v row_text '%s%s  %s' \
-            "$styled_name" "${padded_name#"$name"}" "${running_cwd[$name]:-}"
     elif [[ -n "${saved[$name]:-}" ]]; then
-        display_name="$name${status:+ $status}"
+        activity_state=dead
         cwd=${saved_cwd[$name]:-}
-        if [[ -n "$cwd" ]]; then
-            printf -v padded_name '%-*s' "$((14 + status_icons * 2))" "$display_name"
-            printf -v row_text '%s%s  %s' \
-                "$styled_name" "${padded_name#"$name"}" "$cwd"
-        else
-            row_text="$styled_name${status:+ $status}"
-        fi
     else
-        row_text="$styled_name${status:+ $status}"
+        activity_state=dead
+        cwd=""
+    fi
+
+    case "$activity_state" in
+        active)
+            activity="●"
+            activity_styled=$'\033[38;5;214m●\033[39m'
+            ;;
+        prompt)
+            activity="❯"
+            activity_styled=$'\033[32m❯\033[39m'
+            ;;
+        dead)
+            activity="×"
+            activity_styled=$'\033[31m×\033[39m'
+            ;;
+        *)
+            activity="?"
+            activity_styled=$'\033[90m?\033[39m'
+            ;;
+    esac
+
+    display_name="$name $activity${status:+ $status}"
+    if [[ -n "${running[$name]:-}" || -n "$cwd" ]]; then
+        # Bash counts UTF-8 bytes here; each activity glyph is three bytes but
+        # one terminal cell. Status emoji need the existing width adjustment.
+        printf -v padded_name '%-*s' "$((16 + status_icons * 2))" "$display_name"
+        trailing=${padded_name#"$display_name"}
+        printf -v row_text '%s %s%s%s  %s' \
+            "$styled_name" "$activity_styled" "${status:+ $status}" "$trailing" "$cwd"
+    else
+        printf -v row_text '%s %s%s' \
+            "$styled_name" "$activity_styled" "${status:+ $status}"
     fi
 }
 
@@ -243,6 +293,7 @@ detached_session=""
 ctrl_backslash="ctrl-\\"
 query="$initial_query"
 removed_entry=false
+state_header=$'\033[38;5;214m●\033[39m active  \033[32m❯\033[39m prompt  \033[31m×\033[39m dead  \033[90m?\033[39m unknown  🥇 last  🥈 previous  🔗 attached'
 
 while true; do
     load_running
@@ -294,7 +345,7 @@ while true; do
         --no-mouse \
         --reverse \
         --prompt="zmx> " \
-        --header=$'🥇 last  🥈 previous  🔗 attached\nEnter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit' \
+        --header="$state_header"$'\nEnter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit' \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \

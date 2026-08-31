@@ -296,11 +296,15 @@ export FZF_CALL_COUNT="$TMP/fzf-call-count"
 FAKE_PROC="$TMP/proc"
 ZMX_LIST_DETAILS="$TMP/zmx-list-details"
 PGREP_OUTPUT="$TMP/pgrep-output"
-mkdir -p "$FAKE_PROC"/{101,121,201,202,203,111,211,212}
+mkdir -p "$FAKE_PROC"/{101,111,121,201,202,203,211,212,999}
 ln -s "$HOOK_CWD" "$FAKE_PROC/101/cwd"
 ln -s "$HOOK_CWD" "$FAKE_PROC/121/cwd"
 printf 'Name:\tzsh\nPPid:\t201\n' > "$FAKE_PROC/101/status"
 printf 'Name:\tzsh\nPPid:\t211\n' > "$FAKE_PROC/111/status"
+printf '101 (zsh) S 201 101 101 34816 101 0\n' > "$FAKE_PROC/101/stat"
+printf '111 (zsh) S 211 111 111 34816 311 0\n' > "$FAKE_PROC/111/stat"
+printf '121 (zsh) S 221 121 121 34816 121 0\n' > "$FAKE_PROC/121/stat"
+printf '999 (zsh) S 299 999 999 34816 999 0\n' > "$FAKE_PROC/999/stat"
 printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/201/cmdline"
 printf 'zmx\0tail\0attached\0' > "$FAKE_PROC/202/cmdline"
 printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/203/cmdline"
@@ -309,15 +313,24 @@ printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
 printf '201\n202\n203\n211\n212\n' > "$PGREP_OUTPUT"
 printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\nname=shelp2\tpid=121\tclients=0\n' \
     > "$ZMX_LIST_DETAILS"
-PATH="$STUBS:$PATH" ZMX_PROC_ROOT="$FAKE_PROC" \
+export ZMX_PROC_ROOT="$FAKE_PROC"
+PATH="$STUBS:$PATH" \
     ZMX_LIST_DETAILS_FILE="$ZMX_LIST_DETAILS" PGREP_OUTPUT_FILE="$PGREP_OUTPUT" \
     "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-attached.stderr" || true
 check "picker marks a real attach client despite a concurrent preview" "yes" \
-    "$(rg -q '^attached 🔗' "$FZF_INPUT" && printf yes || printf no)"
+    "$(rg -q '^attached ❯ 🔗' "$FZF_INPUT" && printf yes || printf no)"
 check "picker does not mark a server with only a preview client" "yes" \
-    "$(rg -q '^preview-only[[:space:]]' "$FZF_INPUT" \
+    "$(rg -q '^preview-only ●[[:space:]]' "$FZF_INPUT" \
         && ! rg -q '^preview-only .*🔗' "$FZF_INPUT" \
         && printf yes || printf no)"
+check "picker marks a shell-owned foreground group as a prompt" "yes" \
+    "$(rg -q '^shelp2 ❯[[:space:]]' "$FZF_INPUT" && printf yes || printf no)"
+active_marker=$'\033[38;5;214m●\033[39m'
+prompt_marker=$'\033[32m❯\033[39m'
+check "picker gives active jobs a distinct orange marker" "yes" \
+    "$(rg -Fq "$active_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
+check "picker gives prompts a distinct green marker" "yes" \
+    "$(rg -Fq "$prompt_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
 highlighted_help_name=$'\033[1ms\033[22;2mhelp\033[22;1m2\033[22m'
 check "picker dims help and highlights the rest of session names" "yes" \
     "$(rg -Fq "$highlighted_help_name" "$FZF_RAW_INPUT" && printf yes || printf no)"
@@ -338,8 +351,13 @@ if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2
 fi
 saved_row=$(rg -N '^alpha[[:space:]]' "$FZF_INPUT" || true)
-printf -v expected_saved_row '%-14s  %s' alpha "$HOOK_CWD"
+printf -v expected_saved_row '%-16s  %s' "alpha ×" "$HOOK_CWD"
 check "picker lists stopped sessions with snapshots and cwd" "$expected_saved_row" "$saved_row"
+dead_marker=$'\033[31m×\033[39m'
+check "picker gives stopped sessions a distinct red marker" "yes" \
+    "$(rg -Fq "$dead_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
+check "picker header explains the compact activity markers" "yes" \
+    "$(rg -q '●.*active.*❯.*prompt.*×.*dead' "$FZF_ARGS" && printf yes || printf no)"
 check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" || true)"
 preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
 check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle" \
@@ -419,9 +437,9 @@ check "picker binds Ctrl-backslash when a switch target exists" \
     "$switch_expect_arg" \
     "$(rg -N -F -- "$switch_expect_arg" "$FZF_ARGS" || true)"
 check "picker marks the last session with a compact rank" "yes" \
-    "$(rg -q '^second 🥇' "$FZF_INPUT" && printf yes || printf no)"
+    "$(rg -q '^second ❯ 🥇' "$FZF_INPUT" && printf yes || printf no)"
 check "picker marks the previous session with a compact rank" "yes" \
-    "$(rg -q '^first 🥈' "$FZF_INPUT" && printf yes || printf no)"
+    "$(rg -q '^first ❯ 🥈' "$FZF_INPUT" && printf yes || printf no)"
 
 printf 'only\n' > "$FAKE_ROOT/sessions"
 single_responses="$TMP/fzf-single-responses"
@@ -436,7 +454,7 @@ check "Ctrl-backslash reattaches the latest session before a previous one exists
     $'attach only zsh -l\nattach only zsh -l' \
     "$(cat "$FAKE_ROOT/attach.calls")"
 check "single-session picker marks only the last session" "yes" \
-    "$(rg -q '^only 🥇' "$FZF_INPUT" \
+    "$(rg -q '^only ❯ 🥇' "$FZF_INPUT" \
         && ! rg -q '🥈' "$FZF_INPUT" \
         && printf yes || printf no)"
 
