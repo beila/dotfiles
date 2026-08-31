@@ -296,7 +296,7 @@ export FZF_CALL_COUNT="$TMP/fzf-call-count"
 FAKE_PROC="$TMP/proc"
 ZMX_LIST_DETAILS="$TMP/zmx-list-details"
 PGREP_OUTPUT="$TMP/pgrep-output"
-mkdir -p "$FAKE_PROC"/{101,111,121,201,202,203,211,212,999}
+mkdir -p "$FAKE_PROC"/{101,111,121,131,201,202,203,211,212,999}
 ln -s "$HOOK_CWD" "$FAKE_PROC/101/cwd"
 ln -s "$HOOK_CWD" "$FAKE_PROC/121/cwd"
 printf 'Name:\tzsh\nPPid:\t201\n' > "$FAKE_PROC/101/status"
@@ -311,7 +311,7 @@ printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/203/cmdline"
 printf 'zmx\0attach\0preview-only\0zsh\0-l\0' > "$FAKE_PROC/211/cmdline"
 printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
 printf '201\n202\n203\n211\n212\n' > "$PGREP_OUTPUT"
-printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\nname=shelp2\tpid=121\tclients=0\n' \
+printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\nname=shelp2\tpid=121\tclients=0\nname=unknown\tpid=131\tclients=0\n' \
     > "$ZMX_LIST_DETAILS"
 export ZMX_PROC_ROOT="$FAKE_PROC"
 PATH="$STUBS:$PATH" \
@@ -325,9 +325,11 @@ check "picker does not mark a server with only a preview client" "yes" \
         && printf yes || printf no)"
 check "picker marks a shell-owned foreground group as a prompt" "yes" \
     "$(rg -q '^shelp2 ❯[[:space:]]' "$FZF_INPUT" && printf yes || printf no)"
-active_marker=$'\033[38;5;214m●\033[39m'
+check "picker leaves unavailable activity unmarked" "yes" \
+    "$(rg -q '^unknown[[:space:]]*$' "$FZF_INPUT" && printf yes || printf no)"
+active_marker=$'\033[1;38;5;214m●\033[22;39m'
 prompt_marker=$'\033[32m❯\033[39m'
-check "picker gives active jobs a distinct orange marker" "yes" \
+check "picker gives active jobs a bold orange marker" "yes" \
     "$(rg -Fq "$active_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
 check "picker gives prompts a distinct green marker" "yes" \
     "$(rg -Fq "$prompt_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
@@ -351,13 +353,13 @@ if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2
 fi
 saved_row=$(rg -N '^alpha[[:space:]]' "$FZF_INPUT" || true)
-printf -v expected_saved_row '%-16s  %s' "alpha ×" "$HOOK_CWD"
+printf -v expected_saved_row '%-15s  %s' "alpha ·" "$HOOK_CWD"
 check "picker lists stopped sessions with snapshots and cwd" "$expected_saved_row" "$saved_row"
-dead_marker=$'\033[31m×\033[39m'
-check "picker gives stopped sessions a distinct red marker" "yes" \
+dead_marker=$'\033[2;90m·\033[22;39m'
+check "picker gives stopped sessions a dim small marker" "yes" \
     "$(rg -Fq "$dead_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
 check "picker header explains the compact activity markers" "yes" \
-    "$(rg -q '●.*active.*❯.*prompt.*×.*dead' "$FZF_ARGS" && printf yes || printf no)"
+    "$(rg -q '●.*active.*❯.*prompt.*·.*dead' "$FZF_ARGS" && printf yes || printf no)"
 check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" || true)"
 preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
 check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle" \

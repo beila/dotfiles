@@ -203,7 +203,7 @@ session_activity() {
 
 format_row() {  # name -> $row_text
     local name=$1 cwd status="" status_icons=0 activity activity_styled
-    local display_name padded_name styled_name trailing
+    local activity_width_adjustment display_name padded_name styled_name trailing
     if [[ "$name" == "$last_session" ]]; then
         status+="🥇"
         status_icons=$((status_icons + 1))
@@ -232,27 +232,32 @@ format_row() {  # name -> $row_text
     case "$activity_state" in
         active)
             activity="●"
-            activity_styled=$'\033[38;5;214m●\033[39m'
+            activity_styled=$'\033[1;38;5;214m●\033[22;39m'
+            activity_width_adjustment=2
             ;;
         prompt)
             activity="❯"
             activity_styled=$'\033[32m❯\033[39m'
+            activity_width_adjustment=2
             ;;
         dead)
-            activity="×"
-            activity_styled=$'\033[31m×\033[39m'
+            activity="·"
+            activity_styled=$'\033[2;90m·\033[22;39m'
+            activity_width_adjustment=1
             ;;
         *)
-            activity="?"
-            activity_styled=$'\033[90m?\033[39m'
+            activity=" "
+            activity_styled=" "
+            activity_width_adjustment=0
             ;;
     esac
 
     display_name="$name $activity${status:+ $status}"
     if [[ -n "${running[$name]:-}" || -n "$cwd" ]]; then
-        # Bash counts UTF-8 bytes here; each activity glyph is three bytes but
-        # one terminal cell. Status emoji need the existing width adjustment.
-        printf -v padded_name '%-*s' "$((16 + status_icons * 2))" "$display_name"
+        # Bash counts UTF-8 bytes here, so compensate for each glyph's excess
+        # bytes over its one terminal cell.
+        printf -v padded_name '%-*s' \
+            "$((14 + activity_width_adjustment + status_icons * 2))" "$display_name"
         trailing=${padded_name#"$display_name"}
         printf -v row_text '%s %s%s%s  %s' \
             "$styled_name" "$activity_styled" "${status:+ $status}" "$trailing" "$cwd"
@@ -293,7 +298,7 @@ detached_session=""
 ctrl_backslash="ctrl-\\"
 query="$initial_query"
 removed_entry=false
-state_header=$'\033[38;5;214m●\033[39m active  \033[32m❯\033[39m prompt  \033[31m×\033[39m dead  \033[90m?\033[39m unknown  🥇 last  🥈 previous  🔗 attached'
+state_header=$'\033[1;38;5;214m●\033[22;39m active  \033[32m❯\033[39m prompt  \033[2;90m·\033[22;39m dead  🥇 last  🥈 previous  🔗 attached'
 
 while true; do
     load_running
