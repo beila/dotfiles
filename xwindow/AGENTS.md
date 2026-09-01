@@ -53,6 +53,7 @@ Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarR
 - Super+VolumeDown → `cycle-audio-input`
 - Super+W/E/R → use XMonad's default screen 0/1/2 ordering unless a work Dell or Samsung display is active
 - At work, Super+W → Dell, Super+E → Samsung, and Super+R → laptop
+- Super+Shift+W/E/R → move the focused window to the monitor selected by the corresponding Super+W/E/R binding
 - Super+N → `W.view` (focus workspace without swapping monitors)
 - Ctrl+Super+N → `W.greedyView` (bring workspace to current monitor)
 - Super+Shift+Enter → gnome-terminal
@@ -200,7 +201,7 @@ image URLs and wedging the server.
 
 ## Monitors
 
-Multi-monitor configurations vary by location. After monitor connection changes, `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens. Super+W, Super+E, and Super+R use XMonad's default screen 0/1/2 ordering when no work display is detected, giving W=laptop and E=external at home. If an active external display has the two-byte EDID manufacturer ID for Dell (`DEL`) or Samsung (`SAM`), the work profile activates: W=Dell, E=Samsung, and R=the internal `eDP-*` laptop panel. Work targets resolve active RandR outputs to XMonad screen rectangles on each keypress instead of relying on mutable screen IDs; a disconnected work target is a no-op. xfce4-panel bottom bar: 48px, using `avoidStruts`.
+Multi-monitor configurations vary by location. After monitor connection changes, `rescreenHook` with `hideNSPWorkspace` swaps NSP off visible screens. Super+W, Super+E, and Super+R use XMonad's default screen 0/1/2 ordering when no work display is detected, giving W=laptop and E=external at home. If an active external display has the two-byte EDID manufacturer ID for Dell (`DEL`) or Samsung (`SAM`), the work profile activates: W=Dell, E=Samsung, and R=the internal `eDP-*` laptop panel. Super+Shift+W/E/R uses the same resolution to move the focused window to the corresponding monitor. Work targets resolve active RandR outputs to XMonad screen rectangles on each keypress instead of relying on mutable screen IDs; a disconnected work target is a no-op. xfce4-panel bottom bar: 48px, using `avoidStruts`.
 
 ## Known issues
 

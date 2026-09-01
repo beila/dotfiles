@@ -479,18 +479,29 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
 
 data MonitorTarget = DellMonitor | SamsungMonitor | LaptopMonitor deriving (Eq)
 
-focusMonitor :: ScreenId -> MonitorTarget -> X ()
-focusMonitor defaultScreen target = do
+monitorWorkspace :: ScreenId -> MonitorTarget -> X (Maybe WorkspaceId)
+monitorWorkspace defaultScreen target = do
     monitorRects <- withDisplay $ \dpy -> do
         root <- asks theRoot
         io $ findMonitorRects dpy root
     if any ((/= LaptopMonitor) . fst) monitorRects
-        then
-            forM_ (lookup target monitorRects) $ \rect ->
+        then case lookup target monitorRects of
+            Just rect ->
                 withWindowSet $ \ws ->
-                    forM_ (L.find ((== rect) . screenRect . W.screenDetail) $ W.screens ws) $
-                        windows . W.view . W.tag . W.workspace
-        else screenWorkspace defaultScreen >>= flip whenJust (windows . W.view)
+                    return $
+                        fmap (W.tag . W.workspace) $
+                            L.find ((== rect) . screenRect . W.screenDetail) $
+                                W.screens ws
+            Nothing -> return Nothing
+        else screenWorkspace defaultScreen
+
+focusMonitor :: ScreenId -> MonitorTarget -> X ()
+focusMonitor defaultScreen target =
+    monitorWorkspace defaultScreen target >>= flip whenJust (windows . W.view)
+
+shiftToMonitor :: ScreenId -> MonitorTarget -> X ()
+shiftToMonitor defaultScreen target =
+    monitorWorkspace defaultScreen target >>= flip whenJust (windows . W.shift)
 
 findMonitorRects :: Display -> Window -> IO [(MonitorTarget, Rectangle)]
 findMonitorRects dpy root = do
@@ -568,6 +579,9 @@ myKeys =
     , ((mod4Mask, xK_w), focusMonitor 0 DellMonitor)
     , ((mod4Mask, xK_e), focusMonitor 1 SamsungMonitor)
     , ((mod4Mask, xK_r), focusMonitor 2 LaptopMonitor)
+    , ((mod4Mask .|. shiftMask, xK_w), shiftToMonitor 0 DellMonitor)
+    , ((mod4Mask .|. shiftMask, xK_e), shiftToMonitor 1 SamsungMonitor)
+    , ((mod4Mask .|. shiftMask, xK_r), shiftToMonitor 2 LaptopMonitor)
     , -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
       ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
