@@ -5,18 +5,18 @@
   ...
 }:
 {
-  # GTK4 IM module for ibus, ABI-matched against the gtk4 closure ghostty links.
-  # The system's ibus-gtk4 lives outside that closure so the nix gtk4 can't see it.
+  # GTK3/4 IM modules for ibus, ABI-matched against the Nix GTK closures used
+  # by Vivaldi and Ghostty. The system modules live outside those closures.
   home.packages = [ pkgs.ibus ];
 
   # systemd-user imports environment.d before gnome-flashback-xmonad, so xmonad
-  # and its descendants inherit these. GTK_PATH must end in `/lib/gtk-4.0` —
-  # GTK4 appends `<gtk_binary_version>/<host>/immodules` per entry.
+  # and its descendants inherit these. Each GTK_PATH entry must end in its
+  # versioned directory; GTK appends `<gtk_binary_version>/<host>/immodules`.
   xdg.configFile."environment.d/30-ibus.conf".text = ''
     GTK_IM_MODULE=ibus
     QT_IM_MODULE=ibus
     XMODIFIERS=@im=ibus
-    GTK_PATH=${pkgs.ibus}/lib/gtk-4.0
+    GTK_PATH=${pkgs.ibus}/lib/gtk-3.0:${pkgs.ibus}/lib/gtk-4.0
   '';
 
   dconf.settings = {
@@ -37,8 +37,8 @@
       ];
     };
     # ibus-hangul: Sebeolsik 390. The hangul engine comes from the system
-    # package (apt install ibus-hangul); only the GTK4 client module is
-    # sourced from nix.
+    # package (apt install ibus-hangul); the GTK client modules are sourced
+    # from nix.
     "org/freedesktop/ibus/engine/hangul" = {
       hangul-keyboard = "39";
       hanja-keys = "F9";
