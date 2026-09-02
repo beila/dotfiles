@@ -4,10 +4,33 @@
   pkgs,
   ...
 }:
+let
+  ibusGtk3Cache =
+    pkgs.runCommand "ibus-gtk3-immodule-cache"
+      {
+        preferLocalBuild = true;
+        allowSubstitutes = false;
+        buildInputs = [ pkgs.ibus ];
+      }
+      ''
+        mkdir -p "$out/etc/gtk-3.0"
+        GTK_PATH=${pkgs.ibus}/lib/gtk-3.0 \
+          ${lib.getExe' pkgs.gtk3.dev "gtk-query-immodules-3.0"} \
+          > "$out/etc/gtk-3.0/immodules.cache"
+      '';
+in
 {
   # GTK3/4 IM modules for ibus, ABI-matched against the Nix GTK closures used
   # by Vivaldi and Ghostty. The system modules live outside those closures.
-  home.packages = [ pkgs.ibus ];
+  #
+  # GTK3 reads an immodules cache at runtime; GTK_PATH alone only lets the
+  # cache generator discover im-ibus.so. Nix's patched GTK3 searches each
+  # NIX_PROFILES entry for etc/gtk-3.0/immodules.cache, so install the generated
+  # cache into the Home Manager profile just like NixOS's input-method module.
+  home.packages = [
+    pkgs.ibus
+    ibusGtk3Cache
+  ];
 
   # systemd-user imports environment.d before gnome-flashback-xmonad, so xmonad
   # and its descendants inherit these. Each GTK_PATH entry must end in its

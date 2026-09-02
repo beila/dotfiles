@@ -26,20 +26,13 @@ let
   };
 
   anki = config.lib.nixGL.wrap pkgs.anki;
-  vivaldi =
-    (pkgs.vivaldi.override {
-      proprietaryCodecs = true;
-      # The immutable Nix store cannot provide Chromium's root-owned SUID helper.
-      # system-deps.sh grants userns to vivaldi-bin through a narrow AppArmor rule.
-      commandLineArgs = "--disable-setuid-sandbox";
-    }).overrideAttrs
-      (old: {
-        postInstall = (old.postInstall or "") + ''
-          mv "$out/bin/vivaldi" "$out/bin/.vivaldi-ibus-wrapped"
-          makeWrapper "$out/bin/.vivaldi-ibus-wrapped" "$out/bin/vivaldi" \
-            --prefix GTK_PATH : "${pkgs.ibus}/lib/gtk-3.0"
-        '';
-      });
+  vivaldi = pkgs.vivaldi.override {
+    proprietaryCodecs = true;
+    # The immutable Nix store cannot provide Chromium's root-owned SUID helper.
+    # system-deps.sh grants userns to vivaldi-bin through a narrow AppArmor rule.
+    # Chromium defaults to GTK4 on GNOME, but this Vivaldi package links GTK3.
+    commandLineArgs = "--disable-setuid-sandbox --gtk-version=3";
+  };
   ankiDesktopEntry = profile: {
     name = "${profile}Anki";
     comment = "Anki with isolated data for ${profile}";
