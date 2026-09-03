@@ -1,0 +1,305 @@
+#!/usr/bin/env bash
+
+set -u
+
+usage() {
+    echo "Usage: agent-fallback --cwd DIR --prompt-file FILE --output-dir DIR --task-name NAME --failure-message MESSAGE [--log-tag TAG] [--log-context CONTEXT] [--notify] [--timeout SECONDS] [--mode full|text] [--skip AGENT] [--prior-error MESSAGE]..." >&2
+    exit 64
+}
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+cwd=""
+prompt_file=""
+output_dir=""
+timeout_seconds=7200
+mode=full
+skipped=" "
+task_name=""
+failure_message=""
+log_tag=agent-fallback
+log_context=""
+notify_mode=never
+prior_errors=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --cwd)
+            [ "$#" -ge 2 ] || usage
+            cwd=$2
+            shift 2
+            ;;
+        --prompt-file)
+            [ "$#" -ge 2 ] || usage
+            prompt_file=$2
+            shift 2
+            ;;
+        --output-dir)
+            [ "$#" -ge 2 ] || usage
+            output_dir=$2
+            shift 2
+            ;;
+        --timeout)
+            [ "$#" -ge 2 ] || usage
+            timeout_seconds=$2
+            shift 2
+            ;;
+        --mode)
+            [ "$#" -ge 2 ] || usage
+            mode=$2
+            shift 2
+            ;;
+        --task-name)
+            [ "$#" -ge 2 ] || usage
+            task_name=$2
+            shift 2
+            ;;
+        --failure-message)
+            [ "$#" -ge 2 ] || usage
+            failure_message=$2
+            shift 2
+            ;;
+        --log-tag)
+            [ "$#" -ge 2 ] || usage
+            log_tag=$2
+            shift 2
+            ;;
+        --log-context)
+            [ "$#" -ge 2 ] || usage
+            log_context=$2
+            shift 2
+            ;;
+        --notify)
+            notify_mode=auto
+            shift
+            ;;
+        --skip)
+            [ "$#" -ge 2 ] || usage
+            skipped="${skipped}$2 "
+            shift 2
+            ;;
+        --prior-error)
+            [ "$#" -ge 2 ] || usage
+            prior_errors="${prior_errors}$2"$'\n'
+            shift 2
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+[ -d "$cwd" ] || usage
+[ -f "$prompt_file" ] || usage
+[ -n "$output_dir" ] || usage
+[ -n "$task_name" ] || usage
+[ -n "$failure_message" ] || usage
+case "$timeout_seconds" in
+    *[!0-9]*|"") usage ;;
+esac
+case "$mode" in
+    full|text) ;;
+    *) usage ;;
+esac
+
+mkdir -p "$output_dir"
+prompt=$(<"$prompt_file")
+registry="${AGENT_FALLBACK_TOOLBOX_REGISTRY:-$HOME/.toolbox/tools/globalInfo.json}"
+failure_file=$(mktemp "${TMPDIR:-/tmp}/agent-fallback-failures.XXXXXX")
+deferred_count=0
+attempted_count=0
+
+LOG_TAG=$log_tag
+LOG_CONTEXT=$log_context
+LOG_NOTIFY_MODE=$notify_mode
+LOG_NOTIFY_THRESHOLD=ERROR
+LOG_NOTIFY_DEDUP_WINDOW=${AGENT_FALLBACK_DEDUP_WINDOW:-315360000}
+LOG_KEEP_THRESHOLD=ERROR
+logger=${AGENT_FALLBACK_LOGGER:-"$script_dir/logger/log.sh"}
+if [ ! -f "$logger" ]; then
+    echo "agent-fallback: logger is unavailable: $logger" >&2
+    exit 70
+fi
+# shellcheck source=/dev/null
+source "$logger"
+log_file >/dev/null
+cleanup() {
+    log_finalize
+    rm -f "$failure_file"
+}
+trap cleanup EXIT
+
+tool_path() {
+    local command=$1 override=$2 fallback=$3 configured=""
+    if [ -n "$override" ]; then
+        printf '%s' "$override"
+        return
+    fi
+    if [ -f "$registry" ] && command -v jq >/dev/null 2>&1; then
+        configured=$(jq -r --arg command "$command" \
+            '.Commands[$command].Path // empty' "$registry" 2>/dev/null)
+    fi
+    if [ -n "$configured" ] && [ -x "$configured" ]; then
+        printf '%s' "$configured"
+    elif [ -x "$fallback" ]; then
+        printf '%s' "$fallback"
+    elif command -v "$command" >/dev/null 2>&1; then
+        command -v "$command"
+    fi
+}
+
+is_deferred_failure() {
+    local file=$1 pattern
+    pattern='please (log|sign) in|(log|sign)[ -]?in required|not (logged|signed) in|authentication (failed|required|error)|unauthorized|invalid (api[ _-]?)?(key|token)|(api[ _-]?)?(key|token|credentials?) (expired|missing|not found)|http (401|403)\b|too many requests|rate limit|service unavailable|temporarily unavailable|failed to receive the next message|failed to generate a response|tool approval required|doesn.t appear to be associated with any tool'
+    if command -v rg >/dev/null 2>&1; then
+        rg -qi "$pattern" "$file"
+    else
+        grep -Eqi "$pattern" "$file"
+    fi
+}
+
+record_failure() {
+    local agent=$1 file=$2 summary
+    summary=$(tr '\n\r\t' '   ' < "$file" \
+        | sed -E 's/\x1b\[[0-9;?]*[[:alpha:]]//g; s/[[:space:]]+/ /g; s/^ //; s/ $//' \
+        | cut -c1-500)
+    [ -n "$summary" ] || summary="exited without a diagnostic"
+    printf '%s\t%s\n' "$agent" "$summary" >> "$failure_file"
+}
+
+record_prior_errors() {
+    [ -n "$prior_errors" ] || return
+    while IFS= read -r summary; do
+        [ -n "$summary" ] || continue
+        printf '%s\t%s\n' caller "$summary" >> "$failure_file"
+    done <<< "$prior_errors"
+}
+
+final_failure() {
+    local summaries
+    summaries=$(awk -F '\t' '!seen[$0]++ {printf "%s%s: %s", separator, $1, $2; separator=" | "}' "$failure_file")
+    log ERROR "$failure_message${summaries:+: $summaries}"
+    return 1
+}
+
+run_agent() {
+    local agent=$1 executable=$2 output=$3 stderr_file=$4 console_file=$5 rc
+    : > "$output"
+    : > "$stderr_file"
+    : > "$console_file"
+    case "$agent:$mode" in
+        codex:full)
+            timeout --kill-after=10 "$timeout_seconds" "$executable" \
+                exec --ephemeral --approve-for-me -s workspace-write \
+                -C "$cwd" -o "$output" "$prompt" \
+                >"$console_file" 2>"$stderr_file"
+            rc=$?
+            ;;
+        codex:text)
+            timeout --kill-after=10 "$timeout_seconds" "$executable" \
+                exec --ephemeral -s read-only \
+                -C "$cwd" -o "$output" "$prompt" \
+                >"$console_file" 2>"$stderr_file"
+            rc=$?
+            ;;
+        claude:full)
+            timeout --kill-after=10 "$timeout_seconds" "$executable" \
+                -p --permission-mode auto --effort high \
+                --no-session-persistence "$prompt" \
+                >"$output" 2>"$stderr_file"
+            rc=$?
+            ;;
+        claude:text)
+            timeout --kill-after=10 "$timeout_seconds" "$executable" \
+                --print --tools "" --no-session-persistence "$prompt" \
+                >"$output" 2>"$stderr_file"
+            rc=$?
+            ;;
+        kiro:full)
+            timeout --kill-after=10 "$timeout_seconds" "$executable" \
+                chat --no-interactive --trust-all-tools --effort high "$prompt" \
+                >"$output" 2>"$stderr_file"
+            rc=$?
+            ;;
+        kiro:text)
+            timeout --kill-after=10 "$timeout_seconds" "$executable" \
+                chat --no-interactive --wrap never --agent no-mcp "$prompt" \
+                >"$output" 2>"$stderr_file"
+            rc=$?
+            ;;
+    esac
+    return "$rc"
+}
+
+for agent in codex claude kiro; do
+    case "$skipped" in
+        *" $agent "*) continue ;;
+    esac
+    attempted_count=$((attempted_count + 1))
+    case "$agent" in
+        codex)
+            executable=$(tool_path codex "${AGENT_FALLBACK_CODEX:-}" "$HOME/.toolbox/bin/codex")
+            ;;
+        claude)
+            executable=$(tool_path claude "${AGENT_FALLBACK_CLAUDE:-}" "$HOME/.toolbox/bin/claude")
+            ;;
+        kiro)
+            executable=$(tool_path kiro-cli "${AGENT_FALLBACK_KIRO:-}" "$HOME/.local/bin/kiro-cli")
+            ;;
+    esac
+    output="$output_dir/$agent-result.txt"
+    stderr_file="$output_dir/$agent-stderr.txt"
+    console_file="$output_dir/$agent-console.txt"
+    if [ -z "$executable" ] || [ ! -x "$executable" ]; then
+        deferred_count=$((deferred_count + 1))
+        printf '%s\n' "$agent executable is unavailable" > "$stderr_file"
+        log WARN "$task_name agent=$agent deferred: executable unavailable"
+        continue
+    fi
+    if run_agent "$agent" "$executable" "$output" "$stderr_file" "$console_file"; then
+        combined=$(mktemp "${TMPDIR:-/tmp}/agent-fallback-output.XXXXXX")
+        printf '%s\n' \
+            "$(cat "$output")" \
+            "$(cat "$console_file")" \
+            "$(cat "$stderr_file")" > "$combined"
+        if is_deferred_failure "$combined"; then
+            deferred_count=$((deferred_count + 1))
+            log WARN "$task_name agent=$agent deferred"
+            rm -f "$combined"
+            continue
+        fi
+        rm -f "$combined"
+        log INFO "$task_name agent=$agent succeeded"
+        printf '%s\n' "$agent"
+        exit 0
+    fi
+    combined=$(mktemp "${TMPDIR:-/tmp}/agent-fallback-output.XXXXXX")
+    printf '%s\n' \
+        "$(cat "$output")" \
+        "$(cat "$console_file")" \
+        "$(cat "$stderr_file")" > "$combined"
+    if is_deferred_failure "$combined"; then
+        deferred_count=$((deferred_count + 1))
+        log WARN "$task_name agent=$agent deferred"
+    else
+        record_failure "$agent" "$combined"
+        log WARN "$task_name agent=$agent failed"
+    fi
+    rm -f "$combined"
+done
+
+record_prior_errors
+if [ "$attempted_count" -eq 0 ]; then
+    if [ -s "$failure_file" ]; then
+        final_failure
+        exit $?
+    fi
+    log WARN "$task_name deferred: no agents remain after filtering"
+    exit 75
+fi
+if [ "$deferred_count" -eq "$attempted_count" ] && [ ! -s "$failure_file" ]; then
+    log WARN "$task_name deferred: all agents are temporarily unavailable"
+    exit 75
+fi
+
+final_failure
+exit $?
