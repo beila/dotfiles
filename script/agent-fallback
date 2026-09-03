@@ -110,6 +110,9 @@ LOG_NOTIFY_MODE=$notify_mode
 LOG_NOTIFY_THRESHOLD=ERROR
 LOG_NOTIFY_DEDUP_WINDOW=${AGENT_FALLBACK_DEDUP_WINDOW:-315360000}
 LOG_KEEP_THRESHOLD=ERROR
+if [ "${AGENT_FALLBACK_LOG_ROOT_KEEP:-0}" != "1" ]; then
+    unset LOG_ROOT LOG_REL_BASE LOG_NOTIFY_DEDUP_DIR
+fi
 logger=${AGENT_FALLBACK_LOGGER:-"$script_dir/logger/log.sh"}
 if [ ! -f "$logger" ]; then
     echo "agent-fallback: logger is unavailable: $logger" >&2
@@ -176,12 +179,18 @@ tool_path() {
 
 is_deferred_failure() {
     local file=$1 pattern
-    pattern='please (log|sign) in|(log|sign)[ -]?in required|not (logged|signed) in|authentication (failed|required|error)|unauthorized|invalid (api[ _-]?)?(key|token)|(api[ _-]?)?(key|token|credentials?) (expired|missing|not found)|http (401|403)\b|too many requests|rate limit|service unavailable|temporarily unavailable|failed to receive the next message|failed to generate a response|tool approval required|doesn.t appear to be associated with any tool'
+    pattern='please (log|sign) in|(log|sign)[ -]?in required|not (logged|signed) in|authentication (failed|required|error)|unauthorized|invalid (api[ _-]?)?(key|token)|(api[ _-]?)?(key|token|credentials?) (expired|missing|not found)|http (401|403)\b|api error|\b429\b|too many (requests|tokens)|rate limit|service unavailable|temporarily unavailable|failed to receive the next message|failed to generate a response|tool approval required|doesn.t appear to be associated with any tool'
     if command -v rg >/dev/null 2>&1; then
         rg -qi "$pattern" "$file"
     else
         grep -Eqi "$pattern" "$file"
     fi
+}
+
+is_short_deferred_failure() {
+    local file=$1 size
+    size=$(wc -c < "$file")
+    [ "$size" -le 4096 ] && is_deferred_failure "$file"
 }
 
 record_failure() {
@@ -216,7 +225,7 @@ run_agent() {
     case "$agent:$mode" in
         codex:full)
             timeout --kill-after=10 "$timeout_seconds" "$executable" \
-                exec --ephemeral --approve-for-me -s workspace-write \
+                exec --ephemeral --approve-for-me \
                 -C "$cwd" -o "$output" "$prompt" \
                 >"$console_file" 2>"$stderr_file"
             rc=$?
@@ -288,7 +297,7 @@ for agent in codex claude kiro; do
             "$(cat "$output")" \
             "$(cat "$console_file")" \
             "$(cat "$stderr_file")" > "$combined"
-        if is_deferred_failure "$combined"; then
+        if is_short_deferred_failure "$combined"; then
             deferred_count=$((deferred_count + 1))
             log WARN "$task_name agent=$agent deferred"
             rm -f "$combined"

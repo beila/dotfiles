@@ -23,7 +23,9 @@ make_agent() {
 run_fallback() {
     LOG_ROOT="$tmp/logs" \
     LOG_NOTIFY_MODE=never \
+    AGENT_FALLBACK_LOG_ROOT_KEEP=1 \
     AGENT_FALLBACK_LOGGER="$LOGGER" \
+    AGENT_TEST_ARGS="$tmp/codex-args" \
     AGENT_FALLBACK_CODEX="$tmp/bin/codex" \
     AGENT_FALLBACK_CLAUDE="$tmp/bin/claude" \
     AGENT_FALLBACK_KIRO="$tmp/bin/kiro" \
@@ -38,6 +40,7 @@ run_fallback() {
 
 report_error() {
     LOG_ROOT="$tmp/logs" \
+    AGENT_FALLBACK_LOG_ROOT_KEEP=1 \
     AGENT_FALLBACK_LOGGER="$LOGGER" \
         "$SCRIPT" \
         --task-name "test report" \
@@ -53,15 +56,22 @@ selected=$(run_fallback)
 [ "$(tr '\n' ' ' < "$tmp/calls")" = "codex claude kiro " ] || exit 1
 
 : > "$tmp/calls"
-make_agent codex 'echo "generated"; exit 0'
+make_agent codex 'printf "%s\n" "$*" > "${AGENT_TEST_ARGS:?}"; echo "generated"; exit 0'
 make_agent claude 'echo "must not run" >&2; exit 2'
+selected=$(run_fallback)
+[ "$selected" = codex ] || exit 1
+[ "$(cat "$tmp/calls")" = codex ] || exit 1
+! rg -q -- '-s workspace-write' "$tmp/codex-args" || exit 1
+
+: > "$tmp/calls"
+make_agent codex 'printf "%5000s\nrate limit documentation\n" ""; exit 0'
 selected=$(run_fallback)
 [ "$selected" = codex ] || exit 1
 [ "$(cat "$tmp/calls")" = codex ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'echo "Please sign in" >&2; exit 1'
-make_agent claude 'echo "HTTP 401 Unauthorized" >&2; exit 1'
+make_agent claude 'echo "API Error: Request rejected (429) - Too many tokens" >&2; exit 1'
 make_agent kiro 'echo "temporarily unavailable" >&2; exit 1'
 run_fallback >/dev/null 2>"$tmp/error"
 [ "$?" -eq 75 ] || exit 1
