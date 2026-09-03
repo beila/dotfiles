@@ -559,13 +559,6 @@ readEdidVendor output = do
 -- Key bindings
 ------------------------------------------------------------------------
 
-closeFocusedWindow :: X ()
-closeFocusedWindow = withFocused $ \w -> do
-    windowTitle <- runQuery title w
-    if windowTitle == "Ignition X Window"
-        then withDisplay $ \d -> io $ void $ killClient d w
-        else kill
-
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
@@ -573,7 +566,6 @@ myKeys =
     -- doesn't see these — keyd swallows the Super and emits a bare keysym
     -- which the focused app handles natively.
     , ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
-    , ((mod4Mask .|. shiftMask, xK_c), closeFocusedWindow)
     , ((0, xF86XK_TouchpadToggle), spawn "$HOME/.dotfiles/xwindow/bin/albert-toggle") -- Super tap via keyd (prog1 = f21)
     , ((0, xF86XK_TouchpadOn), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2 = f22)
     , ((0, xF86XK_TouchpadOff), scratchpadToggle "ghostty2") -- Alt_R tap via keyd (prog3 = f23)
