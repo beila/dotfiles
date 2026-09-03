@@ -8,6 +8,23 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
 
 - **`sync_all`** — run by the `sync-repos` schedule. Iterates `.jj`/`.git` markers under `$HOME` from plocate, filters noise paths (`.cache`, `.cargo`, `.nix-profile`, `node_modules`), and **deduplicates by `jj --ignore-working-copy root` / `git top-level`** so discovery cannot snapshot an actively changing working copy and monorepos with many submodule markers trigger `sync_repo` once per underlying repo root (not once per marker). Logs via `script/logger/log.sh` with tag `sync_all`: INFO lines for START + discovery count; ERROR summary + non-zero exit when any per-repo sync fails. Workspaces of the same repo are still iterated separately (each has its own `jj root`), which is intentional — each workspace has its own `@` to sync; sync_repo's flock then serializes them on the shared `jj git root` so they don't race the shared op log. Test harness: `script/test_sync_all.sh` (27 assertions; fake plocate / sync_repo / jj / git).
 - **`sync_repo`** — per-repo. `sync.enabled = false` is a silent repository-level kill switch, checked with `--ignore-working-copy` before any command can snapshot or commit the working copy. Two locks are keyed on `jj git root` (the shared `.git` path), NOT `jj root`: `/tmp/sync_repo_job_<git-root>.lock` is held for the whole run and prevents duplicate sync jobs, while `/tmp/sync_repo_<git-root>.lock` is shared with interactive `jj` and held only for local jj/ref work. Snapshot prep: single `jj log -r @` resolves `PUSH_REV` atomically; runs `jj new` on non-empty OR empty-merge `@`, then `commit-msg` for description. `LOG_CONTEXT` is path-relative-to-home with `/`→`-`, so workspace-name collisions don't pile into the same log file. **Both `sync_all` and `sync_repo` `unset LOG_ROOT LOG_REL_BASE LOG_NOTIFY_DEDUP_DIR` before sourcing log.sh** to land logs in `~/.local/state/logs/` instead of `~/hjdocs/logs/` (avoids self-referential race with the repo it's syncing). Test harnesses opt out via `SYNC_LOG_ROOT_KEEP=1`.
+- **`agent-fallback`** — shared unattended agent runner. The caller passes
+  the repository working directory, prompt file, output directory, task name,
+  final failure message, stable log context, skipped agents, and prior
+  validation errors. The runner resolves current Toolbox registrations, then
+  tries Codex → Claude → Kiro until one process succeeds. It writes each
+  agent's result, console output, and standard error into the supplied output directory
+  and prints only the selected agent name on standard output. Exit 75 means every
+  remaining agent was unavailable because of authentication, rate limiting,
+  missing executables, or a temporary service failure. Those cases log at
+  WARN and never notify. Exhausted real failures log one aggregated ERROR via
+  `script/logger/log.sh`; task-specific text is supplied by the caller.
+  `--report-error` and `--report-deferred` expose the same logger and
+  notification path to callers with non-agent failures. The default
+  notification deduplication window is ten years because contexts are
+  operation-specific (for example, an Instapaper bookmark ID); volatile IDs
+  inside messages are still normalized by `log.sh`. Test harness:
+  `script/test_agent-fallback.sh`.
 - **`jj-serialized`** — Home Manager installs `script/bin/jj-serialized` as `~/.nix-profile/bin/jj`, with the real `pkgs.jujutsu` binary injected through `$JJ_REAL_EXECUTABLE`.
   By default, every jj command inside a repository takes `/tmp/sync_repo_<git-root>.lock`, the local-state lock used during `sync_repo`'s jj and ref phases.
   Network fetch and push hold only the separate job lock, so interactive jj remains available.
