@@ -36,6 +36,15 @@ run_fallback() {
         --failure-message "Test generation failed" "$@"
 }
 
+report_error() {
+    LOG_ROOT="$tmp/logs" \
+    AGENT_FALLBACK_LOGGER="$LOGGER" \
+        "$SCRIPT" \
+        --task-name "test report" \
+        --log-context "test-report" \
+        --report-error "$1"
+}
+
 make_agent codex 'echo "Please sign in" >&2; exit 1'
 make_agent claude 'echo "compiler failed" >&2; exit 2'
 make_agent kiro 'echo "generated"; exit 0'
@@ -77,5 +86,9 @@ run_fallback \
     >/dev/null 2>"$tmp/error"
 [ "$?" -eq 1 ] || exit 1
 rg -q "Test generation failed: caller: codex: result validation failed" "$tmp/logs"
+
+report_error "request 123456 failed" >/dev/null 2>&1
+[ "$?" -eq 1 ] || exit 1
+rg -q "request 123456 failed" "$tmp/logs"
 
 echo "agent-fallback tests passed"

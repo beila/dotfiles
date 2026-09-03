@@ -4,6 +4,8 @@ set -u
 
 usage() {
     echo "Usage: agent-fallback --cwd DIR --prompt-file FILE --output-dir DIR --task-name NAME --failure-message MESSAGE [--log-tag TAG] [--log-context CONTEXT] [--notify] [--timeout SECONDS] [--mode full|text] [--skip AGENT] [--prior-error MESSAGE]..." >&2
+    echo "       agent-fallback --task-name NAME --report-error MESSAGE [--log-tag TAG] [--log-context CONTEXT] [--notify]" >&2
+    echo "       agent-fallback --task-name NAME --report-deferred MESSAGE [--log-tag TAG] [--log-context CONTEXT]" >&2
     exit 64
 }
 
@@ -20,6 +22,8 @@ log_tag=agent-fallback
 log_context=""
 notify_mode=never
 prior_errors=""
+report_error=""
+report_deferred=""
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -72,6 +76,16 @@ while [ "$#" -gt 0 ]; do
             notify_mode=auto
             shift
             ;;
+        --report-error)
+            [ "$#" -ge 2 ] || usage
+            report_error=$2
+            shift 2
+            ;;
+        --report-deferred)
+            [ "$#" -ge 2 ] || usage
+            report_deferred=$2
+            shift 2
+            ;;
         --skip)
             [ "$#" -ge 2 ] || usage
             skipped="${skipped}$2 "
@@ -88,25 +102,7 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-[ -d "$cwd" ] || usage
-[ -f "$prompt_file" ] || usage
-[ -n "$output_dir" ] || usage
 [ -n "$task_name" ] || usage
-[ -n "$failure_message" ] || usage
-case "$timeout_seconds" in
-    *[!0-9]*|"") usage ;;
-esac
-case "$mode" in
-    full|text) ;;
-    *) usage ;;
-esac
-
-mkdir -p "$output_dir"
-prompt=$(<"$prompt_file")
-registry="${AGENT_FALLBACK_TOOLBOX_REGISTRY:-$HOME/.toolbox/tools/globalInfo.json}"
-failure_file=$(mktemp "${TMPDIR:-/tmp}/agent-fallback-failures.XXXXXX")
-deferred_count=0
-attempted_count=0
 
 LOG_TAG=$log_tag
 LOG_CONTEXT=$log_context
@@ -124,9 +120,40 @@ source "$logger"
 log_file >/dev/null
 cleanup() {
     log_finalize
-    rm -f "$failure_file"
+    [ -z "${failure_file:-}" ] || rm -f "$failure_file"
 }
 trap cleanup EXIT
+
+if [ -n "$report_error" ]; then
+    [ -z "$report_deferred" ] || usage
+    log ERROR "$report_error"
+    exit 1
+fi
+if [ -n "$report_deferred" ]; then
+    log WARN "$report_deferred"
+    exit 75
+fi
+
+[ -d "$cwd" ] || usage
+[ -f "$prompt_file" ] || usage
+[ -n "$output_dir" ] || usage
+[ -n "$failure_message" ] || usage
+case "$timeout_seconds" in
+    *[!0-9]*|"") usage ;;
+esac
+case "$mode" in
+    full|text) ;;
+    *) usage ;;
+esac
+
+mkdir -p "$output_dir"
+prompt=$(<"$prompt_file")
+registry="${AGENT_FALLBACK_TOOLBOX_REGISTRY:-$HOME/.toolbox/tools/globalInfo.json}"
+failure_file=$(mktemp "${TMPDIR:-/tmp}/agent-fallback-failures.XXXXXX")
+failure_export="$output_dir/agent-fallback-errors.tsv"
+: > "$failure_export"
+deferred_count=0
+attempted_count=0
 
 tool_path() {
     local command=$1 override=$2 fallback=$3 configured=""
@@ -269,6 +296,7 @@ for agent in codex claude kiro; do
         fi
         rm -f "$combined"
         log INFO "$task_name agent=$agent succeeded"
+        cp "$failure_file" "$failure_export"
         printf '%s\n' "$agent"
         exit 0
     fi
