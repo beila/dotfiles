@@ -113,7 +113,6 @@ check "case2: exactly one log file"            "1" "$file_count"
 ls "$d" | grep -qvE '\.FAILED\.txt$' && stray=1 || stray=0
 check "case2: no plain .txt remains"           "0" "$stray"
 
-# -----------------------------------------------------------------------------
 # Case 3: --fail-suffix custom + empty (disable rename on failure)
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
@@ -451,7 +450,6 @@ check "case22d: only one 'Log:' banner"        "1" "$log_count"
 renamed_count=$(grep -cE '^Log renamed: ' "$d/stderr" 2>/dev/null; true)
 check "case22e: 'Log renamed:' line emitted"   "1" "$renamed_count"
 
-# -----------------------------------------------------------------------------
 # Case 23: --auto + -c does not buffer first line until later commands
 # finish. Regression for the bug where awk on the foreground side of the
 # pipeline block-buffered output: `date; sleep N; date` would land both
