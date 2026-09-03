@@ -19,6 +19,11 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
   missing executables, or a temporary service failure. Those cases log at
   WARN and never notify. Exhausted real failures log one aggregated ERROR via
   `script/logger/log.sh`; task-specific text is supplied by the caller.
+  Successful output is scanned for a temporary-failure signature only when it
+  is at most 4096 bytes, so a substantial successful report can discuss rate
+  limiting without being rejected. Like `sync_repo`, the runner unsets
+  inherited `LOG_ROOT`, `LOG_REL_BASE`, and `LOG_NOTIFY_DEDUP_DIR`; tests can
+  retain explicit temporary paths with `AGENT_FALLBACK_LOG_ROOT_KEEP=1`.
   `--report-error` and `--report-deferred` expose the same logger and
   notification path to callers with non-agent failures. The default
   notification deduplication window is ten years because contexts are
