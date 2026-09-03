@@ -266,7 +266,7 @@ run_agent() {
     return "$rc"
 }
 
-for agent in codex claude kiro; do
+for agent in codex kiro claude; do
     case "$skipped" in
         *" $agent "*) continue ;;
     esac

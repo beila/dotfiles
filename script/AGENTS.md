@@ -12,7 +12,7 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
   the repository working directory, prompt file, output directory, task name,
   final failure message, stable log context, skipped agents, and prior
   validation errors. The runner resolves current Toolbox registrations, then
-  tries Codex → Claude → Kiro until one process succeeds. It writes each
+  tries Codex → Kiro → Claude until one process succeeds. It writes each
   agent's result, console output, and standard error into the supplied output directory
   and prints only the selected agent name on standard output. Exit 75 means every
   remaining agent was unavailable because of authentication, rate limiting,

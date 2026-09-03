@@ -53,7 +53,7 @@ make_agent claude 'echo "compiler failed" >&2; exit 2'
 make_agent kiro 'echo "generated"; exit 0'
 selected=$(run_fallback)
 [ "$selected" = kiro ] || { echo "expected kiro, got $selected" >&2; exit 1; }
-[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex claude kiro " ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro " ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'printf "%s\n" "$*" > "${AGENT_TEST_ARGS:?}"; echo "generated"; exit 0'
@@ -75,14 +75,16 @@ make_agent claude 'echo "API Error: Request rejected (429) - Too many tokens" >&
 make_agent kiro 'echo "temporarily unavailable" >&2; exit 1'
 run_fallback >/dev/null 2>"$tmp/error"
 [ "$?" -eq 75 ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro claude " ] || exit 1
 [ ! -s "$tmp/error" ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'echo "must not run" >&2; exit 2'
 make_agent claude 'echo "generated"; exit 0'
+make_agent kiro 'echo "unavailable" >&2; exit 2'
 selected=$(run_fallback --skip codex)
 [ "$selected" = claude ] || exit 1
-[ "$(cat "$tmp/calls")" = claude ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "kiro claude " ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'echo "must not run" >&2; exit 2'
