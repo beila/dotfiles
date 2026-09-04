@@ -5,7 +5,9 @@
 # Rendering: braille pairs (U+2800-block). One cell shows 2 samples, each at 5
 # height levels (0-4 dots). Halves panel cell count vs the old 1-sample/cell
 # block sparkline, so we double the displayed history (CELLS=8, 16 samples).
-HIST=/tmp/sysmon-history
+STATE_DIR=${SYSMON_STATE_DIR:-/tmp}
+HIST=${SYSMON_HIST:-$STATE_DIR/sysmon-history}
+mkdir -p "$STATE_DIR"
 # DejaVu Sans Mono braille is narrower than the panel's default font, so we can
 # fit more cells in the same horizontal budget than the old block-sparkline did.
 CELLS=15
@@ -17,6 +19,11 @@ LEN=$(( CELLS * 2 ))  # 30 samples × 20s = 10 minutes
 # A single saturated CPU is easy to miss in the package-wide average. Mark
 # logical CPUs that stay this busy across one full polling interval.
 CORE_WARN_PCT=80
+# History sentinels. Network outages use a visible one-dot column rather than
+# disappearing as missing data, so unavailable periods remain on the timeline.
+NO_DATA=-1
+NET_OFFLINE=-2
+OFFLINE_COLOR="#ffb86c"
 
 # Braille pair lookup. Index = L*5 + R, where L,R ∈ 0..4 (dot height per side).
 # Generated from L bits {0,0x40,0x44,0x46,0x47} + R bits {0,0x80,0xA0,0xB0,0xB8}
@@ -34,6 +41,7 @@ BRAILLE_PAIR=(
 # idle/trickle activity stays distinguishable from "no data".
 height() {
     local pct=$1 idx
+    (( pct == NET_OFFLINE )) && { echo 1; return; }
     (( pct < 0 )) && { echo 0; return; }
     (( pct > 100 )) && pct=100
     idx=$(( (pct * 4 + 50) / 100 ))
@@ -71,11 +79,15 @@ color_pair() {
     lh=$(height "$l"); rh=$(height "$r")
     sl=$(severity "$lh" "$inv"); sr=$(severity "$rh" "$inv")
     sev=$(( sl > sr ? sl : sr ))
-    case $sev in
-        2) color="#ff5555" ;;
-        1) color="#f1fa8c" ;;
-        *) color="#50fa7b" ;;
-    esac
+    if (( l == NET_OFFLINE || r == NET_OFFLINE )); then
+        color=$OFFLINE_COLOR
+    else
+        case $sev in
+            2) color="#ff5555" ;;
+            1) color="#f1fa8c" ;;
+            *) color="#50fa7b" ;;
+        esac
+    fi
     printf "<span color='%s'>%s</span>" "$color" "${BRAILLE_PAIR[lh*5+rh]}"
 }
 
@@ -102,7 +114,7 @@ spark() {
     local pad=$(( LEN - count ))
     (( pad < 0 )) && pad=0
     local padded_arr=()
-    for (( i=0; i<pad; i++ )); do padded_arr+=( -1 ); done
+    for (( i=0; i<pad; i++ )); do padded_arr+=( "$NO_DATA" ); done
     padded_arr+=( "${arr[@]}" )
     # Pair up adjacent samples into braille cells.
     for (( i=0; i<LEN; i+=2 )); do
@@ -126,9 +138,21 @@ hwmon_by_name() {
     return 1
 }
 
+# Read the cached NetworkManager connectivity result. This only reads existing
+# platform state; unlike `nmcli networking connectivity check`, it does not
+# start a new probe. The timeout keeps a stuck D-Bus call from blocking genmon.
+network_connectivity() {
+    local state
+    state=$(LC_ALL=C timeout 1 nmcli -t -f CONNECTIVITY general 2>/dev/null | head -n1)
+    case $state in
+        full|limited|portal|none) echo "$state" ;;
+        *) echo unknown ;;
+    esac
+}
+
 # --- CPU & IO (delta via awk for large numbers) ---
 read -r _ cu cn cs ci cio cirq csirq _ < /proc/stat
-prev=$(cat /tmp/sysmon-cpu-prev 2>/dev/null)
+prev=$(cat "$STATE_DIR/sysmon-cpu-prev" 2>/dev/null)
 if [ -n "$prev" ]; then
     read -r cpu iow <<< "$(echo "$prev $cu $cn $cs $ci $cio $cirq $csirq" | awk '{
         pt=$1+$2+$3+$4+$5+$6+$7; pi=$4; pio=$5
@@ -139,7 +163,7 @@ if [ -n "$prev" ]; then
 else
     cpu=0; iow=0
 fi
-echo "$cu $cn $cs $ci $cio $cirq $csirq" > /tmp/sysmon-cpu-prev
+echo "$cu $cn $cs $ci $cio $cirq $csirq" > "$STATE_DIR/sysmon-cpu-prev"
 push_hist cpu "$cpu"
 push_hist iow "$iow"
 
@@ -153,7 +177,7 @@ iface=$(awk '$2=="00000000"{print $1; exit}' /proc/net/route)
 drx=0; dtx=0; net_pct=0
 if [ -n "$iface" ]; then
     read -r rx tx < <(awk -v i="$iface:" '$1==i{print $2, $10}' /proc/net/dev)
-    prev_net=$(cat /tmp/sysmon-net-prev 2>/dev/null)
+    prev_net=$(cat "$STATE_DIR/sysmon-net-prev" 2>/dev/null)
     if [ -n "$prev_net" ]; then
         read -r prx ptx <<< "$prev_net"
         drx=$(( (rx-prx)/POLL_SEC ))
@@ -161,9 +185,19 @@ if [ -n "$iface" ]; then
         net_pct=$(( (drx+dtx) / 104858 ))
         (( net_pct > 100 )) && net_pct=100
     fi
-    echo "$rx $tx" > /tmp/sysmon-net-prev
+    echo "$rx $tx" > "$STATE_DIR/sysmon-net-prev"
 fi
-push_hist net "$net_pct"
+connectivity=$(network_connectivity)
+net_sample=$net_pct
+case $connectivity in
+    limited|portal|none)
+        net_sample=$NET_OFFLINE
+        net_status="offline ($connectivity)"
+        ;;
+    full) net_status="online" ;;
+    *)    net_status="unknown" ;;
+esac
+push_hist net "$net_sample"
 
 # --- Battery ---
 bat=/sys/class/power_supply/BAT0
@@ -220,8 +254,8 @@ loadavg=$(cut -d' ' -f1-3 /proc/loadavg)
 hr() { local b=$1; if ((b>1073741824)); then echo "$((b/1073741824))G"; elif ((b>1048576)); then echo "$((b/1048576))M"; elif ((b>1024)); then echo "$((b/1024))K"; else echo "${b}B"; fi; }
 swap_used=$(( (swaptotal-swapfree)/1024 ))
 swap_total=$(( swaptotal/1024 ))
-prev_cores=/tmp/sysmon-cores-prev
-cur_cores=/tmp/sysmon-cores-cur
+prev_cores="$STATE_DIR/sysmon-cores-prev"
+cur_cores="$STATE_DIR/sysmon-cores-cur"
 awk '/^cpu[0-9]+/' /proc/stat > "$cur_cores"
 if [ -f "$prev_cores" ]; then
     cores_tip=$(paste "$prev_cores" "$cur_cores" | awk -v warn="$CORE_WARN_PCT" 'NF>=20{
@@ -262,11 +296,12 @@ cp "$cur_cores" "$prev_cores"
 temp_tip="n/a"; (( temp_c >= 0 )) && temp_tip="${temp_c}°C (pkg)"
 fan_tip="n/a";  (( fan_rpm >= 0 )) && fan_tip="${fan_rpm} RPM"
 
-printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  ↓%s/s ↑%s/s\nTemp: %s\nFan:  %s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
+printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  %s ↓%s/s ↑%s/s\nTemp: %s\nFan:  %s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
     "$cpu" "$loadavg" \
     "$cores_tip" \
     "$mem" "$used_mb" "$total_mb" \
     "$iow" \
+    "$net_status" \
     "$(hr $drx)" "$(hr $dtx)" \
     "$temp_tip" \
     "$fan_tip" \
