@@ -179,7 +179,33 @@ tool_path() {
 
 is_deferred_failure() {
     local file=$1 pattern
-    pattern='please (log|sign) in|(log|sign)[ -]?in required|not (logged|signed) in|authentication (failed|required|error)|unauthorized|invalid (api[ _-]?)?(key|token)|(api[ _-]?)?(key|token|credentials?) (expired|missing|not found)|http (401|403)\b|api error|\b429\b|too many (requests|tokens)|rate limit|service unavailable|temporarily unavailable|failed to receive the next message|failed to generate a response|tool approval required|doesn.t appear to be associated with any tool'
+    if is_auth_failure "$file"; then
+        return 0
+    fi
+    pattern='http (401|403)\b|api error|\b429\b|too many (requests|tokens)|rate limit|service unavailable|temporarily unavailable|failed to receive the next message|failed to generate a response|tool approval required|doesn.t appear to be associated with any tool'
+    if command -v rg >/dev/null 2>&1; then
+        rg -qi "$pattern" "$file"
+    else
+        grep -Eqi "$pattern" "$file"
+    fi
+}
+
+is_auth_failure() {
+    local file=$1 pattern
+    if is_strong_auth_failure "$file"; then
+        return 0
+    fi
+    pattern='please (log|sign) in|(log|sign)[ -]?in required|not (logged|signed) in|authentication (failed|required|error)|unauthorized|invalid (api[ _-]?)?(key|token)|(api[ _-]?)?(key|token|credentials?) (expired|missing|not found)|session expired'
+    if command -v rg >/dev/null 2>&1; then
+        rg -qi "$pattern" "$file"
+    else
+        grep -Eqi "$pattern" "$file"
+    fi
+}
+
+is_strong_auth_failure() {
+    local file=$1 pattern
+    pattern='midway session expired|failed to load aws credentials|error getting aws credentials|failed to resolve isengard credentials|mcs authorize failed|no cookies found for midway-auth\.amazon\.com|run mwinit to authenticate|awscredentialexport did not return a valid value'
     if command -v rg >/dev/null 2>&1; then
         rg -qi "$pattern" "$file"
     else
@@ -203,11 +229,19 @@ record_failure() {
 }
 
 record_prior_errors() {
+    local prior_file
     [ -n "$prior_errors" ] || return
+    prior_file=$(mktemp "${TMPDIR:-/tmp}/agent-fallback-prior.XXXXXX")
     while IFS= read -r summary; do
         [ -n "$summary" ] || continue
+        printf '%s\n' "$summary" > "$prior_file"
+        if is_auth_failure "$prior_file"; then
+            log WARN "$task_name caller authentication deferred"
+            continue
+        fi
         printf '%s\t%s\n' caller "$summary" >> "$failure_file"
     done <<< "$prior_errors"
+    rm -f "$prior_file"
 }
 
 final_failure() {
@@ -297,7 +331,7 @@ for agent in codex kiro claude; do
             "$(cat "$output")" \
             "$(cat "$console_file")" \
             "$(cat "$stderr_file")" > "$combined"
-        if is_short_deferred_failure "$combined"; then
+        if is_strong_auth_failure "$stderr_file" || is_short_deferred_failure "$combined"; then
             deferred_count=$((deferred_count + 1))
             log WARN "$task_name agent=$agent deferred"
             rm -f "$combined"

@@ -56,6 +56,19 @@ selected=$(run_fallback)
 [ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro " ] || exit 1
 
 : > "$tmp/calls"
+make_agent codex 'printf "%5000s\n" ""; echo "warning: Midway session expired but stdin is not a terminal" >&2; exit 0'
+make_agent kiro 'echo "generated"; exit 0'
+selected=$(run_fallback)
+[ "$selected" = kiro ] || { echo "expected kiro after Codex auth warning, got $selected" >&2; exit 1; }
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro " ] || exit 1
+
+: > "$tmp/calls"
+make_agent codex 'echo "Investigated authentication error handling" >&2; printf "%5000s\n" ""; exit 0'
+selected=$(run_fallback)
+[ "$selected" = codex ] || { echo "generic auth prose must not defer Codex" >&2; exit 1; }
+[ "$(cat "$tmp/calls")" = codex ] || exit 1
+
+: > "$tmp/calls"
 make_agent codex 'printf "%s\n" "$*" > "${AGENT_TEST_ARGS:?}"; echo "generated"; exit 0'
 make_agent claude 'echo "must not run" >&2; exit 2'
 selected=$(run_fallback)
@@ -94,10 +107,12 @@ run_fallback \
     --skip codex \
     --skip claude \
     --skip kiro \
+    --prior-error "codex: Midway session expired" \
     --prior-error "codex: result validation failed" \
     >/dev/null 2>"$tmp/error"
 [ "$?" -eq 1 ] || exit 1
 rg -q "Test generation failed: caller: codex: result validation failed" "$tmp/logs"
+! rg -q "Midway session expired" "$tmp/logs" || exit 1
 
 report_error "request 123456 failed" >/dev/null 2>&1
 [ "$?" -eq 1 ] || exit 1
