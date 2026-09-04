@@ -2,9 +2,11 @@
 # notify-webhook — notification dispatcher with swappable backends.
 #
 # Usage:
-#   notify-webhook [-t TITLE] [-p PRIORITY] [-u URL] MESSAGE
+#   notify-webhook [-d DESTINATION] [-t TITLE] [-p PRIORITY] [-u URL] MESSAGE
 #
 # Options:
+#   -d DESTINATION
+#                 named destination backed by backend-specific private config
 #   -t TITLE      short title (bold where the backend supports it)
 #   -p PRIORITY   low | normal | high | urgent (default: normal)
 #   -u URL        optional related URL
@@ -27,21 +29,68 @@ set -u
 title=""
 priority="normal"
 url=""
+destination=""
+destination_requested=false
 while [ $# -gt 0 ]; do
     case "$1" in
-        -t) title=$2; shift 2 ;;
-        -p) priority=$2; shift 2 ;;
-        -u) url=$2; shift 2 ;;
+        -d|--destination)
+            [ $# -ge 2 ] || {
+                echo "notify-webhook: $1 requires a value" >&2
+                exit 2
+            }
+            destination=$2
+            destination_requested=true
+            shift 2
+            ;;
+        --destination=*)
+            destination=${1#*=}
+            destination_requested=true
+            shift
+            ;;
+        -t|-p|-u)
+            [ $# -ge 2 ] || {
+                echo "notify-webhook: $1 requires a value" >&2
+                exit 2
+            }
+            case "$1" in
+                -t) title=$2 ;;
+                -p) priority=$2 ;;
+                -u) url=$2 ;;
+            esac
+            shift 2
+            ;;
         --) shift; break ;;
         -*) echo "notify-webhook: unknown option $1" >&2; exit 2 ;;
         *)  break ;;
     esac
 done
+if [ "$destination_requested" = true ] && [ -z "$destination" ]; then
+    echo "notify-webhook: destination cannot be empty" >&2
+    exit 2
+fi
+if [ -n "$destination" ]; then
+    case "$destination" in
+        [A-Za-z0-9]*)
+            case "$destination" in
+                *[!A-Za-z0-9._-]*)
+                    echo "notify-webhook: invalid destination '$destination'" >&2
+                    exit 2
+                    ;;
+            esac
+            ;;
+        *)
+            echo "notify-webhook: invalid destination '$destination'" >&2
+            exit 2
+            ;;
+    esac
+fi
 if [ $# -lt 1 ]; then
     echo "notify-webhook: missing MESSAGE" >&2
     exit 2
 fi
 message=$*
+NOTIFY_DESTINATION=$destination
+export NOTIFY_DESTINATION
 
 DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
 BACKEND_DIR="$DOTFILES_ROOT/script/logger/backends"

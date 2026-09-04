@@ -50,13 +50,13 @@ Test harness: `script/logger/test_log.sh` (49 assertions; run with `bash script/
 
 Each backend defines `notify_send TITLE PRIORITY URL MESSAGE`. `bin/notify-webhook` selects one (see `bin/AGENTS.md`).
 
-- **`telegram.sh`** — reads `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` from `private-dotfiles/telegram.env`; posts to Telegram Bot API with HTML formatting; `low` priority → `disable_notification=true`, `high`/`urgent` add 🟠/🔴 to the title; 5s curl timeout.
+- **`telegram.sh`** — reads `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` from `private-dotfiles/telegram.env`; `notify-webhook -d NAME` instead selects `private-dotfiles/telegram.NAME.env`. Named destinations are validated and fail when missing or incomplete. The unconfigured default remains a silent no-op. It posts to the Telegram Bot API with HTML formatting; `low` priority → `disable_notification=true`, `high`/`urgent` add 🟠/🔴 to the title; 5-second curl timeout.
 - **`none.sh`** — no-op default.
 - **`mock.sh`** — test helper; writes TSV lines to `$NOTIFY_MOCK_FILE`.
 
 ## Telegram setup
 
-Bot via `@BotFather` (`/newbot`); chat id from `getUpdates` API after sending the bot a message; save `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` in `~/.dotfiles/private-dotfiles/telegram.env` (chmod 600). Test: `notify-webhook -t test -p high "hello"`.
+Bot via `@BotFather` (`/newbot`); chat id from `getUpdates` API after sending the bot a message; save `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` in `~/.dotfiles/private-dotfiles/telegram.env` (chmod 600). Additional destinations use `telegram.NAME.env` and `notify-webhook -d NAME ...`. Tests: `notify-webhook -t test -p high "hello"` for the default, or `notify-webhook -d multica-direct -t test -p high "hello"` for the Multica/Mika chat.
 
 ## Push notification choices (rationale)
 

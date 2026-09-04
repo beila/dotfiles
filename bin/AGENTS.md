@@ -118,7 +118,7 @@ Beware `zmx attach --help`: zmx takes it as a session name and attaches to a ses
 
 ## Notify-webhook dispatcher
 
-`notify-webhook` — dispatcher for structured alerts. Flags: `-t TITLE`, `-p {low|normal|high|urgent}`, `-u URL`. Backends live in `~/.dotfiles/script/logger/backends/<name>.sh` and must define `notify_send TITLE PRIORITY URL MESSAGE`. Selection priority: explicit `$NOTIFY_BACKEND` env var → auto-detect (`telegram.env` present → `telegram`) → `none`. Missing credentials or unknown backend = silent no-op (exit 0) so machines without configuration don't fail. See `script/logger/AGENTS.md` for backend details.
+`notify-webhook` — dispatcher for structured alerts. Flags: `-d DESTINATION`, `-t TITLE`, `-p {low|normal|high|urgent}`, `-u URL`. `-d` exports the validated name as `$NOTIFY_DESTINATION`; backends map it to private configuration. Backends live in `~/.dotfiles/script/logger/backends/<name>.sh` and must define `notify_send TITLE PRIORITY URL MESSAGE`. Selection priority: explicit `$NOTIFY_BACKEND` environment variable → auto-detect (`telegram.env` present → `telegram`) → `none`. The unconfigured default and unknown backends remain silent no-ops, so machines without notification configuration do not fail. An explicitly requested Telegram destination fails when missing or incomplete. Test: `bash bin/test_notify_webhook.sh`. See `script/logger/AGENTS.md` for backend details.
 
 ## Dropbox Downloader
 

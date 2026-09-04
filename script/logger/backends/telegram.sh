@@ -5,6 +5,9 @@
 #   TELEGRAM_BOT_TOKEN=<bot token from @BotFather>
 #   TELEGRAM_CHAT_ID=<your chat id>
 #
+# A named destination selected by `notify-webhook -d NAME` instead reads:
+#   $DOTFILES_ROOT/private-dotfiles/telegram.NAME.env
+#
 # Setup steps for the user:
 #   1. Message @BotFather in Telegram; send /newbot; get a bot token.
 #   2. Send any message to the new bot from your Telegram account.
@@ -20,19 +23,49 @@
 #
 # Behavior:
 #   - Silent no-op if telegram.env missing or tokens empty.
+#   - Explicit named destinations fail if their config is missing or incomplete.
 #   - Non-zero exit on Telegram API failure; callers decide whether to care.
 #   - 5-second network timeout.
 
 notify_send() {
     local title=$1 priority=$2 url=$3 message=$4
 
-    local env_file="${DOTFILES_ROOT:-$HOME/.dotfiles}/private-dotfiles/telegram.env"
-    [ -f "$env_file" ] || return 0
+    local destination="${NOTIFY_DESTINATION:-}"
+    local private_dir="${DOTFILES_ROOT:-$HOME/.dotfiles}/private-dotfiles"
+    local env_file="$private_dir/telegram.env"
+    if [ -n "$destination" ]; then
+        case "$destination" in
+            [A-Za-z0-9]*)
+                case "$destination" in
+                    *[!A-Za-z0-9._-]*)
+                        echo "notify-webhook: invalid Telegram destination '$destination'" >&2
+                        return 2
+                        ;;
+                esac
+                ;;
+            *)
+                echo "notify-webhook: invalid Telegram destination '$destination'" >&2
+                return 2
+                ;;
+        esac
+        env_file="$private_dir/telegram.$destination.env"
+    fi
+
+    if [ ! -f "$env_file" ]; then
+        [ -z "$destination" ] && return 0
+        echo "notify-webhook: Telegram destination '$destination' is not configured" >&2
+        return 2
+    fi
 
     # shellcheck source=/dev/null
+    local TELEGRAM_BOT_TOKEN=""
+    local TELEGRAM_CHAT_ID=""
     . "$env_file"
-    [ -n "${TELEGRAM_BOT_TOKEN:-}" ] || return 0
-    [ -n "${TELEGRAM_CHAT_ID:-}" ]   || return 0
+    if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+        [ -z "$destination" ] && return 0
+        echo "notify-webhook: Telegram destination '$destination' has incomplete credentials" >&2
+        return 2
+    fi
 
     local silent=false
     local prefix=""
