@@ -33,6 +33,7 @@ for state in limited portal none; do
     offline=$(run_sample "$state" "offline-$state")
     [[ $offline == *"Net:  offline ($state)"* ]]
     [[ $offline == *"#ffb86c"* ]]
+    [[ $offline == *"<span color='#ffb86c'>⢀</span>"* ]]
 done
 
 unknown=$(run_sample unknown unknown)
