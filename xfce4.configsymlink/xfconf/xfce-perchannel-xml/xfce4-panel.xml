@@ -142,7 +142,9 @@
       <property name="font" type="string" value="Ubuntu 11"/>
       <property name="text" type="string" value="(genmon)"/>
     </property>
-    <property name="plugin-4" type="string" value="separator"/>
+    <property name="plugin-4" type="string" value="separator">
+      <property name="style" type="uint" value="0"/>
+    </property>
     <property name="plugin-7" type="string" value="genmon">
       <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/midway-genmon"/>
       <property name="use-label" type="bool" value="false"/>
