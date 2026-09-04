@@ -90,7 +90,7 @@ notify_send() {
         body+=$'\n\n'"<a href=\"$(_telegram_escape "$url")\">$(_telegram_escape "$url")</a>"
     fi
 
-    curl -sS --max-time 5 -o /dev/null \
+    curl -fsS --max-time 5 -o /dev/null \
         -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
         --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
         --data-urlencode "text=${body}" \

@@ -21,6 +21,7 @@ cp "$TELEGRAM_BACKEND" "$backend_dir/telegram.sh"
 cat > "$fake_bin/curl" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$NOTIFY_CAPTURE"
+[ "${NOTIFY_CURL_FAIL:-0}" = 0 ]
 EOF
 chmod +x "$fake_bin/curl"
 
@@ -89,5 +90,15 @@ assert_success \
 assert_success \
     "named destination selected its chat id" \
     rg -q '^chat_id=424242$' "$capture"
+
+assert_failure \
+    "Telegram API failure is propagated" \
+    env \
+        DOTFILES_ROOT="$test_root" \
+        NOTIFY_BACKEND=telegram \
+        NOTIFY_CAPTURE="$capture" \
+        NOTIFY_CURL_FAIL=1 \
+        PATH="$fake_bin:$PATH" \
+        "$DISPATCHER" -d multica-direct "message"
 
 exit "$failures"
