@@ -27,23 +27,27 @@ run_sample() {
 
 online=$(run_sample full online)
 [[ $online == *"Net:  online"* ]]
-[[ $online != *"#ffb86c"* ]]
+[[ $online != *"#ff79c6"* ]]
 
 for state in limited portal none; do
     offline=$(run_sample "$state" "offline-$state")
     [[ $offline == *"Net:  offline ($state)"* ]]
-    [[ $offline == *"#ffb86c"* ]]
-    [[ $offline == *"<span color='#ffb86c'>⢀</span>"* ]]
+    [[ $offline == *"#ff79c6"* ]]
+    [[ $offline == *"<span color='#ff79c6'>⢈</span>"* ]]
 done
+
+run_sample limited paired >/dev/null
+paired=$(run_sample limited paired)
+[[ $paired == *"<span color='#ff79c6'>⣉</span>"* ]]
 
 unknown=$(run_sample unknown unknown)
 [[ $unknown == *"Net:  unknown"* ]]
-[[ $unknown != *"#ffb86c"* ]]
+[[ $unknown != *"#ff79c6"* ]]
 
 run_sample full transient >/dev/null
 run_sample limited transient >/dev/null
 recovered=$(run_sample full transient)
 [[ $recovered == *"Net:  online"* ]]
-[[ $recovered == *"#ffb86c"* ]]
+[[ $recovered == *"#ff79c6"* ]]
 
 printf 'sysmon connectivity tests passed\n'

@@ -19,11 +19,13 @@ LEN=$(( CELLS * 2 ))  # 30 samples × 20s = 10 minutes
 # A single saturated CPU is easy to miss in the package-wide average. Mark
 # logical CPUs that stay this busy across one full polling interval.
 CORE_WARN_PCT=80
-# History sentinels. Network outages use a visible one-dot column rather than
-# disappearing as missing data, so unavailable periods remain on the timeline.
+# History sentinels. Outages keep one column per sample but use only the top
+# and bottom dots, so their shape cannot be confused with a contiguous traffic bar.
 NO_DATA=-1
 NET_OFFLINE=-2
-OFFLINE_COLOR="#ffb86c"
+OFFLINE_COLOR="#ff79c6"
+OFFLINE_LEFT_BITS=0x41   # dots 1 + 7
+OFFLINE_RIGHT_BITS=0x88  # dots 4 + 8
 
 # Braille pair lookup. Index = L*5 + R, where L,R ∈ 0..4 (dot height per side).
 # Generated from L bits {0,0x40,0x44,0x46,0x47} + R bits {0,0x80,0xA0,0xB0,0xB8}
@@ -35,6 +37,8 @@ BRAILLE_PAIR=(
     ⡆ ⣆ ⣦ ⣶ ⣾
     ⡇ ⣇ ⣧ ⣷ ⣿
 )
+BRAILLE_LEFT_BITS=(0 0x40 0x44 0x46 0x47)
+BRAILLE_RIGHT_BITS=(0 0x80 0xA0 0xB0 0xB8)
 
 # Map a sample to dot height 0..4. -1 means "no data" (history not filled yet)
 # and renders as 0 dots; any real reading 0..100 renders at least 1 dot so
@@ -71,24 +75,31 @@ severity() {
 }
 
 # Render a single braille cell from two samples + inv flag, coloured by the
-# worse of the two severities (max). Severity is derived from each sample's
-# quantized height so the color can never disagree with the displayed bar.
+# worse of the two severities (max). Outage columns use non-contiguous endpoint
+# dots; normal columns still use the contiguous height lookup.
 color_pair() {
     local l=$1 r=$2 inv=${3:-0}
-    local lh rh sl sr sev color
+    local lh rh sl sr sev color glyph left_bits right_bits escaped
     lh=$(height "$l"); rh=$(height "$r")
     sl=$(severity "$lh" "$inv"); sr=$(severity "$rh" "$inv")
     sev=$(( sl > sr ? sl : sr ))
     if (( l == NET_OFFLINE || r == NET_OFFLINE )); then
         color=$OFFLINE_COLOR
+        left_bits=${BRAILLE_LEFT_BITS[lh]}
+        right_bits=${BRAILLE_RIGHT_BITS[rh]}
+        (( l == NET_OFFLINE )) && left_bits=$OFFLINE_LEFT_BITS
+        (( r == NET_OFFLINE )) && right_bits=$OFFLINE_RIGHT_BITS
+        printf -v escaped '\\U%08x' "$(( 0x2800 + left_bits + right_bits ))"
+        printf -v glyph '%b' "$escaped"
     else
         case $sev in
             2) color="#ff5555" ;;
             1) color="#f1fa8c" ;;
             *) color="#50fa7b" ;;
         esac
+        glyph=${BRAILLE_PAIR[lh*5+rh]}
     fi
-    printf "<span color='%s'>%s</span>" "$color" "${BRAILLE_PAIR[lh*5+rh]}"
+    printf "<span color='%s'>%s</span>" "$color" "$glyph"
 }
 
 read_hist() { grep "^$1 " "$HIST" 2>/dev/null | cut -d' ' -f2-; }

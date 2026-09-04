@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -u
+
+cookie_file=${MIDWAY_COOKIE_FILE:-${HOME:-}/.midway/cookie}
+now=${MIDWAY_NOW:-$(date +%s)}
+
+case $now in
+    ''|*[!0-9]*) now=$(date +%s) ;;
+esac
+
+expiry=0
+if [[ -r $cookie_file ]]; then
+    expiry=$(awk -F '\t' '
+        NF >= 7 && ($6 == "session" || $6 == "__Host-session") && $5 ~ /^[0-9]+$/ {
+            if ($5 > latest) latest = $5
+        }
+        END { printf "%.0f\n", latest }
+    ' "$cookie_file" 2>/dev/null)
+fi
+
+format_expiry() {
+    date -d "@$1" '+%a %d %b %Y, %H:%M %Z' 2>/dev/null || printf '%s' "$1"
+}
+
+format_remaining() {
+    local seconds=$1 days hours minutes
+    days=$((seconds / 86400))
+    hours=$(((seconds % 86400) / 3600))
+    minutes=$(((seconds % 3600) / 60))
+
+    if ((days > 0)); then
+        printf '%dd %dh %dm' "$days" "$hours" "$minutes"
+    else
+        printf '%dh %dm' "$hours" "$minutes"
+    fi
+}
+
+if ((expiry > now)); then
+    remaining=$((expiry - now))
+    printf "<txt><span color='#50fa7b'>●</span> MW</txt>\n"
+    printf '<tool>Midway session valid\nExpires: %s\nRemaining: %s</tool>\n' \
+        "$(format_expiry "$expiry")" "$(format_remaining "$remaining")"
+elif ((expiry > 0)); then
+    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    printf '<tool>Midway session expired\nExpired: %s\nRun mwinit to authenticate.</tool>\n' \
+        "$(format_expiry "$expiry")"
+else
+    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    printf '<tool>No Midway session found\nRun mwinit to authenticate.</tool>\n'
+fi
