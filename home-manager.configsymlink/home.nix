@@ -9,6 +9,16 @@ let
     sha256 = "1sa88xp6dn8p0dan80s90zr9c6d1mhfi7ibql7b7w5yp4y61klbi";
   };
 
+  # Great Vibes: an ornate OFL swash/script display face (SIL OFL 1.1, Google
+  # Fonts). Used by midway-osd for the decorative MW capitals — abundant
+  # curling strokes and flourishes, distinctly more decorative than
+  # JejuHallasan's Latin. Fetched directly from google/fonts to avoid the
+  # 2.3 GB google-fonts mega-package.
+  greatvibes-ttf = pkgs.fetchurl {
+    url = "https://github.com/google/fonts/raw/main/ofl/greatvibes/GreatVibes-Regular.ttf";
+    sha256 = "059dk3wnfi5kr7q97jpszmdrm3q9x09z7v1i4mbm26vg3019hl4d";
+  };
+
   # Local Python package providing reusable OSD primitives (cairo render +
   # XShape window). battery-osd uses it; future volume/brightness/audio
   # OSD migrations will too.
@@ -194,10 +204,10 @@ in
     # word.
     (pkgs.writeShellScriptBin "midway-osd" ''
       export GI_TYPELIB_PATH="${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
-      # Decorative display font (JejuHallasan) — registered with fontconfig's
-      # app-font set at render time so Pango sees it despite incomplete `en`
-      # coverage. It covers basic-latin M and W.
-      export MIDWAY_OSD_FONT_FILE=${jejuhallasan-ttf}
+      # Decorative swash display font (Great Vibes) — registered with
+      # fontconfig's app-font set at render time so Pango's matcher resolves
+      # the "Great Vibes" family for the ornamental MW capitals.
+      export MIDWAY_OSD_FONT_FILE=${greatvibes-ttf}
       # Shared local Midway valid/invalid parser (no network, no mwinit). The
       # source path in the store restarts the daemon when the parser changes.
       export MIDWAY_GENMON=${../xwindow/bin/midway-genmon}

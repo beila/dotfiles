@@ -12,12 +12,14 @@ watching the file) is deliberate: crossing the expiry timestamp must flip the
 OSD on even when the cookie file has not changed, and a 30 s poll detects that
 within the contract's window.
 
-Visual: a deliberately excessive decorative `MW` in pure red #FF0000 at 0.5
-alpha, no background, no outline, no shadow. Same physical height (70 mm) as
-the Hangul 한 box, seated immediately to its LEFT with a fixed physical gap so
-both stay on-screen at the top-right. Adjacency is derived from the shared
-HANGUL_SLOT_* constants via osd.sibling_offset_mm(), so it does not drift
-across monitor sizes or DPI.
+Visual: a deliberately excessive decorative `MW` (Great Vibes swash script) in
+LEGO colour 21 "Bright Red" #B40000 at 0.5 alpha, no background, no outline, no
+shadow. A 66 × 42 mm box (a uniform 0.6 scale of the original 110 × 70 mm box,
+so 11:7 is preserved exactly), vertically centred inside the 70 mm Hangul 한
+slot and seated 2 mm to its LEFT so both stay on-screen at the top-right.
+Adjacency and centring are derived from the shared HANGUL_SLOT_* constants via
+osd.sibling_offset_mm() and a physical mm offset, so nothing drifts across
+monitor sizes or DPI.
 
 Lifecycle mirrors hangul-osd: a long-lived daemon that fork()s one child
 running display_on_all_monitors(...) while invalid, and SIGTERMs it when valid
@@ -54,7 +56,18 @@ from osd import (
 TEXT = "MW"
 
 # Physical gap between the MW box's right edge and the 한 box's left edge.
-GAP_MM = 6.0
+GAP_MM = 2.0
+
+# The MW box is a uniform 0.6 scale of the original 110 × 70 mm box, which
+# preserves its 11:7 aspect ratio exactly (66:42 == 11:7). At ~66 mm wide it
+# sits close to the 60 mm 한 slot without stretching either axis.
+BOX_WIDTH_MM = 66.0
+BOX_HEIGHT_MM = 42.0
+
+# The 42 mm box is vertically centred inside the 70 mm 한 slot rather than
+# top-aligned: it shares the slot's top offset, then steps down by half the
+# height difference so equal margins sit above and below it.
+_VERTICAL_CENTER_MM = (HANGUL_SLOT_HEIGHT_MM - BOX_HEIGHT_MM) / 2
 
 # Reference box the MW sibling seats beside: the exact Hangul slot geometry.
 # Built from the shared constants so both OSDs share one right-edge inset and
@@ -66,40 +79,47 @@ _HANGUL_REF = OSDStyle(
     offset_x_frac=HANGUL_SLOT_OFFSET_X_FRAC,
 )
 
-# Visual style: pure red #FF0000 at 0.5 alpha, no outline, no shadow.
-# Same physical height as the Hangul box; wider than one glyph so the two
-# Latin letters never clip. Seated to the LEFT of the 한 box (shares its
-# right-edge inset and top offset, plus a fixed-mm leftward sibling offset).
+# Visual style: LEGO colour 21 "Bright Red" #B40000 at 0.5 alpha, no outline,
+# no shadow. A genuinely swashy display face (Great Vibes) renders the two
+# decorative capitals. The 66 × 42 mm box is a uniform 0.6 scale of the
+# original 110 × 70 mm box (11:7 preserved exactly), vertically centred inside
+# the 70 mm 한 slot and seated 2 mm to its LEFT (shares the slot's right-edge
+# inset and top offset, plus a fixed-mm leftward sibling offset).
 STYLE = OSDStyle(
-    fill_rgb=(1.0, 0.0, 0.0),          # pure red #FF0000
+    fill_rgb=(0.70588235, 0.0, 0.0),   # LEGO 21 Bright Red #B40000 (180/255)
     fill_alpha=0.5,                    # exactly 50% opacity
     outline_rgb=None,
     shadow_rgba=None,
-    font_family="JejuHallasan",
-    # JejuHallasan ships Regular only.
+    # Great Vibes — an OFL swash/script display face with abundant curling
+    # strokes on the capitals. Packaged through Nix with a pinned hash; the
+    # font_file registration via FcConfigAppFontAddFile makes Pango's matcher
+    # resolve the "Great Vibes" family so M/W render from it, never a generic
+    # fallback.
+    font_family="Great Vibes",
+    # Great Vibes ships Regular only.
     font_weight=cairo.FONT_WEIGHT_NORMAL,
-    # Pango + app-font registration: JejuHallasan is hidden from Pango's
-    # default fontmap because its `en` coverage is incomplete (missing 20
-    # extended-Latin glyphs), but it DOES cover basic-latin M and W. The
-    # font_file registration via FcConfigAppFontAddFile makes Pango's
-    # matcher see the family, so M/W render from JejuHallasan rather than a
-    # generic fallback.
     use_pango=True,
     font_file=os.environ.get("MIDWAY_OSD_FONT_FILE"),
-    # Same physical height as 한; wide enough for two Latin glyphs so they
-    # never clip (the one-glyph 한 box is 60 mm).
-    width_mm=110.0,
-    height_mm=HANGUL_SLOT_HEIGHT_MM,
+    # 0.6× the original box; preserves the 11:7 aspect ratio exactly
+    # (66:42 == 11:7). ~66 mm wide ≈ the 60 mm 한 slot width, without
+    # stretching or independently resizing either axis.
+    width_mm=BOX_WIDTH_MM,
+    height_mm=BOX_HEIGHT_MM,
     text_pad_w_frac=0.85,
     text_pad_h_frac=0.85,
     anchor_x="right",
-    # Shares the 한 box's right-edge inset and top offset, then steps left by
+    # Shares the 한 box's right-edge inset, then steps left by
     # (한 width + gap) millimetres so its right edge sits GAP_MM left of the
     # 한 box's left edge — independent of monitor px size / DPI.
     offset_x_frac=HANGUL_SLOT_OFFSET_X_FRAC,
     offset_x_mm=sibling_offset_mm(_HANGUL_REF, GAP_MM),
     anchor_y="top",
+    # Shares the 한 slot's top offset, then steps down by half the 70→42 mm
+    # height difference so the shorter MW box is vertically centred inside the
+    # slot instead of top-aligned. mm (not frac) keeps the centring identical
+    # across mixed-DPI monitors.
     offset_y_frac=HANGUL_SLOT_OFFSET_Y_FRAC,
+    offset_y_mm=_VERTICAL_CENTER_MM,
     per_monitor_size=True,
 )
 

@@ -8,13 +8,13 @@ Split into two tiers:
   never touch X or credentials — `midway_is_invalid` is driven with a fake
   subprocess runner.
 - Geometry / style / font tests exercise the real `osd` library math so the
-  MW box's physical height, top alignment, fixed gap, no-overlap, and
-  on-screen placement are checked on concrete 1920×1200 and 4K/mixed-DPI
-  monitor data, and the decorative font is proven to render M/W rather than a
-  generic fallback.
+  MW box's 42 mm physical height, vertical centring inside the 70 mm 한 slot,
+  fixed 2 mm gap, no-overlap, and on-screen placement are checked on concrete
+  1920×1200 and 4K/mixed-DPI monitor data, and the decorative Great Vibes font
+  is proven to render M/W rather than a generic fallback.
 
 The font-resolution test needs Pango/PangoCairo typelibs (GI_TYPELIB_PATH) and
-the JejuHallasan ttf (MIDWAY_OSD_FONT_FILE); it skips cleanly when either is
+the Great Vibes ttf (MIDWAY_OSD_FONT_FILE); it skips cleanly when either is
 unavailable so the rest of the suite still runs.
 """
 
@@ -129,9 +129,12 @@ class StyleTest(unittest.TestCase):
     def test_text_is_MW(self):
         self.assertEqual(midway_osd.TEXT, "MW")
 
-    def test_fill_is_pure_red_at_half_alpha(self):
+    def test_fill_is_lego_bright_red_at_half_alpha(self):
         s = midway_osd.STYLE
-        self.assertEqual(s.fill_rgb, (1.0, 0.0, 0.0))
+        # LEGO colour 21 "Bright Red" #B40000 == (180/255, 0, 0).
+        self.assertAlmostEqual(s.fill_rgb[0], 180 / 255, places=6)
+        self.assertEqual(s.fill_rgb[1], 0.0)
+        self.assertEqual(s.fill_rgb[2], 0.0)
         self.assertEqual(s.fill_alpha, 0.5)
 
     def test_no_outline_or_shadow(self):
@@ -139,17 +142,30 @@ class StyleTest(unittest.TestCase):
         self.assertIsNone(s.outline_rgb)
         self.assertIsNone(s.shadow_rgba)
 
-    def test_uses_decorative_font_via_pango_appfont(self):
+    def test_uses_decorative_swash_font_via_pango_appfont(self):
         s = midway_osd.STYLE
-        self.assertEqual(s.font_family, "JejuHallasan")
+        self.assertEqual(s.font_family, "Great Vibes")
         self.assertTrue(s.use_pango)
 
-    def test_same_physical_height_as_hangul_slot(self):
-        self.assertEqual(midway_osd.STYLE.height_mm, osd.HANGUL_SLOT_HEIGHT_MM)
+    def test_box_is_66x42mm(self):
+        s = midway_osd.STYLE
+        self.assertEqual(s.width_mm, 66.0)
+        self.assertEqual(s.height_mm, 42.0)
 
-    def test_wider_than_one_glyph_hangul_box(self):
-        # Two Latin letters need more physical width than the 60 mm 한 box.
-        self.assertGreater(midway_osd.STYLE.width_mm, osd.HANGUL_SLOT_WIDTH_MM)
+    def test_box_preserves_11_to_7_aspect_ratio(self):
+        # 66:42 must reduce to exactly 11:7 (a uniform 0.6 scale of 110×70).
+        s = midway_osd.STYLE
+        self.assertAlmostEqual(s.width_mm / s.height_mm, 11 / 7, places=9)
+        # And it is exactly 0.6× the original 110×70 box.
+        self.assertAlmostEqual(s.width_mm, 110.0 * 0.6, places=9)
+        self.assertAlmostEqual(s.height_mm, 70.0 * 0.6, places=9)
+
+    def test_width_close_to_hangul_slot_width(self):
+        # The revised visible width should be close to the 60 mm 한 slot,
+        # not far wider as the old 110 mm box was.
+        self.assertLess(
+            abs(midway_osd.STYLE.width_mm - osd.HANGUL_SLOT_WIDTH_MM), 10
+        )
 
 
 # --- Geometry helpers -------------------------------------------------------
@@ -193,20 +209,36 @@ class GeometryTest(unittest.TestCase):
     def _mm_px(self, mm, mon_px, mon_mm):
         return mm * mon_px / mon_mm
 
-    def test_same_physical_height_both_monitors(self):
+    def test_mw_height_is_42mm_both_monitors(self):
         for mon in (MON_1920x1200, MON_4K):
-            hh = _box(_hangul_style(), mon)[3]
             mh = _box(midway_osd.STYLE, mon)[3]
-            # Both boxes are 70 mm tall → identical pixel height on a monitor.
-            self.assertEqual(hh, mh, f"height mismatch on {mon}")
-            # And that height equals 70 mm in that monitor's px (±1 px round).
-            want = self._mm_px(70.0, mon[3], mon[5])
-            self.assertLessEqual(abs(mh - want), 1, f"height≠70mm on {mon}")
+            # The revised MW box is 42 mm tall (0.6 × the original 70 mm).
+            want = self._mm_px(42.0, mon[3], mon[5])
+            self.assertLessEqual(abs(mh - want), 1, f"height≠42mm on {mon}")
 
-    def test_top_edges_aligned(self):
+    def test_mw_vertically_centred_in_hangul_slot(self):
+        # The 42 mm MW box shares the slot's top offset then drops by half the
+        # 70→42 mm difference, so it sits vertically centred inside the 70 mm
+        # 한 slot: equal margins above and below.
         for mon in (MON_1920x1200, MON_4K):
-            (_hx, hy, _hw, _hh), (_mx, my, _mw, _mh) = self._pair(mon)
-            self.assertEqual(hy, my, f"top edge misaligned on {mon}")
+            (hx, hy, hw, hh), (mx, my, mwid, mh) = self._pair(mon)
+            # 한 box top = slot top. MW top should be (slot_h - mw_h)/2 below.
+            drop_px = self._mm_px(
+                (osd.HANGUL_SLOT_HEIGHT_MM - 42.0) / 2, mon[3], mon[5]
+            )
+            self.assertLessEqual(
+                abs(my - (hy + drop_px)), 2, f"MW not centred in slot on {mon}"
+            )
+            # Symmetric margins: top margin ≈ bottom margin within the slot.
+            top_margin = my - hy
+            bottom_margin = (hy + hh) - (my + mh)
+            self.assertLessEqual(
+                abs(top_margin - bottom_margin), 2,
+                f"MW slot margins asymmetric on {mon}",
+            )
+            # Fully inside the slot's vertical extent (no overflow).
+            self.assertGreaterEqual(my, hy - 1, f"MW above slot on {mon}")
+            self.assertLessEqual(my + mh, hy + hh + 1, f"MW below slot on {mon}")
 
     def test_fixed_physical_gap_no_overlap(self):
         for mon in (MON_1920x1200, MON_4K):
@@ -214,7 +246,7 @@ class GeometryTest(unittest.TestCase):
             mw_right = mx + mwid
             gap_px = hx - mw_right
             want_gap = self._mm_px(midway_osd.GAP_MM, mon[2], mon[4])
-            # Gap is positive (no overlap) and matches GAP_MM physically.
+            # Gap is positive (no overlap) and matches GAP_MM (2 mm) physically.
             self.assertGreater(gap_px, 0, f"MW overlaps 한 on {mon}")
             self.assertLessEqual(
                 abs(gap_px - want_gap), 2, f"gap≠{midway_osd.GAP_MM}mm on {mon}"
@@ -269,9 +301,42 @@ class OfflineRenderTest(unittest.TestCase):
     def test_render_png_rejects_bad_screen(self):
         self.assertEqual(midway_osd._render_png("/dev/null", "nonsense"), 2)
 
+    def test_glyph_pixels_are_lego_red_premultiplied_half_alpha(self):
+        # Render the real STYLE surface and inspect the most-opaque glyph
+        # pixel. cairo ARGB32 is premultiplied and little-endian (BGRA in
+        # memory). LEGO #B40000 (R=180) at fill_alpha=0.5 must yield, on the
+        # solid glyph interior: A=128 (exactly 0.5), R=round(180*0.5)=90,
+        # G=B=0. This is the pixel-level check for both the new base colour
+        # and its premultiplied-alpha result.
+        surf = osd.render_surface(
+            midway_osd.TEXT, 1920, 1200, midway_osd.STYLE, monitor_mm=(518, 324)
+        )
+        data = bytes(surf.get_data())
+        stride = surf.get_stride()
+        w, h = surf.get_width(), surf.get_height()
+        max_a = 0
+        sample = None
+        for y in range(h):
+            row = y * stride
+            for x in range(w):
+                px = row + x * 4
+                a = data[px + 3]
+                if a > max_a:
+                    max_a = a
+                    sample = (data[px + 2], data[px + 1], data[px + 0], a)  # R,G,B,A
+        self.assertIsNotNone(sample, "no glyph pixels rendered")
+        r, g, b, a = sample
+        # Peak alpha is exactly 0.5 → 128 (anti-aliased edges are lower).
+        self.assertEqual(max_a, 128, "peak fill alpha is not exactly 0.5 (128)")
+        self.assertEqual(a, 128)
+        # Premultiplied red: round(180 * 128/255) == 90; G and B stay 0.
+        self.assertEqual(g, 0, "green leaked into the fill")
+        self.assertEqual(b, 0, "blue leaked into the fill")
+        self.assertEqual(r, round(180 * 128 / 255), "red not premultiplied #B40000")
+
 
 class FontResolutionTest(unittest.TestCase):
-    """Prove M and W are rendered by JejuHallasan, not a generic fallback."""
+    """Prove M and W are rendered by Great Vibes, not a generic fallback."""
 
     def setUp(self):
         if not _OSD_AVAILABLE:
@@ -288,7 +353,7 @@ class FontResolutionTest(unittest.TestCase):
         except Exception as e:
             self.skipTest(f"Pango/PangoCairo unavailable: {e}")
 
-    def test_MW_glyphs_come_from_jejuhallasan(self):
+    def test_MW_glyphs_come_from_great_vibes(self):
         import gi
 
         gi.require_version("Pango", "1.0")
@@ -299,7 +364,7 @@ class FontResolutionTest(unittest.TestCase):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 800, 400)
         ctx = cairo.Context(surface)
         desc = Pango.FontDescription()
-        desc.set_family("JejuHallasan")
+        desc.set_family("Great Vibes")
         desc.set_absolute_size(200 * Pango.SCALE)
         layout = PangoCairo.create_layout(ctx)
         layout.set_font_description(desc)
@@ -316,7 +381,7 @@ class FontResolutionTest(unittest.TestCase):
         self.assertTrue(families, "no glyph runs produced for MW")
         for fam in families:
             self.assertEqual(
-                fam, "JejuHallasan", f"MW fell back to {fam!r}, not JejuHallasan"
+                fam, "Great Vibes", f"MW fell back to {fam!r}, not Great Vibes"
             )
 
 
