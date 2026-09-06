@@ -178,4 +178,27 @@ in
       WantedBy = [ "graphical-session.target" ];
     };
   };
+
+  # midway-osd: persistent OSD shown while the local Midway session is invalid
+  # (expired / missing / unreadable). Long-lived daemon that polls
+  # `midway-genmon --status` every 30 s — the same local, non-interactive
+  # parser the panel uses; no network, no mwinit. Same graphical-session
+  # lifecycle and restart policy as hangul-osd.
+  systemd.user.services.midway-osd = {
+    Unit = {
+      Description = "Midway-invalid OSD indicator";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      # Generated store path so a changed embedded Python impl (or the shared
+      # parser it points at) restarts the daemon during Home Manager activation.
+      ExecStart = "${config.home.path}/bin/midway-osd";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
 }

@@ -38,11 +38,21 @@ import signal
 import sys
 
 import cairo
-from osd import OSDStyle, display_on_all_monitors, render_surface
+from osd import (
+    HANGUL_SLOT_HEIGHT_MM,
+    HANGUL_SLOT_OFFSET_X_FRAC,
+    HANGUL_SLOT_OFFSET_Y_FRAC,
+    HANGUL_SLOT_WIDTH_MM,
+    OSDStyle,
+    display_on_all_monitors,
+    render_surface,
+)
 
 
 # Visual style: warm amber/mustard, top-right corner, sized in mm so it
-# looks the same physical size everywhere.
+# looks the same physical size everywhere. Position derives from the shared
+# HANGUL_SLOT_* constants in the osd library so the Midway MW sibling OSD
+# can anchor beside this exact box without the two drifting apart.
 STYLE = OSDStyle(
     fill_rgb=(0.972, 0.733, 0.239),    # LEGO Bright Light Orange #F8BB3D
     fill_alpha=0.8,
@@ -59,14 +69,14 @@ STYLE = OSDStyle(
     # application-private font, which bypasses that filter.
     use_pango=True,
     font_file=os.environ.get("HANGUL_OSD_FONT_FILE"),
-    width_mm=60.0,
-    height_mm=70.0,
+    width_mm=HANGUL_SLOT_WIDTH_MM,
+    height_mm=HANGUL_SLOT_HEIGHT_MM,
     text_pad_w_frac=0.85,
     text_pad_h_frac=0.85,
     anchor_x="right",
-    offset_x_frac=-0.015,
+    offset_x_frac=HANGUL_SLOT_OFFSET_X_FRAC,
     anchor_y="top",
-    offset_y_frac=0.02,
+    offset_y_frac=HANGUL_SLOT_OFFSET_Y_FRAC,
     per_monitor_size=True,
 )
 

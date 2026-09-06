@@ -103,6 +103,17 @@ class OSDStyle:
     anchor_x: str = "center"   # "left" | "center" | "right"
     offset_x_frac: float = 0.0
 
+    # Additional physical offsets in millimetres, applied on top of the
+    # fractional offsets above. Unlike offset_*_frac (a fraction of the
+    # monitor, which drifts in physical size across differently-sized
+    # panels), a mm offset is the same physical distance on every monitor
+    # regardless of resolution or DPI — mm→px uses the monitor's reported
+    # EDID mm/px ratio, falling back to 96 DPI when EDID mm is unavailable.
+    # Used to place one OSD a fixed physical distance beside another (e.g.
+    # the MW box sitting a few mm left of the 한 box); see sibling_offset_mm.
+    offset_x_mm: float = 0.0
+    offset_y_mm: float = 0.0
+
     # Absolute size in millimetres. When BOTH are set, this overrides
     # width_frac / height_frac and the rendered OSD has the same physical
     # size across monitors with different pixel densities (uses Xrandr's
@@ -150,6 +161,22 @@ class OSDStyle:
 
 # Default singleton kept for callers who don't customise.
 DEFAULT_STYLE = OSDStyle()
+
+
+# ---------------------------------------------------------------------------
+# Shared top-right OSD slot geometry
+# ---------------------------------------------------------------------------
+#
+# The Hangul (한) OSD owns the top-right edge slot. Both it and any sibling
+# OSD (the Midway MW indicator) derive their placement from these constants
+# so the two boxes share one right-edge inset and top offset and never drift
+# apart across monitor sizes or DPI. hangul-osd builds its OSDStyle from
+# these; midway-osd reuses HANGUL_SLOT_* as the reference for
+# sibling_offset_mm().
+HANGUL_SLOT_WIDTH_MM = 60.0
+HANGUL_SLOT_HEIGHT_MM = 70.0
+HANGUL_SLOT_OFFSET_X_FRAC = -0.015   # small inset from the right edge
+HANGUL_SLOT_OFFSET_Y_FRAC = 0.02     # small drop from the top edge
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +447,23 @@ def get_monitors(d, root) -> list[tuple[int, int, int, int, int, int]]:
     return [(0, 0, s.width_in_pixels, s.height_in_pixels, 0, 0)]
 
 
-def _anchor_x(monitor_w: int, win_w: int, style: OSDStyle) -> int:
+def _mm_to_px(mm: float, monitor_px: int, monitor_mm: int) -> int:
+    """Convert a physical millimetre distance to pixels on a given monitor.
+
+    Uses the monitor's EDID-reported mm/px ratio when available so the same
+    mm value is the same physical distance on every panel. Falls back to
+    96 DPI (25.4 mm/inch) when the monitor didn't report a physical size —
+    mirrors render_surface's mm-sizing fallback so geometry stays consistent
+    with the box dimensions.
+    """
+    if monitor_mm and monitor_mm > 0:
+        return int(round(mm * monitor_px / monitor_mm))
+    return int(round(mm / 25.4 * 96))
+
+
+def _anchor_x(
+    monitor_w: int, win_w: int, style: OSDStyle, monitor_mm_w: int = 0
+) -> int:
     """Compute the x-offset within a monitor for the OSD window."""
     if style.anchor_x == "left":
         base = 0
@@ -428,10 +471,16 @@ def _anchor_x(monitor_w: int, win_w: int, style: OSDStyle) -> int:
         base = monitor_w - win_w
     else:
         base = (monitor_w - win_w) // 2
-    return base + int(monitor_w * style.offset_x_frac)
+    return (
+        base
+        + int(monitor_w * style.offset_x_frac)
+        + _mm_to_px(style.offset_x_mm, monitor_w, monitor_mm_w)
+    )
 
 
-def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
+def _anchor_y(
+    monitor_h: int, win_h: int, style: OSDStyle, monitor_mm_h: int = 0
+) -> int:
     """Compute the y-offset within a monitor for the OSD window."""
     if style.anchor_y == "top":
         base = 0
@@ -439,7 +488,37 @@ def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
         base = monitor_h - win_h
     else:
         base = (monitor_h - win_h) // 2
-    return base + int(monitor_h * style.offset_y_frac)
+    return (
+        base
+        + int(monitor_h * style.offset_y_frac)
+        + _mm_to_px(style.offset_y_mm, monitor_h, monitor_mm_h)
+    )
+
+
+def sibling_offset_mm(reference: OSDStyle, gap_mm: float) -> float:
+    """Return the `offset_x_mm` that seats a right-anchored OSD immediately
+    to the LEFT of `reference` (itself a right-anchored, mm-sized box) with a
+    fixed physical `gap_mm` and no overlap.
+
+    Derivation (both boxes anchored `anchor_x="right"`, so the sibling
+    inherits `reference.offset_x_frac` to share the same right-edge inset):
+
+        reference left edge  = monitor_w − ref_w_px + frac_px
+        sibling  right edge  = monitor_w + frac_px + offset_x_mm_px
+        want: sibling right edge = reference left edge − gap_px
+          ⇒ offset_x_mm_px = −ref_w_px − gap_px
+          ⇒ offset_x_mm    = −(reference.width_mm + gap_mm)
+
+    The window widths cancel, so the result depends only on the reference
+    box's physical width and the requested gap — never on monitor pixel size
+    or DPI, so adjacency does not drift across mixed-DPI monitors.
+
+    Requires `reference.width_mm` (a mm-sized reference box); raises
+    ValueError otherwise.
+    """
+    if reference.width_mm is None:
+        raise ValueError("sibling_offset_mm requires a mm-sized reference box")
+    return -(reference.width_mm + gap_mm)
 
 
 def _find_argb_visual(screen):
@@ -474,10 +553,12 @@ def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
     real drop shadows. Falls back to XShape clipping on 24-bit servers.
     """
     mx, my, mw, mh = rect[:4]
+    mm_w = rect[4] if len(rect) > 4 else 0
+    mm_h = rect[5] if len(rect) > 5 else 0
     iw = surface.get_width()
     ih = surface.get_height()
-    wx = mx + _anchor_x(mw, iw, style)
-    wy = my + _anchor_y(mh, ih, style)
+    wx = mx + _anchor_x(mw, iw, style, mm_w)
+    wy = my + _anchor_y(mh, ih, style, mm_h)
 
     argb_visual, argb_depth = _find_argb_visual(screen)
     use_argb = argb_visual is not None
@@ -615,6 +696,11 @@ __all__ = [
     "render_surface",
     "get_monitors",
     "display_on_all_monitors",
+    "sibling_offset_mm",
+    "HANGUL_SLOT_WIDTH_MM",
+    "HANGUL_SLOT_HEIGHT_MM",
+    "HANGUL_SLOT_OFFSET_X_FRAC",
+    "HANGUL_SLOT_OFFSET_Y_FRAC",
 ]
 
 

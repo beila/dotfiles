@@ -16,6 +16,10 @@ def load_module():
     osd.OSDStyle = lambda **_kwargs: object()
     osd.display_on_all_monitors = lambda *_args, **_kwargs: None
     osd.render_surface = lambda *_args, **_kwargs: None
+    osd.HANGUL_SLOT_WIDTH_MM = 60.0
+    osd.HANGUL_SLOT_HEIGHT_MM = 70.0
+    osd.HANGUL_SLOT_OFFSET_X_FRAC = -0.015
+    osd.HANGUL_SLOT_OFFSET_Y_FRAC = 0.02
     sys.modules["osd"] = osd
 
     path = pathlib.Path(__file__).with_name("bin") / "hangul-osd.py"

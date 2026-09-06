@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -u
 
+# --status: machine-readable mode for the midway-osd daemon. Prints a single
+# word (`valid`/`invalid`) and exits 0/1 so consumers never re-parse the
+# cookie jar with a second, divergent parser. Everything below the parser is
+# shared with the xfce4-genmon panel output; only the final rendering branches.
+status_mode=0
+if [[ ${1:-} == --status ]]; then
+    status_mode=1
+fi
+
 cookie_file=${MIDWAY_COOKIE_FILE:-${HOME:-}/.midway/cookie}
 now=${MIDWAY_NOW:-$(date +%s)}
 
@@ -34,6 +43,18 @@ format_remaining() {
         printf '%dh %dm' "$hours" "$minutes"
     fi
 }
+
+if ((status_mode)); then
+    # Same valid/invalid semantics as the panel branch below: valid only when
+    # a session-cookie expiry lies strictly in the future. Expired, missing,
+    # unreadable, and malformed jars all fall through to `invalid`.
+    if ((expiry > now)); then
+        printf 'valid\n'
+        exit 0
+    fi
+    printf 'invalid\n'
+    exit 1
+fi
 
 if ((expiry > now)); then
     remaining=$((expiry - now))

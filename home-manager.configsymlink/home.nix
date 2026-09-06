@@ -185,6 +185,40 @@ in
         } (builtins.readFile ../xwindow/bin/hangul-osd.py)
       }/bin/hangul-osd-impl "$@"
     '')
+    # midway-osd: persistent OSD shown while the local Midway session is
+    # invalid. Same osd-library + PyGObject pattern as hangul-osd; the MW box
+    # anchors immediately left of the 한 box via the shared HANGUL_SLOT_*
+    # geometry. The wrapper exposes the GIR typelibs, the decorative font, and
+    # MIDWAY_GENMON (the shared valid/invalid status parser) at runtime. It
+    # never runs mwinit or reads cookie contents — it only polls the status
+    # word.
+    (pkgs.writeShellScriptBin "midway-osd" ''
+      export GI_TYPELIB_PATH="${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      # Decorative display font (JejuHallasan) — registered with fontconfig's
+      # app-font set at render time so Pango sees it despite incomplete `en`
+      # coverage. It covers basic-latin M and W.
+      export MIDWAY_OSD_FONT_FILE=${jejuhallasan-ttf}
+      # Shared local Midway valid/invalid parser (no network, no mwinit). The
+      # source path in the store restarts the daemon when the parser changes.
+      export MIDWAY_GENMON=${../xwindow/bin/midway-genmon}
+      exec ${
+        pkgs.writers.writePython3Bin "midway-osd-impl" {
+          libraries =
+            with pkgs.python3Packages;
+            [
+              pycairo
+              xlib
+              pygobject3
+            ]
+            ++ [ osd ];
+          flakeIgnore = [
+            "E501"
+            "E731"
+            "W503"
+          ];
+        } (builtins.readFile ../xwindow/bin/midway-osd.py)
+      }/bin/midway-osd-impl "$@"
+    '')
     pkgs.alsa-utils # aplay for say-en/say-ko/say-es
     pkgs.wl-clipboard
     pkgs.xclip
