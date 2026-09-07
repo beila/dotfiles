@@ -1,5 +1,6 @@
 local fzf_lua = require("fzf-lua")
 local jj_diff_picker = require("jj-diff-picker")
+local jj_workspace_picker = require("jj-workspace-picker")
 
 fzf_lua.setup_fzfvim_cmds()
 
@@ -108,6 +109,14 @@ vim.keymap.set({ "n", "v", "i" }, "<C-g><C-l>", jj_current_file_revision_diff,
 vim.keymap.set({ "n", "v" }, "<leader>gh", jj_revision_diff, { desc = "JJ revision diff" })
 vim.keymap.set({ "n", "v" }, "<leader>gl", jj_current_file_revision_diff,
     { desc = "JJ current-file revision diff" })
+
+local function jj_workspace_switch()
+    jj_workspace_picker.workspaces()
+end
+
+vim.keymap.set({ "n", "v", "i" }, "<C-g><C-w>", jj_workspace_switch,
+    { desc = "JJ workspace switch" })
+vim.keymap.set({ "n", "v" }, "<leader>gw", jj_workspace_switch, { desc = "JJ workspace switch" })
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-s>",
     function() fzf_lua.git_stash() end,
