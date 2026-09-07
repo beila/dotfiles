@@ -174,10 +174,10 @@ class StyleTest(unittest.TestCase):
 
     def test_box_matches_asset_aspect_ratio(self):
         # Width is derived from the mw.svg intrinsic aspect so the vector fills
-        # the box with no letterboxing.
+        # the box with no letterboxing (Cinzel Decorative Black "MW").
         s = midway_osd.STYLE
         self.assertAlmostEqual(
-            s.width_mm / s.height_mm, 712.0 / 325.0, places=2
+            s.width_mm / s.height_mm, 939.0 / 481.0, places=2
         )
 
     def test_shorter_than_hangul_slot_so_it_can_centre(self):

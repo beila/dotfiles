@@ -64,6 +64,8 @@ def _describe(family: str, weight: str) -> Pango.FontDescription:
     desc.set_family(family)
     if weight == "bold":
         desc.set_weight(Pango.Weight.BOLD)
+    elif weight == "black":
+        desc.set_weight(Pango.Weight.HEAVY)   # 900 — e.g. Cinzel Decorative Black
     desc.set_absolute_size(_REFERENCE_PX * Pango.SCALE)
     return desc
 
@@ -112,7 +114,8 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--font", required=True)
     p.add_argument("--family", required=True)
-    p.add_argument("--weight", default="normal", choices=["normal", "bold"])
+    p.add_argument("--weight", default="normal",
+                   choices=["normal", "bold", "black"])
     p.add_argument("--text", required=True)
     p.add_argument("--color", required=True, help="#RRGGBB")
     p.add_argument("--out", required=True)

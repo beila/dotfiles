@@ -12,16 +12,17 @@ watching the file) is deliberate: crossing the expiry timestamp must flip the
 OSD on even when the cookie file has not changed, and a 30 s poll detects that
 within the contract's window.
 
-Visual: a pre-outlined vector SVG asset (UnifrakturCook "MW" blackletter with
-the LEGO colour 21 "Bright Red" #B40000 baked in) painted at 0.5 alpha, no
-background, no outline, no shadow. No font is loaded at runtime — the glyph is
-stored as paths and rasterised by librsvg at the exact per-monitor pixel size,
-so it is crisp at any DPI (the font dependency moved to asset-authoring time;
-see xwindow/osd/assets/generate.py). The box is sized to the asset's aspect,
-vertically centred inside the 70 mm Hangul 한 slot and seated 2 mm to its LEFT
-so both stay on-screen at the top-right. Adjacency and centring are derived
-from the shared HANGUL_SLOT_* constants via osd.sibling_offset_mm() and a
-physical mm offset, so nothing drifts across monitor sizes or DPI.
+Visual: a pre-outlined vector SVG asset (Cinzel Decorative Black "MW" — ornate
+engraved Roman capitals — with the LEGO colour 21 "Bright Red" #B40000 baked
+in) painted at 0.5 alpha, no background, no outline, no shadow. No font is
+loaded at runtime — the glyph is stored as paths and rasterised by librsvg at
+the exact per-monitor pixel size, so it is crisp at any DPI (the font
+dependency moved to asset-authoring time; see xwindow/osd/assets/generate.py).
+The box is sized to the asset's aspect, vertically centred inside the 70 mm
+Hangul 한 slot and seated 2 mm to its LEFT so both stay on-screen at the
+top-right. Adjacency and centring are derived from the shared HANGUL_SLOT_*
+constants via osd.sibling_offset_mm() and a physical mm offset, so nothing
+drifts across monitor sizes or DPI.
 
 Lifecycle mirrors hangul-osd: a long-lived daemon that fork()s one child
 running display_on_all_monitors(...) while invalid, and SIGTERMs it when valid
@@ -60,13 +61,13 @@ TEXT = "MW"
 GAP_MM = 2.0
 
 # The MW box is sized to the mw.svg asset's intrinsic aspect ratio so the
-# vector glyph fills it exactly with no letterboxing. The asset (UnifrakturCook
-# "MW", 712×325) is ~2.19:1; at 42 mm tall that is ~92 mm wide. 42 mm height
-# keeps the box shorter than the 70 mm 한 slot so it can sit vertically centred
-# inside it.
+# vector glyph fills it exactly with no letterboxing. The asset (Cinzel
+# Decorative Black "MW", 939×481) is ~1.95:1; at 42 mm tall that is ~82 mm
+# wide. 42 mm height keeps the box shorter than the 70 mm 한 slot so it can sit
+# vertically centred inside it.
 BOX_HEIGHT_MM = 42.0
-_MW_ASSET_ASPECT = 712.0 / 325.0
-BOX_WIDTH_MM = round(BOX_HEIGHT_MM * _MW_ASSET_ASPECT, 1)   # ≈ 92.0 mm
+_MW_ASSET_ASPECT = 939.0 / 481.0
+BOX_WIDTH_MM = round(BOX_HEIGHT_MM * _MW_ASSET_ASPECT, 1)   # ≈ 82.0 mm
 
 # The 42 mm box is vertically centred inside the 70 mm 한 slot rather than
 # top-aligned: it shares the slot's top offset, then steps down by half the
@@ -83,8 +84,9 @@ _HANGUL_REF = OSDStyle(
     offset_x_frac=HANGUL_SLOT_OFFSET_X_FRAC,
 )
 
-# Visual style: a pre-outlined vector SVG (UnifrakturCook "MW" blackletter,
-# baked LEGO colour 21 "Bright Red" #B40000) painted at 0.5 alpha. No font is
+# Visual style: a pre-outlined vector SVG (Cinzel Decorative Black "MW" ornate
+# engraved Roman capitals, baked LEGO colour 21 "Bright Red" #B40000) painted
+# at 0.5 alpha. No font is
 # loaded at runtime — the glyph is stored as paths in the asset and rasterised
 # by librsvg at the exact per-monitor pixel size, so it stays crisp at any DPI.
 # The box is sized to the asset aspect, vertically centred inside the 70 mm 한
