@@ -7,34 +7,48 @@ local function notify(message, level)
 	vim.notify("jj: " .. message, level or vim.log.levels.ERROR)
 end
 
--- Resolve the workspace root that contains `start_dir`. `jj workspace root`
--- reports the root of the workspace the directory lives in, which is what we
--- rebase the file path against; `jj root` would collapse every workspace to
--- the shared repository root. Returns root, or nil + a reason string.
-local function probe_workspace_root(start_dir)
-	if not start_dir or start_dir == "" or vim.fn.isdirectory(start_dir) == 0 then
-		return nil, "no directory to probe"
-	end
+-- Run a jj subcommand from `start_dir` and return its trimmed stdout, or
+-- nil + a reason. Wrapped in pcall because vim.system throws when the jj
+-- executable cannot be spawned (e.g. not on Neovim's PATH under a GUI launch).
+local function run_jj(start_dir, args)
+	local cmd = { "jj", "--ignore-working-copy" }
+	vim.list_extend(cmd, args)
 	local ok, result = pcall(function()
-		return vim.system(
-			{ "jj", "--ignore-working-copy", "workspace", "root" },
-			{ cwd = start_dir, text = true, timeout = 5000 }
-		):wait()
+		return vim.system(cmd, { cwd = start_dir, text = true, timeout = 5000 }):wait()
 	end)
 	if not ok then
-		-- vim.system throws when the jj executable cannot be spawned (e.g. not
-		-- on Neovim's PATH, the classic GUI-launch problem).
 		return nil, "cannot run jj (" .. tostring(result) .. ")"
 	end
 	if result.code ~= 0 then
 		local detail = vim.trim(result.stderr or "")
 		return nil, detail ~= "" and detail or ("jj exited " .. tostring(result.code))
 	end
-	local root = vim.trim(result.stdout or "")
-	if root == "" then
-		return nil, "empty workspace root"
+	local out = vim.trim(result.stdout or "")
+	if out == "" then
+		return nil, "empty output"
 	end
-	return root
+	return out
+end
+
+-- Resolve the workspace root that contains `start_dir`. `jj workspace root`
+-- reports the root of the workspace the directory lives in, which is what we
+-- rebase the file path against. If that subcommand is unavailable or errors on
+-- this jj version, fall back to `jj root` (the shared repository root) so the
+-- picker still works — the branch dialog's own gate uses `jj root`, so this
+-- keeps the two entry points consistent. Returns root, or nil + a reason.
+local function probe_workspace_root(start_dir)
+	if not start_dir or start_dir == "" or vim.fn.isdirectory(start_dir) == 0 then
+		return nil, "no directory to probe"
+	end
+	local root = run_jj(start_dir, { "workspace", "root" })
+	if root then
+		return root
+	end
+	local fallback, reason = run_jj(start_dir, { "root" })
+	if fallback then
+		return fallback
+	end
+	return nil, reason
 end
 
 -- Probe several directories so a window whose cwd sits outside the repo (but
