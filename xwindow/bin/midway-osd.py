@@ -3,14 +3,27 @@ midway-osd — persistent, click-through overlay shown on every monitor while
 the local Midway session is invalid (expired, missing, unreadable, malformed,
 or otherwise without a future session-cookie expiry).
 
-State source: `midway-genmon --status`, which prints `valid`/`invalid` and
-exits 0/1 using the SAME cookie parser as the xfce4-genmon panel. This daemon
-never opens or parses `~/.midway/cookie` itself — there is exactly one parser.
-It never runs `mwinit`, contacts Midway, or reads cookie/token contents; it
-only polls the local status word every 30 seconds. Polling (rather than
-watching the file) is deliberate: crossing the expiry timestamp must flip the
-OSD on even when the cookie file has not changed, and a 30 s poll detects that
-within the contract's window.
+State source: `midway-genmon --status`, which prints `valid <expiry-epoch>` /
+`invalid` and exits 0/1 using the SAME cookie parser as the xfce4-genmon panel.
+This daemon never opens or parses `~/.midway/cookie` itself — there is exactly
+one parser. It never runs `mwinit`, contacts Midway, or reads cookie/token
+contents.
+
+Triggering is event-driven so the OSD appears effectively instantly, without
+busy-polling:
+  1. Cookie create/delete/replace — a Gio.FileMonitor (inotify) on the cookie
+     *directory* re-evaluates within milliseconds. Watching the directory (not
+     just the file) catches the delete+recreate an `mwinit` refresh performs.
+  2. Time-based expiry with the file untouched — the `valid <epoch>` word lets
+     the daemon arm a one-shot GLib timer to fire the instant the session
+     crosses expiry. No filesystem event happens then, so this scheduled timer
+     (re-armed on every change) is what makes pure expiry instant.
+  3. Startup (login/reboot) — evaluated once immediately before the loop.
+  4. A slow safety-net poll (SAFETY_POLL_SEC) is only a backstop for events the
+     above can miss — chiefly suspend/resume, where GLib's monotonic timer
+     under-counts slept wall-clock time.
+Gio/GLib are already dependencies (pygobject3) and inotify is desktop-agnostic,
+so none of this adds a package or ties the daemon to GNOME.
 
 Visual: a pre-outlined vector SVG asset (Cinzel Decorative Black "MW" — ornate
 engraved Roman capitals — with the LEGO colour 21 "Bright Red" #B40000 baked
@@ -30,7 +43,8 @@ again. Show/hide are idempotent — repeated invalid observations do not spawn a
 second child, repeated valid observations do not double-kill.
 
 Deps (via home-manager wrapper): osd (pycairo + python-xlib), pygobject3 for
-the GLib main loop timer, the GI typelibs Rsvg (SVG rasterisation) and cairo,
+the GLib main loop, GLib timers, and the Gio.FileMonitor cookie watch, the GI
+typelibs Rsvg (SVG rasterisation) and cairo,
 and MIDWAY_OSD_IMAGE pointing at the packaged mw.svg. No font, fontconfig, or
 Pango at runtime, and MIDWAY_GENMON pointing at the midway-genmon script.
 """
@@ -122,8 +136,22 @@ STYLE = OSDStyle(
 # SIGTERM handler is what actually ends a child run.
 FOREVER_SEC = 10**9
 
-# Poll cadence for the local status word.
-POLL_INTERVAL_SEC = 30
+# Slow safety-net poll. The daemon is event-driven (file-watch + a one-shot
+# timer scheduled to the exact expiry instant), so this is only a backstop for
+# events those miss — chiefly a suspend/resume where the monotonic scheduled
+# timer under-counts wall-clock time. Deliberately slow: instant response comes
+# from the events, not this.
+SAFETY_POLL_SEC = 300
+
+
+# Cookie file whose directory the daemon watches for create/delete/replace.
+# The parser (midway-genmon) is the authority on *validity*; this path is used
+# only to place the inotify watch. Mirrors midway-genmon's default and its
+# MIDWAY_COOKIE_FILE override so the two never point at different files.
+def _cookie_file() -> str:
+    return os.environ.get(
+        "MIDWAY_COOKIE_FILE", os.path.expanduser("~/.midway/cookie")
+    )
 
 
 def _genmon_cmd() -> list[str]:
@@ -136,14 +164,17 @@ def _genmon_cmd() -> list[str]:
     return [genmon, "--status"]
 
 
-def midway_is_invalid(run=subprocess.run) -> bool:
-    """Return True when the local Midway session is INVALID.
+def midway_status(run=subprocess.run) -> tuple[bool, int | None]:
+    """Return (invalid, expiry_epoch) from `midway-genmon --status`.
 
-    Delegates entirely to `midway-genmon --status` (exit 1 / `invalid`), so
-    the parser and semantics are identical to the panel genmon. Any failure
-    to obtain a clean `valid` — non-zero exit, missing binary, unexpected
-    output — is treated as invalid (fail-safe: show the reminder rather than
-    hide a real expiry).
+    Output contract: `valid <epoch>` when a session-cookie expiry lies strictly
+    in the future, `invalid` otherwise. Delegates entirely to the shared parser
+    so semantics match the panel genmon exactly. `expiry_epoch` is the absolute
+    epoch second the session goes invalid (only when valid) — the daemon uses
+    it to schedule a one-shot timer to that instant. Any failure to obtain a
+    clean `valid <epoch>` — non-zero exit, missing binary, unexpected output —
+    is treated as invalid (fail-safe: show the reminder rather than hide a real
+    expiry), with expiry None.
     """
     try:
         proc = run(
@@ -154,8 +185,22 @@ def midway_is_invalid(run=subprocess.run) -> bool:
         )
     except (OSError, ValueError) as e:
         sys.stderr.write(f"midway-osd: cannot run midway-genmon: {e}\n")
-        return True
-    return proc.stdout.strip() != "valid"
+        return True, None
+    parts = proc.stdout.split()
+    if not parts or parts[0] != "valid":
+        return True, None
+    expiry: int | None = None
+    if len(parts) >= 2:
+        try:
+            expiry = int(parts[1])
+        except ValueError:
+            expiry = None
+    return False, expiry
+
+
+def midway_is_invalid(run=subprocess.run) -> bool:
+    """Back-compat boolean wrapper around midway_status()."""
+    return midway_status(run)[0]
 
 
 _child_pid: int | None = None
@@ -248,17 +293,77 @@ def _run_daemon() -> int:
     signal.signal(signal.SIGTERM, _cleanup)
     signal.signal(signal.SIGINT, _cleanup)
 
-    from gi.repository import GLib
+    from gi.repository import Gio, GLib
 
     indicator = MidwayIndicator()
 
-    def _poll() -> bool:
-        indicator.observe(midway_is_invalid())
-        return True  # keep the timeout registered
+    # Handle to the pending one-shot expiry timer so we can cancel/replace it
+    # whenever we re-evaluate (a new cookie means a new expiry instant).
+    expiry_source: dict[str, int | None] = {"id": None}
 
-    _poll()  # evaluate once at startup
-    GLib.timeout_add_seconds(POLL_INTERVAL_SEC, _poll)
+    def _evaluate() -> None:
+        """Re-read status, drive the OSD, and (re)arm the expiry timer.
+
+        This is the single choke point every trigger funnels through:
+        startup, the file-watch, the scheduled-expiry fire, and the safety
+        poll all call it. Because MidwayIndicator is idempotent, calling it
+        redundantly is harmless.
+        """
+        invalid, expiry = midway_status()
+        indicator.observe(invalid)
+
+        # Cancel any previously-scheduled expiry timer; we recompute below.
+        if expiry_source["id"] is not None:
+            GLib.source_remove(expiry_source["id"])
+            expiry_source["id"] = None
+
+        # While valid, schedule a one-shot timer to fire the instant the
+        # session crosses expiry — no polling for the time-based case. +1 s so
+        # the shell-out re-reads *after* the boundary (genmon uses `>`).
+        if not invalid and expiry is not None:
+            import time
+            delay = expiry - int(time.time()) + 1
+            if delay < 1:
+                delay = 1
+            expiry_source["id"] = GLib.timeout_add_seconds(delay, _on_expiry)
+
+    def _on_expiry() -> bool:
+        expiry_source["id"] = None
+        _evaluate()
+        return False  # one-shot
+
+    # 1) Instant on cookie create/delete/replace: watch the *directory* (a
+    #    refresh is usually delete+recreate, which a file-only watch misses).
+    #    Gio.FileMonitor is GLib/Gio — already a dependency, and inotify-based,
+    #    so this is desktop-agnostic (no GNOME, no extra package).
+    cookie_dir = os.path.dirname(_cookie_file()) or "."
+    monitor = None
+    try:
+        gfile = Gio.File.new_for_path(cookie_dir)
+        monitor = gfile.monitor_directory(Gio.FileMonitorFlags.WATCH_MOVES, None)
+
+        def _on_dir_change(_m, _f, _other, _event):
+            _evaluate()
+
+        monitor.connect("changed", _on_dir_change)
+    except Exception as e:
+        # If the watch can't be established (dir missing, etc.) the safety
+        # poll below still catches changes; degrade, don't crash.
+        sys.stderr.write(f"midway-osd: file watch unavailable: {e}\n")
+
+    # 2) Slow safety-net poll: only a backstop for events the watch + scheduled
+    #    timer can miss (chiefly suspend/resume, where the monotonic expiry
+    #    timer under-counts slept wall-clock time). Instant response does NOT
+    #    depend on this.
+    def _safety_poll() -> bool:
+        _evaluate()
+        return True
+
+    _evaluate()  # 3) evaluate once at startup (login/reboot is immediate)
+    GLib.timeout_add_seconds(SAFETY_POLL_SEC, _safety_poll)
     GLib.MainLoop().run()
+    if monitor is not None:
+        monitor.cancel()
     return 0
 
 

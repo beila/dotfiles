@@ -105,6 +105,26 @@ class StatusParserTest(unittest.TestCase):
             midway_osd.midway_is_invalid(self._runner("", raises=OSError("no genmon")))
         )
 
+    def test_status_returns_expiry_epoch_when_valid(self):
+        # `valid <epoch>` → (invalid=False, expiry=<epoch>). The daemon uses
+        # the epoch to schedule a one-shot timer to the exact expiry instant.
+        invalid, expiry = midway_osd.midway_status(self._runner("valid 1893456000\n"))
+        self.assertFalse(invalid)
+        self.assertEqual(expiry, 1893456000)
+
+    def test_status_valid_without_epoch_is_valid_with_no_schedule(self):
+        # Back-compat: a bare `valid` (or a non-numeric epoch) is still valid,
+        # just with no expiry to schedule (expiry None → no timer armed).
+        for out in ("valid\n", "valid notanumber\n"):
+            invalid, expiry = midway_osd.midway_status(self._runner(out))
+            self.assertFalse(invalid)
+            self.assertIsNone(expiry)
+
+    def test_status_invalid_has_no_expiry(self):
+        invalid, expiry = midway_osd.midway_status(self._runner("invalid\n"))
+        self.assertTrue(invalid)
+        self.assertIsNone(expiry)
+
 
 @unittest.skipUnless(_OSD_AVAILABLE, f"osd/cairo unavailable: {_OSD_IMPORT_ERROR}")
 class MidwayIndicatorTest(unittest.TestCase):

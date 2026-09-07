@@ -38,7 +38,9 @@ status() { "$@" --status; }
 
 s_valid=$(MIDWAY_COOKIE_FILE="$TMP/valid" MIDWAY_NOW=1000 bash "$MIDWAY" --status)
 rc_valid=$?
-[[ $s_valid == valid ]]
+# Valid now carries the expiry epoch (`valid <epoch>`) so the daemon can
+# schedule a timer to the exact expiry instant. The cookie's expiry is 4600.
+[[ $s_valid == "valid 4600" ]]
 ((rc_valid == 0))
 
 s_expired=$(MIDWAY_COOKIE_FILE="$TMP/expired" MIDWAY_NOW=1000 bash "$MIDWAY" --status) || rc_expired=$?

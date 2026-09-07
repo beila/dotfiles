@@ -48,8 +48,13 @@ if ((status_mode)); then
     # Same valid/invalid semantics as the panel branch below: valid only when
     # a session-cookie expiry lies strictly in the future. Expired, missing,
     # unreadable, and malformed jars all fall through to `invalid`.
+    #
+    # On valid, also print the expiry epoch (`valid <epoch>`) so the midway-osd
+    # daemon can schedule a one-shot timer to fire exactly when the session
+    # crosses expiry — no polling needed for the time-based case. Consumers
+    # that only care about validity still just test the first word == `valid`.
     if ((expiry > now)); then
-        printf 'valid\n'
+        printf 'valid %d\n' "$expiry"
         exit 0
     fi
     printf 'invalid\n'
