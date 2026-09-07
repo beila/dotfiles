@@ -20,6 +20,35 @@
 # $PPID is either that reaper's pid or a racy short-lived parent, neither of which
 # is the semantic caller identity we want the voice keyed to.
 
+# Return success when playback must be suppressed for an active meeting.
+# SAY_MEETING_CHECKED prevents the dispatcher and its selected backend from
+# querying PipeWire twice.
+say_should_mute_for_meeting() {
+    if [ "${SAY_MEETING_CHECKED:-0}" = "1" ]; then
+        return 1
+    fi
+    export SAY_MEETING_CHECKED=1
+
+    if [ "${SAY_NO_MEETING_CHECK:-0}" = "1" ] \
+        || ! command -v pw-dump >/dev/null 2>&1 \
+        || ! command -v jq >/dev/null 2>&1; then
+        return 1
+    fi
+
+    local re="${SAY_MEETING_APP_REGEX:-zoom|teams|meet|webex|slack|chime|discord}"
+    pw-dump 2>/dev/null | jq -e --arg re "$re" '
+        .[] | select(.info?.props?["media.class"] == "Stream/Input/Audio")
+            | .info.props
+            | select(any(
+                .["application.process.binary"] // "",
+                .["application.name"] // "",
+                .["node.name"] // "",
+                .["media.name"] // "";
+                test($re; "i")
+            ))
+    ' >/dev/null 2>&1
+}
+
 # Echo the resolved caller key, or empty if the caller is unidentified.
 say_resolve_key() {
     # Set (even if empty) → honour verbatim; empty means "no identity".

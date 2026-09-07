@@ -29,6 +29,7 @@ assert_file_contains() {
 dotfiles="$(cd "$(dirname "$0")/.." && pwd)"
 tmp=$(mktemp -d /tmp/test_say_voice.XXXXXX)
 trap 'rm -rf "$tmp"' EXIT
+export SAY_NO_MEETING_CHECK=1
 
 # Source the real shared helper so the tests exercise the production mapping.
 source "$dotfiles/bin/say-voice.sh"
@@ -48,7 +49,11 @@ assert_eq "empty SAY_VOICE_KEY → default index 0" "$(SAY_VOICE_KEY='' say_pick
 assert_eq "empty SAY_VOICE_KEY → resolver empty" "$(SAY_VOICE_KEY='' say_resolve_key)" ""
 
 key_unset=$(unset SAY_VOICE_KEY; say_resolve_key)
-assert_true "unset SAY_VOICE_KEY → resolver is a PPID number ($key_unset)" "[[ '$key_unset' =~ ^[0-9]+$ ]]"
+if [ "$PPID" = 1 ]; then
+    assert_eq "unset SAY_VOICE_KEY with PPID 1 → unidentified" "$key_unset" ""
+else
+    assert_true "unset SAY_VOICE_KEY → resolver is a PPID number ($key_unset)" "[[ '$key_unset' =~ ^[0-9]+$ ]]"
+fi
 
 seen=$(for k in a b c d e f g h; do SAY_VOICE_KEY="$k" say_pick_index 3; echo; done | sort -u | wc -l)
 assert_true "distinct keys spread across pool (>1 index seen)" "[ $seen -gt 1 ]"

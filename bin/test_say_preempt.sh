@@ -46,6 +46,7 @@ run_say() {
         SAY_STATE_FILE="$state_file" \
         SAY_TEST_EVENTS="$events" \
         SAY_TEST_LAST_BACKEND_PID="$last_pid" \
+        SAY_NO_MEETING_CHECK=1 \
             "$tmp/bin/say" "$@"
 }
 
@@ -142,6 +143,7 @@ DOTFILES_ROOT="$tmp" \
 SAY_STATE_FILE="$state_file" \
 SAY_TEST_EVENTS="$events" \
 SAY_TEST_LAST_BACKEND_PID="$last_pid" \
+SAY_NO_MEETING_CHECK=1 \
     "$tmp/bin/say" "no-preempt-call" &
 say_np=$!
 sleep 0.3

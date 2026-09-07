@@ -43,6 +43,10 @@ if [ "$SAY_CLI_LIST_VOICES" = 1 ]; then
     list_voices
     exit 0
 fi
+if say_should_mute_for_meeting; then
+    [ "${#SAY_CLI_TEXT_ARGS[@]}" -eq 0 ] && cat >/dev/null
+    exit 0
+fi
 
 if [ -n "$SAY_CLI_VOICE_NUMBER" ]; then
     index="$(say_pick_index "${#VOICE_POOL[@]}" "$SAY_CLI_VOICE_NUMBER")" || exit
