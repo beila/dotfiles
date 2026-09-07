@@ -79,10 +79,6 @@ vim.keymap.set({ "n", "v", "i" }, "<C-g><C-f>",
     end,
     {})
 
-vim.keymap.set({ "n", "v", "i" }, "<C-g><C-b>",
-    function() fzf_lua.git_branches() end,
-    {})
-
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-t>",
     function() fzf_lua.git_tags() end,
     {})
@@ -114,10 +110,37 @@ local function jj_workspace_switch()
     jj_workspace_picker.workspaces()
 end
 
--- Mirrors zsh `ctrl-g B` (the `^gb` workspace widget); `<leader>B` per request.
-vim.keymap.set({ "n", "v", "i" }, "<C-g>b", jj_workspace_switch,
-    { desc = "JJ workspace switch" })
-vim.keymap.set({ "n", "v" }, "<leader>B", jj_workspace_switch, { desc = "JJ workspace switch" })
+-- jj-first branch/bookmark dialog with the ctrl-b workspace toggle; git
+-- fallback keeps the old fzf-lua branch picker outside jj.
+local function jj_branch_dialog()
+    local root = vim.system({ 'jj', '--ignore-working-copy', 'root' }, { text = true }):wait()
+    if root.code == 0 then
+        jj_workspace_picker.bookmarks()
+    else
+        fzf_lua.git_branches()
+    end
+end
+
+-- <leader>B and <C-g><C-b> collide with nvim-dap.lua's <Leader>B and are set
+-- from a file that loads before it (runtime! vimrcs/*.lua is alphabetical).
+-- Applying the jj mappings from VimEnter runs them after every vimrcs file, so
+-- they win deterministically regardless of load order.
+vim.api.nvim_create_autocmd("VimEnter", {
+    group = vim.api.nvim_create_augroup("jj_workspace_keymaps", { clear = true }),
+    callback = function()
+        -- Workspace switch: ctrl-chord alias mirrors the working <C-g><C-h>
+        -- diff-picker pattern; <C-g>b / <leader>B mirror zsh's ctrl-g B.
+        vim.keymap.set({ "n", "v", "i" }, "<C-g><C-w>", jj_workspace_switch,
+            { desc = "JJ workspace switch" })
+        vim.keymap.set({ "n", "v", "i" }, "<C-g>b", jj_workspace_switch,
+            { desc = "JJ workspace switch" })
+        vim.keymap.set({ "n", "v" }, "<leader>B", jj_workspace_switch,
+            { desc = "JJ workspace switch" })
+        -- Branch/bookmark dialog (has ctrl-b -> workspaces toggle).
+        vim.keymap.set({ "n", "v", "i" }, "<C-g><C-b>", jj_branch_dialog,
+            { desc = "JJ branch dialog" })
+    end,
+})
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-s>",
     function() fzf_lua.git_stash() end,
