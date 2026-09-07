@@ -115,5 +115,29 @@ assert_eq(vim.fs.normalize(switched), vim.fs.normalize(feature .. "/sample.txt")
 local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 assert_eq(lines[1], "shared file, feature workspace", "switched buffer content")
 
+-- ctrl-b toggles from the workspace picker to the bookmark picker; scheduled,
+-- so drain the scheduler before inspecting the re-dispatched picker.
+git({ "-c", "user.email=t@t", "-c", "user.name=t", "branch", "-f", "wip", "HEAD" })
+run({ "jj", "--ignore-working-copy", "bookmark", "track", "wip@git" })
+vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
+require("jj-workspace-picker").workspaces()
+local workspace_capture = captured
+workspace_capture.opts.actions["ctrl-b"]()
+vim.wait(200, function()
+	return captured ~= workspace_capture
+end)
+if captured == workspace_capture then
+	fail("ctrl-b did not re-dispatch to the bookmark picker")
+end
+assert_contains(captured.opts.prompt, "jj bookmarks", "toggled prompt")
+
+-- ctrl-b from the bookmark picker toggles back to workspaces.
+local bookmark_capture = captured
+bookmark_capture.opts.actions["ctrl-b"]()
+vim.wait(200, function()
+	return captured ~= bookmark_capture
+end)
+assert_contains(captured.opts.prompt, "jj workspaces", "toggled-back prompt")
+
 vim.fn.delete(base, "rf")
 print("PASS: jj workspace picker switch")

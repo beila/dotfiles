@@ -114,9 +114,10 @@ local function jj_workspace_switch()
     jj_workspace_picker.workspaces()
 end
 
-vim.keymap.set({ "n", "v", "i" }, "<C-g><C-w>", jj_workspace_switch,
+-- Mirrors zsh `ctrl-g B` (the `^gb` workspace widget); `<leader>B` per request.
+vim.keymap.set({ "n", "v", "i" }, "<C-g>b", jj_workspace_switch,
     { desc = "JJ workspace switch" })
-vim.keymap.set({ "n", "v" }, "<leader>gw", jj_workspace_switch, { desc = "JJ workspace switch" })
+vim.keymap.set({ "n", "v" }, "<leader>B", jj_workspace_switch, { desc = "JJ workspace switch" })
 
 vim.keymap.set({ "n", "v", "i" }, "<C-g><C-s>",
     function() fzf_lua.git_stash() end,

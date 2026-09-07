@@ -4,7 +4,7 @@ local fzf_lua = require("fzf-lua")
 local fzf_utils = require("fzf-lua.utils")
 
 local function notify(message, level)
-	vim.notify("jj workspace: " .. message, level or vim.log.levels.ERROR)
+	vim.notify("jj: " .. message, level or vim.log.levels.ERROR)
 end
 
 -- Resolve the workspace root that contains `start_dir`. `jj workspace root`
@@ -23,7 +23,8 @@ local function workspace_root(start_dir)
 end
 
 -- The window we launched from decides both the file to reopen and the
--- workspace we are switching away from.
+-- workspace we are switching away from. Threaded through both pickers so a
+-- ctrl-b toggle back to workspaces still knows where it started.
 local function source_context()
 	local winid = vim.api.nvim_get_current_win()
 	local bufnr = vim.api.nvim_win_get_buf(winid)
@@ -35,11 +36,15 @@ local function source_context()
 	return winid, file, workspace_root(start_dir)
 end
 
--- Each row is `<name>\t<root>`: fzf shows only the name (--with-nth=1) and the
--- selection carries the root in field 2. A single-workspace repo still renders
--- its one row.
-local function list_command(color)
-	local args = {
+local function shell_join(args)
+	return table.concat(vim.tbl_map(vim.fn.shellescape, args), " ")
+end
+
+-- Each workspace row is `<name>\t<root>`: fzf shows only the name
+-- (--with-nth=1) and the selection carries the root in field 2. A
+-- single-workspace repo still renders its one row.
+local function workspace_list_command(color)
+	return shell_join({
 		"jj",
 		"--ignore-working-copy",
 		"workspace",
@@ -47,13 +52,12 @@ local function list_command(color)
 		"--color=" .. color,
 		"-T",
 		'name ++ "\\t" ++ if(root, root, "") ++ "\\n"',
-	}
-	return table.concat(vim.tbl_map(vim.fn.shellescape, args), " ")
+	})
 end
 
 -- Preview the target workspace's own `jj log`, run with `-R <root>` so it
 -- reflects that workspace's working-copy commit rather than the launcher's.
-local function preview_command()
+local function workspace_preview_command()
 	return table.concat({
 		[[root=$(printf '%s\n' {} | cut -s -f2 | sed 's/\x1b\[[0-9;]*m//g')]],
 		[[test -n "$root" || exit 0]],
@@ -72,6 +76,38 @@ local function selected_root(selected)
 		return vim.trim(root)
 	end
 	return nil
+end
+
+-- The bookmark (branch) picker mirrors zsh `_jb`: `jj bookmark list` with the
+-- first whitespace field as the bookmark name. The preview logs the
+-- bookmark's boundary against all bookmarks.
+local function bookmark_list_command(color)
+	return shell_join({
+		"jj",
+		"--ignore-working-copy",
+		"--quiet",
+		"bookmark",
+		"list",
+		"--color=" .. color,
+	})
+end
+
+local function bookmark_preview_command()
+	return table.concat({
+		[[name=$(printf '%s\n' {} | awk '{gsub(/:$/,"",$1); gsub(/\x1b\[[0-9;]*m/,"",$1); print $1}')]],
+		[[test -n "$name" || exit 0]],
+		[[jj --ignore-working-copy --quiet log --color=always -r "unique_boundary($name, bookmarks() | remote_bookmarks())"]],
+	}, "; ")
+end
+
+local function selected_bookmark(selected)
+	local line = selected and selected[1]
+	if not line then
+		return nil
+	end
+	local stripped = fzf_utils.strip_ansi_coloring(line)
+	local name = stripped:match("^%s*([^%s:]+)")
+	return name
 end
 
 -- Point every window in the current tab at the equivalent file in the chosen
@@ -101,6 +137,11 @@ local function switch_tab_to_workspace(source_win, source_root, source_file, tar
 		end
 	end
 
+	if not vim.api.nvim_win_is_valid(source_win) then
+		notify("source window is no longer available")
+		return
+	end
+
 	local windows = vim.api.nvim_tabpage_list_wins(vim.api.nvim_win_get_tabpage(source_win))
 	for _, win in ipairs(windows) do
 		if vim.api.nvim_win_is_valid(win) then
@@ -116,21 +157,30 @@ local function switch_tab_to_workspace(source_win, source_root, source_file, tar
 	end
 end
 
-function M.workspaces()
-	local source_win, source_file, source_root = source_context()
-	if not source_root then
-		notify("current window is not inside a JJ workspace")
-		return
-	end
+-- Forward declarations so the two pickers can hand off to each other via
+-- ctrl-b, matching the zsh `_jbb` <-> `_jb` toggle.
+local open_workspaces
+local open_bookmarks
 
-	fzf_lua.fzf_exec(list_command("always"), {
-		cwd = source_root,
+-- ctrl-b re-dispatches on the fzf-lua main loop; scheduling avoids nesting a
+-- new fzf inside the closing one's callback.
+local function toggle_action(open, ctx)
+	return function()
+		vim.schedule(function()
+			open(ctx)
+		end)
+	end
+end
+
+open_workspaces = function(ctx)
+	fzf_lua.fzf_exec(workspace_list_command("always"), {
+		cwd = ctx.source_root,
 		prompt = "jj workspaces> ",
-		preview = preview_command(),
+		preview = workspace_preview_command(),
 		fzf_opts = {
 			["--ansi"] = true,
 			["--delimiter"] = "[\t]",
-			["--header"] = "switch tab to workspace (same file, chosen workspace)",
+			["--header"] = "☑ workspaces (ctrl-b) — switch tab to workspace (same file)",
 			["--no-sort"] = true,
 			["--with-nth"] = "1",
 		},
@@ -141,10 +191,64 @@ function M.workspaces()
 					notify("select a workspace")
 					return
 				end
-				switch_tab_to_workspace(source_win, source_root, source_file, target_root)
+				switch_tab_to_workspace(ctx.source_win, ctx.source_root, ctx.source_file, target_root)
 			end,
+			["ctrl-b"] = toggle_action(open_bookmarks, ctx),
 		},
 	})
+end
+
+open_bookmarks = function(ctx)
+	fzf_lua.fzf_exec(bookmark_list_command("always"), {
+		cwd = ctx.source_root,
+		prompt = "jj bookmarks> ",
+		preview = bookmark_preview_command(),
+		fzf_opts = {
+			["--ansi"] = true,
+			["--header"] = "☐ workspaces (ctrl-b) — copy bookmark name",
+			["--no-sort"] = true,
+		},
+		actions = {
+			enter = function(selected)
+				local name = selected_bookmark(selected)
+				if not name then
+					notify("select a bookmark")
+					return
+				end
+				vim.fn.setreg('"', name)
+				vim.fn.setreg("0", name)
+				notify(string.format("bookmark %q copied", name), vim.log.levels.INFO)
+			end,
+			["ctrl-b"] = toggle_action(open_workspaces, ctx),
+		},
+	})
+end
+
+local function new_context()
+	local source_win, source_file, source_root = source_context()
+	if not source_root then
+		notify("current window is not inside a JJ workspace")
+		return nil
+	end
+	return {
+		source_win = source_win,
+		source_file = source_file,
+		source_root = source_root,
+	}
+end
+
+function M.workspaces()
+	local ctx = new_context()
+	if ctx then
+		open_workspaces(ctx)
+	end
+end
+
+function M.bookmarks()
+	local ctx = new_context()
+	if ctx then
+		open_bookmarks(ctx)
+	end
 end
 
 return M
