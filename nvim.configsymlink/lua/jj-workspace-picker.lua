@@ -10,16 +10,63 @@ end
 -- Resolve the workspace root that contains `start_dir`. `jj workspace root`
 -- reports the root of the workspace the directory lives in, which is what we
 -- rebase the file path against; `jj root` would collapse every workspace to
--- the shared repository root.
-local function workspace_root(start_dir)
-	local result = vim.system(
-		{ "jj", "--ignore-working-copy", "workspace", "root" },
-		{ cwd = start_dir, text = true, timeout = 2000 }
-	):wait()
-	if result.code ~= 0 then
-		return nil
+-- the shared repository root. Returns root, or nil + a reason string.
+local function probe_workspace_root(start_dir)
+	if not start_dir or start_dir == "" or vim.fn.isdirectory(start_dir) == 0 then
+		return nil, "no directory to probe"
 	end
-	return vim.trim(result.stdout)
+	local ok, result = pcall(function()
+		return vim.system(
+			{ "jj", "--ignore-working-copy", "workspace", "root" },
+			{ cwd = start_dir, text = true, timeout = 5000 }
+		):wait()
+	end)
+	if not ok then
+		-- vim.system throws when the jj executable cannot be spawned (e.g. not
+		-- on Neovim's PATH, the classic GUI-launch problem).
+		return nil, "cannot run jj (" .. tostring(result) .. ")"
+	end
+	if result.code ~= 0 then
+		local detail = vim.trim(result.stderr or "")
+		return nil, detail ~= "" and detail or ("jj exited " .. tostring(result.code))
+	end
+	local root = vim.trim(result.stdout or "")
+	if root == "" then
+		return nil, "empty workspace root"
+	end
+	return root
+end
+
+-- Probe several directories so a window whose cwd sits outside the repo (but
+-- whose file lives inside it) — or the reverse — still resolves. Mirrors how
+-- jj-statusline.lua falls back to the window cwd.
+local function resolve_workspace_root(winid, file)
+	local candidates = {}
+	local function add(dir)
+		if dir and dir ~= "" then
+			candidates[#candidates + 1] = dir
+		end
+	end
+	if file ~= "" then
+		add(vim.fs.dirname(file))
+	end
+	local ok, win_cwd = pcall(vim.api.nvim_win_call, winid, function()
+		return vim.fn.getcwd()
+	end)
+	if ok then
+		add(win_cwd)
+	end
+	add(vim.uv.cwd())
+
+	local last_reason = "no directory to probe"
+	for _, dir in ipairs(candidates) do
+		local root, reason = probe_workspace_root(dir)
+		if root then
+			return root
+		end
+		last_reason = reason
+	end
+	return nil, last_reason
 end
 
 -- The window we launched from decides both the file to reopen and the
@@ -32,8 +79,8 @@ local function source_context()
 	if vim.bo[bufnr].buftype == "" then
 		file = vim.api.nvim_buf_get_name(bufnr)
 	end
-	local start_dir = file ~= "" and vim.fs.dirname(file) or vim.uv.cwd()
-	return winid, file, workspace_root(start_dir)
+	local root, reason = resolve_workspace_root(winid, file)
+	return winid, file, root, reason
 end
 
 local function shell_join(args)
@@ -225,9 +272,9 @@ open_bookmarks = function(ctx)
 end
 
 local function new_context()
-	local source_win, source_file, source_root = source_context()
+	local source_win, source_file, source_root, reason = source_context()
 	if not source_root then
-		notify("current window is not inside a JJ workspace")
+		notify("current window is not inside a JJ workspace (" .. (reason or "unknown") .. ")")
 		return nil
 	end
 	return {

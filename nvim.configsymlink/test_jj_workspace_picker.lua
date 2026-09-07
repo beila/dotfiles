@@ -139,5 +139,29 @@ vim.wait(200, function()
 end)
 assert_contains(captured.opts.prompt, "jj workspaces", "toggled-back prompt")
 
+-- Root resolution falls back to the file's directory even when the window cwd
+-- sits outside the repo: chdir away, open the repo file, and the picker still
+-- lists the workspaces instead of erroring.
+local outside = vim.fn.tempname()
+vim.fn.mkdir(outside, "p")
+vim.cmd.cd(vim.fn.fnameescape(outside))
+captured = nil
+vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
+require("jj-workspace-picker").workspaces()
+if not captured then
+	fail("picker did not open when window cwd was outside the repo")
+end
+assert_contains(captured.opts.prompt, "jj workspaces", "fallback prompt")
+
+-- Launched entirely outside any jj repo, the picker aborts and does not open.
+captured = nil
+vim.cmd.cd(vim.fn.fnameescape(outside))
+vim.cmd.enew()
+require("jj-workspace-picker").workspaces()
+if captured then
+	fail("picker opened outside a jj repo")
+end
+
+vim.fn.delete(outside, "rf")
 vim.fn.delete(base, "rf")
 print("PASS: jj workspace picker switch")
