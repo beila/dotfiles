@@ -24,10 +24,11 @@ Startup stays hidden until the panel reports an `InputMode` property.
 Deps (via home-manager wrapper):
     osd (pycairo + python-xlib transitively)
     pygobject3
-    GI typelibs: Pango, PangoCairo, cairo (gobject-introspection),
+    GI typelibs: Rsvg (SVG rasterisation), cairo (gobject-introspection),
         IBus, harfbuzz — set on GI_TYPELIB_PATH by the wrapper
-    libfontconfig at runtime (loaded via ctypes for app-font
-        registration; HANGUL_OSD_FONT_FILE points at the ttf)
+    HANGUL_OSD_IMAGE points at the packaged hangul.svg. No font,
+        fontconfig, or Pango at runtime — the glyph is a pre-outlined
+        vector asset (see xwindow/osd/assets/generate.py).
 """
 
 from __future__ import annotations
@@ -37,7 +38,6 @@ import os
 import signal
 import sys
 
-import cairo
 from osd import (
     HANGUL_SLOT_HEIGHT_MM,
     HANGUL_SLOT_OFFSET_X_FRAC,
@@ -49,26 +49,19 @@ from osd import (
 )
 
 
-# Visual style: warm amber/mustard, top-right corner, sized in mm so it
-# looks the same physical size everywhere. Position derives from the shared
-# HANGUL_SLOT_* constants in the osd library so the Midway MW sibling OSD
-# can anchor beside this exact box without the two drifting apart.
+# Visual style: a pre-outlined vector SVG (JejuHallasan "한" with the LEGO
+# Bright Light Orange #F8BB3D baked in) painted at 0.8 alpha. No font at
+# runtime — the glyph is stored as paths and rasterised by librsvg at the exact
+# per-monitor pixel size, crisp at any DPI (font dependency moved to
+# asset-authoring time; see xwindow/osd/assets/generate.py). Position derives
+# from the shared HANGUL_SLOT_* constants in the osd library so the Midway MW
+# sibling OSD can anchor beside this exact box without the two drifting apart.
+# HANGUL_OSD_IMAGE points at the packaged hangul.svg.
 STYLE = OSDStyle(
-    fill_rgb=(0.972, 0.733, 0.239),    # LEGO Bright Light Orange #F8BB3D
     fill_alpha=0.8,
     outline_rgb=None,
     shadow_rgba=None,
-    font_family="JejuHallasan",
-    # JejuHallasan only ships Regular — keep cairo weight at NORMAL.
-    font_weight=cairo.FONT_WEIGHT_NORMAL,
-    # Pango (vs cairo's toy API) for reliable family matching. JejuHallasan
-    # itself doesn't appear in PangoCairo.FontMap.list_families() because
-    # its English glyph coverage is incomplete (the ttf is missing 20
-    # ASCII glyphs and gets dropped from the default fontmap). The
-    # `font_file` below registers the ttf with fontconfig as an
-    # application-private font, which bypasses that filter.
-    use_pango=True,
-    font_file=os.environ.get("HANGUL_OSD_FONT_FILE"),
+    image_file=os.environ.get("HANGUL_OSD_IMAGE"),
     width_mm=HANGUL_SLOT_WIDTH_MM,
     height_mm=HANGUL_SLOT_HEIGHT_MM,
     text_pad_w_frac=0.85,

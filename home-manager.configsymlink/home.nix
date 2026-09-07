@@ -1,23 +1,11 @@
 { config, pkgs, ... }:
 
 let
-  # JejuHallasan: hand-brushed display font from Jeju (SIL OFL 1.1, Google Fonts).
-  # Fetched directly from google/fonts so we don't pull in the 2.3 GB google-fonts
-  # mega-package just for one glyph.
-  jejuhallasan-ttf = pkgs.fetchurl {
-    url = "https://github.com/google/fonts/raw/main/ofl/jejuhallasan/JejuHallasan-Regular.ttf";
-    sha256 = "1sa88xp6dn8p0dan80s90zr9c6d1mhfi7ibql7b7w5yp4y61klbi";
-  };
-
-  # Great Vibes: an ornate OFL swash/script display face (SIL OFL 1.1, Google
-  # Fonts). Used by midway-osd for the decorative MW capitals — abundant
-  # curling strokes and flourishes, distinctly more decorative than
-  # JejuHallasan's Latin. Fetched directly from google/fonts to avoid the
-  # 2.3 GB google-fonts mega-package.
-  greatvibes-ttf = pkgs.fetchurl {
-    url = "https://github.com/google/fonts/raw/main/ofl/greatvibes/GreatVibes-Regular.ttf";
-    sha256 = "059dk3wnfi5kr7q97jpszmdrm3q9x09z7v1i4mbm26vg3019hl4d";
-  };
+  # OSD glyph assets (xwindow/osd/assets/*.svg) are pre-outlined vector files
+  # generated once from their source fonts (see that dir's generate.py); the
+  # OSDs paint them via librsvg with no font at runtime. No font is fetched
+  # here anymore — the former JejuHallasan / Great Vibes fetchurls were only
+  # needed by the old runtime font-render path.
 
   # Local Python package providing reusable OSD primitives (cairo render +
   # XShape window). battery-osd uses it; future volume/brightness/audio
@@ -168,15 +156,15 @@ in
     '')
     # hangul-osd: persistent overlay while ibus-hangul's InputMode is Hangul.
     # Same osd-library pattern as battery-osd, plus PyGObject for direct
-    # subscriptions on the IBus private message bus (no polling). The wrapper
-    # exposes the required GIR typelibs at runtime.
+    # subscriptions on the IBus private message bus (no polling). The glyph is
+    # a pre-outlined vector SVG rasterised by librsvg — no font/Pango at
+    # runtime. The wrapper exposes the required GIR typelibs (incl. Rsvg) and
+    # the packaged hangul.svg.
     (pkgs.writeShellScriptBin "hangul-osd" ''
-      export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
-      # Path to JejuHallasan ttf — passed straight to fontconfig's
-      # app-font set at startup so Pango sees it even though its English
-      # coverage is incomplete (Pango hides such fonts from its default
-      # family list).
-      export HANGUL_OSD_FONT_FILE=${jejuhallasan-ttf}
+      export GI_TYPELIB_PATH="${pkgs.ibus}/lib/girepository-1.0:${pkgs.librsvg.out}/lib/girepository-1.0:${pkgs.gdk-pixbuf}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      # Pre-outlined 한 vector asset (JejuHallasan glyph → paths, amber baked
+      # in). librsvg rasterises it crisply at each monitor's pixel size.
+      export HANGUL_OSD_IMAGE=${../xwindow/osd/assets/hangul.svg}
       exec ${
         pkgs.writers.writePython3Bin "hangul-osd-impl" {
           libraries =
@@ -198,16 +186,16 @@ in
     # midway-osd: persistent OSD shown while the local Midway session is
     # invalid. Same osd-library + PyGObject pattern as hangul-osd; the MW box
     # anchors immediately left of the 한 box via the shared HANGUL_SLOT_*
-    # geometry. The wrapper exposes the GIR typelibs, the decorative font, and
-    # MIDWAY_GENMON (the shared valid/invalid status parser) at runtime. It
-    # never runs mwinit or reads cookie contents — it only polls the status
-    # word.
+    # geometry. The glyph is a pre-outlined vector SVG (UnifrakturCook "MW",
+    # LEGO red baked in) rasterised by librsvg — no font/Pango at runtime. The
+    # wrapper exposes the GIR typelibs (incl. Rsvg), the packaged mw.svg, and
+    # MIDWAY_GENMON (the shared valid/invalid status parser). It never runs
+    # mwinit or reads cookie contents — it only polls the status word.
     (pkgs.writeShellScriptBin "midway-osd" ''
-      export GI_TYPELIB_PATH="${pkgs.pango.out}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
-      # Decorative swash display font (Great Vibes) — registered with
-      # fontconfig's app-font set at render time so Pango's matcher resolves
-      # the "Great Vibes" family for the ornamental MW capitals.
-      export MIDWAY_OSD_FONT_FILE=${greatvibes-ttf}
+      export GI_TYPELIB_PATH="${pkgs.librsvg.out}/lib/girepository-1.0:${pkgs.gdk-pixbuf}/lib/girepository-1.0:${pkgs.harfbuzz.out}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      # Pre-outlined MW vector asset (UnifrakturCook glyph → paths, #B40000
+      # baked in). librsvg rasterises it crisply at each monitor's pixel size.
+      export MIDWAY_OSD_IMAGE=${../xwindow/osd/assets/mw.svg}
       # Shared local Midway valid/invalid parser (no network, no mwinit). The
       # source path in the store restarts the daemon when the parser changes.
       export MIDWAY_GENMON=${../xwindow/bin/midway-genmon}

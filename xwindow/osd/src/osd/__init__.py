@@ -142,6 +142,19 @@ class OSDStyle:
     # fc-match resolves it). Only consulted when use_pango=True.
     font_file: str | None = None
 
+    # Optional path to a pre-outlined SVG asset. When set, the OSD paints
+    # this vector image instead of laying out `text` with a font — the glyph
+    # is stored as paths, so display needs NO font, fontconfig, or Pango,
+    # only librsvg to rasterize. The SVG is scaled to fit the box (see
+    # render_surface's mm sizing) preserving its aspect ratio, and tinted at
+    # `fill_alpha` so the translucency stays a style knob. Takes precedence
+    # over the text/font path. This is how midway-osd (MW) and hangul-osd
+    # (한) render: a committed vector asset, resolution-independent at any
+    # per-monitor DPI, with the font dependency moved to asset-authoring time
+    # (see xwindow/osd/assets/generate.py). text/font_family are ignored when
+    # this is set.
+    image_file: str | None = None
+
     # Alpha threshold for the XShape mask (0..255). Pixels with alpha at or
     # above this become opaque; everything else is clipped.
     alpha_threshold: int = 128
@@ -222,13 +235,58 @@ def render_surface(
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
     ctx = cairo.Context(surface)
 
-    if s.use_pango:
+    if s.image_file is not None:
+        _render_with_image(ctx, w, h, s)
+    elif s.use_pango:
         _render_with_pango(ctx, text, w, h, s)
     else:
         _render_with_toy(ctx, text, w, h, s)
 
     surface.flush()
     return surface
+
+
+def _render_with_image(ctx, w, h, s):
+    """Paint a pre-outlined SVG asset, scaled to fit the w×h box while
+    preserving its aspect ratio and centred, tinted at s.fill_alpha.
+
+    The SVG carries the glyph as vector paths (see xwindow/osd/assets), so
+    this needs librsvg but NO font / fontconfig / Pango at runtime. Scaling
+    is done in vector space before rasterisation, so the result is crisp at
+    any per-monitor pixel size — no upscaling of a fixed-resolution bitmap.
+
+    fill_alpha is applied via a cairo group + paint_with_alpha so the asset's
+    own solid colour stays the source of truth and the OSD's translucency
+    remains a style knob (0.5 for MW, 0.8 for 한)."""
+    import gi
+    gi.require_version("Rsvg", "2.0")
+    from gi.repository import Rsvg
+
+    handle = Rsvg.Handle.new_from_file(s.image_file)
+    dim = handle.get_intrinsic_dimensions()
+    # get_intrinsic_dimensions returns (has_width, width, has_height, height,
+    # has_viewbox, viewbox). Prefer the viewBox for the true aspect ratio.
+    vb = dim[5] if dim[4] else None
+    if vb is not None and vb.width > 0 and vb.height > 0:
+        sw, sh = vb.width, vb.height
+    else:
+        sw, sh = dim[1].length, dim[3].length
+
+    scale = min(w / sw, h / sh)
+    dw, dh = sw * scale, sh * scale
+    ox, oy = (w - dw) / 2, (h - dh) / 2
+
+    ctx.push_group()
+    ctx.translate(ox, oy)
+    ctx.scale(scale, scale)
+    viewport = Rsvg.Rectangle()
+    viewport.x = 0.0
+    viewport.y = 0.0
+    viewport.width = sw
+    viewport.height = sh
+    handle.render_document(ctx, viewport)
+    ctx.pop_group_to_source()
+    ctx.paint_with_alpha(s.fill_alpha)
 
 
 def _render_with_toy(ctx, text, w, h, s):

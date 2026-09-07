@@ -7,21 +7,29 @@ Split into two tiers:
   idempotency) run against `midway-osd.py` with the real `osd` library. They
   never touch X or credentials — `midway_is_invalid` is driven with a fake
   subprocess runner.
-- Geometry / style / font tests exercise the real `osd` library math so the
+- Geometry / style / image tests exercise the real `osd` library math so the
   MW box's 42 mm physical height, vertical centring inside the 70 mm 한 slot,
   fixed 2 mm gap, no-overlap, and on-screen placement are checked on concrete
-  1920×1200 and 4K/mixed-DPI monitor data, and the decorative Great Vibes font
-  is proven to render M/W rather than a generic fallback.
+  1920×1200 and 4K/mixed-DPI monitor data, and the pre-outlined SVG asset is
+  proven to rasterise to the correct LEGO-red pixels at 0.5 alpha.
 
-The font-resolution test needs Pango/PangoCairo typelibs (GI_TYPELIB_PATH) and
-the Great Vibes ttf (MIDWAY_OSD_FONT_FILE); it skips cleanly when either is
-unavailable so the rest of the suite still runs.
+The OSD paints a committed vector SVG (xwindow/osd/assets/mw.svg) via librsvg
+— no font at runtime. Tests point MIDWAY_OSD_IMAGE at that asset. The
+image-render tests need the Rsvg typelib on GI_TYPELIB_PATH; they skip cleanly
+when it is unavailable so the rest of the suite still runs.
 """
 
 import importlib.util
 import os
 import pathlib
 import unittest
+
+
+# The OSD reads its SVG asset path from MIDWAY_OSD_IMAGE at import time (STYLE
+# is built at module load). Default it to the in-repo asset so the tests
+# exercise the real vector file without needing the packaged wrapper env.
+_ASSET_DIR = pathlib.Path(__file__).with_name("osd") / "assets"
+os.environ.setdefault("MIDWAY_OSD_IMAGE", str(_ASSET_DIR / "mw.svg"))
 
 
 def load_module():
@@ -41,6 +49,22 @@ try:
 except Exception as e:  # pragma: no cover - env without cairo/osd
     _OSD_AVAILABLE = False
     _OSD_IMPORT_ERROR = e
+
+
+# librsvg typelib probe — the MW glyph is a vector SVG rasterised by librsvg,
+# so tests that actually rasterise the asset (geometry, offline PNG, pixel
+# colour) require it. Pure-logic and style tests do not.
+_RSVG_AVAILABLE = False
+_RSVG_ERROR = None
+try:
+    import gi as _gi
+
+    _gi.require_version("Rsvg", "2.0")
+    from gi.repository import Rsvg as _Rsvg  # noqa: F401
+
+    _RSVG_AVAILABLE = _OSD_AVAILABLE
+except Exception as e:  # pragma: no cover - env without librsvg typelib
+    _RSVG_ERROR = e
 
 
 @unittest.skipUnless(_OSD_AVAILABLE, f"osd/cairo unavailable: {_OSD_IMPORT_ERROR}")
@@ -129,43 +153,36 @@ class StyleTest(unittest.TestCase):
     def test_text_is_MW(self):
         self.assertEqual(midway_osd.TEXT, "MW")
 
-    def test_fill_is_lego_bright_red_at_half_alpha(self):
+    def test_paints_svg_image_asset_not_a_runtime_font(self):
         s = midway_osd.STYLE
-        # LEGO colour 21 "Bright Red" #B40000 == (180/255, 0, 0).
-        self.assertAlmostEqual(s.fill_rgb[0], 180 / 255, places=6)
-        self.assertEqual(s.fill_rgb[1], 0.0)
-        self.assertEqual(s.fill_rgb[2], 0.0)
-        self.assertEqual(s.fill_alpha, 0.5)
+        # The OSD renders a pre-outlined vector asset, so no font is loaded at
+        # runtime: image_file is set and the font knobs are left unused.
+        self.assertTrue(s.image_file, "image_file not set")
+        self.assertTrue(s.image_file.endswith("mw.svg"))
+        self.assertTrue(os.path.exists(s.image_file), f"missing {s.image_file}")
+
+    def test_half_alpha(self):
+        self.assertEqual(midway_osd.STYLE.fill_alpha, 0.5)
 
     def test_no_outline_or_shadow(self):
         s = midway_osd.STYLE
         self.assertIsNone(s.outline_rgb)
         self.assertIsNone(s.shadow_rgba)
 
-    def test_uses_decorative_swash_font_via_pango_appfont(self):
-        s = midway_osd.STYLE
-        self.assertEqual(s.font_family, "Great Vibes")
-        self.assertTrue(s.use_pango)
+    def test_box_height_42mm(self):
+        self.assertEqual(midway_osd.STYLE.height_mm, 42.0)
 
-    def test_box_is_66x42mm(self):
+    def test_box_matches_asset_aspect_ratio(self):
+        # Width is derived from the mw.svg intrinsic aspect so the vector fills
+        # the box with no letterboxing.
         s = midway_osd.STYLE
-        self.assertEqual(s.width_mm, 66.0)
-        self.assertEqual(s.height_mm, 42.0)
-
-    def test_box_preserves_11_to_7_aspect_ratio(self):
-        # 66:42 must reduce to exactly 11:7 (a uniform 0.6 scale of 110×70).
-        s = midway_osd.STYLE
-        self.assertAlmostEqual(s.width_mm / s.height_mm, 11 / 7, places=9)
-        # And it is exactly 0.6× the original 110×70 box.
-        self.assertAlmostEqual(s.width_mm, 110.0 * 0.6, places=9)
-        self.assertAlmostEqual(s.height_mm, 70.0 * 0.6, places=9)
-
-    def test_width_close_to_hangul_slot_width(self):
-        # The revised visible width should be close to the 60 mm 한 slot,
-        # not far wider as the old 110 mm box was.
-        self.assertLess(
-            abs(midway_osd.STYLE.width_mm - osd.HANGUL_SLOT_WIDTH_MM), 10
+        self.assertAlmostEqual(
+            s.width_mm / s.height_mm, 712.0 / 325.0, places=2
         )
+
+    def test_shorter_than_hangul_slot_so_it_can_centre(self):
+        # Must be shorter than the 70 mm 한 slot to sit vertically centred.
+        self.assertLess(midway_osd.STYLE.height_mm, osd.HANGUL_SLOT_HEIGHT_MM)
 
 
 # --- Geometry helpers -------------------------------------------------------
@@ -199,7 +216,7 @@ def _box(style, mon):
     return x, y, iw, ih
 
 
-@unittest.skipUnless(_OSD_AVAILABLE, f"osd/cairo unavailable: {_OSD_IMPORT_ERROR}")
+@unittest.skipUnless(_RSVG_AVAILABLE, f"Rsvg unavailable (needed to rasterise MW asset): {_RSVG_ERROR}")
 class GeometryTest(unittest.TestCase):
     def _pair(self, mon):
         hangul = _box(_hangul_style(), mon)
@@ -284,7 +301,7 @@ class SiblingOffsetTest(unittest.TestCase):
             osd.sibling_offset_mm(osd.OSDStyle(), 6.0)
 
 
-@unittest.skipUnless(_OSD_AVAILABLE, f"osd/cairo unavailable: {_OSD_IMPORT_ERROR}")
+@unittest.skipUnless(_RSVG_AVAILABLE, f"Rsvg unavailable (needed to rasterise MW asset): {_RSVG_ERROR}")
 class OfflineRenderTest(unittest.TestCase):
     def test_render_png_writes_a_valid_png_without_credentials(self):
         import tempfile
@@ -301,13 +318,25 @@ class OfflineRenderTest(unittest.TestCase):
     def test_render_png_rejects_bad_screen(self):
         self.assertEqual(midway_osd._render_png("/dev/null", "nonsense"), 2)
 
-    def test_glyph_pixels_are_lego_red_premultiplied_half_alpha(self):
-        # Render the real STYLE surface and inspect the most-opaque glyph
-        # pixel. cairo ARGB32 is premultiplied and little-endian (BGRA in
-        # memory). LEGO #B40000 (R=180) at fill_alpha=0.5 must yield, on the
-        # solid glyph interior: A=128 (exactly 0.5), R=round(180*0.5)=90,
-        # G=B=0. This is the pixel-level check for both the new base colour
-        # and its premultiplied-alpha result.
+
+@unittest.skipUnless(_RSVG_AVAILABLE, f"Rsvg unavailable: {_RSVG_ERROR}")
+class ImageAssetTest(unittest.TestCase):
+    """The MW glyph is a committed vector SVG, rasterised by librsvg — no font
+    at runtime. Prove the asset exists, is an SVG, and rasterises through the
+    osd image path to solid LEGO-red (#B40000) at exactly 0.5 alpha."""
+
+    def test_asset_is_a_vector_svg(self):
+        path = midway_osd.STYLE.image_file
+        self.assertTrue(path.endswith("mw.svg"))
+        with open(path, "rb") as f:
+            head = f.read(256)
+        self.assertIn(b"<svg", head, "asset is not an SVG")
+
+    def test_rasterises_to_lego_red_at_half_alpha(self):
+        # Render the real STYLE surface via the osd image path and inspect the
+        # most-opaque pixel. cairo ARGB32 is premultiplied, little-endian
+        # (BGRA). #B40000 (R=180) painted at fill_alpha=0.5 → on a solid glyph
+        # pixel: A=128 (exactly 0.5), R=round(180*128/255)=90, G=B=0.
         surf = osd.render_surface(
             midway_osd.TEXT, 1920, 1200, midway_osd.STYLE, monitor_mm=(518, 324)
         )
@@ -323,66 +352,16 @@ class OfflineRenderTest(unittest.TestCase):
                 a = data[px + 3]
                 if a > max_a:
                     max_a = a
-                    sample = (data[px + 2], data[px + 1], data[px + 0], a)  # R,G,B,A
-        self.assertIsNotNone(sample, "no glyph pixels rendered")
+                    sample = (data[px + 2], data[px + 1], data[px + 0], a)
+        self.assertIsNotNone(sample, "asset produced no opaque pixels")
         r, g, b, a = sample
-        # Peak alpha is exactly 0.5 → 128 (anti-aliased edges are lower).
-        self.assertEqual(max_a, 128, "peak fill alpha is not exactly 0.5 (128)")
+        self.assertEqual(max_a, 128, "peak alpha is not exactly 0.5 (128)")
         self.assertEqual(a, 128)
-        # Premultiplied red: round(180 * 128/255) == 90; G and B stay 0.
-        self.assertEqual(g, 0, "green leaked into the fill")
-        self.assertEqual(b, 0, "blue leaked into the fill")
-        self.assertEqual(r, round(180 * 128 / 255), "red not premultiplied #B40000")
-
-
-class FontResolutionTest(unittest.TestCase):
-    """Prove M and W are rendered by Great Vibes, not a generic fallback."""
-
-    def setUp(self):
-        if not _OSD_AVAILABLE:
-            self.skipTest(f"osd/cairo unavailable: {_OSD_IMPORT_ERROR}")
-        self.ttf = os.environ.get("MIDWAY_OSD_FONT_FILE")
-        if not self.ttf or not os.path.exists(self.ttf):
-            self.skipTest("MIDWAY_OSD_FONT_FILE not set / missing")
-        try:
-            import gi
-
-            gi.require_version("Pango", "1.0")
-            gi.require_version("PangoCairo", "1.0")
-            from gi.repository import Pango, PangoCairo  # noqa: F401
-        except Exception as e:
-            self.skipTest(f"Pango/PangoCairo unavailable: {e}")
-
-    def test_MW_glyphs_come_from_great_vibes(self):
-        import gi
-
-        gi.require_version("Pango", "1.0")
-        gi.require_version("PangoCairo", "1.0")
-        from gi.repository import Pango, PangoCairo
-
-        osd._fc_app_font_add(self.ttf)
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 800, 400)
-        ctx = cairo.Context(surface)
-        desc = Pango.FontDescription()
-        desc.set_family("Great Vibes")
-        desc.set_absolute_size(200 * Pango.SCALE)
-        layout = PangoCairo.create_layout(ctx)
-        layout.set_font_description(desc)
-        layout.set_text("MW", -1)
-
-        it = layout.get_iter()
-        families = []
-        while True:
-            run = it.get_run_readonly()
-            if run is not None:
-                families.append(run.item.analysis.font.describe().get_family())
-            if not it.next_run():
-                break
-        self.assertTrue(families, "no glyph runs produced for MW")
-        for fam in families:
-            self.assertEqual(
-                fam, "Great Vibes", f"MW fell back to {fam!r}, not Great Vibes"
-            )
+        self.assertEqual(g, 0, "green leaked — asset colour is not #B40000")
+        self.assertEqual(b, 0, "blue leaked — asset colour is not #B40000")
+        self.assertEqual(
+            r, round(180 * 128 / 255), "red is not premultiplied #B40000"
+        )
 
 
 @unittest.skipUnless(_OSD_AVAILABLE, f"osd/cairo unavailable: {_OSD_IMPORT_ERROR}")

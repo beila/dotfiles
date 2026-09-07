@@ -12,14 +12,16 @@ watching the file) is deliberate: crossing the expiry timestamp must flip the
 OSD on even when the cookie file has not changed, and a 30 s poll detects that
 within the contract's window.
 
-Visual: a deliberately excessive decorative `MW` (Great Vibes swash script) in
-LEGO colour 21 "Bright Red" #B40000 at 0.5 alpha, no background, no outline, no
-shadow. A 66 × 42 mm box (a uniform 0.6 scale of the original 110 × 70 mm box,
-so 11:7 is preserved exactly), vertically centred inside the 70 mm Hangul 한
-slot and seated 2 mm to its LEFT so both stay on-screen at the top-right.
-Adjacency and centring are derived from the shared HANGUL_SLOT_* constants via
-osd.sibling_offset_mm() and a physical mm offset, so nothing drifts across
-monitor sizes or DPI.
+Visual: a pre-outlined vector SVG asset (UnifrakturCook "MW" blackletter with
+the LEGO colour 21 "Bright Red" #B40000 baked in) painted at 0.5 alpha, no
+background, no outline, no shadow. No font is loaded at runtime — the glyph is
+stored as paths and rasterised by librsvg at the exact per-monitor pixel size,
+so it is crisp at any DPI (the font dependency moved to asset-authoring time;
+see xwindow/osd/assets/generate.py). The box is sized to the asset's aspect,
+vertically centred inside the 70 mm Hangul 한 slot and seated 2 mm to its LEFT
+so both stay on-screen at the top-right. Adjacency and centring are derived
+from the shared HANGUL_SLOT_* constants via osd.sibling_offset_mm() and a
+physical mm offset, so nothing drifts across monitor sizes or DPI.
 
 Lifecycle mirrors hangul-osd: a long-lived daemon that fork()s one child
 running display_on_all_monitors(...) while invalid, and SIGTERMs it when valid
@@ -27,9 +29,9 @@ again. Show/hide are idempotent — repeated invalid observations do not spawn a
 second child, repeated valid observations do not double-kill.
 
 Deps (via home-manager wrapper): osd (pycairo + python-xlib), pygobject3 for
-the GLib main loop timer, the GI typelibs Pango/PangoCairo/cairo, libfontconfig
-at runtime (app-font registration; MIDWAY_OSD_FONT_FILE points at the ttf), and
-MIDWAY_GENMON pointing at the midway-genmon script.
+the GLib main loop timer, the GI typelibs Rsvg (SVG rasterisation) and cairo,
+and MIDWAY_OSD_IMAGE pointing at the packaged mw.svg. No font, fontconfig, or
+Pango at runtime, and MIDWAY_GENMON pointing at the midway-genmon script.
 """
 
 from __future__ import annotations
@@ -40,7 +42,6 @@ import signal
 import subprocess
 import sys
 
-import cairo
 from osd import (
     HANGUL_SLOT_HEIGHT_MM,
     HANGUL_SLOT_OFFSET_X_FRAC,
@@ -58,11 +59,14 @@ TEXT = "MW"
 # Physical gap between the MW box's right edge and the 한 box's left edge.
 GAP_MM = 2.0
 
-# The MW box is a uniform 0.6 scale of the original 110 × 70 mm box, which
-# preserves its 11:7 aspect ratio exactly (66:42 == 11:7). At ~66 mm wide it
-# sits close to the 60 mm 한 slot without stretching either axis.
-BOX_WIDTH_MM = 66.0
+# The MW box is sized to the mw.svg asset's intrinsic aspect ratio so the
+# vector glyph fills it exactly with no letterboxing. The asset (UnifrakturCook
+# "MW", 712×325) is ~2.19:1; at 42 mm tall that is ~92 mm wide. 42 mm height
+# keeps the box shorter than the 70 mm 한 slot so it can sit vertically centred
+# inside it.
 BOX_HEIGHT_MM = 42.0
+_MW_ASSET_ASPECT = 712.0 / 325.0
+BOX_WIDTH_MM = round(BOX_HEIGHT_MM * _MW_ASSET_ASPECT, 1)   # ≈ 92.0 mm
 
 # The 42 mm box is vertically centred inside the 70 mm 한 slot rather than
 # top-aligned: it shares the slot's top offset, then steps down by half the
@@ -79,30 +83,19 @@ _HANGUL_REF = OSDStyle(
     offset_x_frac=HANGUL_SLOT_OFFSET_X_FRAC,
 )
 
-# Visual style: LEGO colour 21 "Bright Red" #B40000 at 0.5 alpha, no outline,
-# no shadow. A genuinely swashy display face (Great Vibes) renders the two
-# decorative capitals. The 66 × 42 mm box is a uniform 0.6 scale of the
-# original 110 × 70 mm box (11:7 preserved exactly), vertically centred inside
-# the 70 mm 한 slot and seated 2 mm to its LEFT (shares the slot's right-edge
-# inset and top offset, plus a fixed-mm leftward sibling offset).
+# Visual style: a pre-outlined vector SVG (UnifrakturCook "MW" blackletter,
+# baked LEGO colour 21 "Bright Red" #B40000) painted at 0.5 alpha. No font is
+# loaded at runtime — the glyph is stored as paths in the asset and rasterised
+# by librsvg at the exact per-monitor pixel size, so it stays crisp at any DPI.
+# The box is sized to the asset aspect, vertically centred inside the 70 mm 한
+# slot and seated 2 mm to its LEFT (shares the slot's right-edge inset and top
+# offset, plus a fixed-mm leftward sibling offset). MIDWAY_OSD_IMAGE points at
+# the packaged mw.svg.
 STYLE = OSDStyle(
-    fill_rgb=(0.70588235, 0.0, 0.0),   # LEGO 21 Bright Red #B40000 (180/255)
     fill_alpha=0.5,                    # exactly 50% opacity
     outline_rgb=None,
     shadow_rgba=None,
-    # Great Vibes — an OFL swash/script display face with abundant curling
-    # strokes on the capitals. Packaged through Nix with a pinned hash; the
-    # font_file registration via FcConfigAppFontAddFile makes Pango's matcher
-    # resolve the "Great Vibes" family so M/W render from it, never a generic
-    # fallback.
-    font_family="Great Vibes",
-    # Great Vibes ships Regular only.
-    font_weight=cairo.FONT_WEIGHT_NORMAL,
-    use_pango=True,
-    font_file=os.environ.get("MIDWAY_OSD_FONT_FILE"),
-    # 0.6× the original box; preserves the 11:7 aspect ratio exactly
-    # (66:42 == 11:7). ~66 mm wide ≈ the 60 mm 한 slot width, without
-    # stretching or independently resizing either axis.
+    image_file=os.environ.get("MIDWAY_OSD_IMAGE"),
     width_mm=BOX_WIDTH_MM,
     height_mm=BOX_HEIGHT_MM,
     text_pad_w_frac=0.85,
