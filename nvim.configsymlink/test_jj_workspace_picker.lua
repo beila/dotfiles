@@ -92,8 +92,8 @@ local rows = run({ "sh", "-c", captured.contents })
 local feature_row, default_row
 local function field1_name(row)
 	local f1 = vim.split(package.loaded["fzf-lua.utils"].strip_ansi_coloring(row), "\t", { plain = true })[1]
-	-- Strip the leading marker/indent ("🟢 " or "  ").
-	return (f1:gsub("^%S*%s+", ""))
+	-- Strip the trailing marker (" 🟢") if present; names stay left-aligned.
+	return (f1:gsub("%s*🟢%s*$", ""))
 end
 for row in rows:gmatch("[^\n]+") do
 	local name = field1_name(row)
@@ -114,6 +114,18 @@ if not default_row:find("🟢", 1, true) then
 end
 if feature_row:find("🟢", 1, true) then
 	fail("non-current (feature) workspace row should not be marked:\n" .. feature_row)
+end
+
+-- Names stay left-aligned: field 1 begins with the bare name (marker is a
+-- trailing suffix, not a leading prefix/indent).
+local function field1_raw(row)
+	return vim.split(package.loaded["fzf-lua.utils"].strip_ansi_coloring(row), "\t", { plain = true })[1]
+end
+if not field1_raw(default_row):match("^default") then
+	fail("current workspace name is not left-aligned:\n" .. default_row)
+end
+if not field1_raw(feature_row):match("^feature") then
+	fail("workspace name is not left-aligned:\n" .. feature_row)
 end
 
 -- The preview for the feature row runs `jj -R <feature root> log` and succeeds.

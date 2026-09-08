@@ -101,11 +101,11 @@ local function shell_join(args)
 	return table.concat(vim.tbl_map(vim.fn.shellescape, args), " ")
 end
 
--- Each workspace row is `<marker> <name>\t<root>`: fzf shows only the first
+-- Each workspace row is `<name> <marker>\t<root>`: fzf shows only the first
 -- field (--with-nth=1) and the selection carries the root in field 2. The
--- current workspace (the one the picker was launched from) is flagged with a
--- 🟢 emoji; others are indented to align. A single-workspace repo still
--- renders its one row.
+-- current workspace (the one the picker was launched from) gets a trailing 🟢
+-- emoji; the marker sits AFTER the name so every name stays left-aligned in
+-- the same column. A single-workspace repo still renders its one row.
 local CURRENT_MARKER = "🟢"
 
 local function workspace_list_command(color, current_root)
@@ -118,11 +118,12 @@ local function workspace_list_command(color, current_root)
 		"-T",
 		'name ++ "\\t" ++ if(root, root, "") ++ "\\n"',
 	})
-	-- Prefix the row whose (color-stripped) root matches the launcher's root
-	-- with the current-workspace marker; indent the rest so names line up.
+	-- Append the current-workspace marker to the name of the row whose
+	-- (color-stripped) root matches the launcher's root; leave the rest as-is
+	-- so all names start in the same column.
 	local awk = string.format(
 		[[awk -F'\t' -v cur=%s 'BEGIN{OFS="\t"} { bare=$2; gsub(/\x1b\[[0-9;]*m/,"",bare); ]]
-			.. [[mark=(bare==cur)?"%s ":"  "; $1=mark $1; print }']],
+			.. [[if (bare==cur) $1=$1 " %s"; print }']],
 		vim.fn.shellescape(current_root or ""),
 		CURRENT_MARKER
 	)
