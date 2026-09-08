@@ -101,11 +101,15 @@ local function shell_join(args)
 	return table.concat(vim.tbl_map(vim.fn.shellescape, args), " ")
 end
 
--- Each workspace row is `<name>\t<root>`: fzf shows only the name
--- (--with-nth=1) and the selection carries the root in field 2. A
--- single-workspace repo still renders its one row.
-local function workspace_list_command(color)
-	return shell_join({
+-- Each workspace row is `<marker> <name>\t<root>`: fzf shows only the first
+-- field (--with-nth=1) and the selection carries the root in field 2. The
+-- current workspace (the one the picker was launched from) is flagged with a
+-- 🟢 emoji; others are indented to align. A single-workspace repo still
+-- renders its one row.
+local CURRENT_MARKER = "🟢"
+
+local function workspace_list_command(color, current_root)
+	local jj = shell_join({
 		"jj",
 		"--ignore-working-copy",
 		"workspace",
@@ -114,6 +118,15 @@ local function workspace_list_command(color)
 		"-T",
 		'name ++ "\\t" ++ if(root, root, "") ++ "\\n"',
 	})
+	-- Prefix the row whose (color-stripped) root matches the launcher's root
+	-- with the current-workspace marker; indent the rest so names line up.
+	local awk = string.format(
+		[[awk -F'\t' -v cur=%s 'BEGIN{OFS="\t"} { bare=$2; gsub(/\x1b\[[0-9;]*m/,"",bare); ]]
+			.. [[mark=(bare==cur)?"%s ":"  "; $1=mark $1; print }']],
+		vim.fn.shellescape(current_root or ""),
+		CURRENT_MARKER
+	)
+	return jj .. " | " .. awk
 end
 
 -- Preview the target workspace's own `jj log`, run with `-R <root>` so it
@@ -234,7 +247,7 @@ local function toggle_action(open, ctx)
 end
 
 open_workspaces = function(ctx)
-	fzf_lua.fzf_exec(workspace_list_command("always"), {
+	fzf_lua.fzf_exec(workspace_list_command("always", ctx.source_root), {
 		cwd = ctx.source_root,
 		prompt = "jj workspaces> ",
 		preview = workspace_preview_command(),

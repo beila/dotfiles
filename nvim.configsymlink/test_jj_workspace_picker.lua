@@ -70,8 +70,11 @@ package.loaded["fzf-lua.utils"] = {
 }
 
 local script = debug.getinfo(1, "S").source:sub(2)
-local config_root = vim.fs.dirname(script)
+local config_root = vim.fn.fnamemodify(script, ":p:h")
 package.path = config_root .. "/lua/?.lua;" .. package.path
+-- Load the module under test from THIS checkout, not any installed copy that
+-- Neovim's runtime package.path might otherwise resolve first.
+package.loaded["jj-workspace-picker"] = dofile(config_root .. "/lua/jj-workspace-picker.lua")
 
 -- Launch from the default workspace's file.
 vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
@@ -83,19 +86,34 @@ end
 assert_contains(captured.opts.prompt, "jj workspaces", "prompt")
 assert_contains(captured.opts.fzf_opts["--header"], "switch tab", "header")
 
--- The list command lists both workspaces with their roots in field 2.
+-- The list command lists both workspaces with their roots in field 2; field 1
+-- carries a 🟢 marker on the current (launcher) workspace and indents the rest.
 local rows = run({ "sh", "-c", captured.contents })
 local feature_row, default_row
+local function field1_name(row)
+	local f1 = vim.split(package.loaded["fzf-lua.utils"].strip_ansi_coloring(row), "\t", { plain = true })[1]
+	-- Strip the leading marker/indent ("🟢 " or "  ").
+	return (f1:gsub("^%S*%s+", ""))
+end
 for row in rows:gmatch("[^\n]+") do
-	local fields = vim.split(package.loaded["fzf-lua.utils"].strip_ansi_coloring(row), "\t", { plain = true })
-	if fields[1] == "feature" then
+	local name = field1_name(row)
+	if name == "feature" then
 		feature_row = row
-	elseif fields[1] == "default" then
+	elseif name == "default" then
 		default_row = row
 	end
 end
 if not feature_row or not default_row then
 	fail("workspace rows missing from list output:\n" .. rows)
+end
+
+-- The launcher was the default workspace, so its row is marked and feature's is
+-- not.
+if not default_row:find("🟢", 1, true) then
+	fail("current (default) workspace row is not marked:\n" .. default_row)
+end
+if feature_row:find("🟢", 1, true) then
+	fail("non-current (feature) workspace row should not be marked:\n" .. feature_row)
 end
 
 -- The preview for the feature row runs `jj -R <feature root> log` and succeeds.
