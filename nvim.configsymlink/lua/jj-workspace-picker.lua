@@ -194,41 +194,50 @@ local function switch_tab_to_workspace(source_win, source_root, source_file, tar
 		return
 	end
 
-	local relative
-	if source_file ~= "" then
-		relative = vim.fs.relpath(source_root, source_file)
-		if not relative then
-			notify("current file is outside its workspace; cannot map it across workspaces")
-			return
-		end
-	end
-
-	local target_path
-	if relative then
-		target_path = vim.fs.joinpath(target_root, relative)
-		if vim.fn.filereadable(target_path) == 0 then
-			notify(string.format("%s does not exist in the chosen workspace", relative), vim.log.levels.WARN)
-			return
-		end
-	end
-
 	if not vim.api.nvim_win_is_valid(source_win) then
 		notify("source window is no longer available")
 		return
 	end
 
+	-- Rebase EACH window's own file onto the target workspace, so a tab showing
+	-- file1 | file2 becomes file1 | file2 in the new workspace (not file1 |
+	-- file1). Every window is also lcd'd into the target root so relative
+	-- pickers, LSP root detection, and the jj statusline follow.
 	local windows = vim.api.nvim_tabpage_list_wins(vim.api.nvim_win_get_tabpage(source_win))
+	local skipped = {}
 	for _, win in ipairs(windows) do
 		if vim.api.nvim_win_is_valid(win) then
+			local bufnr = vim.api.nvim_win_get_buf(win)
+			local win_file = vim.bo[bufnr].buftype == "" and vim.api.nvim_buf_get_name(bufnr) or ""
+
+			local target_path
+			if win_file ~= "" then
+				local relative = vim.fs.relpath(source_root, win_file)
+				if relative then
+					local candidate = vim.fs.joinpath(target_root, relative)
+					if vim.fn.filereadable(candidate) == 1 then
+						target_path = candidate
+					else
+						skipped[#skipped + 1] = relative .. " (absent in target)"
+					end
+				else
+					-- File lives outside the source workspace (e.g. a diff
+					-- buffer or a file from another repo); leave it in place.
+					skipped[#skipped + 1] = vim.fn.fnamemodify(win_file, ":t") .. " (outside workspace)"
+				end
+			end
+
 			vim.api.nvim_win_call(win, function()
-				-- Anchor each window's cwd in the target workspace so relative
-				-- pickers, LSP root detection, and the jj statusline follow.
 				vim.cmd.lcd(vim.fn.fnameescape(target_root))
 				if target_path then
 					vim.cmd.edit(vim.fn.fnameescape(target_path))
 				end
 			end)
 		end
+	end
+
+	if #skipped > 0 then
+		notify("kept " .. #skipped .. " window(s) unmapped: " .. table.concat(skipped, ", "), vim.log.levels.WARN)
 	end
 end
 

@@ -47,15 +47,18 @@ end
 
 git({ "init", "-q" })
 vim.fn.writefile({ "shared file, default workspace" }, repo .. "/sample.txt")
-git({ "add", "sample.txt" })
+vim.fn.writefile({ "second file, default workspace" }, repo .. "/sample2.txt")
+git({ "add", "sample.txt", "sample2.txt" })
 git({ "commit", "-q", "-m", "introduce sample" })
 
 run({ "jj", "git", "init", "--colocate", "." })
 
--- A second workspace with its own copy of the file, distinguishable by content.
+-- A second workspace with its own copies of the files, distinguishable by
+-- content, so a two-window switch can be verified per window.
 local feature = base .. "/feature"
 run({ "jj", "workspace", "add", feature })
 vim.fn.writefile({ "shared file, feature workspace" }, feature .. "/sample.txt")
+vim.fn.writefile({ "second file, feature workspace" }, feature .. "/sample2.txt")
 
 local captured
 package.loaded["fzf-lua"] = {
@@ -135,8 +138,41 @@ if preview == "" then
 	fail("feature workspace preview was empty")
 end
 
--- Selecting the feature workspace switches the current window to the feature
--- copy of the same relative file.
+-- Two windows in the tab, each showing a DIFFERENT file. After switching, each
+-- window must show its OWN file from the feature workspace (file1|file2 ->
+-- file1|file2, not file1|file1).
+vim.cmd("tabnew")
+vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
+vim.cmd("vsplit " .. vim.fn.fnameescape(repo .. "/sample2.txt"))
+local wins = vim.api.nvim_tabpage_list_wins(0)
+assert_eq(#wins, 2, "two windows in tab before switch")
+
+captured = nil
+require("jj-workspace-picker").workspaces()
+if not captured then
+	fail("picker did not open for two-window switch")
+end
+captured.opts.actions.enter({ feature_row })
+
+-- Collect the file each window now shows.
+local seen = {}
+for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+	local name = vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(w))
+	seen[vim.fs.normalize(name)] = true
+end
+if not seen[vim.fs.normalize(feature .. "/sample.txt")] then
+	fail("window showing sample.txt did not switch to the feature copy")
+end
+if not seen[vim.fs.normalize(feature .. "/sample2.txt")] then
+	fail("window showing sample2.txt did not switch to the feature copy (still file1?)")
+end
+vim.cmd("tabclose")
+
+-- Single-window case: selecting the feature workspace switches the current
+-- window to the feature copy of the same relative file.
+vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
+captured = nil
+require("jj-workspace-picker").workspaces()
 captured.opts.actions.enter({ feature_row })
 
 local switched = vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf())
