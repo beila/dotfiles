@@ -103,10 +103,12 @@ end
 
 -- Each workspace row is `<name> <marker>\t<root>`: fzf shows only the first
 -- field (--with-nth=1) and the selection carries the root in field 2. The
--- current workspace (the one the picker was launched from) gets a trailing 🟢
--- emoji; the marker sits AFTER the name so every name stays left-aligned in
--- the same column. A single-workspace repo still renders its one row.
-local CURRENT_MARKER = "🟢"
+-- current workspace (the one the picker was launched from) gets a trailing
+-- green marker AFTER the name so every name stays left-aligned in the same
+-- column. We use an ANSI-green filled circle rather than the 🟢 emoji: many
+-- terminal/GUI fonts have no color glyph for U+1F7E2 and render it as a grey
+-- outline, whereas ANSI green always paints in the terminal's green.
+local CURRENT_MARKER = "\27[32m●\27[0m"
 
 local function workspace_list_command(color, current_root)
 	local jj = shell_join({

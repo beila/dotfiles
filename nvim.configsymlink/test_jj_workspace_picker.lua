@@ -90,13 +90,13 @@ assert_contains(captured.opts.prompt, "jj workspaces", "prompt")
 assert_contains(captured.opts.fzf_opts["--header"], "switch tab", "header")
 
 -- The list command lists both workspaces with their roots in field 2; field 1
--- carries a 🟢 marker on the current (launcher) workspace and indents the rest.
+-- carries a green ● marker on the current (launcher) workspace after the name.
 local rows = run({ "sh", "-c", captured.contents })
 local feature_row, default_row
 local function field1_name(row)
 	local f1 = vim.split(package.loaded["fzf-lua.utils"].strip_ansi_coloring(row), "\t", { plain = true })[1]
-	-- Strip the trailing marker (" 🟢") if present; names stay left-aligned.
-	return (f1:gsub("%s*🟢%s*$", ""))
+	-- Strip the trailing marker (" ●") if present; names stay left-aligned.
+	return (f1:gsub("%s*●%s*$", ""))
 end
 for row in rows:gmatch("[^\n]+") do
 	local name = field1_name(row)
@@ -112,10 +112,10 @@ end
 
 -- The launcher was the default workspace, so its row is marked and feature's is
 -- not.
-if not default_row:find("🟢", 1, true) then
+if not default_row:find("●", 1, true) then
 	fail("current (default) workspace row is not marked:\n" .. default_row)
 end
-if feature_row:find("🟢", 1, true) then
+if feature_row:find("●", 1, true) then
 	fail("non-current (feature) workspace row should not be marked:\n" .. feature_row)
 end
 
