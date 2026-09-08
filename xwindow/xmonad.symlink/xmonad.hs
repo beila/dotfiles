@@ -689,6 +689,7 @@ raiseFocused = withFocused $ \w -> do
             withDisplay $ \dpy -> io $ do
                 raiseWindow dpy w
                 mapM_ (raiseWindow dpy) (M.keys floats)
+            raiseDockWindows
             -- Core purges restack-synthesized EnterNotify before the
             -- logHook runs; our raises here re-synthesize them, and with
             -- focusFollowsMouse they'd yank focus back to the window
@@ -712,6 +713,19 @@ cleanStrayTags = withDisplay $ \dpy -> do
             when (resName hint `elem` ["xmonad-window-tag", "xmonad-float-tag", "xmonad-decoration"]) $
                 destroyWindow dpy c
     XS.put (WindowTags M.empty)
+
+-- XRaiseWindow bypasses the normal dock layer. Restore EWMH docks after
+-- raising tiled and floating clients so the status panel remains visible.
+raiseDockWindows :: X ()
+raiseDockWindows = do
+    root <- asks theRoot
+    windowType <- getAtom "_NET_WM_WINDOW_TYPE"
+    dockType <- getAtom "_NET_WM_WINDOW_TYPE_DOCK"
+    withDisplay $ \dpy -> io $ do
+        (_, _, children) <- queryTree dpy root
+        forM_ children $ \c -> do
+            types <- fromMaybe [] <$> getWindowProperty32 dpy windowType c
+            when (fromIntegral dockType `elem` types) $ raiseWindow dpy c
 
 -- Persistent override-redirect OSDs can be covered when raiseFocused lifts a
 -- client. Raise them last, after both clients and title tags.
