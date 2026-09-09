@@ -37,6 +37,7 @@ import Graphics.X11.ExtraTypes.XF86
 import Graphics.X11.Xlib.Window (raiseWindow)
 import qualified Graphics.X11.Xrandr as RR
 import qualified XMonadConfig.Constants as C
+import qualified XMonadConfig.Scratchpad as S
 
 ------------------------------------------------------------------------
 -- Main
@@ -285,23 +286,11 @@ scratchpadDefinition slot =
 scratchpadQuery :: C.ScratchpadSlot -> Query Bool
 scratchpadQuery slot = appName =? C.scratchpadInstance slot
 
--- Compute half-screen rect based on screen orientation
-scratchpadRect :: Bool -> Rectangle -> W.RationalRect
-scratchpadRect isLeftOrTop (Rectangle _ _ sw sh)
-    | sw > sh =
-        if isLeftOrTop
-            then W.RationalRect 0.01 0.03 0.485 0.94
-            else W.RationalRect 0.505 0.03 0.485 0.94
-    | otherwise =
-        if isLeftOrTop
-            then W.RationalRect 0.01 0.03 0.98 0.47
-            else W.RationalRect 0.01 0.51 0.98 0.47
-
 -- Float scratchpad as half the screen, adapting to orientation
 adaptiveFloat :: Bool -> ManageHook
 adaptiveFloat isLeftOrTop = do
     sc <- liftX $ withWindowSet $ return . screenRect . W.screenDetail . W.current
-    doRectFloat (scratchpadRect isLeftOrTop sc)
+    doRectFloat (S.scratchpadRect isLeftOrTop sc)
 
 -- Scratchpad toggle (each scratchpad independent — left-alt → ghostty1, right-alt →
 -- ghostty2). Behavior depends on whether the scratchpad is fullscreen (ghostty
@@ -322,39 +311,38 @@ scratchpadToggle slot = withWindowSet $ \ws -> do
     let isLeftOrTop = C.isLeadingScratchpad slot
     let allWins = W.allWindows ws
     spWins <- filterM isSP allWins
-    case spWins of
-        [] -> namedScratchpadAction myScratchpads name -- not spawned yet
-        (s : _) -> do
-            isFocused <- case W.peek ws of
-                Just w -> isSP w
-                Nothing -> return False
-            -- Detect fullscreen from xmonad's float map, not the EWMH atom: exiting
-            -- fullscreen runs doSink (setEwmhFullscreenHooks … doSink), which removes
-            -- the window from the float map but leaves _NET_WM_STATE_FULLSCREEN set, so
-            -- isFullscreen would stay True on a now-tiled window. doFullFloat floats it
-            -- at exactly RationalRect 0 0 1 1; anything else is a normal/half-screen state.
-            let fullscreen = M.lookup s (W.floating ws) == Just (W.RationalRect 0 0 1 1)
-            let visibleWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
-            let isVisible = s `elem` visibleWins
-            if fullscreen
-                then -- stuck in its workspace, never hide
-                    if isFocused
-                        then toggleWS' [C.hiddenScratchpadWorkspace] -- jump back to previous workspace
-                        else case W.findTag s ws of
-                            Just tag | tag /= C.hiddenScratchpadWorkspace -> windows $ W.focusWindow s -- jump to its workspace + focus
-                            _ -> do
-                                namedScratchpadAction myScratchpads name -- fallback: bring from NSP
-                                refloatScratchpad isLeftOrTop isSP
-                else -- classic per-window show/hide
-                    if isFocused
-                        then namedScratchpadAction myScratchpads name -- hide (no refloat!)
-                        else do
-                            if isVisible
-                                then windows $ W.focusWindow s -- on another screen, just focus
-                                else namedScratchpadAction myScratchpads name -- bring from hidden
-                                -- Refloat for both visible and hidden cases to adapt to screen orientation.
-                                -- Do NOT refloat on hide — it would bring the scratchpad back.
-                            refloatScratchpad isLeftOrTop isSP
+    focusedMatches <- case W.peek ws of
+        Just w -> isSP w
+        Nothing -> return False
+    let target = listToMaybe spWins
+        visibleWins = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
+        context = do
+            scratchpad <- target
+            return
+                S.ScratchpadContext
+                    { S.isFocused = focusedMatches
+                    , S.isFullscreen = M.lookup scratchpad (W.floating ws) == Just (W.RationalRect 0 0 1 1)
+                    , S.isVisible = scratchpad `elem` visibleWins
+                    , S.isOnRealWorkspace = maybe False (/= C.hiddenScratchpadWorkspace) (W.findTag scratchpad ws)
+                    }
+        action = S.decideScratchpadAction context
+    case (action, target) of
+        (S.StartScratchpad, _) ->
+            namedScratchpadAction myScratchpads name
+        (S.TogglePreviousWorkspace, _) ->
+            toggleWS' [C.hiddenScratchpadWorkspace]
+        (S.FocusFullscreenScratchpad, Just scratchpad) ->
+            windows $ W.focusWindow scratchpad
+        (S.ShowScratchpadAndRefloat, _) -> do
+            namedScratchpadAction myScratchpads name
+            refloatScratchpad isLeftOrTop isSP
+        (S.HideScratchpad, _) ->
+            namedScratchpadAction myScratchpads name
+        (S.FocusScratchpadAndRefloat, Just scratchpad) -> do
+            windows $ W.focusWindow scratchpad
+            refloatScratchpad isLeftOrTop isSP
+        (_, Nothing) ->
+            return ()
 
 -- Find the scratchpad window and refloat it
 refloatScratchpad :: Bool -> (Window -> X Bool) -> X ()
@@ -364,7 +352,7 @@ refloatScratchpad isLeftOrTop isSP = withWindowSet $ \ws -> do
     case spWins of
         (s : _) -> do
             sc <- withWindowSet $ return . screenRect . W.screenDetail . W.current
-            windows $ W.float s (scratchpadRect isLeftOrTop sc)
+            windows $ W.float s (S.scratchpadRect isLeftOrTop sc)
         [] -> return ()
 
 ------------------------------------------------------------------------

@@ -12,6 +12,8 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in `xmonad.symlink/lib/XMonadConfig/Constants.hs`. Scratchpads use the typed `ScratchpadSlot` instead of passing `"ghostty1"`/`"ghostty2"` strings through toggle logic.
 
+`xmonad.symlink/lib/XMonadConfig/Scratchpad.hs` contains the pure scratchpad rectangle calculation and state-to-action decision table. `scratchpadToggle` observes XMonad state and executes the returned action; the seven supported missing/fullscreen/floating states are covered by unit tests.
+
 ## HLS
 
 `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC are installed from the same `haskellPackages` set in `home-manager.configsymlink/nvim.nix` to keep versions in sync.

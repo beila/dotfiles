@@ -8,6 +8,7 @@ import System.Exit (exitFailure)
 import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonadConfig.Constants as C
+import qualified XMonadConfig.Scratchpad as S
 
 data Test = Test String (IO ())
 
@@ -54,22 +55,22 @@ tests =
         assertEqual
             "rectangle"
             (W.RationalRect 0.01 0.03 0.485 0.94)
-            (Config.scratchpadRect True (Rectangle 0 0 3840 2400))
+            (S.scratchpadRect True (Rectangle 0 0 3840 2400))
     , Test "landscape right scratchpad rectangle" $
         assertEqual
             "rectangle"
             (W.RationalRect 0.505 0.03 0.485 0.94)
-            (Config.scratchpadRect False (Rectangle 0 0 3840 2400))
+            (S.scratchpadRect False (Rectangle 0 0 3840 2400))
     , Test "portrait top scratchpad rectangle" $
         assertEqual
             "rectangle"
             (W.RationalRect 0.01 0.03 0.98 0.47)
-            (Config.scratchpadRect True (Rectangle 0 0 1440 2560))
+            (S.scratchpadRect True (Rectangle 0 0 1440 2560))
     , Test "portrait bottom scratchpad rectangle" $
         assertEqual
             "rectangle"
             (W.RationalRect 0.01 0.51 0.98 0.47)
-            (Config.scratchpadRect False (Rectangle 0 0 1440 2560))
+            (S.scratchpadRect False (Rectangle 0 0 1440 2560))
     , Test "hidden workspace view preserves current screen" $ do
         let before = testStackSet
             after = Config.greedyViewNoSwap "3" before
@@ -94,6 +95,38 @@ tests =
     , Test "scratchpad identifiers remain distinct" $ do
         assertEqual "names" ["ghostty1", "ghostty2"] (map C.scratchpadName C.allScratchpadSlots)
         assertEqual "instances" ["scratchpad1", "scratchpad2"] (map C.scratchpadInstance C.allScratchpadSlots)
+    , Test "missing scratchpad starts" $
+        assertEqual "action" S.StartScratchpad (S.decideScratchpadAction Nothing)
+    , Test "focused fullscreen scratchpad toggles workspace" $
+        assertEqual
+            "action"
+            S.TogglePreviousWorkspace
+            (S.decideScratchpadAction $ Just $ scratchpadContext True True True True)
+    , Test "parked fullscreen scratchpad receives focus" $
+        assertEqual
+            "action"
+            S.FocusFullscreenScratchpad
+            (S.decideScratchpadAction $ Just $ scratchpadContext False True False True)
+    , Test "hidden fullscreen scratchpad is shown and refloated" $
+        assertEqual
+            "action"
+            S.ShowScratchpadAndRefloat
+            (S.decideScratchpadAction $ Just $ scratchpadContext False True False False)
+    , Test "focused floating scratchpad hides" $
+        assertEqual
+            "action"
+            S.HideScratchpad
+            (S.decideScratchpadAction $ Just $ scratchpadContext True False True True)
+    , Test "visible floating scratchpad receives focus and refloats" $
+        assertEqual
+            "action"
+            S.FocusScratchpadAndRefloat
+            (S.decideScratchpadAction $ Just $ scratchpadContext False False True True)
+    , Test "hidden floating scratchpad is shown and refloated" $
+        assertEqual
+            "action"
+            S.ShowScratchpadAndRefloat
+            (S.decideScratchpadAction $ Just $ scratchpadContext False False False False)
     ]
 
 testStackSet :: W.StackSet String () Window Int ()
@@ -101,3 +134,12 @@ testStackSet = W.new () ["1", "2", "3"] [(), ()]
 
 keyConfig :: XConfig Layout
 keyConfig = def{layoutHook = Layout Full}
+
+scratchpadContext :: Bool -> Bool -> Bool -> Bool -> S.ScratchpadContext
+scratchpadContext focused fullscreen visible onRealWorkspace =
+    S.ScratchpadContext
+        { S.isFocused = focused
+        , S.isFullscreen = fullscreen
+        , S.isVisible = visible
+        , S.isOnRealWorkspace = onRealWorkspace
+        }
