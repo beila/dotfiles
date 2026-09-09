@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -u
+
+if [ "$#" -lt 4 ]; then
+    echo "Usage: lsp-project-env-launcher TIMEOUT DIRENV ROOT COMMAND [ARG...]" >&2
+    exit 2
+fi
+
+timeout_duration=$1
+direnv=$2
+env_root=$3
+shift 3
+
+if timeout --kill-after=1s "$timeout_duration" "$direnv" exec "$env_root" true >/dev/null; then
+    exec "$direnv" exec "$env_root" "$@"
+else
+    status=$?
+fi
+
+if [ "$status" -eq 124 ] || [ "$status" -eq 137 ]; then
+    detail="timed out after $timeout_duration"
+else
+    detail="exit code $status"
+fi
+printf 'lsp-project-env-launcher: direnv failed for %s (%s); starting %s directly\n' \
+    "$env_root" "$detail" "$1" >&2
+exec "$@"

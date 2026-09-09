@@ -44,19 +44,19 @@ Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analy
 `.envrc`, using `direnv exec` without changing Neovim's own environment. JDTLS
 uses this so a Java buffer under a platform-specific subtree receives that
 subtree's flake toolchain even when Neovide was launched elsewhere. Projects
-without `.envrc`, or hosts not yet switched to the direnv-enabled Home Manager
-configuration, retain the direct LSP command. Before launch, a 30-second
-preflight verifies that `direnv exec` can load the project. A denied, broken, or
-timed-out environment produces a warning and falls back to the direct LSP
-command instead of blocking editor startup. Regression coverage:
-`test_lsp_project_env.lua`.
+without `.envrc`, or hosts without the launcher, retain the direct LSP command.
+Neovim immediately starts `bin/lsp-project-env-launcher`; that child runs a
+30-second `direnv exec <root> true` preflight, then executes either the
+environment-wrapped server or the direct server. If the preflight cannot
+complete, only that LSP waits for the timeout; Neovim's UI remains responsive.
+Regression coverage: `test_lsp_project_env.lua` and
+`bin/test_lsp_project_env_launcher.sh`.
 
-JDTLS removes `.git` from the root markers inherited from `nvim-lspconfig`,
-then wraps the remaining Java build markers in an explicit `root_dir` callback.
-The callback does not activate a client when restored or nonexistent Java
-buffers lack build markers. This prevents repository-level or rootless servers
-from inheriting Neovide's arbitrary launch directory while a nested Gradle or
-Maven project receives its own client.
+After removing `.git`, JDTLS collects the root markers inherited from
+`nvim-lspconfig` into one equal-priority group. Consequently, `vim.fs.root()`
+chooses the nearest Gradle, Maven, or Ant project instead of a more distant
+wrapper or repository root. The explicit `root_dir` function does not activate
+a client when restored or nonexistent Java buffers lack build markers.
 
 A nested `.envrc` must evaluate its flake from the directory expected by that
 flake's shell hook. IgnitionX temporarily enters its repository root because

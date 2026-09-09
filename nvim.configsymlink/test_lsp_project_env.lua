@@ -25,47 +25,64 @@ local markers = {
 	{ ".git" },
 	"pom.xml",
 }
-local java_markers = project_env.without_root_markers(markers, { ".git" })
+local java_markers = project_env.equal_root_markers(markers, { ".git" })
 assert_eq(java_markers, {
-	{ "mvnw", "gradlew", "settings.gradle" },
-	"pom.xml",
-}, "excluded workspace root markers")
+	{
+		"mvnw",
+		"gradlew",
+		"settings.gradle",
+		"pom.xml",
+	},
+}, "equal-priority workspace root markers")
 assert_eq(markers, {
 	{ "mvnw", "gradlew", "settings.gradle", ".git" },
 	{ ".git" },
 	"pom.xml",
 }, "workspace root marker source remains unchanged")
 
+vim.fn.writefile({}, repo .. "/gradlew")
+vim.fn.writefile({}, android .. "/pom.xml")
+assert_eq(vim.fs.root(source, markers), repo, "priority groups select outer wrapper")
+assert_eq(vim.fs.root(source, java_markers), android, "equal-priority markers select nearest nested project")
+
 local selected_root
-local selected_bufnr
+local selected_source
 local selected_markers
-project_env.workspace_root(java_markers, function(bufnr, actual_markers)
-	selected_bufnr = bufnr
+project_env.workspace_root(java_markers, function(actual_source, actual_markers)
+	selected_source = actual_source
 	selected_markers = actual_markers
 	return android
-end)(42, function(root_dir)
+end)(source, function(root_dir)
 	selected_root = root_dir
 end)
-assert_eq(selected_bufnr, 42, "workspace root buffer")
+assert_eq(selected_source, source, "workspace root source")
 assert_eq(selected_markers, java_markers, "workspace root markers")
 assert_eq(selected_root, android, "workspace root callback")
+
+local git_only_source = base .. "/git-only/src/main/java"
+vim.fn.mkdir(git_only_source, "p")
+vim.fn.mkdir(base .. "/git-only/.git", "p")
+local git_only_callback_called = false
+project_env.workspace_root(java_markers)(git_only_source, function()
+	git_only_callback_called = true
+end)
+assert_eq(git_only_callback_called, false, "git-only workspace skips activation")
 
 local rootless_callback_called = false
 project_env.workspace_root(java_markers, function()
 	return nil
-end)(43, function()
+end)(source, function()
 	rootless_callback_called = true
 end)
 assert_eq(rootless_callback_called, false, "rootless workspace skips activation")
 
+local executable = "/nix/store/jdtls/bin/jdtls"
+local direnv = "/nix/store/direnv/bin/direnv"
+local launcher = "/nix/store/launcher/bin/lsp-project-env-launcher"
 assert_eq(project_env.find_env_root(source), nil, "project without envrc")
 assert_eq(
-	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv", {
-		run = function()
-			fail("direnv ran without an envrc")
-		end,
-	}),
-	{ "/nix/store/jdtls/bin/jdtls" },
+	project_env.resolve_command(executable, source, direnv, launcher),
+	{ executable },
 	"project without envrc fallback"
 )
 
@@ -76,81 +93,30 @@ vim.fn.writefile({
 }, android .. "/.envrc")
 assert_eq(project_env.find_env_root(source), android, "Android env root")
 
-local preflight_command
-local preflight_timeout
-local function successful_run(command, timeout_ms)
-	preflight_command = command
-	preflight_timeout = timeout_ms
-	return { code = 0, stdout = "", stderr = "" }
-end
-
-assert_eq(
-	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv", {
-		run = successful_run,
-		timeout_ms = 1234,
-	}),
-	{
-		"/nix/store/direnv/bin/direnv",
-		"exec",
-		android,
-		"/nix/store/jdtls/bin/jdtls",
-	},
-	"direnv command"
-)
-assert_eq(preflight_command, {
-	"/nix/store/direnv/bin/direnv",
-	"exec",
+assert_eq(project_env.resolve_command(executable, source, direnv, launcher, { timeout = "1.25s" }), {
+	launcher,
+	"1.25s",
+	direnv,
 	android,
-	"true",
-}, "direnv preflight command")
-assert_eq(preflight_timeout, 1234, "direnv preflight timeout")
+	executable,
+}, "project environment launcher command")
+assert_eq(project_env.resolve_command(executable, source, "", launcher), { executable }, "missing direnv fallback")
+assert_eq(project_env.resolve_command(executable, source, direnv, ""), { executable }, "missing launcher fallback")
 
-assert_eq(
-	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, ""),
-	{ "/nix/store/jdtls/bin/jdtls" },
-	"missing direnv fallback"
-)
-
-local failed_command, failed_warning =
-	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv", {
-		run = function()
-			return { code = 1, stdout = "", stderr = "not allowed\nmore detail" }
-		end,
-	})
-assert_eq(failed_command, { "/nix/store/jdtls/bin/jdtls" }, "failed direnv command fallback")
-assert(failed_warning:find("not allowed", 1, true), "failed direnv warning")
-
-local timeout_command, timeout_warning =
-	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv", {
-		run = function()
-			return { code = 124, stdout = "", stderr = "" }
-		end,
-		timeout_ms = 25,
-	})
-assert_eq(timeout_command, { "/nix/store/jdtls/bin/jdtls" }, "timed-out direnv command fallback")
-assert(timeout_warning:find("timed out after 25 ms", 1, true), "timed-out direnv warning")
-
-local error_command, error_warning =
-	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv", {
-		run = function()
-			error("runner failed")
-		end,
-	})
-assert_eq(error_command, { "/nix/store/jdtls/bin/jdtls" }, "errored direnv command fallback")
-assert(error_warning:find("runner failed", 1, true), "errored direnv warning")
+local nested = android .. "/ignitionshared"
+vim.fn.writefile({ "use flake" }, nested .. "/.envrc")
+assert_eq(project_env.find_env_root(source), nested, "nearest envrc")
 
 local started_command
 local started_options
-local notification
 local wrapped = project_env.wrap("jdtls", {
 	exepath = function(name)
-		return "/nix/store/" .. name .. "/bin/" .. name
-	end,
-	run = function()
-		return { code = 1, stdout = "", stderr = "blocked" }
-	end,
-	notify = function(message, level)
-		notification = { message, level }
+		local paths = {
+			jdtls = executable,
+			direnv = direnv,
+			["lsp-project-env-launcher"] = launcher,
+		}
+		return paths[name] or ""
 	end,
 	start = function(command, _, options)
 		started_command = command
@@ -167,18 +133,18 @@ assert_eq(
 	"rpc",
 	"wrapped RPC result"
 )
-assert_eq(started_command, { "/nix/store/jdtls/bin/jdtls" }, "wrapped fallback command")
+assert_eq(started_command, {
+	launcher,
+	"30s",
+	direnv,
+	nested,
+	executable,
+}, "wrapped launcher command")
 assert_eq(started_options, {
 	cwd = source,
 	env = { TEST = "1" },
 	detached = true,
 }, "wrapped RPC options")
-assert(notification[1]:find("blocked", 1, true), "wrapped failure notification")
-assert_eq(notification[2], vim.log.levels.WARN, "wrapped failure notification level")
-
-local nested = android .. "/ignitionshared"
-vim.fn.writefile({ "use flake" }, nested .. "/.envrc")
-assert_eq(project_env.find_env_root(source), nested, "nearest envrc")
 
 vim.fn.delete(base, "rf")
 print("PASS: LSP project environment selection")

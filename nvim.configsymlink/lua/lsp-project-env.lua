@@ -15,7 +15,7 @@ function M.find_env_root(root_dir)
 	return envrc and vim.fs.dirname(envrc) or nil
 end
 
-function M.flatten_root_markers(root_markers, excluded)
+function M.equal_root_markers(root_markers, excluded)
 	local excluded_set = {}
 	for _, marker in ipairs(excluded) do
 		excluded_set[marker] = true
@@ -33,7 +33,7 @@ function M.flatten_root_markers(root_markers, excluded)
 	end
 
 	collect(root_markers)
-	return result
+	return { result }
 end
 
 function M.workspace_root(root_markers, find_root)
