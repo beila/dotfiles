@@ -11,6 +11,7 @@ import qualified XMonad.StackSet as W
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
+import qualified XMonadConfig.Stacking as Stacking
 import qualified XMonadConfig.Workspaces as Workspaces
 
 data Test = Test String (IO ())
@@ -185,6 +186,12 @@ tests =
             "rescue"
             False
             (Monitors.shouldRescueOffscreen [] 9000 9000 800 600)
+    , Test "focused tiled windows are raised" $
+        assertEqual "raise" True (Stacking.shouldRaiseFocused False False)
+    , Test "floating windows are not raised" $
+        assertEqual "raise" False (Stacking.shouldRaiseFocused True False)
+    , Test "Firefox windows are not raised" $
+        assertEqual "raise" False (Stacking.shouldRaiseFocused False True)
     ]
 
 testStackSet :: W.StackSet String () Window Int ()

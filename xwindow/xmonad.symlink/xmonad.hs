@@ -37,6 +37,7 @@ import qualified Graphics.X11.Xrandr as RR
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
+import qualified XMonadConfig.Stacking as Stacking
 import qualified XMonadConfig.WindowRules as WindowRules
 import qualified XMonadConfig.Workspaces as Workspaces
 
@@ -573,7 +574,8 @@ raiseFocused = withFocused $ \w -> do
     when (w /= prev) $ do
         XS.put (LastFocused w)
         floats <- gets (W.floating . windowset)
-        unless (M.member w floats) $ do
+        isFirefox <- runQuery (className =? "firefox") w
+        when (Stacking.shouldRaiseFocused (M.member w floats) isFirefox) $ do
             withDisplay $ \dpy -> io $ do
                 raiseWindow dpy w
                 mapM_ (raiseWindow dpy) (M.keys floats)
