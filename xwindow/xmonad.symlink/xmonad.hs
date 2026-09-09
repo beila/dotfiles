@@ -16,11 +16,9 @@ import System.Directory (getHomeDirectory, listDirectory, setCurrentDirectory)
 import qualified XMonad.StackSet as W
 
 import XMonad
-import XMonad.Actions.CopyWindow
 import XMonad.Actions.CycleWS
 import XMonad.Config.Gnome
 import XMonad.Hooks.EwmhDesktops
-import XMonad.Hooks.InsertPosition
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Rescreen
@@ -39,6 +37,7 @@ import qualified Graphics.X11.Xrandr as RR
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
+import qualified XMonadConfig.WindowRules as WindowRules
 import qualified XMonadConfig.Workspaces as Workspaces
 
 ------------------------------------------------------------------------
@@ -361,92 +360,13 @@ refloatScratchpad isLeftOrTop isSP = withWindowSet $ \ws -> do
 -- Window rules
 ------------------------------------------------------------------------
 
--- Copy the managed window (not the focused one) to all workspaces
-copyToAllHook :: ManageHook
-copyToAllHook = ask >>= \w -> doF (\s -> foldr (copyWindow w . W.tag) s (W.workspaces s))
-
--- Shift all matching queries to a workspace
-shiftAllTo :: WorkspaceId -> [Query Bool] -> ManageHook
-shiftAllTo ws = composeAll . map (--> doShift ws)
-
 myManageHook =
     composeAll
-        [ floatRules
-        , className =? "Anki" --> (ask >>= doF . W.focusWindow)
-        , browserRules
-        , mailRules
-        , editorRules
-        , calendarRules
-        , meetingRules
-        , messengerRules
+        [ WindowRules.applicationManageHook
         , manageHook gnomeConfig
         , manageDocks
         , namedScratchpadManageHook myScratchpads
         ]
-
-floatRules =
-    composeAll
-        [ appName =? "Alert" --> doFloat
-        , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
-        , className =? "Tilda" --> doFloat
-        , className =? "ignition" --> doFloat
-        , className =? "Gnome-panel" --> doFloat
-        , appName =? "gnome-panel" --> doFloat
-        , className =? "copyq" --> doFloat
-        ]
-
-browserRules = shiftAllTo C.browserWorkspace [className =? "firefox"]
-
-mailRules = shiftAllTo C.mailWorkspace [appName =? "Mail", className =? "thunderbird"]
-
-editorRules = shiftAllTo C.editorWorkspace [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
-
-calendarRules =
-    shiftAllTo
-        C.calendarWorkspace
-        [ title =? "Ghim, Hojin - Outlook Web App - Vivaldi"
-        , title =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox"
-        , title =? "Google Calendar - Vivaldi"
-        , title =? "Google Calendar - Mozilla Firefox"
-        , title =? "Calendar - hojin@amazon.co.uk — Mozilla Firefox"
-        , title =? "Email - hojin@amazon.co.uk — Mozilla Firefox"
-        ]
-
-meetingRules =
-    composeAll
-        [ shiftAllTo
-            C.meetingWorkspace
-            [ className =? "AmazonChime"
-            , title =? "Amazon Chime — Mozilla Firefox"
-            , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting"
-            , title =? "Meeting chat"
-            ]
-        , className =? "zoom" <&&> title =? "Meeting" --> doShift C.meetingWorkspace <> (ask >>= doF . W.sink)
-        , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
-        , title =? "zoom_linux_float_video_window" --> doFloat
-        -- The annotation toolbar is a small Zoom popup that should float on top
-        -- of the meeting, not tile alongside it. doRectFloat (not plain doFloat)
-        -- because Zoom's WM_NORMAL_HINTS reports whatever size xmonad last gave
-        -- it — under doFloat the window stays at the full tile size from the
-        -- previous run. The toolbar's actual content is a single ~80px circular
-        -- icon, so size it just big enough for the icon and ditch the padding.
-        -- ~3% × 4.5% ≈ 115 × 108 px on 3840×2400 (and scales down proportionally
-        -- on smaller displays), centered horizontally near the top.
-        , title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.485 0.02 0.03 0.045)
-        ]
-
-messengerRules =
-    shiftAllTo
-        C.messengerWorkspace
-        [ className =? "yakyak"
-        , title =? "WhatsApp - Vivaldi"
-        , title =? "WhatsApp - Mozilla Firefox"
-        , title `endsWith` "- Gmail — Mozilla Firefox"
-        , className =? "Slack"
-        ]
-
-endsWith :: Query String -> String -> Query Bool
-endsWith q s = fmap (L.isSuffixOf s) q
 
 -- Move matching windows to the currently focused workspace
 followToCurrentWorkspace :: Query Bool -> X ()

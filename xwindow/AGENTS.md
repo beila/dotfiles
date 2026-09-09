@@ -47,6 +47,8 @@ A compact title tag is pinned over the **top-right corner of every visible ghost
 
 Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarRules`, `meetingRules`, `messengerRules`.
 
+These application-specific rules live in `xmonad.symlink/lib/XMonadConfig/WindowRules.hs`. `xmonad.hs` keeps the composition with GNOME, dock, and scratchpad hooks visible because their ordering is part of the top-level window-manager behavior.
+
 ## Hooks
 
 - `rescueOffscreenHook` — catches floating windows that move themselves offscreen (e.g. Zoom bug) via `ConfigureEvent` and snaps them back.
