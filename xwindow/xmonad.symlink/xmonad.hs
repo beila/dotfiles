@@ -36,6 +36,7 @@ import XMonad.Util.XUtils (createNewWindow, deleteWindow, fi, paintAndWrite, sho
 import Graphics.X11.ExtraTypes.XF86
 import Graphics.X11.Xlib.Window (raiseWindow)
 import qualified Graphics.X11.Xrandr as RR
+import qualified XMonadConfig.Constants as C
 
 ------------------------------------------------------------------------
 -- Main
@@ -76,7 +77,7 @@ myConfig =
         , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> windowTags >> raiseOsdWindows
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
-          workspaces = myWorkspaces
+          workspaces = C.workspaceIds
         , -- https://wiki.haskell.org/Xmonad/Config_archive/John_Goerzen's_Configuration#Final_Touches
           -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Make_space_for_a_panel_dock_or_tray
           manageHook = myManageHook
@@ -87,13 +88,11 @@ myConfig =
           -- near-invisible instead of 0px so client geometry stays constant
           -- across focus changes (no terminal re-wrap on every switch)
           borderWidth = 1
-        , focusedBorderColor = "#F8BB3D"
-        , normalBorderColor = "#1d1d1d"
+        , focusedBorderColor = C.focusAccentColor
+        , normalBorderColor = C.backgroundColor
         }
         `removeKeys` [(mod4Mask, xK_b)]
         `additionalKeys` myKeys
-
-myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
 
 ------------------------------------------------------------------------
 -- Window tag (top-right corner)
@@ -215,7 +214,7 @@ windowTags = withWindowSet $ \ws -> do
     TagMetricsState metrics <- XS.get
     let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
         focused = W.peek ws
-    candidates <- filterM (runQuery (className =? "com.mitchellh.ghostty")) visible
+    candidates <- filterM (runQuery (className =? C.ghosttyClass)) visible
     WindowTags cache <- XS.get
     font <- tagFont metrics
     kept <- forM candidates $ \w -> do
@@ -258,10 +257,10 @@ paintTag tw font tagW tagH name active =
         tagW
         tagH
         1
-        "#1d1d1d"
-        (if active then "#F8BB3D" else "#69717F")
-        (if active then "#F8BB3D" else "#C7CBD1")
-        "#1d1d1d"
+        C.backgroundColor
+        (if active then C.focusAccentColor else C.inactiveTagBorderColor)
+        (if active then C.focusAccentColor else C.inactiveTagTextColor)
+        C.backgroundColor
         [AlignCenter]
         [name]
 
@@ -273,17 +272,18 @@ paintTag tw font tagW tagH name active =
 -- Each opens the zmx session picker; session selection is independent per window
 -- Positioning handled by adaptiveFloat based on screen orientation
 myScratchpads =
-    [ NS
-        "ghostty1"
-        "ghostty --x11-instance-name=scratchpad1 --working-directory=$HOME -e $HOME/.dotfiles/bin/zmx-select"
-        (appName =? "scratchpad1")
-        (adaptiveFloat True)
-    , NS
-        "ghostty2"
-        "ghostty --x11-instance-name=scratchpad2 --working-directory=$HOME -e $HOME/.dotfiles/bin/zmx-select"
-        (appName =? "scratchpad2")
-        (adaptiveFloat False)
-    ]
+    map scratchpadDefinition C.allScratchpadSlots
+
+scratchpadDefinition :: C.ScratchpadSlot -> NamedScratchpad
+scratchpadDefinition slot =
+    NS
+        (C.scratchpadName slot)
+        ("ghostty --x11-instance-name=" ++ C.scratchpadInstance slot ++ " --working-directory=$HOME -e $HOME/.dotfiles/bin/zmx-select")
+        (scratchpadQuery slot)
+        (adaptiveFloat (C.isLeadingScratchpad slot))
+
+scratchpadQuery :: C.ScratchpadSlot -> Query Bool
+scratchpadQuery slot = appName =? C.scratchpadInstance slot
 
 -- Compute half-screen rect based on screen orientation
 scratchpadRect :: Bool -> Rectangle -> W.RationalRect
@@ -316,12 +316,10 @@ adaptiveFloat isLeftOrTop = do
 --   3. Focused → hide (move to NSP).
 --   4. Visible on another screen → just focus it.
 --   5. Hidden → move to current workspace, float, and focus (adapting to orientation).
-scratchpadToggle name = withWindowSet $ \ws -> do
-    let query = case filter (\(NS n _ _ _) -> n == name) myScratchpads of
-            (NS _ _ q _ : _) -> q
-            _ -> return False
-    let isSP = runQuery query
-    let isLeftOrTop = name == "ghostty1"
+scratchpadToggle slot = withWindowSet $ \ws -> do
+    let name = C.scratchpadName slot
+    let isSP = runQuery (scratchpadQuery slot)
+    let isLeftOrTop = C.isLeadingScratchpad slot
     let allWins = W.allWindows ws
     spWins <- filterM isSP allWins
     case spWins of
@@ -341,9 +339,9 @@ scratchpadToggle name = withWindowSet $ \ws -> do
             if fullscreen
                 then -- stuck in its workspace, never hide
                     if isFocused
-                        then toggleWS' ["NSP"] -- jump back to previous workspace
+                        then toggleWS' [C.hiddenScratchpadWorkspace] -- jump back to previous workspace
                         else case W.findTag s ws of
-                            Just tag | tag /= "NSP" -> windows $ W.focusWindow s -- jump to its workspace + focus
+                            Just tag | tag /= C.hiddenScratchpadWorkspace -> windows $ W.focusWindow s -- jump to its workspace + focus
                             _ -> do
                                 namedScratchpadAction myScratchpads name -- fallback: bring from NSP
                                 refloatScratchpad isLeftOrTop isSP
@@ -407,15 +405,15 @@ floatRules =
         , className =? "copyq" --> doFloat
         ]
 
-browserRules = shiftAllTo "1:browser" [className =? "firefox"]
+browserRules = shiftAllTo C.browserWorkspace [className =? "firefox"]
 
-mailRules = shiftAllTo "2:mail" [appName =? "Mail", className =? "thunderbird"]
+mailRules = shiftAllTo C.mailWorkspace [appName =? "Mail", className =? "thunderbird"]
 
-editorRules = shiftAllTo "3:nvim" [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
+editorRules = shiftAllTo C.editorWorkspace [className =? "jetbrains-clion", className =? "jetbrains-idea", className =? "neovide", className =? "Gvim"]
 
 calendarRules =
     shiftAllTo
-        "7:calendar"
+        C.calendarWorkspace
         [ title =? "Ghim, Hojin - Outlook Web App - Vivaldi"
         , title =? "Ghim, Hojin - Outlook Web App - Mozilla Firefox"
         , title =? "Google Calendar - Vivaldi"
@@ -427,13 +425,13 @@ calendarRules =
 meetingRules =
     composeAll
         [ shiftAllTo
-            "8:meeting"
+            C.meetingWorkspace
             [ className =? "AmazonChime"
             , title =? "Amazon Chime — Mozilla Firefox"
             , className =? "zoom" <&&> title /=? "zoom_linux_float_message_reminder" <&&> title /=? "zoom_linux_float_video_window" <&&> title /=? "Meeting"
             , title =? "Meeting chat"
             ]
-        , className =? "zoom" <&&> title =? "Meeting" --> doShift "8:meeting" <> (ask >>= doF . W.sink)
+        , className =? "zoom" <&&> title =? "Meeting" --> doShift C.meetingWorkspace <> (ask >>= doF . W.sink)
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         -- The annotation toolbar is a small Zoom popup that should float on top
@@ -449,7 +447,7 @@ meetingRules =
 
 messengerRules =
     shiftAllTo
-        "9:messenger"
+        C.messengerWorkspace
         [ className =? "yakyak"
         , title =? "WhatsApp - Vivaldi"
         , title =? "WhatsApp - Mozilla Firefox"
@@ -477,8 +475,8 @@ followToCurrentWorkspace q = withWindowSet $ \ws -> do
 monitorHotplugCfg = def{afterRescreenHook = hideNSPWorkspace >> refreshTagMetrics}
 hideNSPWorkspace = withWindowSet $ \ws -> do
     let visibleTags = map (W.tag . W.workspace) (W.current ws : W.visible ws)
-    when ("NSP" `elem` visibleTags) $
-        case filter ((/= "NSP") . W.tag) (W.hidden ws) of
+    when (C.hiddenScratchpadWorkspace `elem` visibleTags) $
+        case filter ((/= C.hiddenScratchpadWorkspace) . W.tag) (W.hidden ws) of
             (w : _) -> windows $ W.greedyView (W.tag w)
             [] -> return ()
 
@@ -572,8 +570,8 @@ myKeys =
     -- which the focused app handles natively.
     , ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
     , ((0, xF86XK_TouchpadToggle), spawn "$HOME/.dotfiles/xwindow/bin/albert-toggle") -- Super tap via keyd (prog1 = f21)
-    , ((0, xF86XK_TouchpadOn), scratchpadToggle "ghostty1") -- Alt_L tap via keyd (prog2 = f22)
-    , ((0, xF86XK_TouchpadOff), scratchpadToggle "ghostty2") -- Alt_R tap via keyd (prog3 = f23)
+    , ((0, xF86XK_TouchpadOn), scratchpadToggle C.PrimaryScratchpad) -- Alt_L tap via keyd (prog2 = f22)
+    , ((0, xF86XK_TouchpadOff), scratchpadToggle C.SecondaryScratchpad) -- Alt_R tap via keyd (prog3 = f23)
     , ((0, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd up")
     , ((0, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd down")
     , ((0, xF86XK_AudioMute), spawn "$HOME/.dotfiles/xwindow/bin/volume-osd toggle")
@@ -590,13 +588,13 @@ myKeys =
     , -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
       ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
-    , ((mod4Mask, xK_0), moveTo Next (emptyWS :&: Not (WSIs $ return (\w -> W.tag w == "NSP")))) -- find a free workspace (skip NSP)
+    , ((mod4Mask, xK_0), moveTo Next (emptyWS :&: Not (WSIs $ return (\w -> W.tag w == C.hiddenScratchpadWorkspace)))) -- find a free workspace (skip NSP)
     , ((mod4Mask, xK_s), spawn "scrot -s - | xclip -selection clipboard -t image/png") -- screenshot selection to clipboard
     ]
         ++
         -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
         [ ((m .|. mod4Mask, k), windows $ f i)
-        | (i, k) <- zip myWorkspaces [xK_1 .. xK_9]
+        | (i, k) <- zip C.workspaceIds [xK_1 .. xK_9]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (greedyViewNoSwap, mod2Mask)]
         ]
 

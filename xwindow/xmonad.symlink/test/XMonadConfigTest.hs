@@ -7,6 +7,7 @@ import qualified Main as Config
 import System.Exit (exitFailure)
 import XMonad
 import qualified XMonad.StackSet as W
+import qualified XMonadConfig.Constants as C
 
 data Test = Test String (IO ())
 
@@ -85,6 +86,14 @@ tests =
             "Super+B binding"
             False
             (M.member (mod4Mask, xK_b) (keys Config.myConfig keyConfig))
+    , Test "workspace identifiers retain key order" $
+        assertEqual
+            "workspaces"
+            ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
+            C.workspaceIds
+    , Test "scratchpad identifiers remain distinct" $ do
+        assertEqual "names" ["ghostty1", "ghostty2"] (map C.scratchpadName C.allScratchpadSlots)
+        assertEqual "instances" ["scratchpad1", "scratchpad2"] (map C.scratchpadInstance C.allScratchpadSlots)
     ]
 
 testStackSet :: W.StackSet String () Window Int ()
