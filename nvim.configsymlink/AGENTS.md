@@ -45,12 +45,17 @@ Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analy
 uses this so a Java buffer under a platform-specific subtree receives that
 subtree's flake toolchain even when Neovide was launched elsewhere. Projects
 without `.envrc`, or hosts not yet switched to the direnv-enabled Home Manager
-configuration, retain the direct LSP command. Regression coverage:
-`test_lsp_project_env.lua`. A nested `.envrc` must evaluate its flake from the
-directory expected by that flake's shell hook; IgnitionX temporarily enters its
-repository root because the hook derives build paths from `$PWD`. Its Android
-flake shell exports `JDK17_HOME`, then its `.envrc` maintains a
-project-relative `.direnv/jdk17` symlink. Gradle discovers that path through
+configuration, retain the direct LSP command. Before launch, a 30-second
+preflight verifies that `direnv exec` can load the project. A denied, broken, or
+timed-out environment produces a warning and falls back to the direct LSP
+command instead of blocking editor startup. Regression coverage:
+`test_lsp_project_env.lua`.
+
+A nested `.envrc` must evaluate its flake from the directory expected by that
+flake's shell hook. IgnitionX temporarily enters its repository root because
+the hook derives build paths from `$PWD`. Its Android flake shell exports
+`JDK17_HOME`, then its `.envrc` maintains a project-relative `.direnv/jdk17`
+symlink. Gradle discovers that path through
 `org.gradle.java.installations.paths`, including when Buildship launches its
 daemon from JDTLS's Java 21 process. `org.gradle.java.installations.fromEnv`
 also covers Gradle processes launched directly from the flake shell.
