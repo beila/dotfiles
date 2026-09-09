@@ -8,6 +8,7 @@
 local project_env = require("lsp-project-env")
 vim.lsp.config.jdtls = {
 	cmd = project_env.wrap("jdtls"),
+	workspace_required = true,
 }
 vim.lsp.enable("jdtls")
 
