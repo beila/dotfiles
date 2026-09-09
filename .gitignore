@@ -16,4 +16,5 @@ work-dotfiles
 # unreproducible refs.
 /result
 /result-*
+/nvim.log
 *.pyc

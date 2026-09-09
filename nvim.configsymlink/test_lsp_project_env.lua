@@ -22,7 +22,11 @@ vim.fn.mkdir(source, "p")
 
 assert_eq(project_env.find_env_root(source), nil, "project without envrc")
 
-vim.fn.writefile({ "use flake ../../..#android" }, android .. "/.envrc")
+vim.fn.writefile({
+	"pushd ../../.. >/dev/null",
+	"use flake .#android",
+	"popd >/dev/null",
+}, android .. "/.envrc")
 assert_eq(project_env.find_env_root(source), android, "Android env root")
 assert_eq(project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv"), {
 	"/nix/store/direnv/bin/direnv",
