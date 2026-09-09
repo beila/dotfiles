@@ -8,9 +8,6 @@ import Data.List (stripPrefix)
 import qualified Data.List as L (find, isPrefixOf, isSuffixOf)
 import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
 import Data.Maybe
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
-import Text.Read (readMaybe)
 import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, listDirectory, setCurrentDirectory)
 import qualified XMonad.StackSet as W
@@ -26,10 +23,7 @@ import XMonad.Hooks.SetWMName
 import XMonad.Layout.NoBorders (smartBorders)
 import XMonad.Util.EZConfig (additionalKeys, removeKeys)
 import qualified XMonad.Util.ExtensibleState as XS
-import XMonad.Util.Font (Align (..), XMonadFont, initXMF)
 import XMonad.Util.NamedScratchpad
-import XMonad.Util.Run (runProcessWithInput)
-import XMonad.Util.XUtils (createNewWindow, deleteWindow, fi, paintAndWrite, showWindow)
 
 import Graphics.X11.ExtraTypes.XF86
 import Graphics.X11.Xlib.Window (raiseWindow)
@@ -38,6 +32,7 @@ import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
 import qualified XMonadConfig.Stacking as Stacking
+import qualified XMonadConfig.WindowTags as WindowTags
 import qualified XMonadConfig.WindowRules as WindowRules
 import qualified XMonadConfig.Workspaces as Workspaces
 
@@ -68,16 +63,16 @@ myConfig =
                 , fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep -fx albert >/dev/null || albert"
-                , cleanStrayTags
-                , refreshTagMetrics
+                , WindowTags.cleanStrayTags
+                , WindowTags.refreshTagMetrics
                 , -- Safety net for fresh checkouts: map keycodes 198/202 →
                   -- F20/F24 for the keyd Super+V/C macro. system-deps.sh
                   -- patches inet durably; this xmodmap covers the gap until
                   -- script/install runs.
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
-        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook <> refreshTagMetricsHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> windowTags >> raiseOsdWindows
+        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook <> WindowTags.refreshTagMetricsHook
+        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> WindowTags.windowTags >> raiseOsdWindows
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = C.workspaceIds
@@ -96,176 +91,6 @@ myConfig =
         }
         `removeKeys` [(mod4Mask, xK_b)]
         `additionalKeys` myKeys
-
-------------------------------------------------------------------------
--- Window tag (top-right corner)
-------------------------------------------------------------------------
-
--- A short title tag pinned over the top-right corner of each visible ghostty.
--- ghostty runs without window decorations and the panel has no tasklist, so the
--- window title had nowhere to show. zmx-select stores the session name in a
--- separate property because foreground programs are free to replace the title.
---
--- One overlay path handles both tiled and floating windows. Keeping tags out of
--- the layout avoids stale, serialized Decoration themes after a DPI change.
-
--- Metrics refresh at startup, after RandR changes, and whenever xrdb replaces
--- RESOURCE_MANAGER. Values can be tuned without touching this file:
---
---   echo 'xmonad.tag.height: 28' | xrdb -merge
---
--- Bases are readable 96dpi-equivalent sizes, multiplied by Xft.dpi/96. The
--- minima prevent stale or undersized resource values from making the title
--- unreadable when a display configuration falls back to Xft.dpi=96.
-data TagMetrics = TagMetrics
-    { tmFont :: Int
-    , tmWidth :: Dimension
-    , tmHeight :: Dimension
-    }
-    deriving (Eq, Show, Read, Typeable)
-
-defaultTagMetrics :: TagMetrics
-defaultTagMetrics = TagMetrics 11 320 24
-
-newtype TagMetricsState = TagMetricsState TagMetrics
-    deriving (Typeable)
-
-instance ExtensionClass TagMetricsState where
-    initialValue = TagMetricsState defaultTagMetrics
-    extensionType = StateExtension
-
-readTagMetrics :: IO TagMetrics
-readTagMetrics = do
-    out <- runProcessWithInput "xrdb" ["-query"] ""
-    let db =
-            [ (key, dropWhile (`elem` " \t") (drop 1 rest))
-            | l <- lines out
-            , let (key, rest) = break (== ':') l
-            , not (null rest)
-            ]
-        num k d = fromMaybe d (lookup k db >>= readMaybe) :: Double
-        scale = max 1 (num "Xft.dpi" 96 / 96)
-    return
-        TagMetrics
-            { tmFont = max 11 (round (num "xmonad.tag.fontSize" 11 * scale))
-            , tmWidth = max 240 (round (num "xmonad.tag.width" 320 * scale))
-            , tmHeight = max 24 (round (num "xmonad.tag.height" 24 * scale))
-            }
-
-refreshTagMetrics :: X ()
-refreshTagMetrics = io readTagMetrics >>= XS.put . TagMetricsState
-
-refreshTagMetricsHook :: Event -> X All
-refreshTagMetricsHook PropertyEvent{ev_window = w, ev_atom = a} = do
-    root <- asks theRoot
-    resourceManager <- getAtom "RESOURCE_MANAGER"
-    when (w == root && a == resourceManager) refreshTagMetrics
-    return (All True)
-refreshTagMetricsHook _ = return (All True)
-
-tagFontName :: TagMetrics -> String
-tagFontName m = "xft:JetBrainsMono Nerd Font:size=" ++ show (tmFont m)
-
-tagWidth, tagHeight :: TagMetrics -> Dimension
-tagWidth = tmWidth
-tagHeight = tmHeight
-
--- The cache includes focus and metrics because both change the pixels even when
--- the title and client rectangle stay unchanged.
-data WindowTags = WindowTags (M.Map Window (Window, Rectangle, String, Bool, TagMetrics))
-
-instance ExtensionClass WindowTags where
-    initialValue = WindowTags M.empty
-    extensionType = StateExtension
-
-data TagFont = TagFont (Maybe (String, XMonadFont))
-
-instance ExtensionClass TagFont where
-    initialValue = TagFont Nothing
-    extensionType = StateExtension
-
-tagFont :: TagMetrics -> X XMonadFont
-tagFont metrics = do
-    TagFont cached <- XS.get
-    let name = tagFontName metrics
-    case cached of
-        Just (oldName, f) | oldName == name -> return f
-        _ -> do
-            f <- initXMF name
-            XS.put (TagFont (Just (name, f)))
-            return f
-
-windowPropertyUtf8 :: String -> Window -> X (Maybe String)
-windowPropertyUtf8 property w = do
-    atom <- getAtom property
-    withDisplay $ \d -> io $
-        fmap (T.unpack . TE.decodeUtf8 . BS.pack . map fromIntegral)
-            <$> getWindowProperty8 d atom w
-
-withSessionPrefix :: Maybe String -> String -> String
-withSessionPrefix Nothing name = name
-withSessionPrefix (Just "") name = name
-withSessionPrefix (Just session) name
-    | prefix `L.isPrefixOf` name = name
-    | null name = prefix
-    | otherwise = prefix ++ " " ++ name
-  where
-    prefix = "[" ++ session ++ "]"
-
-windowTags :: X ()
-windowTags = withWindowSet $ \ws -> do
-    TagMetricsState metrics <- XS.get
-    let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current ws : W.visible ws)
-        focused = W.peek ws
-    candidates <- filterM (runQuery (className =? C.ghosttyClass)) visible
-    WindowTags cache <- XS.get
-    font <- tagFont metrics
-    kept <- forM candidates $ \w -> do
-        wa <- withDisplay $ \d -> io $ getWindowAttributes d w
-        titleName <- runQuery title w
-        session <- windowPropertyUtf8 "_ZMX_SESSION" w
-        let name = withSessionPrefix session titleName
-        let tagW = min (tagWidth metrics) (fi (wa_width wa))
-            tagH = tagHeight metrics
-            cx = fi (wa_x wa) + fi (wa_width wa) - fi tagW
-            rect = Rectangle cx (fi (wa_y wa)) tagW tagH
-            active = focused == Just w
-        tw <- case M.lookup w cache of
-            Just (tw, oldRect, oldName, oldActive, oldMetrics)
-                | oldRect == rect && oldName == name && oldActive == active && oldMetrics == metrics -> return tw
-                | otherwise -> do
-                    withDisplay $ \d -> io $ moveResizeWindow d tw (rect_x rect) (rect_y rect) tagW tagH
-                    paintTag tw font tagW tagH name active
-                    return tw
-            Nothing -> do
-                tw <- createNewWindow rect Nothing "" True
-                -- Name it so cleanStrayTags can find leftovers after a restart.
-                withDisplay $ \d -> io $ setClassHint d tw (ClassHint "xmonad-window-tag" "xmonad")
-                showWindow tw
-                paintTag tw font tagW tagH name active
-                return tw
-        -- Clients are raised on focus, so tags that overlap them must follow.
-        withDisplay $ \d -> io $ raiseWindow d tw
-        return (w, (tw, rect, name, active, metrics))
-    forM_ (M.toList cache) $ \(w, (tw, _, _, _, _)) ->
-        unless (w `elem` candidates) $ do
-            deleteWindow tw
-    XS.put (WindowTags (M.fromList kept))
-
-paintTag :: Window -> XMonadFont -> Dimension -> Dimension -> String -> Bool -> X ()
-paintTag tw font tagW tagH name active =
-    paintAndWrite
-        tw
-        font
-        tagW
-        tagH
-        1
-        C.backgroundColor
-        (if active then C.focusAccentColor else C.inactiveTagBorderColor)
-        (if active then C.focusAccentColor else C.inactiveTagTextColor)
-        C.backgroundColor
-        [AlignCenter]
-        [name]
 
 ------------------------------------------------------------------------
 -- Scratchpads
@@ -383,7 +208,7 @@ followToCurrentWorkspace q = withWindowSet $ \ws -> do
 ------------------------------------------------------------------------
 
 -- After monitor hotplug, swap NSP off any visible screen
-monitorHotplugCfg = def{afterRescreenHook = hideNSPWorkspace >> refreshTagMetrics}
+monitorHotplugCfg = def{afterRescreenHook = hideNSPWorkspace >> WindowTags.refreshTagMetrics}
 hideNSPWorkspace = withWindowSet $ \ws -> do
     let visibleTags = map (W.tag . W.workspace) (W.current ws : W.visible ws)
     when (C.hiddenScratchpadWorkspace `elem` visibleTags) $
@@ -587,21 +412,6 @@ raiseFocused = withFocused $ \w -> do
             -- same guard as core: skip when the change came from the mouse.
             isMouseFocused <- asks mouseFocused
             unless isMouseFocused $ clearEvents enterWindowMask
-
--- Destroy tag windows left behind by a previous xmonad process. `xmonad
--- --restart` re-execs, and the tag cache is non-persistent state, so the
--- windows it created survive with nothing tracking them (visible as stale
--- leftovers piling up across restarts). Old class names remain as cleanup.
-cleanStrayTags :: X ()
-cleanStrayTags = withDisplay $ \dpy -> do
-    root <- asks theRoot
-    io $ do
-        (_, _, children) <- queryTree dpy root
-        forM_ children $ \c -> do
-            hint <- getClassHint dpy c
-            when (resName hint `elem` ["xmonad-window-tag", "xmonad-float-tag", "xmonad-decoration"]) $
-                destroyWindow dpy c
-    XS.put (WindowTags M.empty)
 
 -- Persistent override-redirect OSDs can be covered when raiseFocused lifts a
 -- client. Raise them last, after both clients and title tags.

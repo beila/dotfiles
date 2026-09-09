@@ -12,6 +12,7 @@ import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
 import qualified XMonadConfig.Stacking as Stacking
+import qualified XMonadConfig.WindowTags as WindowTags
 import qualified XMonadConfig.Workspaces as Workspaces
 
 data Test = Test String (IO ())
@@ -46,15 +47,15 @@ assertEqual name expected actual =
 tests :: [Test]
 tests =
     [ Test "session prefix absent" $
-        assertEqual "title" "shell" (Config.withSessionPrefix Nothing "shell")
+        assertEqual "title" "shell" (WindowTags.withSessionPrefix Nothing "shell")
     , Test "empty session prefix ignored" $
-        assertEqual "title" "shell" (Config.withSessionPrefix (Just "") "shell")
+        assertEqual "title" "shell" (WindowTags.withSessionPrefix (Just "") "shell")
     , Test "session prefix prepended" $
-        assertEqual "title" "[work] shell" (Config.withSessionPrefix (Just "work") "shell")
+        assertEqual "title" "[work] shell" (WindowTags.withSessionPrefix (Just "work") "shell")
     , Test "session prefix idempotent" $
-        assertEqual "title" "[work] shell" (Config.withSessionPrefix (Just "work") "[work] shell")
+        assertEqual "title" "[work] shell" (WindowTags.withSessionPrefix (Just "work") "[work] shell")
     , Test "session prefix handles empty title" $
-        assertEqual "title" "[work]" (Config.withSessionPrefix (Just "work") "")
+        assertEqual "title" "[work]" (WindowTags.withSessionPrefix (Just "work") "")
     , Test "landscape left scratchpad rectangle" $
         assertEqual
             "rectangle"
