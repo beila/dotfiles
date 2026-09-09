@@ -298,6 +298,11 @@ in
     LOGRUN_TUI_SKIPLIST = "nvim btop fzf zellij zmx glow less more ssh man top nano watch claude kiro-cli bat journalctl codex dropbox-get";
   };
 
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+  };
+
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 

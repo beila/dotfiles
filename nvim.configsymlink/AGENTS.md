@@ -40,6 +40,14 @@ Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-c
 
 Tool sources are nix (`home-manager.configsymlink/nvim.nix`) except **rust-analyzer**, which is configured from `work-dotfiles/`. nixd is installed through a small Home Manager wrapper that sets `NIX_PATH` to the same pinned nixpkgs revision; this prevents its package-evaluation helper from exiting on flake-only systems. `my-nix.lua` sends `vim.empty_dict()` because a plain empty Lua table is encoded as JSON `[]`, which nixd rejects.
 
+`lua/lsp-project-env.lua` wraps project-aware LSPs with the nearest ancestor
+`.envrc`, using `direnv exec` without changing Neovim's own environment. JDTLS
+uses this so a Java buffer under a platform-specific subtree receives that
+subtree's flake toolchain even when Neovide was launched elsewhere. Projects
+without `.envrc`, or hosts not yet switched to the direnv-enabled Home Manager
+configuration, retain the direct LSP command. Regression coverage:
+`test_lsp_project_env.lua`.
+
 ## Shared config
 
 - `vimrcs/lsp.lua` — keymaps incl. `<leader>e` floating diagnostic.

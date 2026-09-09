@@ -6,16 +6,16 @@
 
 -- LSP: jdtls (jdt-language-server)
 vim.lsp.config.jdtls = {
-    cmd = { 'jdtls' },
+	cmd = require("lsp-project-env").wrap("jdtls"),
 }
-vim.lsp.enable('jdtls')
+vim.lsp.enable("jdtls")
 
 -- DAP: java-debug-adapter (Mason-installed)
-local dap = require('dap')
+local dap = require("dap")
 dap.configurations.java = {
-    {
-        name = 'Launch Java',
-        type = 'java',
-        request = 'launch',
-    },
+	{
+		name = "Launch Java",
+		type = "java",
+		request = "launch",
+	},
 }
