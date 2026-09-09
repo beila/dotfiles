@@ -24,7 +24,7 @@ import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
 import XMonad.Layout.NoBorders (smartBorders)
-import XMonad.Util.EZConfig (additionalKeys)
+import XMonad.Util.EZConfig (additionalKeys, removeKeys)
 import qualified XMonad.Util.ExtensibleState as XS
 import XMonad.Util.Font (Align (..), XMonadFont, initXMF)
 import XMonad.Util.NamedScratchpad
@@ -57,6 +57,8 @@ myConfig =
                   setWMName "LG3D"
                 , -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
                   startupHook gnomeConfig
+                , -- Clear persisted per-workspace ToggleStruts state.
+                  broadcastMessage (SetStruts [minBound .. maxBound] []) >> refresh
                 , fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep -fx albert >/dev/null || albert"
@@ -86,6 +88,7 @@ myConfig =
         , focusedBorderColor = "#F8BB3D"
         , normalBorderColor = "#1d1d1d"
         }
+        `removeKeys` [(mod4Mask, xK_b)]
         `additionalKeys` myKeys
 
 myWorkspaces = ["1:browser", "2:mail", "3:nvim", "4", "5", "6", "7:calendar", "8:meeting", "9:messenger"]
@@ -685,8 +688,7 @@ raiseFocused = withFocused $ \w -> do
     when (w /= prev) $ do
         XS.put (LastFocused w)
         floats <- gets (W.floating . windowset)
-        isFirefox <- runQuery (className =? "firefox") w
-        unless (M.member w floats || isFirefox) $ do
+        unless (M.member w floats) $ do
             withDisplay $ \dpy -> io $ do
                 raiseWindow dpy w
                 mapM_ (raiseWindow dpy) (M.keys floats)
