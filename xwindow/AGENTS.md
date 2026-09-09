@@ -6,6 +6,10 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 `~/.xmonad/build` uses `$XMONAD_GHC` (set by the nix xmonad wrapper, GHC with xmonad packages); falls back to PATH `ghc`. `set -euo pipefail` + `${1:?}` guard prevents creating misnamed binaries if the output path is missing.
 
+## Tests
+
+`bash xwindow/test_xmonad.sh` compiles the real configuration together with `xmonad.symlink/test/XMonadConfigTest.hs` using the package-aware GHC from the xmonad wrapper. The characterization suite covers pure title composition, portrait/landscape scratchpad geometry, hidden/visible workspace switching, and configuration invariants such as the absence of the inherited Super+B strut toggle.
+
 ## HLS
 
 `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC are installed from the same `haskellPackages` set in `home-manager.configsymlink/nvim.nix` to keep versions in sync.

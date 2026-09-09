@@ -1,3 +1,5 @@
+module Main where
+
 import Control.Exception (IOException, try)
 import Control.Monad
 import qualified Data.ByteString as BS
