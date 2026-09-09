@@ -40,6 +40,60 @@ assert_eq(
 	"missing direnv fallback"
 )
 
+local command
+local function successful_run(actual)
+	command = actual
+	return {
+		code = 0,
+		stdout = " /nix/store/jdk17/lib/openjdk\n",
+	}
+end
+
+assert_eq(
+	project_env.read_env(source, "JDK17_HOME", "/nix/store/direnv/bin/direnv", successful_run),
+	"/nix/store/jdk17/lib/openjdk",
+	"project environment value"
+)
+assert_eq(command, {
+	"/nix/store/direnv/bin/direnv",
+	"exec",
+	android,
+	"printenv",
+	"JDK17_HOME",
+}, "project environment command")
+assert_eq(
+	project_env.read_env(source, "MISSING", "/nix/store/direnv/bin/direnv", function()
+		return { code = 1, stdout = "" }
+	end),
+	nil,
+	"missing project environment value"
+)
+
+local config = {
+	root_dir = source,
+	settings = {
+		java = {
+			format = { enabled = true },
+		},
+	},
+}
+project_env.before_init_env_setting("JDK17_HOME", { "java", "import", "gradle", "java", "home" }, {
+	direnv = "/nix/store/direnv/bin/direnv",
+	run = successful_run,
+})(nil, config)
+assert_eq(config.settings, {
+	java = {
+		format = { enabled = true },
+		import = {
+			gradle = {
+				java = {
+					home = "/nix/store/jdk17/lib/openjdk",
+				},
+			},
+		},
+	},
+}, "nested project environment setting")
+
 local nested = android .. "/ignitionshared"
 vim.fn.writefile({ "use flake" }, nested .. "/.envrc")
 assert_eq(project_env.find_env_root(source), nested, "nearest envrc")

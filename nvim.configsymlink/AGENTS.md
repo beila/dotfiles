@@ -49,9 +49,12 @@ configuration, retain the direct LSP command. Regression coverage:
 `test_lsp_project_env.lua`. A nested `.envrc` must evaluate its flake from the
 directory expected by that flake's shell hook; IgnitionX temporarily enters its
 repository root because the hook derives build paths from `$PWD`. Its Android
-flake shell also exports `JDK17_HOME`, which Gradle names in
-`org.gradle.java.installations.fromEnv`; JDTLS can therefore keep its Java 21
-runtime while Gradle resolves the project's Java 17 toolchain.
+flake shell also exports `JDK17_HOME`. The Java configuration resolves that value
+through direnv during `before_init` and sends it as
+`java.import.gradle.java.home`, so JDTLS keeps its required Java 21 runtime
+while Buildship runs Gradle with the project's Java 17. The project's
+`org.gradle.java.installations.fromEnv=JDK17_HOME` separately covers Gradle
+processes launched on another JVM outside JDTLS.
 
 ## Shared config
 
