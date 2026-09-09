@@ -22,6 +22,8 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 
 `xmonad.symlink/lib/XMonadConfig/WindowTags.hs` owns title-tag metrics, cache state, painting, refresh events, and restart cleanup. Its cache uses the `WindowTagEntry` record rather than an opaque tuple; pure session-title composition remains unit tested.
 
+`xmonad.symlink/lib/XMonadConfig/Hooks.hs` owns focused-window and OSD restacking, Zoom fullscreen correction, offscreen rescue, dynamic Zoom-video following, and EWMH fullscreen advertisement. `xmonad.hs` keeps startup, event, and log hook order explicit.
+
 ## HLS
 
 `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC are installed from the same `haskellPackages` set in `home-manager.configsymlink/nvim.nix` to keep versions in sync.

@@ -6,9 +6,8 @@ import qualified Data.ByteString as BS
 import Data.Either (fromRight)
 import Data.List (stripPrefix)
 import qualified Data.List as L (find, isPrefixOf, isSuffixOf)
-import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
+import qualified Data.Map as M (lookup)
 import Data.Maybe
-import Data.Monoid (All (..))
 import System.Directory (getHomeDirectory, listDirectory, setCurrentDirectory)
 import qualified XMonad.StackSet as W
 
@@ -22,16 +21,14 @@ import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
 import XMonad.Layout.NoBorders (smartBorders)
 import XMonad.Util.EZConfig (additionalKeys, removeKeys)
-import qualified XMonad.Util.ExtensibleState as XS
 import XMonad.Util.NamedScratchpad
 
 import Graphics.X11.ExtraTypes.XF86
-import Graphics.X11.Xlib.Window (raiseWindow)
 import qualified Graphics.X11.Xrandr as RR
 import qualified XMonadConfig.Constants as C
+import qualified XMonadConfig.Hooks as Hooks
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
-import qualified XMonadConfig.Stacking as Stacking
 import qualified XMonadConfig.WindowTags as WindowTags
 import qualified XMonadConfig.WindowRules as WindowRules
 import qualified XMonadConfig.Workspaces as Workspaces
@@ -60,7 +57,7 @@ myConfig =
                   startupHook gnomeConfig
                 , -- Clear persisted per-workspace ToggleStruts state.
                   broadcastMessage (SetStruts [minBound .. maxBound] []) >> refresh
-                , fullscreenStartupHook
+                , Hooks.fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep -fx albert >/dev/null || albert"
                 , WindowTags.cleanStrayTags
@@ -71,8 +68,8 @@ myConfig =
                   -- script/install runs.
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
-        , handleEventHook = handleEventHook gnomeConfig <> rescueOffscreenHook <> stripZoomFullscreenHook <> WindowTags.refreshTagMetricsHook
-        , logHook = logHook gnomeConfig >> followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> raiseFocused >> WindowTags.windowTags >> raiseOsdWindows
+        , handleEventHook = handleEventHook gnomeConfig <> Hooks.rescueOffscreenHook <> Hooks.stripZoomFullscreenHook <> WindowTags.refreshTagMetricsHook
+        , logHook = logHook gnomeConfig >> Hooks.followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> Hooks.raiseFocused >> WindowTags.windowTags >> Hooks.raiseOsdWindows
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples
           workspaces = C.workspaceIds
@@ -193,15 +190,6 @@ myManageHook =
         , manageDocks
         , namedScratchpadManageHook myScratchpads
         ]
-
--- Move matching windows to the currently focused workspace
-followToCurrentWorkspace :: Query Bool -> X ()
-followToCurrentWorkspace q = withWindowSet $ \ws -> do
-    let cur = W.tag . W.workspace . W.current $ ws
-    wins <- filterM (runQuery q) (W.allWindows ws)
-    forM_ wins $ \w -> do
-        let onCur = w `elem` concatMap (W.integrate' . W.stack) [W.workspace (W.current ws)]
-        unless onCur $ windows $ W.shiftWin cur w
 
 ------------------------------------------------------------------------
 -- Monitor hotplug
@@ -326,110 +314,3 @@ myKeys =
         | (i, k) <- zip C.workspaceIds [xK_1 .. xK_9]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (Workspaces.greedyViewNoSwap, mod2Mask)]
         ]
-
-------------------------------------------------------------------------
--- Rescue offscreen windows (e.g. Zoom moving itself to x=12984)
-------------------------------------------------------------------------
-
-rescueOffscreenHook :: Event -> X All
-rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width = ew, ev_height = eh} = do
-    screens <- withWindowSet $ return . W.screens
-    let rects = map (screenRect . W.screenDetail) screens
-    when
-        ( Monitors.shouldRescueOffscreen
-            rects
-            (fromIntegral ex)
-            (fromIntegral ey)
-            (fromIntegral ew)
-            (fromIntegral eh)
-        )
-        $ withWindowSet
-        $ \ws ->
-            when (M.member w (W.floating ws)) $
-                windows $
-                    W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
-    return (All True)
-rescueOffscreenHook _ = return (All True)
-
--- Strip _NET_WM_STATE_FULLSCREEN from Zoom "Meeting" windows and sink them.
--- Zoom creates the window titled "Zoom Workplace" and only renames it to
--- "Meeting" after the ManageHook has run, so we can't match it via ManageHook.
--- Instead watch PropertyNotify for _NET_WM_STATE and WM_NAME/_NET_WM_NAME
--- changes; whenever a zoom window becomes titled "Meeting", drop the
--- fullscreen state (Zoom sets it pre-map and via ClientMessage) and re-sink.
-stripZoomFullscreenHook :: Event -> X All
-stripZoomFullscreenHook PropertyEvent{ev_window = w, ev_atom = a} = do
-    wmState <- getAtom "_NET_WM_STATE"
-    netName <- getAtom "_NET_WM_NAME"
-    when (a == wmState || a == netName || a == wM_NAME) $ do
-        cls <- runQuery className w
-        tit <- runQuery title w
-        when (cls == "zoom" && tit == "Meeting") $ do
-            fs <- getAtom "_NET_WM_STATE_FULLSCREEN"
-            atom <- getAtom "ATOM"
-            withDisplay $ \dpy -> io $ do
-                cur <- fromMaybe [] <$> getWindowProperty32 dpy wmState w
-                let newState = filter (/= fromIntegral fs) cur
-                when (newState /= cur) $
-                    changeProperty32 dpy w wmState atom propModeReplace newState
-            windows $ W.sink w
-    return (All True)
-stripZoomFullscreenHook _ = return (All True)
-
-------------------------------------------------------------------------
--- EWMH fullscreen support
-------------------------------------------------------------------------
-
--- Advertise fullscreen support to EWMH
-fullscreenStartupHook :: X ()
--- Raise the focused tiled window above other tiled windows so picom's
--- shadow (which renders at the window's Z-level) paints above neighbors.
--- Only fires on actual focus changes (tracked via ExtensibleState) to
--- avoid re-raising on every logHook invocation — that would cover
--- override-redirect popups (dropdowns, menus) which aren't in xmonad's
--- float map.
-newtype LastFocused = LastFocused Window
-    deriving (Typeable)
-instance ExtensionClass LastFocused where
-    initialValue = LastFocused 0
-
-raiseFocused :: X ()
-raiseFocused = withFocused $ \w -> do
-    LastFocused prev <- XS.get
-    when (w /= prev) $ do
-        XS.put (LastFocused w)
-        floats <- gets (W.floating . windowset)
-        isFirefox <- runQuery (className =? "firefox") w
-        when (Stacking.shouldRaiseFocused (M.member w floats) isFirefox) $ do
-            withDisplay $ \dpy -> io $ do
-                raiseWindow dpy w
-                mapM_ (raiseWindow dpy) (M.keys floats)
-            -- Core purges restack-synthesized EnterNotify before the
-            -- logHook runs; our raises here re-synthesize them, and with
-            -- focusFollowsMouse they'd yank focus back to the window
-            -- under the pointer (e.g. keyboard-cycling from a scratchpad
-            -- float to a tiled window bounces right back). Purge again,
-            -- same guard as core: skip when the change came from the mouse.
-            isMouseFocused <- asks mouseFocused
-            unless isMouseFocused $ clearEvents enterWindowMask
-
--- Persistent override-redirect OSDs can be covered when raiseFocused lifts a
--- client. Raise them last, after both clients and title tags.
-raiseOsdWindows :: X ()
-raiseOsdWindows = withDisplay $ \dpy -> do
-    root <- asks theRoot
-    io $ do
-        (_, _, children) <- queryTree dpy root
-        forM_ children $ \c -> do
-            hint <- getClassHint dpy c
-            when (resName hint == "osd") $ raiseWindow dpy c
-
-fullscreenStartupHook = withDisplay $ \dpy -> do
-    r <- asks theRoot
-    a <- getAtom "_NET_SUPPORTED"
-    c <- getAtom "ATOM"
-    f <- getAtom "_NET_WM_STATE_FULLSCREEN"
-    io $ do
-        sup <- join . maybeToList <$> getWindowProperty32 dpy a r
-        unless (fromIntegral f `elem` sup) $
-            changeProperty32 dpy r a c propModeAppend [fromIntegral f]
