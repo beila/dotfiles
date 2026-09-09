@@ -15,6 +15,30 @@ function M.find_env_root(root_dir)
 	return envrc and vim.fs.dirname(envrc) or nil
 end
 
+function M.without_root_markers(root_markers, excluded)
+	local excluded_set = {}
+	for _, marker in ipairs(excluded) do
+		excluded_set[marker] = true
+	end
+
+	local function filter(markers)
+		local result = {}
+		for _, marker in ipairs(markers) do
+			if type(marker) == "table" then
+				local group = filter(marker)
+				if #group > 0 then
+					result[#result + 1] = group
+				end
+			elseif not excluded_set[marker] then
+				result[#result + 1] = marker
+			end
+		end
+		return result
+	end
+
+	return filter(root_markers)
+end
+
 function M.workspace_root(root_markers, find_root)
 	find_root = find_root or vim.fs.root
 

@@ -20,11 +20,26 @@ local android = repo .. "/portingplatforms/android/ignition-android"
 local source = android .. "/ignitionshared/src/main/java"
 vim.fn.mkdir(source, "p")
 
-local markers = { { "gradlew", "settings.gradle" }, ".git" }
+local markers = {
+	{ "mvnw", "gradlew", "settings.gradle", ".git" },
+	{ ".git" },
+	"pom.xml",
+}
+local java_markers = project_env.without_root_markers(markers, { ".git" })
+assert_eq(java_markers, {
+	{ "mvnw", "gradlew", "settings.gradle" },
+	"pom.xml",
+}, "excluded workspace root markers")
+assert_eq(markers, {
+	{ "mvnw", "gradlew", "settings.gradle", ".git" },
+	{ ".git" },
+	"pom.xml",
+}, "workspace root marker source remains unchanged")
+
 local selected_root
 local selected_bufnr
 local selected_markers
-project_env.workspace_root(markers, function(bufnr, actual_markers)
+project_env.workspace_root(java_markers, function(bufnr, actual_markers)
 	selected_bufnr = bufnr
 	selected_markers = actual_markers
 	return android
@@ -32,11 +47,11 @@ end)(42, function(root_dir)
 	selected_root = root_dir
 end)
 assert_eq(selected_bufnr, 42, "workspace root buffer")
-assert_eq(selected_markers, markers, "workspace root markers")
+assert_eq(selected_markers, java_markers, "workspace root markers")
 assert_eq(selected_root, android, "workspace root callback")
 
 local rootless_callback_called = false
-project_env.workspace_root(markers, function()
+project_env.workspace_root(java_markers, function()
 	return nil
 end)(43, function()
 	rootless_callback_called = true

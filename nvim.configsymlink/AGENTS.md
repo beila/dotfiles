@@ -51,10 +51,12 @@ timed-out environment produces a warning and falls back to the direct LSP
 command instead of blocking editor startup. Regression coverage:
 `test_lsp_project_env.lua`.
 
-JDTLS wraps the root markers inherited from `nvim-lspconfig` in an explicit
-`root_dir` callback. The callback does not activate a client when restored or
-nonexistent Java buffers lack markers. This prevents a rootless server from
-inheriting Neovide's arbitrary launch directory.
+JDTLS removes `.git` from the root markers inherited from `nvim-lspconfig`,
+then wraps the remaining Java build markers in an explicit `root_dir` callback.
+The callback does not activate a client when restored or nonexistent Java
+buffers lack build markers. This prevents repository-level or rootless servers
+from inheriting Neovide's arbitrary launch directory while a nested Gradle or
+Maven project receives its own client.
 
 A nested `.envrc` must evaluate its flake from the directory expected by that
 flake's shell hook. IgnitionX temporarily enters its repository root because
