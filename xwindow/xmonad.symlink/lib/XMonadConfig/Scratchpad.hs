@@ -1,9 +1,9 @@
-module XMonadConfig.Scratchpad
-    ( ScratchpadAction (..)
-    , ScratchpadContext (..)
-    , decideScratchpadAction
-    , scratchpadRect
-    )
+module XMonadConfig.Scratchpad (
+    ScratchpadAction (..),
+    ScratchpadContext (..),
+    decideScratchpadAction,
+    scratchpadRect,
+)
 where
 
 import XMonad (Rectangle (..))

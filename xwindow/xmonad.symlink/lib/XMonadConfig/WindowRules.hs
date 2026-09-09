@@ -1,6 +1,6 @@
-module XMonadConfig.WindowRules
-    ( applicationManageHook
-    ) where
+module XMonadConfig.WindowRules (
+    applicationManageHook,
+) where
 
 import qualified Data.List as L
 import XMonad
@@ -76,9 +76,9 @@ meetingRules =
         , className =? "zoom" <&&> title =? "Meeting" --> doShift C.meetingWorkspace <> (ask >>= doF . W.sink)
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
-        -- The annotation toolbar reports the full tile in WM_NORMAL_HINTS
-        -- after xmonad has resized it, so force its small intended geometry.
-        , title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.485 0.02 0.03 0.045)
+        , -- The annotation toolbar reports the full tile in WM_NORMAL_HINTS
+          -- after xmonad has resized it, so force its small intended geometry.
+          title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.485 0.02 0.03 0.045)
         ]
 
 messengerRules :: ManageHook

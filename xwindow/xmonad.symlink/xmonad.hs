@@ -29,8 +29,8 @@ import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Hooks as Hooks
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
-import qualified XMonadConfig.WindowTags as WindowTags
 import qualified XMonadConfig.WindowRules as WindowRules
+import qualified XMonadConfig.WindowTags as WindowTags
 import qualified XMonadConfig.Workspaces as Workspaces
 
 ------------------------------------------------------------------------
@@ -46,10 +46,11 @@ main :: IO ()
 main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
   where
     -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
-    fsHook = composeOne
-        [ className =? "zoom" <&&> title =? "Meeting" -?> idHook
-        , pure True -?> doFullFloat
-        ]
+    fsHook =
+        composeOne
+            [ className =? "zoom" <&&> title =? "Meeting" -?> idHook
+            , pure True -?> doFullFloat
+            ]
 
 myConfig :: XConfig MyLayout
 myConfig =
@@ -295,11 +296,11 @@ readEdidVendor output = do
 myKeys :: [((KeyMask, KeySym), X ())]
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
-    -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
-    -- (see keyd/common's [meta] layer emitting XF86Copy/XF86Paste). xmonad
-    -- doesn't see these — keyd swallows the Super and emits a bare keysym
-    -- which the focused app handles natively.
-    , ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
+    , -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
+      -- (see keyd/common's [meta] layer emitting XF86Copy/XF86Paste). xmonad
+      -- doesn't see these — keyd swallows the Super and emits a bare keysym
+      -- which the focused app handles natively.
+      ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
     , ((0, xF86XK_TouchpadToggle), spawn "$HOME/.dotfiles/xwindow/bin/albert-toggle") -- Super tap via keyd (prog1 = f21)
     , ((0, xF86XK_TouchpadOn), scratchpadToggle C.PrimaryScratchpad) -- Alt_L tap via keyd (prog2 = f22)
     , ((0, xF86XK_TouchpadOff), scratchpadToggle C.SecondaryScratchpad) -- Alt_R tap via keyd (prog3 = f23)

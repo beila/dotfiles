@@ -1,23 +1,23 @@
-module XMonadConfig.Constants
-    ( ScratchpadSlot (..)
-    , allScratchpadSlots
-    , backgroundColor
-    , browserWorkspace
-    , calendarWorkspace
-    , editorWorkspace
-    , focusAccentColor
-    , ghosttyClass
-    , hiddenScratchpadWorkspace
-    , inactiveTagBorderColor
-    , inactiveTagTextColor
-    , isLeadingScratchpad
-    , mailWorkspace
-    , meetingWorkspace
-    , messengerWorkspace
-    , scratchpadInstance
-    , scratchpadName
-    , workspaceIds
-    )
+module XMonadConfig.Constants (
+    ScratchpadSlot (..),
+    allScratchpadSlots,
+    backgroundColor,
+    browserWorkspace,
+    calendarWorkspace,
+    editorWorkspace,
+    focusAccentColor,
+    ghosttyClass,
+    hiddenScratchpadWorkspace,
+    inactiveTagBorderColor,
+    inactiveTagTextColor,
+    isLeadingScratchpad,
+    mailWorkspace,
+    meetingWorkspace,
+    messengerWorkspace,
+    scratchpadInstance,
+    scratchpadName,
+    workspaceIds,
+)
 where
 
 import XMonad (WorkspaceId)

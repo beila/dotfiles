@@ -1,8 +1,8 @@
-module XMonadConfig.Monitors
-    ( MonitorTarget (..)
-    , classifyMonitor
-    , shouldRescueOffscreen
-    ) where
+module XMonadConfig.Monitors (
+    MonitorTarget (..),
+    classifyMonitor,
+    shouldRescueOffscreen,
+) where
 
 import qualified Data.ByteString as BS
 import qualified Data.List as L

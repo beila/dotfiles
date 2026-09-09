@@ -1,10 +1,10 @@
-module XMonadConfig.WindowTags
-    ( cleanStrayTags
-    , refreshTagMetrics
-    , refreshTagMetricsHook
-    , windowTags
-    , withSessionPrefix
-    ) where
+module XMonadConfig.WindowTags (
+    cleanStrayTags,
+    refreshTagMetrics,
+    refreshTagMetricsHook,
+    windowTags,
+    withSessionPrefix,
+) where
 
 import Control.Monad (filterM, forM, forM_, unless, when)
 import qualified Data.ByteString as BS
@@ -110,9 +110,10 @@ tagFont metrics = do
 windowPropertyUtf8 :: String -> Window -> X (Maybe String)
 windowPropertyUtf8 property window = do
     atom <- getAtom property
-    withDisplay $ \display -> io $
-        fmap (T.unpack . TE.decodeUtf8 . BS.pack . map fromIntegral)
-            <$> getWindowProperty8 display atom window
+    withDisplay $ \display ->
+        io $
+            fmap (T.unpack . TE.decodeUtf8 . BS.pack . map fromIntegral)
+                <$> getWindowProperty8 display atom window
 
 withSessionPrefix :: Maybe String -> String -> String
 withSessionPrefix Nothing name = name

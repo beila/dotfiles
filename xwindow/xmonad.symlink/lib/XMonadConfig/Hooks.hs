@@ -1,11 +1,11 @@
-module XMonadConfig.Hooks
-    ( followToCurrentWorkspace
-    , fullscreenStartupHook
-    , raiseFocused
-    , raiseOsdWindows
-    , rescueOffscreenHook
-    , stripZoomFullscreenHook
-    ) where
+module XMonadConfig.Hooks (
+    followToCurrentWorkspace,
+    fullscreenStartupHook,
+    raiseFocused,
+    raiseOsdWindows,
+    rescueOffscreenHook,
+    stripZoomFullscreenHook,
+) where
 
 import Control.Monad (filterM, forM_, join, unless, when)
 import qualified Data.Map as M

@@ -1,6 +1,6 @@
-module XMonadConfig.Workspaces
-    ( greedyViewNoSwap
-    ) where
+module XMonadConfig.Workspaces (
+    greedyViewNoSwap,
+) where
 
 import qualified Data.List as L
 import qualified XMonad.StackSet as W
