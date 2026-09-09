@@ -2,12 +2,14 @@ module XMonadConfigTest (main) where
 
 import Control.Exception (SomeException, displayException, try)
 import Control.Monad (forM_, unless)
+import qualified Data.ByteString as BS
 import qualified Data.Map as M
 import qualified Main as Config
 import System.Exit (exitFailure)
 import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonadConfig.Constants as C
+import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
 
 data Test = Test String (IO ())
@@ -127,6 +129,61 @@ tests =
             "action"
             S.ShowScratchpadAndRefloat
             (S.decideScratchpadAction $ Just $ scratchpadContext False False False False)
+    , Test "laptop monitor is identified by output name" $
+        assertEqual
+            "monitor"
+            (Just Monitors.LaptopMonitor)
+            (Monitors.classifyMonitor "eDP-1" Nothing)
+    , Test "laptop output name takes precedence over EDID" $
+        assertEqual
+            "monitor"
+            (Just Monitors.LaptopMonitor)
+            (Monitors.classifyMonitor "eDP-1" $ Just $ BS.pack [0x10, 0xac])
+    , Test "Dell monitor is identified by EDID vendor" $
+        assertEqual
+            "monitor"
+            (Just Monitors.DellMonitor)
+            (Monitors.classifyMonitor "DP-1" $ Just $ BS.pack [0x10, 0xac])
+    , Test "Samsung monitor is identified by EDID vendor" $
+        assertEqual
+            "monitor"
+            (Just Monitors.SamsungMonitor)
+            (Monitors.classifyMonitor "DP-2" $ Just $ BS.pack [0x4c, 0x2d])
+    , Test "unknown external monitor is ignored" $
+        assertEqual
+            "monitor"
+            Nothing
+            (Monitors.classifyMonitor "DP-3" $ Just $ BS.pack [0x12, 0x34])
+    , Test "large offscreen window is rescued" $
+        assertEqual
+            "rescue"
+            True
+            (Monitors.shouldRescueOffscreen testMonitorRects 3841 200 800 600)
+    , Test "desktop edge remains on screen" $
+        assertEqual
+            "rescue"
+            False
+            (Monitors.shouldRescueOffscreen testMonitorRects 3840 2400 800 600)
+    , Test "negative rescue threshold is exclusive" $
+        assertEqual
+            "rescue"
+            False
+            (Monitors.shouldRescueOffscreen testMonitorRects (-500) (-500) 800 600)
+    , Test "window beyond negative rescue threshold is rescued" $
+        assertEqual
+            "rescue"
+            True
+            (Monitors.shouldRescueOffscreen testMonitorRects (-501) 200 800 600)
+    , Test "tiny offscreen windows are ignored" $
+        assertEqual
+            "rescue"
+            False
+            (Monitors.shouldRescueOffscreen testMonitorRects 9000 9000 100 100)
+    , Test "missing screen geometry does not rescue" $
+        assertEqual
+            "rescue"
+            False
+            (Monitors.shouldRescueOffscreen [] 9000 9000 800 600)
     ]
 
 testStackSet :: W.StackSet String () Window Int ()
@@ -143,3 +200,9 @@ scratchpadContext focused fullscreen visible onRealWorkspace =
         , S.isVisible = visible
         , S.isOnRealWorkspace = onRealWorkspace
         }
+
+testMonitorRects :: [Rectangle]
+testMonitorRects =
+    [ Rectangle 0 0 1920 1200
+    , Rectangle 1920 0 1920 2400
+    ]

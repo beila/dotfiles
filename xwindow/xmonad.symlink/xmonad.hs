@@ -37,6 +37,7 @@ import Graphics.X11.ExtraTypes.XF86
 import Graphics.X11.Xlib.Window (raiseWindow)
 import qualified Graphics.X11.Xrandr as RR
 import qualified XMonadConfig.Constants as C
+import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
 
 ------------------------------------------------------------------------
@@ -468,14 +469,12 @@ hideNSPWorkspace = withWindowSet $ \ws -> do
             (w : _) -> windows $ W.greedyView (W.tag w)
             [] -> return ()
 
-data MonitorTarget = DellMonitor | SamsungMonitor | LaptopMonitor deriving (Eq)
-
-monitorWorkspace :: ScreenId -> MonitorTarget -> X (Maybe WorkspaceId)
-monitorWorkspace defaultScreen target = do
+monitorWorkspace :: ScreenId -> Monitors.MonitorTarget -> X (Maybe WorkspaceId)
+monitorWorkspace fallbackScreen target = do
     monitorRects <- withDisplay $ \dpy -> do
         root <- asks theRoot
         io $ findMonitorRects dpy root
-    if any ((/= LaptopMonitor) . fst) monitorRects
+    if any ((/= Monitors.LaptopMonitor) . fst) monitorRects
         then case lookup target monitorRects of
             Just rect ->
                 withWindowSet $ \ws ->
@@ -484,17 +483,17 @@ monitorWorkspace defaultScreen target = do
                             L.find ((== rect) . screenRect . W.screenDetail) $
                                 W.screens ws
             Nothing -> return Nothing
-        else screenWorkspace defaultScreen
+        else screenWorkspace fallbackScreen
 
-focusMonitor :: ScreenId -> MonitorTarget -> X ()
-focusMonitor defaultScreen target =
-    monitorWorkspace defaultScreen target >>= flip whenJust (windows . W.view)
+focusMonitor :: ScreenId -> Monitors.MonitorTarget -> X ()
+focusMonitor fallbackScreen target =
+    monitorWorkspace fallbackScreen target >>= flip whenJust (windows . W.view)
 
-shiftToMonitor :: ScreenId -> MonitorTarget -> X ()
-shiftToMonitor defaultScreen target =
-    monitorWorkspace defaultScreen target >>= flip whenJust (windows . W.shift)
+shiftToMonitor :: ScreenId -> Monitors.MonitorTarget -> X ()
+shiftToMonitor fallbackScreen target =
+    monitorWorkspace fallbackScreen target >>= flip whenJust (windows . W.shift)
 
-findMonitorRects :: Display -> Window -> IO [(MonitorTarget, Rectangle)]
+findMonitorRects :: Display -> Window -> IO [(Monitors.MonitorTarget, Rectangle)]
 findMonitorRects dpy root = do
     resources <- RR.xrrGetScreenResourcesCurrent dpy root
     case resources of
@@ -517,16 +516,11 @@ findMonitorRects dpy root = do
             (fromIntegral $ RR.xrr_ci_width ci)
             (fromIntegral $ RR.xrr_ci_height ci)
 
-identifyMonitor :: String -> IO (Maybe MonitorTarget)
-identifyMonitor output
-    | "eDP-" `L.isPrefixOf` output = return $ Just LaptopMonitor
-    | otherwise = do
-        vendor <- readEdidVendor output
-        return $ case vendor of
-            Just bytes
-                | bytes == BS.pack [0x10, 0xac] -> Just DellMonitor -- DEL
-                | bytes == BS.pack [0x4c, 0x2d] -> Just SamsungMonitor -- SAM
-            _ -> Nothing
+identifyMonitor :: String -> IO (Maybe Monitors.MonitorTarget)
+identifyMonitor output =
+    case Monitors.classifyMonitor output Nothing of
+        Just target -> return $ Just target
+        Nothing -> Monitors.classifyMonitor output <$> readEdidVendor output
 
 readEdidVendor :: String -> IO (Maybe BS.ByteString)
 readEdidVendor output = do
@@ -567,12 +561,12 @@ myKeys =
     , ((0, xF86XK_MonBrightnessDown), spawn "$HOME/.dotfiles/xwindow/bin/brightness-osd down")
     , ((mod4Mask, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-output")
     , ((mod4Mask, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-input")
-    , ((mod4Mask, xK_w), focusMonitor 0 DellMonitor)
-    , ((mod4Mask, xK_e), focusMonitor 1 SamsungMonitor)
-    , ((mod4Mask, xK_r), focusMonitor 2 LaptopMonitor)
-    , ((mod4Mask .|. shiftMask, xK_w), shiftToMonitor 0 DellMonitor)
-    , ((mod4Mask .|. shiftMask, xK_e), shiftToMonitor 1 SamsungMonitor)
-    , ((mod4Mask .|. shiftMask, xK_r), shiftToMonitor 2 LaptopMonitor)
+    , ((mod4Mask, xK_w), focusMonitor 0 Monitors.DellMonitor)
+    , ((mod4Mask, xK_e), focusMonitor 1 Monitors.SamsungMonitor)
+    , ((mod4Mask, xK_r), focusMonitor 2 Monitors.LaptopMonitor)
+    , ((mod4Mask .|. shiftMask, xK_w), shiftToMonitor 0 Monitors.DellMonitor)
+    , ((mod4Mask .|. shiftMask, xK_e), shiftToMonitor 1 Monitors.SamsungMonitor)
+    , ((mod4Mask .|. shiftMask, xK_r), shiftToMonitor 2 Monitors.LaptopMonitor)
     , -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
       ((mod4Mask, xK_quoteleft), nextScreen)
     , ((mod4Mask, xK_equal), nextScreen)
@@ -612,19 +606,21 @@ greedyViewNoSwap w ws
 
 rescueOffscreenHook :: Event -> X All
 rescueOffscreenHook ConfigureEvent{ev_window = w, ev_x = ex, ev_y = ey, ev_width = ew, ev_height = eh} = do
-    when (ew > 100 && eh > 100) $ do
-        -- ignore tiny windows (trays, etc.)
-        screens <- withWindowSet $ return . W.screens
-        let rects = map (screenRect . W.screenDetail) screens
-            totalRight = maximum $ map (\r -> fromIntegral (rect_x r) + fromIntegral (rect_width r)) rects
-            totalBottom = maximum $ map (\r -> fromIntegral (rect_y r) + fromIntegral (rect_height r)) rects
-            x = fromIntegral ex :: Int
-            y = fromIntegral ey :: Int
-        when (x > totalRight || y > totalBottom || x < -500 || y < -500) $
-            withWindowSet $ \ws ->
-                when (M.member w (W.floating ws)) $
-                    windows $
-                        W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
+    screens <- withWindowSet $ return . W.screens
+    let rects = map (screenRect . W.screenDetail) screens
+    when
+        ( Monitors.shouldRescueOffscreen
+            rects
+            (fromIntegral ex)
+            (fromIntegral ey)
+            (fromIntegral ew)
+            (fromIntegral eh)
+        )
+        $ withWindowSet
+        $ \ws ->
+            when (M.member w (W.floating ws)) $
+                windows $
+                    W.float w (W.RationalRect 0.1 0.1 0.5 0.5)
     return (All True)
 rescueOffscreenHook _ = return (All True)
 

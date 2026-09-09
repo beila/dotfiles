@@ -14,6 +14,8 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 
 `xmonad.symlink/lib/XMonadConfig/Scratchpad.hs` contains the pure scratchpad rectangle calculation and state-to-action decision table. `scratchpadToggle` observes XMonad state and executes the returned action; the seven supported missing/fullscreen/floating states are covered by unit tests.
 
+`xmonad.symlink/lib/XMonadConfig/Monitors.hs` contains pure output-name/EDID classification and offscreen-window rescue policy. XRandR and `/sys/class/drm` access remain in `xmonad.hs`; tests cover known monitor vendors and the rescue policy's size, desktop-edge, and negative-coordinate boundaries.
+
 ## HLS
 
 `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC are installed from the same `haskellPackages` set in `home-manager.configsymlink/nvim.nix` to keep versions in sync.
