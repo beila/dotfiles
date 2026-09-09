@@ -5,7 +5,7 @@ import Control.Monad
 import qualified Data.ByteString as BS
 import Data.Either (fromRight)
 import Data.List (stripPrefix)
-import qualified Data.List as L (filter, find, isPrefixOf, isSuffixOf)
+import qualified Data.List as L (find, isPrefixOf, isSuffixOf)
 import qualified Data.Map as M (Map, empty, fromList, keys, lookup, member, toList)
 import Data.Maybe
 import qualified Data.Text as T
@@ -39,6 +39,7 @@ import qualified Graphics.X11.Xrandr as RR
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
+import qualified XMonadConfig.Workspaces as Workspaces
 
 ------------------------------------------------------------------------
 -- Main
@@ -577,28 +578,8 @@ myKeys =
         -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view
         [ ((m .|. mod4Mask, k), windows $ f i)
         | (i, k) <- zip C.workspaceIds [xK_1 .. xK_9]
-        , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (greedyViewNoSwap, mod2Mask)]
+        , (f, m) <- [(W.view, 0), (W.shift, shiftMask), (W.greedyView, controlMask), (Workspaces.greedyViewNoSwap, mod2Mask)]
         ]
-
-------------------------------------------------------------------------
--- Workspace switching
-------------------------------------------------------------------------
-
--- TODO: make this lruView
--- Copied from https://hackage.haskell.org/package/xmonad-0.15/docs/src/XMonad.StackSet.html#greedyView
-greedyViewNoSwap :: (Eq s, Eq i) => i -> W.StackSet i l a s sd -> W.StackSet i l a s sd
-greedyViewNoSwap w ws
-    | any wTag (W.hidden ws) = W.view w ws
-    | (Just s) <- L.find (wTag . W.workspace) (W.visible ws) =
-        ws
-            { W.current = (W.current ws){W.workspace = W.workspace s}
-            , W.visible =
-                s{W.workspace = W.workspace (W.current ws)}
-                    : L.filter (not . wTag . W.workspace) (W.visible ws)
-            }
-    | otherwise = ws
-  where
-    wTag = (w ==) . W.tag
 
 ------------------------------------------------------------------------
 -- Rescue offscreen windows (e.g. Zoom moving itself to x=12984)

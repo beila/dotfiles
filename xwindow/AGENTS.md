@@ -16,6 +16,8 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 
 `xmonad.symlink/lib/XMonadConfig/Monitors.hs` contains pure output-name/EDID classification and offscreen-window rescue policy. XRandR and `/sys/class/drm` access remain in `xmonad.hs`; tests cover known monitor vendors and the rescue policy's size, desktop-edge, and negative-coordinate boundaries.
 
+`xmonad.symlink/lib/XMonadConfig/Workspaces.hs` contains the screen-order-preserving `greedyViewNoSwap` transformation. Tests cover both hidden and already-visible target workspaces.
+
 ## HLS
 
 `hie.yaml` + `.hie-bios` cradle points HLS to `$XMONAD_GHC` package db; HLS and GHC are installed from the same `haskellPackages` set in `home-manager.configsymlink/nvim.nix` to keep versions in sync.

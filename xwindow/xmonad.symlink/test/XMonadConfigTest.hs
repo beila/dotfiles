@@ -11,6 +11,7 @@ import qualified XMonad.StackSet as W
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
+import qualified XMonadConfig.Workspaces as Workspaces
 
 data Test = Test String (IO ())
 
@@ -75,12 +76,12 @@ tests =
             (S.scratchpadRect False (Rectangle 0 0 1440 2560))
     , Test "hidden workspace view preserves current screen" $ do
         let before = testStackSet
-            after = Config.greedyViewNoSwap "3" before
+            after = Workspaces.greedyViewNoSwap "3" before
         assertEqual "current workspace" "3" (W.currentTag after)
         assertEqual "visible workspace" ["2"] (map (W.tag . W.workspace) (W.visible after))
     , Test "visible workspace view swaps without changing screen order" $ do
         let before = testStackSet
-            after = Config.greedyViewNoSwap "2" before
+            after = Workspaces.greedyViewNoSwap "2" before
         assertEqual "current workspace" "2" (W.currentTag after)
         assertEqual "visible workspace" ["1"] (map (W.tag . W.workspace) (W.visible after))
         assertEqual "screen ids" [0, 1] (map W.screen (W.screens after))
