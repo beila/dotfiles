@@ -3,8 +3,11 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 XMONAD_DIR="$ROOT/xwindow/xmonad.symlink"
-XMONAD_WRAPPER=$(command -v xmonad)
-XMONAD_GHC=$(sed -n "s/^export XMONAD_GHC='\\(.*\\)'/\\1/p" "$XMONAD_WRAPPER")
+XMONAD_WRAPPER=$(command -v xmonad || true)
+XMONAD_GHC=
+if [[ -n "$XMONAD_WRAPPER" ]]; then
+    XMONAD_GHC=$(sed -n "s/^export XMONAD_GHC='\\(.*\\)'/\\1/p" "$XMONAD_WRAPPER")
+fi
 XMONAD_GHC=${XMONAD_GHC:-ghc}
 BUILD_DIR=$(mktemp -d /tmp/xmonad-dock-test.XXXXXX)
 DISPLAY_NUMBER=
@@ -80,6 +83,23 @@ CLIENT_PID=$!
 CLIENT_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-dock-test-client | head -1)
 DOCK_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-dock-test-panel | head -1)
 
+wait_until_tiled() {
+    local geometry
+    local width
+    local height
+    for _ in $(seq 1 50); do
+        geometry=$(xdotool getwindowgeometry --shell "$CLIENT_WINDOW")
+        width=$(sed -n 's/^WIDTH=//p' <<<"$geometry")
+        height=$(sed -n 's/^HEIGHT=//p' <<<"$geometry")
+        if ((width >= 900 && height >= 600)); then
+            return
+        fi
+        sleep 0.1
+    done
+    echo "FAIL: client was not tiled before geometry assertions"
+    exit 1
+}
+
 assert_avoids_panel() {
     local stage=$1
     local geometry
@@ -94,6 +114,7 @@ assert_avoids_panel() {
     fi
 }
 
+wait_until_tiled
 assert_avoids_panel "initial layout"
 xdotool key super+b
 sleep 0.2
@@ -127,10 +148,8 @@ stack_index() {
     local window_id=$1
     local hex_id
     hex_id=$(printf '0x%x' "$window_id")
-    xprop -root _NET_CLIENT_LIST_STACKING |
-        tr ',#' '  ' |
-        tr ' ' '\n' |
-        awk -v target="$hex_id" 'tolower($0) == tolower(target) { print NR; exit }'
+    xwininfo -root -children |
+        awk -v target="$hex_id" 'tolower($1) == tolower(target) { print NR; exit }'
 }
 
 assert_above() {
@@ -141,8 +160,19 @@ assert_above() {
     local lower_index
     upper_index=$(stack_index "$upper")
     lower_index=$(stack_index "$lower")
-    if [[ -z "$upper_index" || -z "$lower_index" || "$upper_index" -le "$lower_index" ]]; then
-        echo "FAIL: $stage stacking order is incorrect"
+    if [[ -z "$upper_index" || -z "$lower_index" || "$upper_index" -ge "$lower_index" ]]; then
+        echo "FAIL: $stage stacking order is incorrect: upper=$upper_index lower=$lower_index"
+        exit 1
+    fi
+}
+
+assert_focused() {
+    local expected=$1
+    local stage=$2
+    local focused
+    focused=$(xdotool getwindowfocus)
+    if [[ "$focused" != "$expected" ]]; then
+        echo "FAIL: $stage did not receive focus"
         exit 1
     fi
 }
@@ -150,11 +180,13 @@ assert_above() {
 xdotool windowraise "$DOCK_WINDOW"
 xdotool mousemove --window "$NORMAL_WINDOW" 20 20
 sleep 0.2
+assert_focused "$NORMAL_WINDOW" "normal client"
 assert_above "$NORMAL_WINDOW" "$DOCK_WINDOW" "normal focused client"
 
 xdotool windowraise "$DOCK_WINDOW"
 xdotool mousemove --window "$FIREFOX_WINDOW" 20 20
 sleep 0.2
+assert_focused "$FIREFOX_WINDOW" "Firefox client"
 assert_above "$DOCK_WINDOW" "$FIREFOX_WINDOW" "Firefox exclusion"
 
 echo "PASS: dock struts reset on restart and Firefox stays below the panel"

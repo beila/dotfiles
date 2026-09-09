@@ -27,7 +27,7 @@ shouldRescueOffscreen rects x y width height =
         && height > 100
         && case virtualDesktopExtent rects of
             Just (right, bottom) ->
-                x > right || y > bottom || x < -500 || y < -500
+                x >= right || y >= bottom || x < -500 || y < -500
             Nothing -> False
 
 virtualDesktopExtent :: [Rectangle] -> Maybe (Int, Int)

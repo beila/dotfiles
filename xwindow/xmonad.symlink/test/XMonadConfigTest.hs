@@ -162,11 +162,21 @@ tests =
             "rescue"
             True
             (Monitors.shouldRescueOffscreen testMonitorRects 3841 200 800 600)
-    , Test "desktop edge remains on screen" $
+    , Test "last desktop pixel remains on screen" $
         assertEqual
             "rescue"
             False
-            (Monitors.shouldRescueOffscreen testMonitorRects 3840 2400 800 600)
+            (Monitors.shouldRescueOffscreen testMonitorRects 3839 2399 800 600)
+    , Test "right desktop boundary is offscreen" $
+        assertEqual
+            "rescue"
+            True
+            (Monitors.shouldRescueOffscreen testMonitorRects 3840 200 800 600)
+    , Test "bottom desktop boundary is offscreen" $
+        assertEqual
+            "rescue"
+            True
+            (Monitors.shouldRescueOffscreen testMonitorRects 200 2400 800 600)
     , Test "negative rescue threshold is exclusive" $
         assertEqual
             "rescue"
