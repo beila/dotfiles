@@ -10,7 +10,7 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 `bash xwindow/test_xmonad.sh` compiles the real configuration together with `xmonad.symlink/test/XMonadConfigTest.hs` using the package-aware GHC from the xmonad wrapper. The characterization suite covers pure title composition, portrait/landscape scratchpad geometry, hidden/visible workspace switching, and configuration invariants such as the absence of the inherited Super+B strut toggle.
 
-`bash xwindow/test_xmonad_dock.sh` runs the real layout and manage hooks inside Xephyr with a synthetic 48px EWMH dock. It asserts that a tiled client avoids the dock initially, after Super+B, and after restarting the nested XMonad process.
+`bash xwindow/test_xmonad_dock.sh` runs the real layout, startup, and focus-restacking hooks inside Xephyr with a synthetic 48px EWMH dock. It verifies that Super+B does not alter struts, a test-only toggle can hide them, the production startup hook restores them after restart, a normal focused client is raised, and a Firefox-class client remains below the dock.
 
 Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in `xmonad.symlink/lib/XMonadConfig/Constants.hs`. Scratchpads use the typed `ScratchpadSlot` instead of passing `"ghostty1"`/`"ghostty2"` strings through toggle logic.
 

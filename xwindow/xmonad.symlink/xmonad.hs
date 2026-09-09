@@ -63,8 +63,7 @@ myConfig =
                   setWMName "LG3D"
                 , -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
                   startupHook gnomeConfig
-                , -- Clear persisted per-workspace ToggleStruts state.
-                  broadcastMessage (SetStruts [minBound .. maxBound] []) >> refresh
+                , resetStrutsOnStartup
                 , Hooks.fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep -fx albert >/dev/null || albert"
@@ -96,6 +95,10 @@ myConfig =
         }
         `removeKeys` [(mod4Mask, xK_b)]
         `additionalKeys` myKeys
+
+resetStrutsOnStartup :: X ()
+resetStrutsOnStartup =
+    broadcastMessage (SetStruts [minBound .. maxBound] []) >> refresh
 
 ------------------------------------------------------------------------
 -- Scratchpads

@@ -10,7 +10,7 @@ BUILD_DIR=$(mktemp -d /tmp/xmonad-dock-test.XXXXXX)
 DISPLAY_NUMBER=
 
 cleanup() {
-    for pid in "${CLIENT_PID:-}" "${DOCK_PID:-}" "${XMONAD_PID:-}" "${XEPHYR_PID:-}"; do
+    for pid in "${FIREFOX_PID:-}" "${NORMAL_PID:-}" "${CLIENT_PID:-}" "${DOCK_PID:-}" "${XMONAD_PID:-}" "${XEPHYR_PID:-}"; do
         if [[ -n "$pid" ]]; then
             kill "$pid" 2>/dev/null || true
         fi
@@ -48,6 +48,13 @@ cd "$XMONAD_DIR"
     -fforce-recomp \
     -outputdir "$BUILD_DIR/dock-objects" \
     -o "$BUILD_DIR/xmonad-dock-window"
+"$XMONAD_GHC" \
+    --make \
+    test/XMonadTestClient.hs \
+    -main-is XMonadTestClient.main \
+    -fforce-recomp \
+    -outputdir "$BUILD_DIR/client-objects" \
+    -o "$BUILD_DIR/xmonad-test-client"
 
 mkdir -p "$BUILD_DIR/config" "$BUILD_DIR/data" "$BUILD_DIR/cache"
 Xephyr ":$DISPLAY_NUMBER" -screen 1000x700 -nolisten tcp -noreset >/dev/null 2>&1 &
@@ -71,6 +78,7 @@ xmessage -name xmonad-dock-test-client -buttons "" "dock strut regression" >/dev
 CLIENT_PID=$!
 
 CLIENT_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-dock-test-client | head -1)
+DOCK_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-dock-test-panel | head -1)
 
 assert_avoids_panel() {
     local stage=$1
@@ -91,6 +99,16 @@ xdotool key super+b
 sleep 0.2
 assert_avoids_panel "after Super+B"
 
+xdotool key super+shift+b
+sleep 0.2
+geometry=$(xdotool getwindowgeometry --shell "$CLIENT_WINDOW")
+y=$(sed -n 's/^Y=//p' <<<"$geometry")
+height=$(sed -n 's/^HEIGHT=//p' <<<"$geometry")
+if ((y + height <= 652)); then
+    echo "FAIL: test-only ToggleStruts did not hide the dock gap"
+    exit 1
+fi
+
 kill "$XMONAD_PID"
 wait "$XMONAD_PID" 2>/dev/null || true
 "$BUILD_DIR/xmonad-dock-config" >/dev/null 2>&1 &
@@ -98,4 +116,45 @@ XMONAD_PID=$!
 sleep 0.5
 assert_avoids_panel "after restart"
 
-echo "PASS: dock strut survives startup, Super+B, and restart"
+"$BUILD_DIR/xmonad-test-client" normal xmonad-normal-test >/dev/null 2>&1 &
+NORMAL_PID=$!
+"$BUILD_DIR/xmonad-test-client" firefox xmonad-firefox-test >/dev/null 2>&1 &
+FIREFOX_PID=$!
+NORMAL_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-normal-test | head -1)
+FIREFOX_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-firefox-test | head -1)
+
+stack_index() {
+    local window_id=$1
+    local hex_id
+    hex_id=$(printf '0x%x' "$window_id")
+    xprop -root _NET_CLIENT_LIST_STACKING |
+        tr ',#' '  ' |
+        tr ' ' '\n' |
+        awk -v target="$hex_id" 'tolower($0) == tolower(target) { print NR; exit }'
+}
+
+assert_above() {
+    local upper=$1
+    local lower=$2
+    local stage=$3
+    local upper_index
+    local lower_index
+    upper_index=$(stack_index "$upper")
+    lower_index=$(stack_index "$lower")
+    if [[ -z "$upper_index" || -z "$lower_index" || "$upper_index" -le "$lower_index" ]]; then
+        echo "FAIL: $stage stacking order is incorrect"
+        exit 1
+    fi
+}
+
+xdotool windowraise "$DOCK_WINDOW"
+xdotool mousemove --window "$NORMAL_WINDOW" 20 20
+sleep 0.2
+assert_above "$NORMAL_WINDOW" "$DOCK_WINDOW" "normal focused client"
+
+xdotool windowraise "$DOCK_WINDOW"
+xdotool mousemove --window "$FIREFOX_WINDOW" 20 20
+sleep 0.2
+assert_above "$DOCK_WINDOW" "$FIREFOX_WINDOW" "Firefox exclusion"
+
+echo "PASS: dock struts reset on restart and Firefox stays below the panel"
