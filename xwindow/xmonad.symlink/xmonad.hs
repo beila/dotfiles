@@ -4,8 +4,7 @@ import Control.Exception (IOException, try)
 import Control.Monad
 import qualified Data.ByteString as BS
 import Data.Either (fromRight)
-import Data.List (stripPrefix)
-import qualified Data.List as L (find, isPrefixOf, isSuffixOf)
+import qualified Data.List as L (find, isSuffixOf)
 import qualified Data.Map as M (lookup)
 import Data.Maybe
 import System.Directory (getHomeDirectory, listDirectory, setCurrentDirectory)
@@ -19,7 +18,8 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.ManageHelpers
 import XMonad.Hooks.Rescreen
 import XMonad.Hooks.SetWMName
-import XMonad.Layout.NoBorders (smartBorders)
+import XMonad.Layout.LayoutModifier (ModifiedLayout)
+import XMonad.Layout.NoBorders (SmartBorder, smartBorders)
 import XMonad.Util.EZConfig (additionalKeys, removeKeys)
 import XMonad.Util.NamedScratchpad
 
@@ -37,6 +37,12 @@ import qualified XMonadConfig.Workspaces as Workspaces
 -- Main
 ------------------------------------------------------------------------
 
+type MyLayout =
+    ModifiedLayout
+        SmartBorder
+        (ModifiedLayout AvoidStruts (ModifiedLayout AvoidStruts (Choose Tall (Choose (Mirror Tall) Full))))
+
+main :: IO ()
 main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
   where
     -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
@@ -45,6 +51,7 @@ main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ 
         , pure True -?> doFullFloat
         ]
 
+myConfig :: XConfig MyLayout
 myConfig =
     gnomeConfig
         { terminal = "gnome-terminal"
@@ -96,6 +103,7 @@ myConfig =
 -- Two independent floating ghostty terminals
 -- Each opens the zmx session picker; session selection is independent per window
 -- Positioning handled by adaptiveFloat based on screen orientation
+myScratchpads :: [NamedScratchpad]
 myScratchpads =
     map scratchpadDefinition C.allScratchpadSlots
 
@@ -129,6 +137,7 @@ adaptiveFloat isLeftOrTop = do
 --   3. Focused → hide (move to NSP).
 --   4. Visible on another screen → just focus it.
 --   5. Hidden → move to current workspace, float, and focus (adapting to orientation).
+scratchpadToggle :: C.ScratchpadSlot -> X ()
 scratchpadToggle slot = withWindowSet $ \ws -> do
     let name = C.scratchpadName slot
     let isSP = runQuery (scratchpadQuery slot)
@@ -183,6 +192,7 @@ refloatScratchpad isLeftOrTop isSP = withWindowSet $ \ws -> do
 -- Window rules
 ------------------------------------------------------------------------
 
+myManageHook :: ManageHook
 myManageHook =
     composeAll
         [ WindowRules.applicationManageHook
@@ -196,7 +206,10 @@ myManageHook =
 ------------------------------------------------------------------------
 
 -- After monitor hotplug, swap NSP off any visible screen
+monitorHotplugCfg :: RescreenConfig
 monitorHotplugCfg = def{afterRescreenHook = hideNSPWorkspace >> WindowTags.refreshTagMetrics}
+
+hideNSPWorkspace :: X ()
 hideNSPWorkspace = withWindowSet $ \ws -> do
     let visibleTags = map (W.tag . W.workspace) (W.current ws : W.visible ws)
     when (C.hiddenScratchpadWorkspace `elem` visibleTags) $
@@ -279,6 +292,7 @@ readEdidVendor output = do
 -- Key bindings
 ------------------------------------------------------------------------
 
+myKeys :: [((KeyMask, KeySym), X ())]
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
     -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
