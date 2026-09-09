@@ -6,7 +6,7 @@
 
 -- LSP: jdtls (jdt-language-server)
 local project_env = require("lsp-project-env")
-local root_markers = project_env.without_root_markers(vim.lsp.config.jdtls.root_markers, { ".git" })
+local root_markers = project_env.flatten_root_markers(vim.lsp.config.jdtls.root_markers, { ".git" })
 vim.lsp.config.jdtls = {
 	cmd = project_env.wrap("jdtls"),
 	root_dir = project_env.workspace_root(root_markers),
