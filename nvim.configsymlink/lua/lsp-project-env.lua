@@ -15,6 +15,17 @@ function M.find_env_root(root_dir)
 	return envrc and vim.fs.dirname(envrc) or nil
 end
 
+function M.workspace_root(root_markers, find_root)
+	find_root = find_root or vim.fs.root
+
+	return function(bufnr, on_dir)
+		local root_dir = find_root(bufnr, root_markers)
+		if root_dir then
+			on_dir(root_dir)
+		end
+	end
+end
+
 local function run(command, timeout_ms)
 	return vim.system(command, { text = true }):wait(timeout_ms)
 end

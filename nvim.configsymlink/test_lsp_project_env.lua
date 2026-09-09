@@ -20,6 +20,29 @@ local android = repo .. "/portingplatforms/android/ignition-android"
 local source = android .. "/ignitionshared/src/main/java"
 vim.fn.mkdir(source, "p")
 
+local markers = { { "gradlew", "settings.gradle" }, ".git" }
+local selected_root
+local selected_bufnr
+local selected_markers
+project_env.workspace_root(markers, function(bufnr, actual_markers)
+	selected_bufnr = bufnr
+	selected_markers = actual_markers
+	return android
+end)(42, function(root_dir)
+	selected_root = root_dir
+end)
+assert_eq(selected_bufnr, 42, "workspace root buffer")
+assert_eq(selected_markers, markers, "workspace root markers")
+assert_eq(selected_root, android, "workspace root callback")
+
+local rootless_callback_called = false
+project_env.workspace_root(markers, function()
+	return nil
+end)(43, function()
+	rootless_callback_called = true
+end)
+assert_eq(rootless_callback_called, false, "rootless workspace skips activation")
+
 assert_eq(project_env.find_env_root(source), nil, "project without envrc")
 assert_eq(
 	project_env.resolve_command("/nix/store/jdtls/bin/jdtls", source, "/nix/store/direnv/bin/direnv", {

@@ -6,9 +6,10 @@
 
 -- LSP: jdtls (jdt-language-server)
 local project_env = require("lsp-project-env")
+local root_markers = vim.lsp.config.jdtls.root_markers
 vim.lsp.config.jdtls = {
 	cmd = project_env.wrap("jdtls"),
-	workspace_required = true,
+	root_dir = project_env.workspace_root(root_markers),
 }
 vim.lsp.enable("jdtls")
 
