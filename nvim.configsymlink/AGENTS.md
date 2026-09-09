@@ -52,11 +52,11 @@ complete, only that LSP waits for the timeout; Neovim's UI remains responsive.
 Regression coverage: `test_lsp_project_env.lua` and
 `bin/test_lsp_project_env_launcher.sh`.
 
-After removing `.git`, JDTLS collects the root markers inherited from
-`nvim-lspconfig` into one equal-priority group. Consequently, `vim.fs.root()`
-chooses the nearest Gradle, Maven, or Ant project instead of a more distant
-wrapper or repository root. The explicit `root_dir` function does not activate
-a client when restored or nonexistent Java buffers lack build markers.
+JDTLS preserves the root-marker priority groups inherited from
+`nvim-lspconfig` while removing `.git`. Multi-module wrappers and settings files
+therefore outrank nested module build files, while a repository root alone
+cannot start JDTLS. The explicit `root_dir` function does not activate a client
+when restored or nonexistent Java buffers lack build markers.
 
 A nested `.envrc` must evaluate its flake from the directory expected by that
 flake's shell hook. IgnitionX temporarily enters its repository root because

@@ -25,25 +25,20 @@ local markers = {
 	{ ".git" },
 	"pom.xml",
 }
-local java_markers = project_env.equal_root_markers(markers, { ".git" })
+local java_markers = project_env.filter_root_markers(markers, { ".git" })
 assert_eq(java_markers, {
-	{
-		"mvnw",
-		"gradlew",
-		"settings.gradle",
-		"pom.xml",
-	},
-}, "equal-priority workspace root markers")
+	{ "mvnw", "gradlew", "settings.gradle" },
+	"pom.xml",
+}, "filtered workspace root markers")
 assert_eq(markers, {
 	{ "mvnw", "gradlew", "settings.gradle", ".git" },
 	{ ".git" },
 	"pom.xml",
 }, "workspace root marker source remains unchanged")
 
-vim.fn.writefile({}, repo .. "/gradlew")
-vim.fn.writefile({}, android .. "/pom.xml")
-assert_eq(vim.fs.root(source, markers), repo, "priority groups select outer wrapper")
-assert_eq(vim.fs.root(source, java_markers), android, "equal-priority markers select nearest nested project")
+vim.fn.writefile({}, android .. "/settings.gradle")
+vim.fn.writefile({}, android .. "/ignitionshared/pom.xml")
+assert_eq(vim.fs.root(source, java_markers), android, "multi-module markers outrank nested module markers")
 
 local selected_root
 local selected_source
