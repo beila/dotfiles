@@ -8,7 +8,6 @@
 local project_env = require("lsp-project-env")
 vim.lsp.config.jdtls = {
 	cmd = project_env.wrap("jdtls"),
-	before_init = project_env.before_init_env_setting("JDK17_HOME", { "java", "import", "gradle", "java", "home" }),
 }
 vim.lsp.enable("jdtls")
 
