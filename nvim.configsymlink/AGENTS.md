@@ -54,11 +54,13 @@ command instead of blocking editor startup. Regression coverage:
 A nested `.envrc` must evaluate its flake from the directory expected by that
 flake's shell hook. IgnitionX temporarily enters its repository root because
 the hook derives build paths from `$PWD`. Its Android flake shell exports
-`JDK17_HOME`, then its `.envrc` maintains a project-relative `.direnv/jdk17`
-symlink. Gradle discovers that path through
-`org.gradle.java.installations.paths`, including when Buildship launches its
-daemon from JDTLS's Java 21 process. `org.gradle.java.installations.fromEnv`
-also covers Gradle processes launched directly from the flake shell.
+`JDK17_HOME`, then its `.envrc` exports an ignored project-local
+`GRADLE_USER_HOME`. That home contains a mode-600 `gradle.properties` with only
+the absolute Java 17 toolchain path, plus symlinks to the user's Gradle caches
+and wrapper downloads. Buildship's included builds therefore see the toolchain
+property before the root project exists, without copying user Gradle properties.
+The tracked `org.gradle.java.installations.fromEnv` setting also covers Gradle
+processes launched directly from the flake shell.
 
 ## Shared config
 
