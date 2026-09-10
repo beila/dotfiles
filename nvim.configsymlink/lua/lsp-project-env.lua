@@ -66,6 +66,15 @@ function M.resolve_command(executable, root_dir, direnv, launcher, options)
 	}
 end
 
+function M.with_root_settings(command, settings_for_root)
+	return function(dispatchers, config)
+		local settings = settings_for_root(config.root_dir)
+		config.init_options = vim.tbl_deep_extend("force", config.init_options or {}, { settings = settings })
+		config.settings = vim.tbl_deep_extend("force", config.settings or {}, settings)
+		return command(dispatchers, config)
+	end
+end
+
 function M.wrap(executable, options)
 	options = options or {}
 

@@ -141,5 +141,52 @@ assert_eq(started_options, {
 	detached = true,
 }, "wrapped RPC options")
 
+local configured
+local settings_command = project_env.with_root_settings(function(_, config)
+	configured = config
+	return "configured"
+end, function(root_dir)
+	return {
+		java = {
+			import = {
+				gradle = {
+					arguments = { "-Dpath=" .. root_dir .. "/.direnv/jdk17" },
+				},
+			},
+		},
+	}
+end)
+assert_eq(
+	settings_command({}, {
+		root_dir = android,
+		init_options = { existing = true },
+		settings = { java = { format = { enabled = false } } },
+	}),
+	"configured",
+	"root settings RPC result"
+)
+assert_eq(configured.init_options, {
+	existing = true,
+	settings = {
+		java = {
+			import = {
+				gradle = {
+					arguments = { "-Dpath=" .. android .. "/.direnv/jdk17" },
+				},
+			},
+		},
+	},
+}, "root settings initialization options")
+assert_eq(configured.settings, {
+	java = {
+		format = { enabled = false },
+		import = {
+			gradle = {
+				arguments = { "-Dpath=" .. android .. "/.direnv/jdk17" },
+			},
+		},
+	},
+}, "root settings merge")
+
 vim.fn.delete(base, "rf")
 print("PASS: LSP project environment selection")
