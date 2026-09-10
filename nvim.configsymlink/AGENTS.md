@@ -65,11 +65,11 @@ the hook derives build paths from `$PWD`. Its Android flake shell exports
 that Nix store path. `with_root_settings()` derives the link's absolute path
 from the detected JDTLS root and sends it as
 `org.gradle.java.installations.paths` in both initialization options and normal
-settings. Buildship therefore receives Java 17 before the first project import,
-including for included builds, while the user's normal Gradle home, init
-scripts, credentials, caches, and daemon registry remain available. The tracked
-`org.gradle.java.installations.fromEnv` setting also covers Gradle
-processes launched directly from the flake shell.
+settings as a Gradle daemon JVM argument. Buildship therefore receives Java 17
+before the first project import, including for included builds, while the user's
+normal Gradle home, init scripts, credentials, caches, and daemon registry
+remain available. The tracked `org.gradle.java.installations.fromEnv` setting
+also covers Gradle processes launched directly from the flake shell.
 
 ## Shared config
 

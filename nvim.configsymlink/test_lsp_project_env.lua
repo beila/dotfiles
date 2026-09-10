@@ -150,7 +150,7 @@ end, function(root_dir)
 		java = {
 			import = {
 				gradle = {
-					arguments = { "-Dpath=" .. root_dir .. "/.direnv/jdk17" },
+					jvmArguments = { "-Dpath=" .. root_dir .. "/.direnv/jdk17" },
 				},
 			},
 		},
@@ -171,7 +171,7 @@ assert_eq(configured.init_options, {
 		java = {
 			import = {
 				gradle = {
-					arguments = { "-Dpath=" .. android .. "/.direnv/jdk17" },
+					jvmArguments = { "-Dpath=" .. android .. "/.direnv/jdk17" },
 				},
 			},
 		},
@@ -182,7 +182,7 @@ assert_eq(configured.settings, {
 		format = { enabled = false },
 		import = {
 			gradle = {
-				arguments = { "-Dpath=" .. android .. "/.direnv/jdk17" },
+				jvmArguments = { "-Dpath=" .. android .. "/.direnv/jdk17" },
 			},
 		},
 	},

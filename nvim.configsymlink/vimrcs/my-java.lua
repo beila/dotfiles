@@ -12,7 +12,7 @@ local command = project_env.with_root_settings(project_env.wrap("jdtls"), functi
 		java = {
 			import = {
 				gradle = {
-					arguments = {
+					jvmArguments = {
 						"-Dorg.gradle.java.installations.paths=" .. vim.fs.joinpath(root_dir, ".direnv/jdk17"),
 					},
 				},
