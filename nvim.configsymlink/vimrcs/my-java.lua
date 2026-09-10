@@ -7,20 +7,22 @@
 -- LSP: jdtls (jdt-language-server)
 local project_env = require("lsp-project-env")
 local root_markers = project_env.filter_root_markers(vim.lsp.config.jdtls.root_markers, { ".git" })
-vim.lsp.config.jdtls = {
-	cmd = project_env.wrap("jdtls"),
-	root_dir = project_env.workspace_root(root_markers),
-	settings = {
-		java = {
-			import = {
-				gradle = {
-					arguments = {
-						"-Dorg.gradle.java.installations.fromEnv=JDK17_HOME",
-					},
+local settings = {
+	java = {
+		import = {
+			gradle = {
+				arguments = {
+					"-Dorg.gradle.java.installations.fromEnv=JDK17_HOME",
 				},
 			},
 		},
 	},
+}
+vim.lsp.config.jdtls = {
+	cmd = project_env.wrap("jdtls"),
+	root_dir = project_env.workspace_root(root_markers),
+	init_options = { settings = settings },
+	settings = settings,
 }
 vim.lsp.enable("jdtls")
 

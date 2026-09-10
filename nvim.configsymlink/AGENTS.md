@@ -61,11 +61,13 @@ when restored or nonexistent Java buffers lack build markers.
 A nested `.envrc` must evaluate its flake from the directory expected by that
 flake's shell hook. IgnitionX temporarily enters its repository root because
 the hook derives build paths from `$PWD`. Its Android flake shell exports
-`JDK17_HOME`. JDTLS passes
-`-Dorg.gradle.java.installations.fromEnv=JDK17_HOME` through Buildship's Gradle
-import arguments, so included builds discover Java 17 before the root project
-properties are available while retaining the user's normal Gradle home, init
-scripts, credentials, caches, and daemon registry. The tracked
+`JDK17_HOME`. JDTLS sends
+`-Dorg.gradle.java.installations.fromEnv=JDK17_HOME` in
+`initializationOptions.settings` so Buildship receives it before the first
+project import. The same table is retained as normal LSP settings for later
+configuration updates. Included builds therefore discover Java 17 while the
+user's normal Gradle home, init scripts, credentials, caches, and daemon
+registry remain available. The tracked
 `org.gradle.java.installations.fromEnv` setting also covers Gradle
 processes launched directly from the flake shell.
 
