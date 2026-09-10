@@ -10,6 +10,17 @@ local root_markers = project_env.filter_root_markers(vim.lsp.config.jdtls.root_m
 vim.lsp.config.jdtls = {
 	cmd = project_env.wrap("jdtls"),
 	root_dir = project_env.workspace_root(root_markers),
+	settings = {
+		java = {
+			import = {
+				gradle = {
+					arguments = {
+						"-Dorg.gradle.java.installations.fromEnv=JDK17_HOME",
+					},
+				},
+			},
+		},
+	},
 }
 vim.lsp.enable("jdtls")
 
