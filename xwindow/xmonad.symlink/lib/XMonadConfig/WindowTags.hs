@@ -2,6 +2,8 @@ module XMonadConfig.WindowTags (
     cleanStrayTags,
     refreshTagMetrics,
     refreshTagMetricsHook,
+    tagMetricValues,
+    titleTagRectangle,
     windowTags,
     withSessionPrefix,
 ) where
@@ -18,20 +20,20 @@ import Text.Read (readMaybe)
 import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonad.Util.ExtensibleState as XS
-import XMonad.Util.Font (Align (AlignCenter), XMonadFont, initXMF)
+import XMonad.Util.Font (Align (AlignLeft), XMonadFont, initXMF)
 import XMonad.Util.Run (runProcessWithInput)
 import XMonad.Util.XUtils (createNewWindow, deleteWindow, fi, paintAndWrite, showWindow)
 import qualified XMonadConfig.Constants as C
 
 data TagMetrics = TagMetrics
     { tmFont :: Int
-    , tmWidth :: Dimension
+    , tmDpi :: Int
     , tmHeight :: Dimension
     }
     deriving (Eq, Show, Read, Typeable)
 
 defaultTagMetrics :: TagMetrics
-defaultTagMetrics = TagMetrics 11 320 24
+defaultTagMetrics = TagMetrics 11 96 24
 
 newtype TagMetricsState = TagMetricsState TagMetrics
     deriving (Typeable)
@@ -50,16 +52,33 @@ readTagMetrics = do
             , not (null rest)
             ]
         number key fallback = fromMaybe fallback (lookup key resourceDatabase >>= readMaybe) :: Double
-        scale = max 1 (number "Xft.dpi" 96 / 96)
+        (font, dpi, height) =
+            tagMetricValues
+                (number "Xft.dpi" 96)
+                (number "xmonad.tag.fontSize" 11)
+                (number "xmonad.tag.height" 24)
     return
         TagMetrics
-            { tmFont = max 11 (round (number "xmonad.tag.fontSize" 11 * scale))
-            , tmWidth = max 240 (round (number "xmonad.tag.width" 320 * scale))
-            , tmHeight = max 24 (round (number "xmonad.tag.height" 24 * scale))
+            { tmFont = font
+            , tmDpi = dpi
+            , tmHeight = height
             }
 
+tagMetricValues :: Double -> Double -> Double -> (Int, Int, Dimension)
+tagMetricValues requestedDpi baseFont baseHeight =
+    ( max 11 (round baseFont)
+    , dpi
+    , max 24 (round (baseHeight * scale))
+    )
+  where
+    dpi = max 96 (round requestedDpi)
+    scale = fromIntegral dpi / 96
+
 refreshTagMetrics :: X ()
-refreshTagMetrics = io readTagMetrics >>= XS.put . TagMetricsState
+refreshTagMetrics = do
+    metrics <- io readTagMetrics
+    XS.put (TagMetricsState metrics)
+    windowTags
 
 refreshTagMetricsHook :: Event -> X All
 refreshTagMetricsHook PropertyEvent{ev_window = window, ev_atom = atom} = do
@@ -70,11 +89,24 @@ refreshTagMetricsHook PropertyEvent{ev_window = window, ev_atom = atom} = do
 refreshTagMetricsHook _ = return (All True)
 
 tagFontName :: TagMetrics -> String
-tagFontName metrics = "xft:JetBrainsMono Nerd Font:size=" ++ show (tmFont metrics)
+tagFontName metrics =
+    "xft:JetBrainsMono Nerd Font:size="
+        ++ show (tmFont metrics)
+        ++ ":dpi="
+        ++ show (tmDpi metrics)
 
-tagWidth, tagHeight :: TagMetrics -> Dimension
-tagWidth = tmWidth
+tagHeight :: TagMetrics -> Dimension
 tagHeight = tmHeight
+
+titleTagRectangle :: Position -> Position -> Dimension -> Dimension -> Rectangle
+titleTagRectangle clientX clientY clientWidth height =
+    Rectangle
+        (clientX + fi clientWidth - fi width)
+        clientY
+        width
+        height
+  where
+    width = max 1 (clientWidth `div` 2)
 
 data WindowTagEntry = WindowTagEntry
     { tagWindow :: Window
@@ -138,10 +170,9 @@ windowTags = withWindowSet $ \stackSet -> do
         titleName <- runQuery title client
         session <- windowPropertyUtf8 "_ZMX_SESSION" client
         let name = withSessionPrefix session titleName
-            width = min (tagWidth metrics) (fi (wa_width attributes))
             height = tagHeight metrics
-            x = fi (wa_x attributes) + fi (wa_width attributes) - fi width
-            rectangle = Rectangle x (fi (wa_y attributes)) width height
+            rectangle = titleTagRectangle (fi (wa_x attributes)) (fi (wa_y attributes)) (fi (wa_width attributes)) height
+            width = rect_width rectangle
             active = focused == Just client
         overlay <- case M.lookup client cache of
             Just entry
@@ -189,7 +220,7 @@ paintTag overlay font width height name active =
         (if active then C.focusAccentColor else C.inactiveTagBorderColor)
         (if active then C.focusAccentColor else C.inactiveTagTextColor)
         C.backgroundColor
-        [AlignCenter]
+        [AlignLeft]
         [name]
 
 cleanStrayTags :: X ()

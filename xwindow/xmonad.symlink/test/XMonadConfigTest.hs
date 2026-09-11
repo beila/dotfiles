@@ -56,6 +56,16 @@ tests =
         assertEqual "title" "[work] shell" (WindowTags.withSessionPrefix (Just "work") "[work] shell")
     , Test "session prefix handles empty title" $
         assertEqual "title" "[work]" (WindowTags.withSessionPrefix (Just "work") "")
+    , Test "window tag occupies the right half of its client" $
+        assertEqual
+            "rectangle"
+            (Rectangle 501 200 400 24)
+            (WindowTags.titleTagRectangle 100 200 801 24)
+    , Test "window tag applies DPI exactly once" $
+        assertEqual
+            "metrics"
+            (11, 192, 48)
+            (WindowTags.tagMetricValues 192 11 24)
     , Test "landscape left scratchpad rectangle" $
         assertEqual
             "rectangle"
