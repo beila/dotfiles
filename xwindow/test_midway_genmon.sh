@@ -13,11 +13,22 @@ write_cookie() {
         "$expiry" "$name" > "$path"
 }
 
-write_cookie "$TMP/valid" 4600 __Host-session
+write_cookie "$TMP/valid" 33400 __Host-session
 valid=$(MIDWAY_COOKIE_FILE="$TMP/valid" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $valid == *"#50fa7b"* ]]
 [[ $valid == *"Midway session valid"* ]]
-[[ $valid == *"Remaining: 1h 0m"* ]]
+[[ $valid == *"Remaining: 9h 0m"* ]]
+
+write_cookie "$TMP/eight-hours" 29800
+eight_hours=$(MIDWAY_COOKIE_FILE="$TMP/eight-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $eight_hours == *"#50fa7b"* ]]
+[[ $eight_hours == *"Remaining: 8h 0m"* ]]
+
+write_cookie "$TMP/expiring" 29799
+expiring=$(MIDWAY_COOKIE_FILE="$TMP/expiring" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $expiring == *"#F8BB3D"* ]]
+[[ $expiring == *"Midway session valid"* ]]
+[[ $expiring == *"Remaining: 7h 59m"* ]]
 
 write_cookie "$TMP/expired" 999
 expired=$(MIDWAY_COOKIE_FILE="$TMP/expired" MIDWAY_NOW=1000 bash "$MIDWAY")
