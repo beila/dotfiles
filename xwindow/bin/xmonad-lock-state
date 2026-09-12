@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -u
+
+property=_XMONAD_SCREEN_LOCKED
+gdbus_cmd=${XMONAD_LOCK_STATE_GDBUS:-gdbus}
+xprop_cmd=${XMONAD_LOCK_STATE_XPROP:-xprop}
+lock_file=${XMONAD_LOCK_STATE_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/xmonad-lock-state.lock}
+
+state_from_text() {
+    case $1 in
+        *"(true,)"*|*"boolean true"*) printf '1\n' ;;
+        *"(false,)"*|*"boolean false"*) printf '0\n' ;;
+        *) return 1 ;;
+    esac
+}
+
+publish_state() {
+    "$xprop_cmd" -root -f "$property" 32c -set "$property" "$1"
+}
+
+sync_state() {
+    local reply state
+    reply=$(
+        "$gdbus_cmd" call \
+            --session \
+            --dest org.gnome.ScreenSaver \
+            --object-path /org/gnome/ScreenSaver \
+            --method org.gnome.ScreenSaver.GetActive 2>/dev/null
+    ) || return
+    state=$(state_from_text "$reply") || return
+    publish_state "$state"
+}
+
+monitor_once() {
+    local line monitor_fd monitor_pid state
+
+    coproc SCREEN_LOCK_MONITOR {
+        "$gdbus_cmd" monitor \
+            --session \
+            --dest org.gnome.ScreenSaver \
+            --object-path /org/gnome/ScreenSaver 2>/dev/null
+    }
+    monitor_fd=${SCREEN_LOCK_MONITOR[0]}
+    monitor_pid=$SCREEN_LOCK_MONITOR_PID
+
+    # Query after the monitor is connected so no state transition is lost.
+    sync_state
+
+    while IFS= read -r -u "$monitor_fd" line; do
+        [[ $line == *"org.gnome.ScreenSaver.ActiveChanged"* ]] || continue
+        state=$(state_from_text "$line") || continue
+        publish_state "$state"
+    done
+
+    wait "$monitor_pid" 2>/dev/null || true
+}
+
+main() {
+    exec 9>"$lock_file"
+    flock -n 9 || return 0
+
+    if [[ ${1:-} == --once ]]; then
+        sync_state
+        return
+    fi
+    if (($#)); then
+        printf 'usage: %s [--once]\n' "${0##*/}" >&2
+        return 2
+    fi
+
+    while true; do
+        monitor_once
+        sleep 1
+    done
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    main "$@"
+fi

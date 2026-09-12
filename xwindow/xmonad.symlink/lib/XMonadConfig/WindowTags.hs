@@ -1,9 +1,10 @@
 module XMonadConfig.WindowTags (
     cleanStrayTags,
+    lockPropertyActive,
     refreshTagMetrics,
-    refreshTagMetricsHook,
     tagMetricValues,
     titleTagRectangle,
+    windowTagEventHook,
     windowTags,
     withSessionPrefix,
 ) where
@@ -80,13 +81,17 @@ refreshTagMetrics = do
     XS.put (TagMetricsState metrics)
     windowTags
 
-refreshTagMetricsHook :: Event -> X All
-refreshTagMetricsHook PropertyEvent{ev_window = window, ev_atom = atom} = do
+windowTagEventHook :: Event -> X All
+windowTagEventHook PropertyEvent{ev_window = window, ev_atom = atom} = do
     root <- asks theRoot
     resourceManager <- getAtom "RESOURCE_MANAGER"
-    when (window == root && atom == resourceManager) refreshTagMetrics
+    lockState <- getAtom "_XMONAD_SCREEN_LOCKED"
+    when (window == root) $
+        if atom == resourceManager
+            then refreshTagMetrics
+            else when (atom == lockState) windowTags
     return (All True)
-refreshTagMetricsHook _ = return (All True)
+windowTagEventHook _ = return (All True)
 
 tagFontName :: TagMetrics -> String
 tagFontName metrics =
@@ -157,8 +162,29 @@ withSessionPrefix (Just session) name
   where
     prefix = "[" ++ session ++ "]"
 
+lockPropertyActive :: (Eq a, Num a) => Maybe [a] -> Bool
+lockPropertyActive = maybe False (elem 1)
+
+screenLocked :: X Bool
+screenLocked = do
+    root <- asks theRoot
+    atom <- getAtom "_XMONAD_SCREEN_LOCKED"
+    withDisplay $ \display ->
+        lockPropertyActive <$> io (getWindowProperty32 display atom root)
+
+clearWindowTags :: X ()
+clearWindowTags = do
+    WindowTags cache <- XS.get
+    forM_ (M.elems cache) $ deleteWindow . tagWindow
+    XS.put (WindowTags M.empty)
+
 windowTags :: X ()
-windowTags = withWindowSet $ \stackSet -> do
+windowTags = do
+    locked <- screenLocked
+    if locked then clearWindowTags else renderWindowTags
+
+renderWindowTags :: X ()
+renderWindowTags = withWindowSet $ \stackSet -> do
     TagMetricsState metrics <- XS.get
     let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current stackSet : W.visible stackSet)
         focused = W.peek stackSet

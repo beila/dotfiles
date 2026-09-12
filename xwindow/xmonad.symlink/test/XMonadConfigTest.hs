@@ -66,6 +66,12 @@ tests =
             "metrics"
             (11, 192, 48)
             (WindowTags.tagMetricValues 192 11 24)
+    , Test "missing lock property is unlocked" $
+        assertEqual "locked" False (WindowTags.lockPropertyActive (Nothing :: Maybe [Int]))
+    , Test "zero lock property is unlocked" $
+        assertEqual "locked" False (WindowTags.lockPropertyActive (Just [0 :: Int]))
+    , Test "nonzero lock property is locked" $
+        assertEqual "locked" True (WindowTags.lockPropertyActive (Just [1 :: Int]))
     , Test "landscape left scratchpad rectangle" $
         assertEqual
             "rectangle"
