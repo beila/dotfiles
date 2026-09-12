@@ -35,9 +35,9 @@ The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango 
 
 ## network-rclone-mount.nix
 
-Optional network-scoped rclone mount controlled by `dotfiles.networkRcloneMount`. `network-rclone-mount-watch.service` starts with the graphical session and runs `bin/network-unit-watch`, which immediately checks active NetworkManager connection profiles and then listens for D-Bus property changes. It starts `network-rclone-mount.service` only while the configured profile is active and stops it when the profile disappears or NetworkManager state cannot be read.
+Optional network-scoped rclone mount controlled by `dotfiles.networkRcloneMount`. `network-rclone-mount-watch.service` starts with the graphical session and runs `bin/network-unit-watch`, which immediately checks active NetworkManager connection profiles and then listens for D-Bus property changes. It starts `network-rclone-mount.service` only while the configured profile is active and stops it when the profile disappears or NetworkManager state cannot be read. The watcher uses Nix Bash but host `/usr/bin` clients for NetworkManager, D-Bus, and systemd so their versions match the running host daemons.
 
-The mount runs in the foreground under systemd, creates its mount point before startup, receives `SIGINT` for a clean FUSE unmount, and restarts after failures only while the watcher keeps the unit requested. The module is generic and contains no private network values; `private-dotfiles/hosts/taygeta.nix` supplies the home profile, Synology remote, and mount point.
+The mount runs in the foreground under systemd, creates its mount point before startup, receives `SIGINT` for a clean FUSE unmount, and restarts after failures only while the watcher keeps the unit requested. Its service PATH selects the host `/usr/bin/fusermount3`; the Nix-store helper cannot resolve this LDAP user and fails with `could not determine username`. The module is generic and contains no private network values; `private-dotfiles/hosts/taygeta.nix` supplies the home profile, Synology remote, and mount point.
 
 ## gnome.nix
 

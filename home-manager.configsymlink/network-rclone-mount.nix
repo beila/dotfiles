@@ -76,7 +76,7 @@ in
         ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p ${lib.escapeShellArg cfg.mountPoint}";
         ExecStart = mountCommand;
         Environment = [
-          "PATH=${lib.makeBinPath [ pkgs.fuse3 pkgs.coreutils ]}:/usr/bin:/bin"
+          "PATH=/usr/bin:/bin"
         ];
         KillSignal = "SIGINT";
         TimeoutStopSec = 20;
@@ -95,12 +95,7 @@ in
         Type = "simple";
         ExecStart = watchCommand;
         Environment = [
-          "PATH=${lib.makeBinPath [
-            pkgs.coreutils
-            pkgs.glib
-            pkgs.networkmanager
-            pkgs.systemd
-          ]}"
+          "PATH=${pkgs.bash}/bin:/usr/bin:/bin"
         ];
         Restart = "always";
         RestartSec = 3;
