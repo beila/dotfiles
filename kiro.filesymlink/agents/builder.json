@@ -42,13 +42,13 @@
     "file://README.md",
     "file://AGENTS.md",
     "file://.kiro/steering/**/*.md",
-    "file://$USER_HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/context/amazon-builder/**/*.md"
+    "file://$HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/context/amazon-builder/**/*.md"
   ],
   "useLegacyMcpJson": false,
   "mcpServers": {
     "builder-mcp": {
       "command": "builder-mcp",
-      "args": ["--skill-paths", "$USER_HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/skills", "--skill-name-filter", "*"],
+      "args": ["--skill-paths", "$HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/skills", "--skill-name-filter", "*"],
       "env": {
         "TOOL_PERSONALIZATION_ENABLED": "true",
         "TOOL_PERSONALIZATION_ROLLOUT_PERCENTAGE": "100"

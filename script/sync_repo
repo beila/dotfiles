@@ -9,9 +9,9 @@ SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # Exported: the `jj fix` generalize-paths tool runs as `sh -c
 # '"$DOTFILES_ROOT/script/bin/generalize-paths"'` and reads this from the
 # ENVIRONMENT. Scheduled sync (sync-repos.service) runs with a systemd env
-# that carries neither DOTFILES_ROOT nor USER_HOME, so without the export the
-# tool resolves to "/script/bin/generalize-paths" → exit 127, jj fix treats it
-# as a no-op, and home paths leak into pushed commits unscrubbed.
+# that does not carry DOTFILES_ROOT, so without the export the tool resolves
+# to "/script/bin/generalize-paths" → exit 127, jj fix treats it as a no-op,
+# and home paths leak into pushed commits unscrubbed.
 export DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
 GIT=${GIT_EXECUTABLE:-git}
 MACHINE_NAME=$(hostnamectl --pretty 2>/dev/null | grep -v '\.')

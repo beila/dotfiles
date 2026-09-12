@@ -1,34 +1,28 @@
 #!/usr/bin/env bash
-# generalize-paths — stream filter that replaces this machine's $HOME
-# literal with the placeholder string `$USER_HOME`. Pure stdin → stdout
-# filter, no file I/O of its own. Exact inverse of `localize-paths`.
+# generalize-paths — stream filter that replaces this machine's absolute
+# home-directory path with the standard placeholder string `$HOME`.
+# Pure stdin → stdout filter, with no file I/O of its own.
 #
 # Used by `jj fix` (configured in jj.configsymlink/config.toml) to scrub
 # committed file content so it's portable across machines with different
-# home directories (e.g. /home/ANT.AMAZON.COM/hojin vs /Users/hojin).
+# home directories (e.g. $HOME vs /Users/hojin).
 #
-# Why $USER_HOME and not $HOME as the placeholder:
-#   Many tracked shell scripts contain literal `$HOME` that's meant to be
-#   expanded by the shell at run time. Using `$HOME` as the placeholder
-#   would make `localize-paths` expand those at bootstrap, hard-coding
-#   them to one machine's home. `$USER_HOME` is exclusively a
-#   placeholder token — set as an env var (USER_HOME=$HOME) by
-#   home-manager and zshenv, so apps that DO interpolate env vars resolve
-#   it correctly even before bootstrap localization runs.
+# `$HOME` is deliberately left portable in the working tree. There is no
+# reverse bootstrap filter: expanding it globally would also hard-code
+# legitimate runtime `$HOME` references in scripts and configuration.
+# Consumers that require an absolute path must be generated separately or
+# excluded from this jj fix tool.
 #
 # Mechanism notes:
+#   - Input is buffered in a temporary file so `file` can identify binary
+#     content. Only ASCII and UTF-8 text are rewritten; everything else is
+#     emitted byte-for-byte unchanged.
+#   - The first sed expression normalizes the retired `$HOME`
+#     placeholder so old commits and generated histories converge.
 #   - $HOME is expanded by the calling shell at exec time. jj does NOT
 #     expand env vars in TOML config values, so the jj fix `command =`
 #     entry runs through `sh -c` to make HOME resolve on each machine.
-#   - The `\$` escapes prevent sed from interpreting `$USER_HOME` as
-#     an anchor or backreference.
-#
-# Why this lives where it does:
-#   jj fix is jj's built-in commit-content rewrite. There is no jj
-#   equivalent of git's smudge filter (jj treats files as raw bytes and
-#   ignores .gitattributes filter=...). The expand direction therefore
-#   needs a separate one-shot script (`localize-paths`) called from
-#   bootstrap once per machine.
+#   - `\$HOME` keeps the replacement literal through shell parsing.
 
 set -eu
 
@@ -37,4 +31,20 @@ if [[ -z "${HOME:-}" ]]; then
   exit 2
 fi
 
-exec sed "s|$HOME|\$USER_HOME|g"
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT HUP INT TERM
+cat > "$tmp"
+
+encoding=$(file -b --mime-encoding "$tmp")
+case "$encoding" in
+  us-ascii|utf-8) ;;
+  *)
+    cat "$tmp"
+    exit 0
+    ;;
+esac
+
+sed \
+  -e 's|\$HOME|$HOME|g' \
+  -e "s|$HOME|\$HOME|g" \
+  "$tmp"

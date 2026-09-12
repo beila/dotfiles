@@ -42,6 +42,26 @@ in
     GTK_PATH=${pkgs.ibus}/lib/gtk-3.0:${pkgs.ibus}/lib/gtk-4.0
   '';
 
+  # GTK does not expand environment variables in bookmarks, so generate the
+  # file from Home Manager's absolute home directory instead of running it
+  # through the portable-path jj fix filter.
+  xdg.configFile."gtk-3.0/bookmarks".text = ''
+    file://${config.home.homeDirectory}/hjdocs
+    file://${config.home.homeDirectory}/pp/insuk-www
+    file://${config.home.homeDirectory}/Documents
+    file://${config.home.homeDirectory}/Music
+    file://${config.home.homeDirectory}/Pictures
+    file://${config.home.homeDirectory}/Videos
+    file://${config.home.homeDirectory}/Downloads
+  '';
+
+  xdg.configFile."gtk-3.0/gtk.css".text = ''
+    tooltip {
+        font-family: "JetBrainsMono Nerd Font";
+        font-size: 14px;
+    }
+  '';
+
   dconf.settings = {
     # Single source: ibus-hangul. Hangul/English toggle happens *inside* the
     # engine via its `switch-keys`, not via IBus's source-switching hotkey.

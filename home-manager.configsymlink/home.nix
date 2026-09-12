@@ -278,12 +278,6 @@ in
     # cron jobs, and anything else that doesn't source zshenv. jj fix
     # invocations and bootstrap rely on this.
     DOTFILES_ROOT = "$HOME/.dotfiles";
-    # USER_HOME — placeholder for $HOME used by generalize-paths /
-    # localize-paths (script/bin/). Setting it as an env var means apps
-    # that interpolate env vars resolve `$USER_HOME` at runtime even
-    # when the file hasn't been localized yet (e.g. fresh clone before
-    # bootstrap, files outside the localize walk).
-    USER_HOME = "$HOME";
     # LOGRUN_TUI_SKIPLIST — space-separated list of curses-style apps
     # whose terminal handling breaks under any stdout pipe. The
     # zz-logrun-auto.zsh widget skips these so they run untouched
