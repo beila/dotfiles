@@ -364,6 +364,9 @@ check "picker omits obsolete preset sessions" "" "$(rg -N '^work1' "$FZF_INPUT" 
 preview_cycle='--bind=ctrl-/:change-preview-window(down,50%|hidden|)'
 check "picker cycles horizontal, vertical, and hidden previews" "$preview_cycle" \
     "$(rg -N -Fx -- "$preview_cycle" "$FZF_ARGS" || true)"
+check "picker selects the first result whenever the fuzzy query changes" \
+    "--bind=change:first" \
+    "$(rg -N -Fx -- "--bind=change:first" "$FZF_ARGS" || true)"
 check "picker leaves mouse dragging available for terminal text selection" "--no-mouse" \
     "$(rg -N -Fx -- "--no-mouse" "$FZF_ARGS" || true)"
 initial_expect_arg="--expect=ctrl-n,ctrl-d,esc"
@@ -442,6 +445,10 @@ check "picker marks the last session with a compact rank" "yes" \
     "$(rg -q '^second ❯ 🥇' "$FZF_INPUT" && printf yes || printf no)"
 check "picker marks the previous session with a compact rank" "yes" \
     "$(rg -q '^first ❯ 🥈' "$FZF_INPUT" && printf yes || printf no)"
+check "picker promotes the last session above alphabetical results" "second" \
+    "$(sed -n '1s/[[:space:]].*//p' "$FZF_INPUT")"
+check "picker restores the promoted session at the top cursor position" "load:pos(1)" \
+    "$(rg -N '^load:pos' "$FZF_ARGS" || true)"
 
 printf 'only\n' > "$FAKE_ROOT/sessions"
 single_responses="$TMP/fzf-single-responses"

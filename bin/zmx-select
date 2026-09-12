@@ -20,8 +20,8 @@
 # Until a prior session exists, it reattaches the session just detached from.
 # Esc returns to the session just detached from; Ctrl-C exits the picker.
 #
-# Running and saved session names are sorted together. The first argument seeds
-# the fzf query.
+# The session just detached from is listed first; all other running and saved
+# session names are sorted together. The first argument seeds the fzf query.
 #
 # Adapted from https://github.com/neurosnap/zmx (session picker section).
 
@@ -274,8 +274,9 @@ build_display() {
     display=""
     order=()
 
-    # Sorted, because associative-array key order is a hash order — without this
-    # the top of the list would reshuffle between invocations.
+    # Keep the session just detached from at row 1. fzf restores its cursor
+    # there, so typing a new fuzzy query selects that query's top result instead
+    # of retaining a lower cursor position from the alphabetical list.
     for name in "${!running[@]}"; do
         sessions["$name"]=1
     done
@@ -283,6 +284,15 @@ build_display() {
         sessions["$name"]=1
     done
     if ((${#sessions[@]})); then
+        if [[ -n "$last_session" && -n "${sessions[$last_session]:-}" ]]; then
+            format_row "$last_session"
+            display+="$row_text"$'\n'
+            order+=("$last_session")
+            unset 'sessions[$last_session]'
+        fi
+
+        # Associative-array key order is hash order, so sort the remainder to
+        # keep every other row stable between picker invocations.
         while IFS= read -r name; do
             [[ -n "$name" ]] || continue
             format_row "$name"
@@ -354,6 +364,7 @@ while true; do
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \
+        --bind="change:first" \
         "${start_bind[@]}" \
         --query="$query") || rc=$?
 
