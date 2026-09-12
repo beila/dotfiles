@@ -5,6 +5,8 @@ set -eu
 DOTFILES_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 FILTER="$DOTFILES_ROOT/script/bin/generalize-paths"
 TEST_HOME="/home/example"
+LEGACY_PLACEHOLDER='$'
+LEGACY_PLACEHOLDER="${LEGACY_PLACEHOLDER}USER_HOME"
 
 check() {
     local name=$1 input=$2 expected=$3 actual
@@ -23,7 +25,7 @@ check "existing placeholder stays unchanged" \
     '$HOME/project' \
     '$HOME/project'
 check "legacy placeholder is normalized" \
-    '$HOME/project' \
+    "$LEGACY_PLACEHOLDER/project" \
     '$HOME/project'
 check "unrelated absolute path stays unchanged" \
     '/Users/other/project' \
@@ -47,3 +49,17 @@ if ! cmp -s "$TMP_TEST/input" "$TMP_TEST/output"; then
     exit 1
 fi
 printf 'PASS: binary input passes through unchanged\n'
+
+GTK_OUTPUT="$TMP_TEST/bookmarks"
+HOME="$TEST_HOME" "$DOTFILES_ROOT/script/bin/generate-gtk-bookmarks" "$GTK_OUTPUT"
+UNRESOLVED_PATTERN='@HOME@|\$HOME|\$'
+UNRESOLVED_PATTERN="${UNRESOLVED_PATTERN}USER_HOME"
+if rg -q "$UNRESOLVED_PATTERN" "$GTK_OUTPUT"; then
+    printf 'FAIL: generated GTK bookmarks contain an unresolved placeholder\n' >&2
+    exit 1
+fi
+if ! rg -q -F "file://$TEST_HOME/hjdocs" "$GTK_OUTPUT"; then
+    printf 'FAIL: generated GTK bookmarks do not contain the absolute test home\n' >&2
+    exit 1
+fi
+printf 'PASS: GTK bookmarks use the absolute runtime home\n'

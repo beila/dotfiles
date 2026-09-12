@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # generalize-paths — stream filter that replaces this machine's absolute
 # home-directory path with the standard placeholder string `$HOME`.
-# Pure stdin → stdout filter, with no file I/O of its own.
+# Standard-input-to-standard-output filter with no tracked-file edits.
 #
 # Used by `jj fix` (configured in jj.configsymlink/config.toml) to scrub
 # committed file content so it's portable across machines with different
-# home directories (e.g. $HOME vs /Users/hojin).
+# home directories (for example, an LDAP home versus a macOS home).
 #
 # `$HOME` is deliberately left portable in the working tree. There is no
 # reverse bootstrap filter: expanding it globally would also hard-code
@@ -17,7 +17,7 @@
 #   - Input is buffered in a temporary file so `file` can identify binary
 #     content. Only ASCII and UTF-8 text are rewritten; everything else is
 #     emitted byte-for-byte unchanged.
-#   - The first sed expression normalizes the retired `$HOME`
+#   - The first sed expression normalizes the retired USER_HOME
 #     placeholder so old commits and generated histories converge.
 #   - $HOME is expanded by the calling shell at exec time. jj does NOT
 #     expand env vars in TOML config values, so the jj fix `command =`
@@ -44,7 +44,10 @@ case "$encoding" in
     ;;
 esac
 
+legacy_placeholder='$'
+legacy_placeholder="${legacy_placeholder}USER_HOME"
+
 sed \
-  -e 's|\$HOME|$HOME|g' \
+  -e "s|\\$legacy_placeholder|\$HOME|g" \
   -e "s|$HOME|\$HOME|g" \
   "$tmp"

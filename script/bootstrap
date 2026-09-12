@@ -202,6 +202,11 @@ setup_pbcopy_from_ssh () {
   echo '    RemoteForward 2224 127.0.0.1:2224'
 }
 
+generate_gtk_bookmarks () {
+  "$DOTFILES_ROOT/script/bin/generate-gtk-bookmarks"
+  success 'generated GTK bookmarks'
+}
+
 setup_gitconfig
 #git submodule update --init --remote
 
@@ -232,6 +237,7 @@ clone_private_dotfiles
 #done
 
 install_dotfiles
+generate_gtk_bookmarks
 #setup_dotfiles_sync    # replaced with systemd servie set up by home manager
 setup_pbcopy_from_ssh
 

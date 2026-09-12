@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+set -eu
+
+if [[ -z "${HOME:-}" ]]; then
+  echo "generate-gtk-bookmarks: \$HOME is unset" >&2
+  exit 2
+fi
+
+DOTFILES_ROOT=${DOTFILES_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}
+template="$DOTFILES_ROOT/gtk-3.0.configsymlink/bookmarks.template"
+target=${1:-"$DOTFILES_ROOT/gtk-3.0.configsymlink/bookmarks"}
+tmp=$(mktemp "${target}.XXXXXX")
+trap 'rm -f "$tmp"' EXIT HUP INT TERM
+
+sed "s|@HOME@|$HOME|g" "$template" > "$tmp"
+mv "$tmp" "$target"
