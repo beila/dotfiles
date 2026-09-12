@@ -33,6 +33,12 @@ Defines two inline derivations consumed by OSDs:
 
 The `hangul-osd` `writeShellScriptBin` wrapper exports `GI_TYPELIB_PATH` (Pango / PangoCairo / cairo / IBus / harfbuzz typelibs from the nix store + the gobject-introspection wrapper for cairo's `cairo-1.0.typelib`, which Pango pulls in transitively) and `HANGUL_OSD_FONT_FILE` before exec'ing the inner `writePython3Bin` impl. Both env vars are required — see `xwindow/AGENTS.md` for the Pango/fontconfig rationale. The `hangul-osd` and `zoom-osd` systemd units use `${config.home.path}/bin/...`, not the stable profile symlink, so a changed embedded Python derivation changes `ExecStart` and Home Manager restarts the daemon.
 
+## network-rclone-mount.nix
+
+Optional network-scoped rclone mount controlled by `dotfiles.networkRcloneMount`. `network-rclone-mount-watch.service` starts with the graphical session and runs `bin/network-unit-watch`, which immediately checks active NetworkManager connection profiles and then listens for D-Bus property changes. It starts `network-rclone-mount.service` only while the configured profile is active and stops it when the profile disappears or NetworkManager state cannot be read.
+
+The mount runs in the foreground under systemd, creates its mount point before startup, receives `SIGINT` for a clean FUSE unmount, and restarts after failures only while the watcher keeps the unit requested. The module is generic and contains no private network values; `private-dotfiles/hosts/taygeta.nix` supplies the home profile, Synology remote, and mount point.
+
 ## gnome.nix
 
 - dconf settings (key repeat, mouse speed, cursor size 64, Korean Sebeolsik 390, disable gnome-panel/desktop).

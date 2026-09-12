@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Keep a user systemd unit aligned with an exact active NetworkManager
+# connection name.
+
+set -uo pipefail
+
+if [[ ${1:-} == "--once" ]]; then
+    once=true
+    shift
+else
+    once=false
+fi
+
+if (($# != 2)); then
+    printf 'usage: network-unit-watch [--once] CONNECTION UNIT\n' >&2
+    exit 2
+fi
+
+connection=$1
+unit=$2
+retry_sec=${NETWORK_UNIT_WATCH_RETRY_SEC:-3}
+
+connection_active() {
+    local active name
+
+    active=$(nmcli --terse --escape no --fields NAME connection show --active 2>/dev/null) \
+        || return 1
+    while IFS= read -r name; do
+        [[ "$name" == "$connection" ]] && return 0
+    done <<<"$active"
+    return 1
+}
+
+unit_active() {
+    systemctl --user is-active --quiet "$unit"
+}
+
+reconcile() {
+    if connection_active; then
+        if ! unit_active; then
+            printf 'network-unit-watch: starting %s on %s\n' "$unit" "$connection"
+            systemctl --user start "$unit"
+        fi
+    elif unit_active; then
+        printf 'network-unit-watch: stopping %s; %s is inactive\n' "$unit" "$connection"
+        systemctl --user stop "$unit"
+    fi
+}
+
+watch_events() {
+    gdbus monitor \
+        --system \
+        --dest org.freedesktop.NetworkManager \
+        --object-path /org/freedesktop/NetworkManager 2>/dev/null |
+        while IFS= read -r event; do
+            case "$event" in
+                *PropertiesChanged* | *StateChanged*)
+                    reconcile || true
+                    ;;
+            esac
+        done
+}
+
+reconcile || true
+[[ "$once" == true ]] && exit 0
+
+while true; do
+    watch_events || true
+    sleep "$retry_sec"
+    reconcile || true
+done

@@ -102,6 +102,12 @@ Env: `VPN_PROCESS_NAME` (default `openconnect`), `VPN_PROCESS_PID` (preferred wh
 
 No NOPASSWD sudoers entry needed: one prompt per VPN session (the client's own), watcher inherits the cache.
 
+## Network-scoped user unit watcher
+
+`network-unit-watch [--once] CONNECTION UNIT` keeps a user systemd unit aligned with an exact active NetworkManager connection profile. It reconciles immediately at startup, monitors `org.freedesktop.NetworkManager` property changes through `gdbus`, and reconnects the monitor after D-Bus interruptions. An unavailable NetworkManager state is treated as the connection being inactive, so a network-scoped mount is stopped rather than left reachable on an unknown network. Matching is exact, not prefix-based.
+
+`network-rclone-mount.nix` uses it to control `network-rclone-mount.service`. The mount remains a foreground `rclone mount` process owned by systemd; changing away from the configured network stops the unit and rclone cleanly unmounts on `SIGINT`. The public module contains no SSID or remote details. Those values are enabled only in the private `taygeta` host module. Test: `bash bin/test_network_unit_watch.sh`.
+
 ## Zellij session cycler
 
 `zellij-cycle` — wraps `zellij attach --create` in a loop. On detach, cycles to the next active session. Supports session names with spaces. Numeric argument (e.g. `1`, `2`) attaches to the Nth existing session instead of a named one. Xmonad scratchpads now launch `zmx-select` instead (see `xwindow/AGENTS.md`).
