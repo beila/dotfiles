@@ -4,6 +4,7 @@ set -u
 cookie_file=${MIDWAY_COOKIE_FILE:-${HOME:-}/.midway/cookie}
 now=${MIDWAY_NOW:-$(date +%s)}
 warning_seconds=$((8 * 60 * 60))
+critical_seconds=$((2 * 60 * 60))
 
 case $now in
     ''|*[!0-9]*) now=$(date +%s) ;;
@@ -38,7 +39,9 @@ format_remaining() {
 
 if ((expiry > now)); then
     remaining=$((expiry - now))
-    if ((remaining < warning_seconds)); then
+    if ((remaining < critical_seconds)); then
+        color='#ff5555'
+    elif ((remaining < warning_seconds)); then
         color='#F8BB3D'
     else
         color='#50fa7b'

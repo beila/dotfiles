@@ -30,6 +30,18 @@ expiring=$(MIDWAY_COOKIE_FILE="$TMP/expiring" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $expiring == *"Midway session valid"* ]]
 [[ $expiring == *"Remaining: 7h 59m"* ]]
 
+write_cookie "$TMP/two-hours" 8200
+two_hours=$(MIDWAY_COOKIE_FILE="$TMP/two-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $two_hours == *"#F8BB3D"* ]]
+[[ $two_hours == *"Midway session valid"* ]]
+[[ $two_hours == *"Remaining: 2h 0m"* ]]
+
+write_cookie "$TMP/critical" 8199
+critical=$(MIDWAY_COOKIE_FILE="$TMP/critical" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $critical == *"#ff5555"* ]]
+[[ $critical == *"Midway session valid"* ]]
+[[ $critical == *"Remaining: 1h 59m"* ]]
+
 write_cookie "$TMP/expired" 999
 expired=$(MIDWAY_COOKIE_FILE="$TMP/expired" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $expired == *"#ff5555"* ]]
