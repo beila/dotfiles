@@ -24,7 +24,7 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 
 `xmonad.symlink/lib/XMonadConfig/WindowTags.hs` owns title-tag metrics, cache state, painting, refresh events, and restart cleanup. Its cache uses the `WindowTagEntry` record rather than an opaque tuple; pure session-title composition remains unit tested.
 
-`xmonad.symlink/lib/XMonadConfig/Hooks.hs` owns focused-window and OSD restacking, Zoom fullscreen correction, offscreen rescue, dynamic Zoom-video following, and EWMH fullscreen advertisement. `xmonad.hs` keeps startup, event, and log hook order explicit.
+`xmonad.symlink/lib/XMonadConfig/Hooks.hs` owns focused-window and OSD restacking, Zoom fullscreen correction, late-property floating for the Zoom join popup, offscreen rescue, dynamic Zoom-video following, and EWMH fullscreen advertisement. `xmonad.hs` keeps startup, event, and log hook order explicit.
 
 ## HLS
 
@@ -62,6 +62,7 @@ These application-specific rules live in `xmonad.symlink/lib/XMonadConfig/Window
 
 - `rescueOffscreenHook` — catches floating windows that move themselves offscreen (e.g. Zoom bug) via `ConfigureEvent` and snaps them back.
 - `stripZoomFullscreenHook` — forces Zoom "Meeting" windows to stay tiled. Zoom renames the window to "Meeting" _after_ ManageHook runs, so the event hook watches `PropertyNotify` on `_NET_WM_STATE`, `_NET_WM_NAME`, `WM_NAME`; strips `_NET_WM_STATE_FULLSCREEN` and re-sinks via `W.sink`. Paired with `setEwmhFullscreenHooks`: fullscreen hook returns `idHook` for zoom+Meeting (default `doFullFloat` otherwise).
+- `floatZoomJoinPopupHook` — floats and shifts the small `Zoom Workplace` window containing the Join button to `8:meeting` when its title and topmost-state properties arrive after ManageHook. The shared `zoomJoinPopupQuery` also handles clients whose final properties are ready before the initial map.
 - `monitorHotplugCfg` / `hideNSPWorkspace` — swaps NSP off visible screens and refreshes title-tag DPI metrics after monitor hotplug.
 - `greedyViewNoSwap` — workspace switch variant that swaps visible screens but not hidden.
 
@@ -126,7 +127,7 @@ Regression test: `python3 xwindow/test_osd_click_through.py`.
 `bin/zoom-osd.py` — battery-osd-style overlay (Zoom blue `#2D8CFF`, centered, `height_frac 0.25`, 6 s default) whenever Zoom raises a notification. The long-lived daemon (`systemd.user.services.zoom-osd` in `gnome.nix`, same lifecycle as hangul-osd) watches two push sources:
 
 - **Freedesktop notifications**: spawns `dbus-monitor "type='method_call',…member='Notify'"` and parses its stdout for `org.freedesktop.Notifications.Notify` calls without replacing gnome-flashback's notification daemon. `$ZOOM_OSD_APP_REGEX` (default `zoom`, case-insensitive) filters the Notify `app_name`.
-- **Zoom reminder/meeting windows**: a daemon thread owns a separate X connection and watches root `SubstructureNotify` plus `PropertyNotify` on newly created children. It matches either `$ZOOM_OSD_WINDOW_REGEX` (default `zoom_linux_float_message_reminder`) or the newer meeting-window signature: title `Zoom Workplace`, Zoom WM class, and `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`. Requiring the full signature avoids triggering on Zoom's ordinary main window, which has the same generic title. Property matching allows the OSD to fire when xmonad shifts the meeting window to a hidden workspace before it ever maps; the pending-created set still suppresses xmonad `copyToAllHook` remaps on later workspace changes. Limitation: an already-open reminder window updated in place does not fire a new event.
+- **Zoom reminder/meeting windows**: a daemon thread owns a separate X connection and watches root `SubstructureNotify` plus `PropertyNotify` on newly created children. It matches either `$ZOOM_OSD_WINDOW_REGEX` (default `zoom_linux_float_message_reminder`) or the Join-button popup signature: exact title `Zoom Workplace`, Zoom WM class, `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`, and `_NET_WM_STATE_ABOVE` or `_NET_WM_STATE_STAYS_ON_TOP`. The topmost-state requirement distinguishes the small popup from Zoom's main window, which shares the class and KDE override type. Zoom clients remain pending after their first map, so a late title, type, or state change still fires after xmonad shifts the window to a hidden workspace. Other clients stop being watched at first map. The pending-created set still suppresses xmonad `copyToAllHook` remaps on later workspace changes.
 - **Display process**: each match spawns the current script in `--show` mode. Do not replace this with `os.fork()` — the X watcher makes the daemon multi-threaded, and Python 3.14's forked child can deadlock before rendering. A lock preempts the previous display process, and a daemon reaper thread waits for normal expiry so no zombie remains.
 - **Why dbus-monitor, not dbus-python `BecomeMonitor`**: a dbus-python private connection granted BecomeMonitor never delivered the method-call messages to `add_message_filter` (only its own NameAcquired/NameLost signals arrived). `dbus-monitor` is the proven consumer of the monitoring interface, so the daemon parses its text output instead. Binary pinned via `$ZOOM_OSD_DBUS_MONITOR` by the `writeShellScriptBin` wrapper in `home.nix`.
 - **Parser contract**: per Notify call, the first 4 `string "…"` argument lines are app_name/app_icon/summary/body; `array [` terminates the fixed args (multi-line bodies lose their tail — acceptable for a glanceable OSD).
@@ -193,6 +194,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 ## Zoom notification
 
 - `zoom_linux_float_message_reminder` — floats on all workspaces without stealing focus.
+- `Zoom Workplace` Join-button popup — shifted to `8:meeting` and floated. Matching includes Zoom class plus above/stays-on-top state so the ordinary main window remains tiled; a property event hook handles Zoom assigning the final signature after ManageHook.
 - `annotate_toolbar` — shifted to `8:meeting` by the general zoom rule + floated via a dedicated `doFloat` rule in `meetingRules`. No `title /=?` exclusion is needed because `composeAll` stacks rules (shift + float) additively — the `zoom_linux_float_*` exclusions exist only to stop those windows from being shifted at all, which isn't what we want for the annotate bar.
 - **Known bug**: with multi-monitor, moving the mouse toward the notification can trigger workspace swap (focus-follows-mouse + `copyToAll` interaction).
 

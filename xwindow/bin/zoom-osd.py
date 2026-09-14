@@ -28,15 +28,17 @@ OSD as soon as their properties or first map reveal either:
 * its title matches $ZOOM_OSD_WINDOW_REGEX (default:
   `zoom_linux_float_message_reminder`), or
 * it has the new meeting-window signature: title `Zoom Workplace`, Zoom
-  WM_CLASS, and `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`.
+  WM_CLASS, `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`, and an above/stays-on-top
+  window state.
 
-The full signature avoids matching Zoom's ordinary main window, which
-uses the same generic title. Property watching is required because xmonad
-can shift the meeting window to a hidden workspace before it is ever
-mapped. The created-set handshake keeps workspace-switch remaps (xmonad
+Zoom's ordinary main window shares the Zoom class and KDE override type,
+but not the join popup's above/stays-on-top state. Property watching is
+required because xmonad can shift the meeting window to a hidden workspace
+before Zoom has finished assigning its identifying properties. Zoom
+windows remain watched after their first map so late title/type/state
+changes still fire the OSD; non-Zoom windows are discarded at first map.
+The created-set handshake keeps workspace-switch remaps (xmonad
 unmaps/remaps the copyToAllHook'd popup on every switch) from retriggering.
-Limitation: if Zoom updates an already-open reminder window in place for
-a later notification, no event fires.
 
 Deps (via home-manager: writers.writePython3Bin with libraries=[osd]):
     osd (pycairo + python-xlib transitively)
@@ -63,7 +65,6 @@ import threading
 from osd import OSDStyle, display_on_all_monitors, render_surface
 from Xlib import X, Xatom, display
 
-
 # Zoom brand blue (#2D8CFF), same alpha/geometry family as battery-osd
 # (centered, fraction-sized — OSDStyle defaults).
 STYLE = OSDStyle(
@@ -77,6 +78,8 @@ DEFAULT_APP_REGEX = "zoom"
 DEFAULT_WINDOW_REGEX = "zoom_linux_float_message_reminder"
 ZOOM_WORKPLACE_TITLE = "Zoom Workplace"
 KDE_OVERRIDE_WINDOW_TYPE = "_KDE_NET_WM_WINDOW_TYPE_OVERRIDE"
+ABOVE_WINDOW_STATE = "_NET_WM_STATE_ABOVE"
+STAYS_ON_TOP_WINDOW_STATE = "_NET_WM_STATE_STAYS_ON_TOP"
 
 MATCH_RULE = ("type='method_call',"
               "interface='org.freedesktop.Notifications',member='Notify'")
@@ -197,14 +200,35 @@ def _is_zoom_popup(dpy, win, title: str, win_re: re.Pattern) -> bool:
             return False
 
         type_atom = dpy.get_atom("_NET_WM_WINDOW_TYPE")
+        state_atom = dpy.get_atom("_NET_WM_STATE")
         override_atom = dpy.get_atom(KDE_OVERRIDE_WINDOW_TYPE,
                                      only_if_exists=True)
-        prop = win.get_full_property(type_atom, Xatom.ATOM)
+        above_atom = dpy.get_atom(ABOVE_WINDOW_STATE, only_if_exists=True)
+        stays_on_top_atom = dpy.get_atom(STAYS_ON_TOP_WINDOW_STATE,
+                                         only_if_exists=True)
+        type_prop = win.get_full_property(type_atom, Xatom.ATOM)
+        state_prop = win.get_full_property(state_atom, Xatom.ATOM)
+        top_state_atoms = {
+            atom for atom in (above_atom, stays_on_top_atom)
+            if atom != X.NONE
+        }
         return (override_atom != X.NONE
-                and prop is not None
-                and override_atom in prop.value)
+                and type_prop is not None
+                and override_atom in type_prop.value
+                and state_prop is not None
+                and not top_state_atoms.isdisjoint(state_prop.value))
     except Exception:
         # The client may disappear between MapNotify and the property reads.
+        return False
+
+
+def _is_zoom_window(win) -> bool:
+    try:
+        return any(
+            str(value).lower() == "zoom"
+            for value in (win.get_wm_class() or ())
+        )
+    except Exception:
         return False
 
 
@@ -250,7 +274,8 @@ def _handle_window_event(dpy, ev, win_re: re.Pattern,
         _match_pending_window(dpy, ev.window, win_re, pending, on_match)
     elif ev.type == X.MapNotify and ev.window.id in pending:
         if not _match_pending_window(dpy, ev.window, win_re,
-                                     pending, on_match):
+                                     pending, on_match) \
+                and not _is_zoom_window(ev.window):
             _stop_tracking_window(ev.window, pending)
 
 
@@ -260,10 +285,12 @@ def _watch_windows(win_re: re.Pattern, on_match) -> None:
     Runs in a daemon thread with its own Display connection (python-xlib
     connections aren't thread-safe to share). Properties are checked from
     creation until the first map, allowing a Zoom meeting window shifted
-    directly to a hidden workspace to trigger without MapNotify. Only windows
-    seen in a CreateNotify during our watch count: xmonad unmaps/remaps the
-    copyToAllHook'd reminder popup on every workspace switch, and those
-    remaps must not retrigger the OSD."""
+    directly to a hidden workspace to trigger without MapNotify. Zoom clients
+    stay pending after their first map because the join popup can acquire its
+    title/type/state later; non-Zoom clients stop being watched at first map.
+    Only windows seen in a CreateNotify during our watch count: xmonad
+    unmaps/remaps the copyToAllHook'd reminder popup on every workspace
+    switch, and those remaps must not retrigger the OSD."""
     dpy = display.Display()
     root = dpy.screen().root
     root.change_attributes(event_mask=X.SubstructureNotifyMask)

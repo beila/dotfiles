@@ -1,5 +1,6 @@
 module XMonadConfig.Hooks (
     followToCurrentWorkspace,
+    floatZoomJoinPopupHook,
     fullscreenStartupHook,
     raiseFocused,
     raiseOsdWindows,
@@ -14,8 +15,10 @@ import Data.Monoid (All (..))
 import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonad.Util.ExtensibleState as XS
+import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Stacking as Stacking
+import qualified XMonadConfig.WindowRules as WindowRules
 
 followToCurrentWorkspace :: Query Bool -> X ()
 followToCurrentWorkspace query = withWindowSet $ \stackSet -> do
@@ -65,6 +68,24 @@ stripZoomFullscreenHook PropertyEvent{ev_window = window, ev_atom = changedAtom}
             windows $ W.sink window
     return (All True)
 stripZoomFullscreenHook _ = return (All True)
+
+floatZoomJoinPopupHook :: Event -> X All
+floatZoomJoinPopupHook PropertyEvent{ev_window = window, ev_atom = changedAtom} = do
+    wmState <- getAtom "_NET_WM_STATE"
+    netName <- getAtom "_NET_WM_NAME"
+    when
+        ( changedAtom == wmState
+            || changedAtom == netName
+            || changedAtom == wM_NAME
+            || changedAtom == wM_CLASS
+        )
+        $ do
+            isJoinPopup <- runQuery WindowRules.zoomJoinPopupQuery window
+            when isJoinPopup $ do
+                windows $ W.shiftWin C.meetingWorkspace window
+                float window
+    return (All True)
+floatZoomJoinPopupHook _ = return (All True)
 
 newtype LastFocused = LastFocused Window
     deriving (Typeable)

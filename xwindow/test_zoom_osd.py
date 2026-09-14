@@ -46,6 +46,9 @@ class FakeDisplay:
         "_KDE_NET_WM_WINDOW_TYPE_OVERRIDE": 11,
         "_NET_WM_NAME": 12,
         "UTF8_STRING": 13,
+        "_NET_WM_STATE": 14,
+        "_NET_WM_STATE_ABOVE": 15,
+        "_NET_WM_STATE_STAYS_ON_TOP": 16,
     }
 
     def get_atom(self, name, only_if_exists=False):
@@ -57,9 +60,10 @@ class FakeDisplay:
 
 class FakeWindow:
     def __init__(self, wm_class=("zoom", "zoom"), window_types=(11,),
-                 title="", window_id=42):
+                 window_states=(15, 16), title="", window_id=42):
         self.wm_class = wm_class
         self.window_types = window_types
+        self.window_states = window_states
         self.title = title
         self.id = window_id
         self.event_mask = None
@@ -72,6 +76,8 @@ class FakeWindow:
         if atom == FakeDisplay.atoms["_NET_WM_NAME"]:
             value = self.title.encode() if self.title else b""
             return types.SimpleNamespace(value=value)
+        if atom == FakeDisplay.atoms["_NET_WM_STATE"]:
+            return types.SimpleNamespace(value=self.window_states)
         if atom != FakeDisplay.atoms["_NET_WM_WINDOW_TYPE"]:
             return None
         return types.SimpleNamespace(value=self.window_types)
@@ -100,8 +106,11 @@ class ZoomPopupMatcherTests(unittest.TestCase):
         self.assertTrue(self.match("Zoom Workplace"))
 
     def test_rejects_ordinary_zoom_main_window(self):
+        self.assertFalse(self.match("Zoom Workplace - Licensed account"))
+
+    def test_rejects_override_zoom_window_without_top_state(self):
         self.assertFalse(
-            self.match("Zoom Workplace", FakeWindow(window_types=(12,)))
+            self.match("Zoom Workplace", FakeWindow(window_states=()))
         )
 
     def test_rejects_override_window_from_another_application(self):
@@ -141,12 +150,14 @@ class ZoomWindowWatcherTests(unittest.TestCase):
         )
 
     def test_hidden_workspace_match_does_not_require_map(self):
-        window = FakeWindow()
+        window = FakeWindow(window_types=(), window_states=())
         self.handle(zoom_osd.X.CreateNotify, window)
         self.assertEqual(self.pending, {window.id})
         self.assertEqual(self.matches, [])
 
         window.title = "Zoom Workplace"
+        window.window_types = (11,)
+        window.window_states = (15, 16)
         self.handle(zoom_osd.X.PropertyNotify, window)
 
         self.assertEqual(self.pending, set())
@@ -160,8 +171,26 @@ class ZoomWindowWatcherTests(unittest.TestCase):
 
         self.assertEqual(self.matches, ["Zoom Workplace"])
 
-    def test_first_nonmatching_map_stops_tracking(self):
-        window = FakeWindow(title="Zoom Workplace", window_types=(12,))
+    def test_zoom_window_stays_tracked_after_first_nonmatching_map(self):
+        window = FakeWindow(window_types=(), window_states=())
+        self.handle(zoom_osd.X.CreateNotify, window)
+        self.handle(zoom_osd.X.MapNotify, window)
+
+        self.assertEqual(self.pending, {window.id})
+        self.assertEqual(self.matches, [])
+        self.assertEqual(window.event_mask, zoom_osd.X.PropertyChangeMask)
+
+        window.title = "Zoom Workplace"
+        window.window_types = (11,)
+        window.window_states = (15,)
+        self.handle(zoom_osd.X.PropertyNotify, window)
+
+        self.assertEqual(self.pending, set())
+        self.assertEqual(self.matches, ["Zoom Workplace"])
+        self.assertEqual(window.event_mask, zoom_osd.X.NoEventMask)
+
+    def test_first_non_zoom_map_stops_tracking(self):
+        window = FakeWindow(wm_class=("other", "Other"))
         self.handle(zoom_osd.X.CreateNotify, window)
         self.handle(zoom_osd.X.MapNotify, window)
 

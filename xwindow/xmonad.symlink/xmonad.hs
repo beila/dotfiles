@@ -76,7 +76,7 @@ myConfig =
                   -- script/install runs.
                   spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
-        , handleEventHook = handleEventHook gnomeConfig <> Hooks.rescueOffscreenHook <> Hooks.stripZoomFullscreenHook <> WindowTags.windowTagEventHook
+        , handleEventHook = handleEventHook gnomeConfig <> Hooks.rescueOffscreenHook <> Hooks.stripZoomFullscreenHook <> Hooks.floatZoomJoinPopupHook <> WindowTags.windowTagEventHook
         , logHook = logHook gnomeConfig >> Hooks.followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> Hooks.raiseFocused >> WindowTags.windowTags >> Hooks.raiseOsdWindows
         , modMask = mod4Mask
         , -- https://wiki.haskell.org/Xmonad/General_xmonad.hs_config_tips#ManageHook_examples

@@ -1,5 +1,6 @@
 module XMonadConfig.WindowRules (
     applicationManageHook,
+    zoomJoinPopupQuery,
 ) where
 
 import qualified Data.List as L
@@ -74,12 +75,21 @@ meetingRules =
             , title =? "Meeting chat"
             ]
         , className =? "zoom" <&&> title =? "Meeting" --> doShift C.meetingWorkspace <> (ask >>= doF . W.sink)
+        , zoomJoinPopupQuery --> doShift C.meetingWorkspace <> doFloat
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         , -- The annotation toolbar reports the full tile in WM_NORMAL_HINTS
           -- after xmonad has resized it, so force its small intended geometry.
           title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.485 0.02 0.03 0.045)
         ]
+
+zoomJoinPopupQuery :: Query Bool
+zoomJoinPopupQuery =
+    className =? "zoom"
+        <&&> title =? "Zoom Workplace"
+        <&&> ( isInProperty "_NET_WM_STATE" "_NET_WM_STATE_ABOVE"
+                <||> isInProperty "_NET_WM_STATE" "_NET_WM_STATE_STAYS_ON_TOP"
+             )
 
 messengerRules :: ManageHook
 messengerRules =
