@@ -235,6 +235,7 @@ else
     sanitized=${sanitized//\$/-}
     sanitized=${sanitized//\\/-}
     sanitized=${sanitized//;/-}
+    sanitized=${sanitized//,/-}
     sanitized=${sanitized//(/-}
     sanitized=${sanitized//)/-}
     sanitized=${sanitized//</-}

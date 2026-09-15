@@ -32,7 +32,7 @@ Log path resolution (first match wins):
 4. `./build/` if it exists in cwd.
 5. `/tmp/` (last-resort fallback).
 
-Filename sanitisation in cases 2-5: spaces, slashes, pipes, semicolons, etc. → `-`; truncated to 200 bytes (ext4/xfs filename limit is 255). On non-zero exit (and non-empty `--fail-suffix`, default `FAILED.txt`), the `.txt` is renamed to `.FAILED.txt`.
+Filename sanitisation in cases 2-5: spaces, slashes, pipes, semicolons, commas, etc. → `-`; truncated to 200 bytes (ext4/xfs filename limit is 255). On non-zero exit (and non-empty `--fail-suffix`, default `FAILED.txt`), the `.txt` is renamed to `.FAILED.txt`.
 
 Other env: `LOGRUN_DECORATOR` overrides the decorator pipeline; `LOGRUN_AUTO_SECONDS` / `LOGRUN_AUTO_LINES` tune the `--auto` thresholds; `LOGRUN_TUI_SKIPLIST` (defined in `home-manager.configsymlink/home.nix` so it tracks installed TUI packages) suppresses the alt-screen hint for known-OK commands.
 

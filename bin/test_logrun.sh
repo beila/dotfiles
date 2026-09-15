@@ -170,11 +170,11 @@ log=$(ls "$d"/build/log-*.txt 2>/dev/null | head -1)
 check_file_exists "case7: build_dir env is used as log-dir default" "$log"
 
 # -----------------------------------------------------------------------------
-# Case 8: name sanitisation (spaces, slashes, quotes, long strings)
+# Case 8: name sanitisation (spaces, slashes, commas, quotes, long strings)
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
-# Expect: whitespace → -, / → -, quotes dropped.
-"$UNDER_TEST" "${BASE_FLAGS[@]}" --name 'foo/bar baz "quoted"' --log-dir "$d" -- true \
+# Expect: whitespace → -, / → -, comma → -, quotes dropped.
+"$UNDER_TEST" "${BASE_FLAGS[@]}" --name 'foo/bar,baz "quoted"' --log-dir "$d" -- true \
     >/dev/null 2>/dev/null
 ls "$d" | grep -qE '^log-foo-bar-baz-quoted-' && san=1 || san=0
 check "case8a: log filename sanitised"         "1" "$san"
