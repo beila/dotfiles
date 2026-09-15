@@ -8,10 +8,12 @@ module XMonadConfig.Hooks (
     raiseHangulOsdOnLockHook,
     raiseOsdWindows,
     rescueOffscreenHook,
+    rootPropertyStartupHook,
     stripZoomFullscreenHook,
 ) where
 
 import Control.Monad (filterM, forM_, join, unless, when)
+import Data.Bits ((.|.))
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Monoid (All (..))
@@ -154,6 +156,12 @@ raiseHangulOsdOnLockHook event = do
         locked <- screenLocked
         when locked raiseHangulOsdWindows
     return (All True)
+
+rootPropertyStartupHook :: X ()
+rootPropertyStartupHook = withDisplay $ \display -> do
+    root <- asks theRoot
+    attributes <- io $ getWindowAttributes display root
+    io $ selectInput display root (wa_your_event_mask attributes .|. propertyChangeMask)
 
 fullscreenStartupHook :: X ()
 fullscreenStartupHook = withDisplay $ \display -> do

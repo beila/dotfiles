@@ -158,12 +158,16 @@ assert_above() {
     local stage=$3
     local upper_index
     local lower_index
-    upper_index=$(stack_index "$upper")
-    lower_index=$(stack_index "$lower")
-    if [[ -z "$upper_index" || -z "$lower_index" || "$upper_index" -ge "$lower_index" ]]; then
-        echo "FAIL: $stage stacking order is incorrect: upper=$upper_index lower=$lower_index"
-        exit 1
-    fi
+    for _ in $(seq 1 50); do
+        upper_index=$(stack_index "$upper")
+        lower_index=$(stack_index "$lower")
+        if [[ -n "$upper_index" && -n "$lower_index" && "$upper_index" -lt "$lower_index" ]]; then
+            return
+        fi
+        sleep 0.1
+    done
+    echo "FAIL: $stage stacking order is incorrect: upper=$upper_index lower=$lower_index"
+    exit 1
 }
 
 assert_focused() {
@@ -176,6 +180,10 @@ assert_focused() {
         exit 1
     fi
 }
+
+xdotool mousemove --window "$FIREFOX_WINDOW" 20 20
+sleep 0.2
+assert_focused "$FIREFOX_WINDOW" "Firefox setup client"
 
 xdotool windowraise "$DOCK_WINDOW"
 xdotool mousemove --window "$NORMAL_WINDOW" 20 20
@@ -222,6 +230,10 @@ HANGUL_OSD_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-hangul-osd-te
 LOCK_SCREEN_PID=$!
 LOCK_SCREEN_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-lock-screen-test | head -1)
 assert_above "$LOCK_SCREEN_WINDOW" "$HANGUL_OSD_WINDOW" "initial lock-screen test"
+
+xdotool key super+shift+o
+assert_above "$HANGUL_OSD_WINDOW" "$LOCK_SCREEN_WINDOW" "generic OSD identity"
+xdotool windowraise "$LOCK_SCREEN_WINDOW"
 
 xprop -root \
     -f _XMONAD_SCREEN_LOCKED 32c \

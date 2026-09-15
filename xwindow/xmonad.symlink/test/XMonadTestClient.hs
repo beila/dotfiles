@@ -24,22 +24,21 @@ main = do
     root <- rootWindow display screenNumber
     window <-
         if overrideRedirect
-            then
-                allocaSetWindowAttributes $ \attributes -> do
-                    set_override_redirect attributes True
-                    createWindow
-                        display
-                        root
-                        50
-                        50
-                        400
-                        300
-                        0
-                        (defaultDepthOfScreen screen)
-                        inputOutput
-                        (defaultVisualOfScreen screen)
-                        cWOverrideRedirect
-                        attributes
+            then allocaSetWindowAttributes $ \attributes -> do
+                set_override_redirect attributes True
+                createWindow
+                    display
+                    root
+                    50
+                    50
+                    400
+                    300
+                    0
+                    (defaultDepthOfScreen screen)
+                    inputOutput
+                    (defaultVisualOfScreen screen)
+                    cWOverrideRedirect
+                    attributes
             else createSimpleWindow display root 50 50 400 300 0 0 0
     setClassHint display window (ClassHint resourceName windowClass)
     storeName display window windowTitle

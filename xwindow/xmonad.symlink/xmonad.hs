@@ -64,6 +64,7 @@ myConfig =
                 , -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
                   startupHook gnomeConfig
                 , resetStrutsOnStartup
+                , Hooks.rootPropertyStartupHook
                 , Hooks.fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep -fx albert >/dev/null || albert"

@@ -11,7 +11,9 @@ main =
     xmonad $
         docks
             Config.myConfig
-                { startupHook = Config.resetStrutsOnStartup
+                { startupHook = Config.resetStrutsOnStartup >> Hooks.rootPropertyStartupHook
                 , logHook = Hooks.raiseFocused
                 }
-            `additionalKeys` [((mod4Mask .|. shiftMask, xK_b), sendMessage ToggleStruts)]
+            `additionalKeys` [ ((mod4Mask .|. shiftMask, xK_b), sendMessage ToggleStruts)
+                             , ((mod4Mask .|. shiftMask, xK_o), Hooks.raiseOsdWindows)
+                             ]
