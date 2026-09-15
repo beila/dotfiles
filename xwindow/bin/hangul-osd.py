@@ -71,6 +71,7 @@ STYLE = OSDStyle(
 )
 
 TEXT = "한"
+RESOURCE_NAME = "hangul-osd"
 
 # Long enough to be effectively infinite (~32 years). The osd library's
 # SIGTERM handler is what actually ends the run.
@@ -83,6 +84,15 @@ IBUS_PANEL_PRIVATE_IFACE = "com.canonical.IBus.Panel.Private"
 _child_pid: int | None = None
 
 
+def _display() -> None:
+    display_on_all_monitors(
+        TEXT,
+        FOREVER_SEC,
+        STYLE,
+        resource_name=RESOURCE_NAME,
+    )
+
+
 def show() -> None:
     global _child_pid
     if _child_pid is not None:
@@ -90,7 +100,7 @@ def show() -> None:
     pid = os.fork()
     if pid == 0:
         try:
-            display_on_all_monitors(TEXT, FOREVER_SEC, STYLE)
+            _display()
         except Exception as e:
             sys.stderr.write(f"hangul-osd[child]: {e}\n")
         os._exit(0)
@@ -256,7 +266,7 @@ def _run_once() -> int:
     if not os.environ.get("DISPLAY"):
         sys.stderr.write("hangul-osd: $DISPLAY not set\n")
         return 1
-    display_on_all_monitors(TEXT, FOREVER_SEC, STYLE)
+    _display()
     return 0
 
 

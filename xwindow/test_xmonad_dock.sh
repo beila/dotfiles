@@ -13,7 +13,7 @@ BUILD_DIR=$(mktemp -d /tmp/xmonad-dock-test.XXXXXX)
 DISPLAY_NUMBER=
 
 cleanup() {
-    for pid in "${FIREFOX_PID:-}" "${NORMAL_PID:-}" "${CLIENT_PID:-}" "${DOCK_PID:-}" "${XMONAD_PID:-}" "${XEPHYR_PID:-}"; do
+    for pid in "${LOCK_SCREEN_PID:-}" "${HANGUL_OSD_PID:-}" "${ZOOM_JOIN_PID:-}" "${ZOOM_REMINDER_PID:-}" "${ZOOM_ANCHOR_PID:-}" "${FIREFOX_PID:-}" "${NORMAL_PID:-}" "${CLIENT_PID:-}" "${DOCK_PID:-}" "${XMONAD_PID:-}" "${XEPHYR_PID:-}"; do
         if [[ -n "$pid" ]]; then
             kill "$pid" 2>/dev/null || true
         fi
@@ -189,4 +189,51 @@ sleep 0.2
 assert_focused "$FIREFOX_WINDOW" "Firefox client"
 assert_above "$DOCK_WINDOW" "$FIREFOX_WINDOW" "Firefox exclusion"
 
-echo "PASS: dock struts reset on restart and Firefox stays below the panel"
+xdotool key super+8
+sleep 0.2
+"$BUILD_DIR/xmonad-test-client" normal xmonad-zoom-focus-anchor >/dev/null 2>&1 &
+ZOOM_ANCHOR_PID=$!
+ZOOM_ANCHOR_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-zoom-focus-anchor | head -1)
+assert_focused "$ZOOM_ANCHOR_WINDOW" "Zoom focus anchor"
+
+"$BUILD_DIR/xmonad-test-client" zoom zoom_linux_float_message_reminder >/dev/null 2>&1 &
+ZOOM_REMINDER_PID=$!
+timeout 10 xdotool search --sync --name zoom_linux_float_message_reminder >/dev/null
+sleep 0.2
+assert_focused "$ZOOM_ANCHOR_WINDOW" "Zoom reminder focus preservation"
+
+"$BUILD_DIR/xmonad-test-client" zoom "Zoom Workplace" >/dev/null 2>&1 &
+ZOOM_JOIN_PID=$!
+ZOOM_JOIN_WINDOW=$(timeout 10 xdotool search --sync --name "Zoom Workplace" | head -1)
+sleep 0.2
+assert_focused "$ZOOM_JOIN_WINDOW" "pre-signature Zoom join popup"
+xprop -id "$ZOOM_JOIN_WINDOW" \
+    -f _NET_WM_STATE 32a \
+    -set _NET_WM_STATE _NET_WM_STATE_ABOVE
+sleep 0.2
+assert_focused "$ZOOM_ANCHOR_WINDOW" "late-signature Zoom join popup"
+
+"$BUILD_DIR/xmonad-test-client" \
+    --override hangul-osd osd xmonad-hangul-osd-test >/dev/null 2>&1 &
+HANGUL_OSD_PID=$!
+HANGUL_OSD_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-hangul-osd-test | head -1)
+"$BUILD_DIR/xmonad-test-client" \
+    --override lock-screen lock-screen xmonad-lock-screen-test >/dev/null 2>&1 &
+LOCK_SCREEN_PID=$!
+LOCK_SCREEN_WINDOW=$(timeout 10 xdotool search --sync --name xmonad-lock-screen-test | head -1)
+assert_above "$LOCK_SCREEN_WINDOW" "$HANGUL_OSD_WINDOW" "initial lock-screen test"
+
+xprop -root \
+    -f _XMONAD_SCREEN_LOCKED 32c \
+    -set _XMONAD_SCREEN_LOCKED 1
+sleep 0.2
+assert_above "$HANGUL_OSD_WINDOW" "$LOCK_SCREEN_WINDOW" "lock-state Hangul OSD raise"
+
+xdotool windowraise "$LOCK_SCREEN_WINDOW"
+assert_above "$LOCK_SCREEN_WINDOW" "$HANGUL_OSD_WINDOW" "lock-screen remap setup"
+xdotool windowunmap "$LOCK_SCREEN_WINDOW"
+xdotool windowmap --sync "$LOCK_SCREEN_WINDOW"
+sleep 0.2
+assert_above "$HANGUL_OSD_WINDOW" "$LOCK_SCREEN_WINDOW" "locked MapNotify Hangul OSD raise"
+
+echo "PASS: dock, focus restacking, Zoom focus, and lock-screen Hangul OSD rules"

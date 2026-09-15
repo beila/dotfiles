@@ -10,7 +10,7 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 `bash xwindow/test_xmonad.sh` compiles the real configuration together with `xmonad.symlink/test/XMonadConfigTest.hs` using the package-aware GHC from the xmonad wrapper. The characterization suite covers pure title composition, portrait/landscape scratchpad geometry, hidden/visible workspace switching, and configuration invariants such as the absence of the inherited Super+B strut toggle.
 
-`bash xwindow/test_xmonad_dock.sh` runs the real layout, startup, and focus-restacking hooks inside Xephyr with a synthetic 48px EWMH dock. It verifies that Super+B does not alter struts, a test-only toggle can hide them, the production startup hook restores them after restart, a normal focused client is raised, and a Firefox-class client remains below the dock.
+`bash xwindow/test_xmonad_dock.sh` runs the real layout, startup, focus-restacking, Zoom window, and lock-screen OSD hooks inside Xephyr with a synthetic 48px EWMH dock. It covers strut toggling and restart recovery plus the normal-client and Firefox focus-restacking cases. It also verifies that neither Zoom notification-window signature steals focus and that the Hangul OSD rises above a lock window regardless of whether the lock state or window map arrives last.
 
 Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in `xmonad.symlink/lib/XMonadConfig/Constants.hs`. Scratchpads use the typed `ScratchpadSlot` instead of passing `"ghostty1"`/`"ghostty2"` strings through toggle logic.
 
@@ -24,7 +24,7 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 
 `xmonad.symlink/lib/XMonadConfig/WindowTags.hs` owns title-tag metrics, cache state, painting, refresh events, and restart cleanup. Its cache uses the `WindowTagEntry` record rather than an opaque tuple; pure session-title composition remains unit tested.
 
-`xmonad.symlink/lib/XMonadConfig/Hooks.hs` owns focused-window and OSD restacking, Zoom fullscreen correction, late-property floating for the Zoom join popup, offscreen rescue, dynamic Zoom-video following, and EWMH fullscreen advertisement. `xmonad.hs` keeps startup, event, and log hook order explicit.
+`xmonad.symlink/lib/XMonadConfig/Hooks.hs` owns focused-window and OSD restacking, lock-screen Hangul OSD restacking, Zoom fullscreen correction, late-property floating/focus correction for the Zoom join popup, offscreen rescue, dynamic Zoom-video following, and EWMH fullscreen advertisement. `xmonad.hs` keeps startup, event, and log hook order explicit.
 
 ## HLS
 
@@ -38,7 +38,8 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 - **`smartBorders`** (not `lessBorders` with a custom strategy) already does the wanted thing: hides the border only when there's a single window _and_ a single screen, so with multiple monitors the focused screen stays identifiable. Its width toggle only fires when the window count changes, which is rare enough that the resize is acceptable.
 - **Picom (compositor)**: `home-manager.configsymlink/picom.nix` — xrender backend (no GL, no nixGL wrapper needed), shadow-only config. Only the focused window gets a shadow; unfocused, docks, notifications, and dzen OSDs are excluded. The shadow is centred (offset = −radius) so it reads as a glow, not a drop-shadow. `use-ewmh-active-win = true` ensures picom reads `_NET_ACTIVE_WINDOW` (which xmonad sets correctly) rather than relying on X11 FocusIn/Out events (which can falsely mark windows on inactive monitors as focused). `crop-shadow-to-monitor = true` clips the glow at the monitor edge — otherwise a fullscreen window's halo bleeds onto the adjacent monitor and reads as a false focus indicator there. Runs under `graphical-session.target`.
 - **`raiseFocused`** (logHook): calls `raiseWindow` on the focused tiled window after every focus change. Picom draws a window's shadow at that window's Z-level, so without this, the glow is hidden wherever a higher-stacked tiled neighbor overlaps the shadow zone. Firefox is excluded because restacking its X11 window against the XFCE dock produces stale duplicated bands in its rendered surface. `windowTags` then raises every title tag above the clients.
-- **`raiseOsdWindows`** (last in logHook): re-raises override-redirect windows whose resource name is `osd` after focused clients and title tags. Persistent Hangul OSD windows otherwise become permanently covered on the first focus change after they are mapped; one-shot OSDs can be covered before their timeout for the same reason. Matching only the OSD library's resource name leaves normal menus and dropdowns untouched.
+- **`raiseOsdWindows`** (last in logHook): re-raises override-redirect windows whose resource class is `osd` after focused clients and title tags. Persistent Hangul OSD windows otherwise become permanently covered on the first focus change after they are mapped; one-shot OSDs can be covered before their timeout for the same reason. Resource class keeps all library OSDs grouped while resource name identifies a specific OSD.
+- **Lock-screen Hangul OSD**: Hangul windows use resource name `hangul-osd`. When `_XMONAD_SCREEN_LOCKED` becomes active, and after any window maps while locked, `raiseHangulOsdOnLockHook` re-raises only those windows. This handles either ordering between the lock-state signal and the lock-screen map without promoting Zoom, battery, or other generic OSDs over the lock screen. The OSD remains pointer-transparent.
 
 ## Window title tag (`windowTags`)
 
@@ -93,7 +94,7 @@ Local Python package built via `pkgs.python3Packages.buildPythonPackage` in `hom
 
 - `OSDStyle` — dataclass: colours, font, layout, anchor, multi-monitor sizing
 - `render_surface(text, w, h, style, monitor_mm=None)` → `cairo.ImageSurface`
-- `display_on_all_monitors(text, duration, style)` — one-shot show
+- `display_on_all_monitors(text, duration, style, resource_name="osd")` — one-shot show; resource class remains `osd`, while the resource name can identify a specific overlay
 - `get_monitors(d, root)` — active monitor rects, 6-tuple `(x, y, w_px, h_px, w_mm, h_mm)`; mm is 0 when EDID didn't report it.
 
 Renders text with Cairo (configurable fill / outline / drop shadow), then displays in override-redirect X windows whose XShape mask is derived from the rendered alpha channel — the "background" is genuinely transparent (XShape clips). Every window also receives an empty XShape `Input` region, so mouse and touch input pass through to the application below without changing the visible bounding shape. Works without a compositor. Multi-monitor: one window per active CRTC. Splits Cairo→X `PutImage` calls into row chunks because python-xlib doesn't use `BIG-REQUESTS` (16-bit length cap → ~256 KB per request). Catches `SIGTERM`/`SIGINT` for clean window teardown.
@@ -194,7 +195,7 @@ Working stack: **Pango (`use_pango=True` on the OSDStyle) + `font_file` pointing
 ## Zoom notification
 
 - `zoom_linux_float_message_reminder` — floats on all workspaces without stealing focus.
-- `Zoom Workplace` Join-button popup — shifted to `8:meeting` and floated. Matching includes Zoom class plus above/stays-on-top state so the ordinary main window remains tiled; a property event hook handles Zoom assigning the final signature after ManageHook.
+- `Zoom Workplace` Join-button popup — shifted to `8:meeting`, floated, inserted below the older client, and explicitly unfocused if its final signature arrives after ManageHook. Matching includes Zoom class plus above/stays-on-top state so the ordinary main window remains tiled.
 - `annotate_toolbar` — shifted to `8:meeting` by the general zoom rule + floated via a dedicated `doFloat` rule in `meetingRules`. No `title /=?` exclusion is needed because `composeAll` stacks rules (shift + float) additively — the `zoom_linux_float_*` exclusions exist only to stop those windows from being shifted at all, which isn't what we want for the annotate bar.
 - **Known bug**: with multi-monitor, moving the mouse toward the notification can trigger workspace swap (focus-follows-mouse + `copyToAll` interaction).
 

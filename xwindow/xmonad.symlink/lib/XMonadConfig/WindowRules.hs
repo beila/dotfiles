@@ -1,5 +1,6 @@
 module XMonadConfig.WindowRules (
     applicationManageHook,
+    unfocusWindow,
     zoomJoinPopupQuery,
 ) where
 
@@ -75,7 +76,7 @@ meetingRules =
             , title =? "Meeting chat"
             ]
         , className =? "zoom" <&&> title =? "Meeting" --> doShift C.meetingWorkspace <> (ask >>= doF . W.sink)
-        , zoomJoinPopupQuery --> doShift C.meetingWorkspace <> doFloat
+        , zoomJoinPopupQuery --> doShift C.meetingWorkspace <> doFloat <> insertPosition Below Older
         , title =? "zoom_linux_float_message_reminder" --> doFloat <> copyToAllHook <> insertPosition Below Older
         , title =? "zoom_linux_float_video_window" --> doFloat
         , -- The annotation toolbar reports the full tile in WM_NORMAL_HINTS
@@ -90,6 +91,11 @@ zoomJoinPopupQuery =
         <&&> ( isInProperty "_NET_WM_STATE" "_NET_WM_STATE_ABOVE"
                 <||> isInProperty "_NET_WM_STATE" "_NET_WM_STATE_STAYS_ON_TOP"
              )
+
+unfocusWindow :: (Eq a) => a -> W.StackSet i l a s sd -> W.StackSet i l a s sd
+unfocusWindow window stackSet
+    | W.peek stackSet == Just window = W.focusDown stackSet
+    | otherwise = stackSet
 
 messengerRules :: ManageHook
 messengerRules =

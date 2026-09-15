@@ -17,7 +17,7 @@ screen if RandR is unavailable.
 Public API:
     OSDStyle               — visual + layout config (dataclass)
     render_surface(...)    — text → cairo ImageSurface
-    display_on_all_monitors(text, duration, style)  — one-shot show
+    display_on_all_monitors(text, duration, style, resource_name)  — one-shot show
     get_monitors(d, root)  — Xrandr-based active monitor list
 
 Internal helpers (prefixed _) handle X11 plumbing: 1-bit mask packing,
@@ -465,7 +465,15 @@ def _make_click_through(win):
     )
 
 
-def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
+def _create_osd_window(
+    d,
+    screen,
+    root,
+    rect,
+    surface,
+    style: OSDStyle,
+    resource_name: str,
+):
     """Create one OSD window anchored (per style) on `rect`, showing
     `surface`. Returns the window so it can be destroyed later.
 
@@ -506,8 +514,8 @@ def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
             event_mask=X.ExposureMask,
         )
 
-    win.set_wm_name("osd")
-    win.set_wm_class("osd", "osd")
+    win.set_wm_name(resource_name)
+    win.set_wm_class(resource_name, "osd")
     _make_click_through(win)
 
     if not use_argb:
@@ -536,7 +544,11 @@ def _create_osd_window(d, screen, root, rect, surface, style: OSDStyle):
 
 
 def display_on_all_monitors(
-    text: str, duration: float, style: OSDStyle | None = None
+    text: str,
+    duration: float,
+    style: OSDStyle | None = None,
+    *,
+    resource_name: str = "osd",
 ) -> None:
     """Show the OSD on every active monitor for `duration` seconds.
 
@@ -573,7 +585,17 @@ def display_on_all_monitors(
     windows = []
     for rect, surface in renders:
         try:
-            windows.append(_create_osd_window(d, screen, root, rect, surface, s))
+            windows.append(
+                _create_osd_window(
+                    d,
+                    screen,
+                    root,
+                    rect,
+                    surface,
+                    s,
+                    resource_name,
+                )
+            )
         except Exception as e:
             sys.stderr.write(f"osd: failed on monitor {rect}: {e}\n")
     d.sync()

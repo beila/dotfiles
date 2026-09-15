@@ -118,5 +118,24 @@ class ModeIndicatorTest(unittest.TestCase):
         self.assertEqual(events, ["show", "hide"])
 
 
+class WindowIdentityTest(unittest.TestCase):
+    def test_display_uses_hangul_resource_name(self):
+        calls = []
+        original = hangul_osd.display_on_all_monitors
+        hangul_osd.display_on_all_monitors = (
+            lambda *args, **kwargs: calls.append((args, kwargs))
+        )
+        try:
+            hangul_osd._display()
+        finally:
+            hangul_osd.display_on_all_monitors = original
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            calls[0][1]["resource_name"],
+            hangul_osd.RESOURCE_NAME,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

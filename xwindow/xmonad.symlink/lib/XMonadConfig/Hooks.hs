@@ -2,7 +2,10 @@ module XMonadConfig.Hooks (
     followToCurrentWorkspace,
     floatZoomJoinPopupHook,
     fullscreenStartupHook,
+    isHangulOsdIdentity,
+    isOsdIdentity,
     raiseFocused,
+    raiseHangulOsdOnLockHook,
     raiseOsdWindows,
     rescueOffscreenHook,
     stripZoomFullscreenHook,
@@ -84,6 +87,7 @@ floatZoomJoinPopupHook PropertyEvent{ev_window = window, ev_atom = changedAtom} 
             when isJoinPopup $ do
                 windows $ W.shiftWin C.meetingWorkspace window
                 float window
+                windows $ WindowRules.unfocusWindow window
     return (All True)
 floatZoomJoinPopupHook _ = return (All True)
 
@@ -107,14 +111,49 @@ raiseFocused = withFocused $ \window -> do
             isMouseFocused <- asks mouseFocused
             unless isMouseFocused $ clearEvents enterWindowMask
 
-raiseOsdWindows :: X ()
-raiseOsdWindows = withDisplay $ \display -> do
+isOsdIdentity :: String -> String -> Bool
+isOsdIdentity _resourceName resourceClass = resourceClass == "osd"
+
+isHangulOsdIdentity :: String -> String -> Bool
+isHangulOsdIdentity resourceName resourceClass =
+    resourceName == "hangul-osd" && isOsdIdentity resourceName resourceClass
+
+raiseMatchingOsdWindows :: (String -> String -> Bool) -> X ()
+raiseMatchingOsdWindows matches = withDisplay $ \display -> do
     root <- asks theRoot
     io $ do
         (_, _, children) <- queryTree display root
         forM_ children $ \child -> do
             hint <- getClassHint display child
-            when (resName hint == "osd") $ raiseWindow display child
+            when (matches (resName hint) (resClass hint)) $
+                raiseWindow display child
+
+raiseOsdWindows :: X ()
+raiseOsdWindows = raiseMatchingOsdWindows isOsdIdentity
+
+raiseHangulOsdWindows :: X ()
+raiseHangulOsdWindows = raiseMatchingOsdWindows isHangulOsdIdentity
+
+screenLocked :: X Bool
+screenLocked = do
+    root <- asks theRoot
+    atom <- getAtom "_XMONAD_SCREEN_LOCKED"
+    withDisplay $ \display ->
+        maybe False (elem 1) <$> io (getWindowProperty32 display atom root)
+
+raiseHangulOsdOnLockHook :: Event -> X All
+raiseHangulOsdOnLockHook event = do
+    shouldCheck <- case event of
+        MapNotifyEvent{} -> return True
+        PropertyEvent{ev_window = window, ev_atom = atom} -> do
+            root <- asks theRoot
+            lockState <- getAtom "_XMONAD_SCREEN_LOCKED"
+            return $ window == root && atom == lockState
+        _ -> return False
+    when shouldCheck $ do
+        locked <- screenLocked
+        when locked raiseHangulOsdWindows
+    return (All True)
 
 fullscreenStartupHook :: X ()
 fullscreenStartupHook = withDisplay $ \display -> do

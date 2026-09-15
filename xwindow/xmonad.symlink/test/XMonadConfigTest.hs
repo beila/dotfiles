@@ -9,9 +9,11 @@ import System.Exit (exitFailure)
 import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonadConfig.Constants as C
+import qualified XMonadConfig.Hooks as Hooks
 import qualified XMonadConfig.Monitors as Monitors
 import qualified XMonadConfig.Scratchpad as S
 import qualified XMonadConfig.Stacking as Stacking
+import qualified XMonadConfig.WindowRules as WindowRules
 import qualified XMonadConfig.WindowTags as WindowTags
 import qualified XMonadConfig.Workspaces as Workspaces
 
@@ -72,6 +74,13 @@ tests =
         assertEqual "locked" False (WindowTags.lockPropertyActive (Just [0 :: Int]))
     , Test "nonzero lock property is locked" $
         assertEqual "locked" True (WindowTags.lockPropertyActive (Just [1 :: Int]))
+    , Test "generic OSD identity is recognised" $
+        assertEqual "osd" True (Hooks.isOsdIdentity "osd" "osd")
+    , Test "named OSD identity is recognised by class" $
+        assertEqual "osd" True (Hooks.isOsdIdentity "hangul-osd" "osd")
+    , Test "Hangul OSD identity is specific" $ do
+        assertEqual "hangul" True (Hooks.isHangulOsdIdentity "hangul-osd" "osd")
+        assertEqual "generic" False (Hooks.isHangulOsdIdentity "osd" "osd")
     , Test "landscape left scratchpad rectangle" $
         assertEqual
             "rectangle"
@@ -219,6 +228,13 @@ tests =
         assertEqual "raise" False (Stacking.shouldRaiseFocused True False)
     , Test "Firefox windows are not raised" $
         assertEqual "raise" False (Stacking.shouldRaiseFocused False True)
+    , Test "focused Zoom notification yields focus" $ do
+        let before = W.insertUp 2 $ W.insertUp 1 testStackSet
+        assertEqual "before" (Just 2) (W.peek before)
+        assertEqual "after" (Just 1) (W.peek $ WindowRules.unfocusWindow 2 before)
+    , Test "unfocused Zoom notification preserves focus" $ do
+        let before = W.insertUp 2 $ W.insertUp 1 testStackSet
+        assertEqual "after" (Just 2) (W.peek $ WindowRules.unfocusWindow 1 before)
     ]
 
 testStackSet :: W.StackSet String () Window Int ()
