@@ -42,6 +42,11 @@ in
     GTK_PATH=${pkgs.ibus}/lib/gtk-3.0:${pkgs.ibus}/lib/gtk-4.0
   '';
 
+  # Nix libXcursor does not search the host's /usr/share/icons. Expose Yaru
+  # through a standard per-user cursor path so Nix and host applications load
+  # the same 96px assets.
+  xdg.dataFile."icons/Yaru".source = config.lib.file.mkOutOfStoreSymlink "/usr/share/icons/Yaru";
+
   dconf.settings = {
     # Single source: ibus-hangul. Hangul/English toggle happens *inside* the
     # engine via its `switch-keys`, not via IBus's source-switching hotkey.

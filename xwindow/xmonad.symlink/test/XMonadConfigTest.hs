@@ -117,6 +117,11 @@ tests =
             "Super+B binding"
             False
             (M.member (mod4Mask, xK_b) (keys Config.myConfig keyConfig))
+    , Test "root cursor uses the host cursor theme" $
+        assertEqual
+            "root cursor command"
+            "/usr/bin/xsetroot -cursor_name left_ptr"
+            Config.rootCursorCommand
     , Test "workspace identifiers retain key order" $
         assertEqual
             "workspaces"

@@ -63,6 +63,7 @@ myConfig =
                   setWMName "LG3D"
                 , -- https://github.com/texttheater/xminid/blob/master/xmonad.hs
                   startupHook gnomeConfig
+                , spawn rootCursorCommand
                 , resetStrutsOnStartup
                 , Hooks.rootPropertyStartupHook
                 , Hooks.fullscreenStartupHook
@@ -97,6 +98,9 @@ myConfig =
         }
         `removeKeys` [(mod4Mask, xK_b)]
         `additionalKeys` myKeys
+
+rootCursorCommand :: String
+rootCursorCommand = "/usr/bin/xsetroot -cursor_name left_ptr"
 
 resetStrutsOnStartup :: X ()
 resetStrutsOnStartup =

@@ -233,6 +233,8 @@ Multi-monitor configurations vary by location. After monitor connection changes,
 
 The inherited `gnomeConfig` Super+B binding is removed because `ToggleStruts` stores hidden gaps per workspace. Startup broadcasts `SetStruts` to every layout to clear historical hidden-gap state. This prevents a full-height tiled window from occupying the panel rectangle before `raiseFocused` places that client above neighboring windows.
 
+After `startupHook gnomeConfig`, XMonad runs host `/usr/bin/xsetroot -cursor_name left_ptr` so empty workspace/root-window areas use the same themed Yaru cursor as applications. `gnomeConfig` otherwise leaves a small fixed-size core X cursor on the root window.
+
 ## Known issues
 
 - **gnome-flashback "Notifications" tray icon** doesn't respond to clicks (no GNOME Shell notification panel).
