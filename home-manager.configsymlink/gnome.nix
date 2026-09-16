@@ -86,6 +86,8 @@ in
       toplevel-id-list = lib.gvariant.mkEmptyArray lib.gvariant.type.string;
     };
     "org/gnome/desktop/interface" = {
+      # DMZ-White tops out at 48px; Yaru includes 96px cursors for this HiDPI display.
+      cursor-theme = "Yaru";
       cursor-size = 64;
     };
     # Let GNOME housekeeping purge trash entries after the shared age limit.

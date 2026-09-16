@@ -26,24 +26,13 @@ let
   };
 
   anki = config.lib.nixGL.wrap pkgs.anki;
-  vivaldi =
-    (pkgs.vivaldi.override {
-      proprietaryCodecs = true;
-      # The immutable Nix store cannot provide Chromium's root-owned SUID helper.
-      # system-deps.sh grants userns to vivaldi-bin through a narrow AppArmor rule.
-      # Chromium defaults to GTK4 on GNOME, but this Vivaldi package links GTK3.
-      commandLineArgs = "--disable-setuid-sandbox --gtk-version=3";
-    }).overrideAttrs
-      (old: {
-        nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.makeWrapper ];
-        postFixup = (old.postFixup or "") + ''
-          # Chromium's X11 cursor loader can ignore XSettings/Xresources and fall
-          # back to a tiny cursor unless these values are present at startup.
-          wrapProgram "$out/bin/vivaldi" \
-            --set XCURSOR_SIZE 128 \
-            --set XCURSOR_THEME DMZ-White
-        '';
-      });
+  vivaldi = pkgs.vivaldi.override {
+    proprietaryCodecs = true;
+    # The immutable Nix store cannot provide Chromium's root-owned SUID helper.
+    # system-deps.sh grants userns to vivaldi-bin through a narrow AppArmor rule.
+    # Chromium defaults to GTK4 on GNOME, but this Vivaldi package links GTK3.
+    commandLineArgs = "--disable-setuid-sandbox --gtk-version=3";
+  };
   ankiDesktopEntry = profile: {
     name = "${profile}Anki";
     comment = "Anki with isolated data for ${profile}";
