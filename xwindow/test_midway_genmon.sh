@@ -7,51 +7,61 @@ PANEL="$ROOT/xfce4.configsymlink/xfconf/xfce-perchannel-xml/xfce4-panel.xml"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-write_cookie() {
-    local path=$1 expiry=$2 name=${3:-session}
-    printf '# Netscape HTTP Cookie File\n#HttpOnly_midway-auth.amazon.com\tFALSE\t/\tTRUE\t%s\t%s\tplaceholder\n' \
-        "$expiry" "$name" > "$path"
+write_status() {
+    local path=$1 status=$2 expiry=$3 checked_at=${4:-1000} reason=${5:-server}
+    printf '#!/usr/bin/env bash\nprintf "%%s\\\\t%%s\\\\t%%s\\\\t%%s\\\\n" %q %q %q %q\n' \
+        "$status" "$expiry" "$checked_at" "$reason" > "$path"
+    chmod +x "$path"
 }
 
-write_cookie "$TMP/valid" 33400 __Host-session
-valid=$(MIDWAY_COOKIE_FILE="$TMP/valid" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/valid" valid 33400
+valid=$(MIDWAY_STATUS_COMMAND="$TMP/valid" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $valid == *"#50fa7b"* ]]
-[[ $valid == *"Midway session valid"* ]]
+[[ $valid == *"Midway session verified"* ]]
 [[ $valid == *"Remaining: 9h 0m"* ]]
 
-write_cookie "$TMP/eight-hours" 29800
-eight_hours=$(MIDWAY_COOKIE_FILE="$TMP/eight-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/eight-hours" valid 29800
+eight_hours=$(MIDWAY_STATUS_COMMAND="$TMP/eight-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $eight_hours == *"#50fa7b"* ]]
 [[ $eight_hours == *"Remaining: 8h 0m"* ]]
 
-write_cookie "$TMP/expiring" 29799
-expiring=$(MIDWAY_COOKIE_FILE="$TMP/expiring" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/expiring" valid 29799
+expiring=$(MIDWAY_STATUS_COMMAND="$TMP/expiring" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $expiring == *"#F8BB3D"* ]]
-[[ $expiring == *"Midway session valid"* ]]
+[[ $expiring == *"Midway session verified"* ]]
 [[ $expiring == *"Remaining: 7h 59m"* ]]
 
-write_cookie "$TMP/two-hours" 8200
-two_hours=$(MIDWAY_COOKIE_FILE="$TMP/two-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/two-hours" valid 8200
+two_hours=$(MIDWAY_STATUS_COMMAND="$TMP/two-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $two_hours == *"#F8BB3D"* ]]
-[[ $two_hours == *"Midway session valid"* ]]
+[[ $two_hours == *"Midway session verified"* ]]
 [[ $two_hours == *"Remaining: 2h 0m"* ]]
 
-write_cookie "$TMP/critical" 8199
-critical=$(MIDWAY_COOKIE_FILE="$TMP/critical" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/critical" valid 8199
+critical=$(MIDWAY_STATUS_COMMAND="$TMP/critical" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $critical == *"#ff5555"* ]]
-[[ $critical == *"Midway session valid"* ]]
+[[ $critical == *"Midway session verified"* ]]
 [[ $critical == *"Remaining: 1h 59m"* ]]
 
-write_cookie "$TMP/expired" 999
-expired=$(MIDWAY_COOKIE_FILE="$TMP/expired" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/invalid" invalid 33400
+invalid=$(MIDWAY_STATUS_COMMAND="$TMP/invalid" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $invalid == *"#ff5555"* ]]
+[[ $invalid == *"Midway session rejected by server"* ]]
+[[ $invalid == *"Cookie expires:"* ]]
+
+write_status "$TMP/unknown" unknown 33400 1000 network
+unknown=$(MIDWAY_STATUS_COMMAND="$TMP/unknown" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $unknown == *"#ff79c6"* ]]
+[[ $unknown == *"Midway verification unavailable"* ]]
+[[ $unknown == *"Local expiry is not proof of authentication."* ]]
+
+write_status "$TMP/expired" expired 999 0 local
+expired=$(MIDWAY_STATUS_COMMAND="$TMP/expired" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $expired == *"#ff5555"* ]]
 [[ $expired == *"Midway session expired"* ]]
 
-write_cookie "$TMP/non-session" 9999 user_name
-non_session=$(MIDWAY_COOKIE_FILE="$TMP/non-session" MIDWAY_NOW=1000 bash "$MIDWAY")
-[[ $non_session == *"No Midway session found"* ]]
-
-missing=$(MIDWAY_COOKIE_FILE="$TMP/missing" MIDWAY_NOW=1000 bash "$MIDWAY")
+write_status "$TMP/missing" missing 0 0 local
+missing=$(MIDWAY_STATUS_COMMAND="$TMP/missing" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $missing == *"#ff5555"* ]]
 [[ $missing == *"No Midway session found"* ]]
 

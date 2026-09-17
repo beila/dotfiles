@@ -50,6 +50,10 @@ Companion `bin/logrun-decorator` (Python stdlib only) is the `--auto` decorator:
 
 Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors, `--auto` thresholds + invisibility + reveal + FAILED rename + alt-screen hint, `--no-zshrc` fast path, and private function-timing metadata).
 
+## Midway status
+
+`midway-status` is the shared non-interactive validity check used by the XFCE Midway genmon and work-dotfiles' `just mwinit` guard. It first reads the `session`/`__Host-session` expiry for `midway-auth.amazon.com`, then sends the cookie read-only to Midway's `/api/session-status`; it never passes the real jar as a curl cookie-jar output. Results are cached for 60 seconds in `$XDG_RUNTIME_DIR` (or a UID-scoped `/tmp` fallback) and keyed by a SHA-256 fingerprint of the cookie file, so `mwinit` immediately invalidates an old result. Statuses are `valid`, `invalid`, `expired`, `missing`, and `unknown`; `unknown` distinguishes network/API failure from authentication rejection. `--refresh` bypasses the cache, `--invalidate` removes it, and `--quiet` exposes only the tri-state exit code (0 valid, 1 invalid, 2 unknown). Test: `bash bin/test_midway_status.sh`.
+
 ## Commit message generator
 
 `commit-msg` — provider chain: claude (`--print --tools "" --no-session-persistence`, skipped when `$CLAUDECODE` is set so a `claude` session never spawns a child claude) → kiro-cli (`--agent no-mcp`, stdin piping) → ollama + qwen2.5-coder:3b fallback (5s health check, started on demand) → capped file-list final fallback (first 3 files + `and N more`, 200-char hard cap; includes deleted files). jj-first / git-fallback. `VERBOSE=1` enables detailed output.

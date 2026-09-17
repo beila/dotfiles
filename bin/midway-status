@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+set -u
+
+cookie_file=${MIDWAY_COOKIE_FILE:-${HOME:-}/.midway/cookie}
+status_url=${MIDWAY_STATUS_URL:-https://midway-auth.amazon.com/api/session-status}
+cache_file=${MIDWAY_STATUS_CACHE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/midway-status-${UID}.cache}
+cache_seconds=${MIDWAY_STATUS_CACHE_SECONDS:-60}
+curl_command=${MIDWAY_STATUS_CURL:-curl}
+curl_timeout=${MIDWAY_STATUS_TIMEOUT:-8}
+now=${MIDWAY_NOW:-$(date +%s)}
+refresh=0
+quiet=0
+
+usage() {
+    printf 'Usage: midway-status [--quiet] [--refresh|--invalidate]\n' >&2
+    exit 64
+}
+
+case $now in
+    ''|*[!0-9]*) now=$(date +%s) ;;
+esac
+case $cache_seconds in
+    ''|*[!0-9]*) cache_seconds=60 ;;
+esac
+
+while (($#)); do
+    case $1 in
+        --quiet) quiet=1 ;;
+        --refresh) refresh=1 ;;
+        --invalidate)
+            rm -f -- "$cache_file"
+            exit 0
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+    shift
+done
+
+emit() {
+    local status=$1 expiry=$2 checked_at=$3 reason=$4 exit_code
+    [[ $quiet == 1 ]] ||
+        printf '%s\t%s\t%s\t%s\n' "$status" "$expiry" "$checked_at" "$reason"
+    case $status in
+        valid) exit_code=0 ;;
+        unknown) exit_code=2 ;;
+        *) exit_code=1 ;;
+    esac
+    exit "$exit_code"
+}
+
+expiry=0
+if [[ -r $cookie_file ]]; then
+    expiry=$(awk -F '\t' '
+        NF >= 7 {
+            domain = $1
+            sub(/^#HttpOnly_/, "", domain)
+            if ((domain == "midway-auth.amazon.com" ||
+                 domain == ".midway-auth.amazon.com") &&
+                ($6 == "session" || $6 == "__Host-session") &&
+                $5 ~ /^[0-9]+$/ && $5 > latest) {
+                latest = $5
+            }
+        }
+        END { printf "%.0f\n", latest }
+    ' "$cookie_file" 2>/dev/null)
+fi
+
+if ((expiry == 0)); then
+    emit missing 0 0 local
+fi
+if ((expiry <= now)); then
+    emit expired "$expiry" 0 local
+fi
+
+fingerprint=$(sha256sum "$cookie_file" 2>/dev/null | cut -d ' ' -f 1)
+if [[ -z $fingerprint ]]; then
+    emit unknown "$expiry" "$now" cookie-read
+fi
+
+if [[ $refresh == 0 && -r $cache_file ]]; then
+    IFS=$'\t' read -r cached_at cached_fingerprint cached_status cached_expiry cached_reason \
+        < "$cache_file"
+    case ${cached_at-} in
+        ''|*[!0-9]*) cached_at=0 ;;
+    esac
+    if ((cached_at <= now && now - cached_at <= cache_seconds)) &&
+        [[ ${cached_fingerprint-} == "$fingerprint" ]] &&
+        [[ ${cached_expiry-} == "$expiry" ]]; then
+        emit "${cached_status:-unknown}" "$expiry" "$cached_at" "${cached_reason:-cache}"
+    fi
+fi
+
+response=$("$curl_command" \
+    --cookie "$cookie_file" \
+    --silent \
+    --show-error \
+    --fail \
+    --max-time "$curl_timeout" \
+    "$status_url" 2>/dev/null)
+curl_status=$?
+
+status=unknown
+reason=network
+if ((curl_status == 0)); then
+    if command -v jq >/dev/null 2>&1; then
+        if jq -e '.authenticated == true' >/dev/null 2>&1 <<<"$response"; then
+            status=valid
+            reason=server
+        elif jq -e 'type == "object" and has("authenticated") and .authenticated == false' \
+            >/dev/null 2>&1 <<<"$response"; then
+            status=invalid
+            reason=server
+        else
+            reason=response
+        fi
+    elif rg -q '"authenticated"[[:space:]]*:[[:space:]]*true' <<<"$response"; then
+        status=valid
+        reason=server
+    elif rg -q '"authenticated"[[:space:]]*:[[:space:]]*false' <<<"$response"; then
+        status=invalid
+        reason=server
+    else
+        reason=response
+    fi
+fi
+
+cache_dir=${cache_file%/*}
+[[ $cache_dir == "$cache_file" ]] && cache_dir=.
+if mkdir -p "$cache_dir" 2>/dev/null; then
+    umask 077
+    cache_tmp=$(mktemp "${cache_file}.tmp.XXXXXX" 2>/dev/null)
+    if [[ -n ${cache_tmp-} ]]; then
+        printf '%s\t%s\t%s\t%s\t%s\n' \
+            "$now" "$fingerprint" "$status" "$expiry" "$reason" > "$cache_tmp"
+        mv -f -- "$cache_tmp" "$cache_file"
+    fi
+fi
+
+emit "$status" "$expiry" "$now" "$reason"

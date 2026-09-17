@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-cookie_file=${MIDWAY_COOKIE_FILE:-${HOME:-}/.midway/cookie}
+status_command=${MIDWAY_STATUS_COMMAND:-${HOME:-}/.dotfiles/bin/midway-status}
 now=${MIDWAY_NOW:-$(date +%s)}
 warning_seconds=$((8 * 60 * 60))
 critical_seconds=$((2 * 60 * 60))
@@ -10,15 +10,15 @@ case $now in
     ''|*[!0-9]*) now=$(date +%s) ;;
 esac
 
-expiry=0
-if [[ -r $cookie_file ]]; then
-    expiry=$(awk -F '\t' '
-        NF >= 7 && ($6 == "session" || $6 == "__Host-session") && $5 ~ /^[0-9]+$/ {
-            if ($5 > latest) latest = $5
-        }
-        END { printf "%.0f\n", latest }
-    ' "$cookie_file" 2>/dev/null)
-fi
+status_output=$("$status_command" 2>/dev/null)
+IFS=$'\t' read -r status expiry checked_at reason <<<"$status_output"
+status=${status:-unknown}
+expiry=${expiry:-0}
+checked_at=${checked_at:-0}
+reason=${reason:-unknown}
+case $expiry in
+    ''|*[!0-9]*) expiry=0 ;;
+esac
 
 format_expiry() {
     date -d "@$1" '+%a %d %b %Y, %H:%M %Z' 2>/dev/null || printf '%s' "$1"
@@ -37,7 +37,7 @@ format_remaining() {
     fi
 }
 
-if ((expiry > now)); then
+if [[ $status == valid ]] && ((expiry > now)); then
     remaining=$((expiry - now))
     if ((remaining < critical_seconds)); then
         color='#ff5555'
@@ -47,13 +47,26 @@ if ((expiry > now)); then
         color='#50fa7b'
     fi
     printf "<txt><span color='%s'>●</span> MW</txt>\n" "$color"
-    printf '<tool>Midway session valid\nExpires: %s\nRemaining: %s</tool>\n' \
+    printf '<tool>Midway session verified\nExpires: %s\nRemaining: %s</tool>\n' \
         "$(format_expiry "$expiry")" "$(format_remaining "$remaining")"
-elif ((expiry > 0)); then
+elif [[ $status == invalid ]]; then
+    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    printf '<tool>Midway session rejected by server\nCookie expires: %s\nRun mwinit to authenticate.</tool>\n' \
+        "$(format_expiry "$expiry")"
+elif [[ $status == expired ]]; then
     printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
     printf '<tool>Midway session expired\nExpired: %s\nRun mwinit to authenticate.</tool>\n' \
         "$(format_expiry "$expiry")"
-else
+elif [[ $status == missing ]]; then
     printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
     printf '<tool>No Midway session found\nRun mwinit to authenticate.</tool>\n'
+else
+    printf "<txt><span color='#ff79c6'>?</span> MW</txt>\n"
+    if ((expiry > now)); then
+        remaining=$((expiry - now))
+        printf '<tool>Midway verification unavailable\nCookie expires: %s\nRemaining: %s\nLocal expiry is not proof of authentication.</tool>\n' \
+            "$(format_expiry "$expiry")" "$(format_remaining "$remaining")"
+    else
+        printf '<tool>Midway verification unavailable\nNo usable local session timestamp found.</tool>\n'
+    fi
 fi
