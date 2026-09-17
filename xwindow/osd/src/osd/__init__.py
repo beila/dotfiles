@@ -50,13 +50,11 @@ from __future__ import annotations
 import signal
 import sys
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import cairo
 from Xlib import X, display
-from Xlib.ext import randr
-from Xlib.ext import shape  # noqa: F401  -- import enables window.shape_* methods
-
+from Xlib.ext import randr, shape
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -103,6 +101,11 @@ class OSDStyle:
     anchor_x: str = "center"   # "left" | "center" | "right"
     offset_x_frac: float = 0.0
 
+    # Additional physical offsets applied after the fractional offsets.
+    # EDID dimensions keep sibling placement stable across mixed-DPI monitors.
+    offset_x_mm: float = 0.0
+    offset_y_mm: float = 0.0
+
     # Absolute size in millimetres. When BOTH are set, this overrides
     # width_frac / height_frac and the rendered OSD has the same physical
     # size across monitors with different pixel densities (uses Xrandr's
@@ -131,6 +134,10 @@ class OSDStyle:
     # fc-match resolves it). Only consulted when use_pango=True.
     font_file: str | None = None
 
+    # Optional pre-outlined SVG asset. When set, this takes precedence over
+    # the font renderers and is rasterised at the target monitor's pixel size.
+    image_file: str | None = None
+
     # Alpha threshold for the XShape mask (0..255). Pixels with alpha at or
     # above this become opaque; everything else is clipped.
     alpha_threshold: int = 128
@@ -150,6 +157,12 @@ class OSDStyle:
 
 # Default singleton kept for callers who don't customise.
 DEFAULT_STYLE = OSDStyle()
+
+# Shared geometry for the Hangul top-right slot and adjacent indicators.
+HANGUL_SLOT_WIDTH_MM = 60.0
+HANGUL_SLOT_HEIGHT_MM = 70.0
+HANGUL_SLOT_OFFSET_X_FRAC = -0.015
+HANGUL_SLOT_OFFSET_Y_FRAC = 0.02
 
 
 # ---------------------------------------------------------------------------
@@ -195,13 +208,46 @@ def render_surface(
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, w, h)
     ctx = cairo.Context(surface)
 
-    if s.use_pango:
+    if s.image_file is not None:
+        _render_with_image(ctx, w, h, s)
+    elif s.use_pango:
         _render_with_pango(ctx, text, w, h, s)
     else:
         _render_with_toy(ctx, text, w, h, s)
 
     surface.flush()
     return surface
+
+
+def _render_with_image(ctx, w, h, s):
+    """Paint a pre-outlined SVG, preserving its aspect ratio."""
+    import gi
+    gi.require_version("Rsvg", "2.0")
+    from gi.repository import Rsvg
+
+    handle = Rsvg.Handle.new_from_file(s.image_file)
+    dimensions = handle.get_intrinsic_dimensions()
+    viewbox = dimensions[5] if dimensions[4] else None
+    if viewbox is not None and viewbox.width > 0 and viewbox.height > 0:
+        source_w, source_h = viewbox.width, viewbox.height
+    else:
+        source_w = dimensions[1].length
+        source_h = dimensions[3].length
+
+    scale = min(w / source_w, h / source_h)
+    dest_w, dest_h = source_w * scale, source_h * scale
+
+    ctx.push_group()
+    ctx.translate((w - dest_w) / 2, (h - dest_h) / 2)
+    ctx.scale(scale, scale)
+    viewport = Rsvg.Rectangle()
+    viewport.x = 0.0
+    viewport.y = 0.0
+    viewport.width = source_w
+    viewport.height = source_h
+    handle.render_document(ctx, viewport)
+    ctx.pop_group_to_source()
+    ctx.paint_with_alpha(s.fill_alpha)
 
 
 def _render_with_toy(ctx, text, w, h, s):
@@ -420,7 +466,15 @@ def get_monitors(d, root) -> list[tuple[int, int, int, int, int, int]]:
     return [(0, 0, s.width_in_pixels, s.height_in_pixels, 0, 0)]
 
 
-def _anchor_x(monitor_w: int, win_w: int, style: OSDStyle) -> int:
+def _mm_to_px(mm: float, monitor_px: int, monitor_mm: int) -> int:
+    if monitor_mm > 0:
+        return round(mm * monitor_px / monitor_mm)
+    return round(mm / 25.4 * 96)
+
+
+def _anchor_x(
+    monitor_w: int, win_w: int, style: OSDStyle, monitor_mm_w: int = 0
+) -> int:
     """Compute the x-offset within a monitor for the OSD window."""
     if style.anchor_x == "left":
         base = 0
@@ -428,10 +482,16 @@ def _anchor_x(monitor_w: int, win_w: int, style: OSDStyle) -> int:
         base = monitor_w - win_w
     else:
         base = (monitor_w - win_w) // 2
-    return base + int(monitor_w * style.offset_x_frac)
+    return (
+        base
+        + int(monitor_w * style.offset_x_frac)
+        + _mm_to_px(style.offset_x_mm, monitor_w, monitor_mm_w)
+    )
 
 
-def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
+def _anchor_y(
+    monitor_h: int, win_h: int, style: OSDStyle, monitor_mm_h: int = 0
+) -> int:
     """Compute the y-offset within a monitor for the OSD window."""
     if style.anchor_y == "top":
         base = 0
@@ -439,7 +499,18 @@ def _anchor_y(monitor_h: int, win_h: int, style: OSDStyle) -> int:
         base = monitor_h - win_h
     else:
         base = (monitor_h - win_h) // 2
-    return base + int(monitor_h * style.offset_y_frac)
+    return (
+        base
+        + int(monitor_h * style.offset_y_frac)
+        + _mm_to_px(style.offset_y_mm, monitor_h, monitor_mm_h)
+    )
+
+
+def sibling_offset_mm(reference: OSDStyle, gap_mm: float) -> float:
+    """Place a right-anchored sibling left of a millimetre-sized box."""
+    if reference.width_mm is None:
+        raise ValueError("sibling_offset_mm requires a mm-sized reference box")
+    return -(reference.width_mm + gap_mm)
 
 
 def _find_argb_visual(screen):
@@ -482,10 +553,12 @@ def _create_osd_window(
     real drop shadows. Falls back to XShape clipping on 24-bit servers.
     """
     mx, my, mw, mh = rect[:4]
+    mm_w = rect[4] if len(rect) > 4 else 0
+    mm_h = rect[5] if len(rect) > 5 else 0
     iw = surface.get_width()
     ih = surface.get_height()
-    wx = mx + _anchor_x(mw, iw, style)
-    wy = my + _anchor_y(mh, ih, style)
+    wx = mx + _anchor_x(mw, iw, style, mm_w)
+    wy = my + _anchor_y(mh, ih, style, mm_h)
 
     argb_visual, argb_depth = _find_argb_visual(screen)
     use_argb = argb_visual is not None
@@ -632,11 +705,16 @@ def display_on_all_monitors(
 
 
 __all__ = [
-    "OSDStyle",
     "DEFAULT_STYLE",
-    "render_surface",
-    "get_monitors",
+    "HANGUL_SLOT_HEIGHT_MM",
+    "HANGUL_SLOT_OFFSET_X_FRAC",
+    "HANGUL_SLOT_OFFSET_Y_FRAC",
+    "HANGUL_SLOT_WIDTH_MM",
+    "OSDStyle",
     "display_on_all_monitors",
+    "get_monitors",
+    "render_surface",
+    "sibling_offset_mm",
 ]
 
 

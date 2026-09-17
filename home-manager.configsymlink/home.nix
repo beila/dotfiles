@@ -185,6 +185,40 @@ in
         } (builtins.readFile ../xwindow/bin/hangul-osd.py)
       }/bin/hangul-osd-impl "$@"
     '')
+    # midway-osd: persistent MW overlay while the shared Midway checker
+    # reports a definite invalid, expired, or missing session.
+    (pkgs.writeShellScriptBin "midway-osd" ''
+      export GI_TYPELIB_PATH="${pkgs.librsvg.out}/lib/girepository-1.0:${pkgs.gdk-pixbuf}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+      export MIDWAY_OSD_IMAGE=${../xwindow/osd/assets/mw.svg}
+      export MIDWAY_STATUS_COMMAND=${../bin/midway-status}
+      export PATH=${
+        pkgs.lib.makeBinPath [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.curl
+          pkgs.gawk
+          pkgs.jq
+          pkgs.ripgrep
+        ]
+      }:$PATH
+      exec ${
+        pkgs.writers.writePython3Bin "midway-osd-impl" {
+          libraries =
+            with pkgs.python3Packages;
+            [
+              pycairo
+              xlib
+              pygobject3
+            ]
+            ++ [ osd ];
+          flakeIgnore = [
+            "E501"
+            "E731"
+            "W503"
+          ];
+        } (builtins.readFile ../xwindow/bin/midway-osd.py)
+      }/bin/midway-osd-impl "$@"
+    '')
     pkgs.alsa-utils # aplay for say-en/say-ko/say-es
     pkgs.wl-clipboard
     pkgs.xclip

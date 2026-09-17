@@ -185,4 +185,23 @@ in
       WantedBy = [ "graphical-session.target" ];
     };
   };
+
+  # Persistent MW overlay for definite Midway authentication failures. The
+  # daemon watches cookie/cache changes and rechecks remote validity every
+  # minute through the same shared status command as the panel and Brazil.
+  systemd.user.services.midway-osd = {
+    Unit = {
+      Description = "Midway-invalid OSD indicator";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${config.home.path}/bin/midway-osd";
+      Restart = "on-failure";
+      RestartSec = 5;
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
 }
