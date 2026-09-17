@@ -291,3 +291,4 @@ retryable
 Min
 backoff
 Wirepresentability
+rustup
