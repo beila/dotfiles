@@ -9,6 +9,7 @@
 .idea
 .jj/
 CMakeUserPresets.json
+CodeDiff Explorer [[]*[]]
 __cmake_systeminformation
 atlassian-ide-plugin.xml
 cmake-build-*
