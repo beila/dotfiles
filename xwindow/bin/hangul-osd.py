@@ -18,7 +18,9 @@ English mode.
 On transition into hangul, fork() a child running
 display_on_all_monitors("한", duration=∞, style); on transition out,
 SIGTERM the child (the osd library installs a SIGTERM handler that
-tears its X windows down cleanly). Idle when no toggles happen.
+tears its X windows down cleanly). The child follows RandR topology
+changes so the persistent windows survive lid close/open and monitor
+connection changes.
 Startup stays hidden until the panel reports an `InputMode` property.
 
 Deps (via home-manager wrapper):
@@ -90,6 +92,7 @@ def _display() -> None:
         FOREVER_SEC,
         STYLE,
         resource_name=RESOURCE_NAME,
+        follow_monitor_changes=True,
     )
 
 

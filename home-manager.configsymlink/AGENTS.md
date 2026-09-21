@@ -27,7 +27,7 @@ Vivaldi enables `proprietaryCodecs` so Nix links the compatible `libffmpeg.so` i
 
 Defines two inline derivations consumed by OSDs:
 
-- `osd` — local Python package built from `xwindow/osd/` (Cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, `hangul-osd`, and `midway-osd`; its windows have empty XShape input regions so pointer input passes through. Its SVG image backend and millimetre sibling offsets place the restored MW asset beside the Hangul slot without mixed-DPI drift.
+- `osd` — local Python package built from `xwindow/osd/` (Cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, `hangul-osd`, and `midway-osd`. Every window has an empty XShape input region so pointer input passes through. Persistent callers can subscribe to RandR topology changes and rebuild OSD windows after lid close/open or monitor connection changes. The SVG image backend and millimetre sibling offsets place the restored MW asset beside the Hangul slot without mixed-DPI drift.
 - `osd-click-through` — lightweight Python/Xlib helper that applies the same empty input region to the title-matched dzen2 volume, brightness, and audio-device OSD windows.
 - `jejuhallasan-ttf` — single `fetchurl` of one ttf from `google/fonts` (SIL OFL 1.1). Avoids `pkgs.google-fonts` (2.3 GB).
 
@@ -45,7 +45,7 @@ The mount runs in the foreground under systemd, creates its mount point before s
 - GNOME housekeeping is enabled through `org/gnome/desktop/privacy`: `remove-old-trash-files = true` purges trash entries older than the shared `old-files-age = 30` day limit.
 - IBus integration (`pkgs.ibus` for ABI-matched GTK3/GTK4 IM modules + `~/.config/environment.d/30-ibus.conf` for `GTK_IM_MODULE` etc.). `GTK_PATH` includes both `${pkgs.ibus}/lib/gtk-3.0` and `${pkgs.ibus}/lib/gtk-4.0`, but GTK3 runtime loading also requires an `immodules.cache`. `gnome.nix` mirrors NixOS's input-method module by running `gtk-query-immodules-3.0` with the IBus GTK3 path and installing the generated cache at `$profile/etc/gtk-3.0/immodules.cache`; Nix's patched GTK3 discovers it through `NIX_PROFILES`. Without that cache, Vivaldi reads GTK3's stock cache, which does not list `im-ibus.so`, so no key event reaches the IBus Hangul engine.
 - gnome-flashback systemd drop-ins (xmonad session requires `gnome-flashback.target` + service-restart override).
-- Declares `random-lockscreen` via `dotfiles.schedule.jobs` plus `hangul-osd`, `zoom-osd`, and `midway-osd` as `systemd.user.services.*` units (`PartOf=graphical-session.target`). All require the graphical session; hangul-osd additionally requires the panel-private interface on the IBus private message bus. Midway OSD watches cookie and shared-status cache changes and polls the server-backed checker every minute.
+- Declares `random-lockscreen` via `dotfiles.schedule.jobs` plus `hangul-osd`, `zoom-osd`, and `midway-osd` as `systemd.user.services.*` units (`PartOf=graphical-session.target`). All require the graphical session; hangul-osd additionally requires the panel-private interface on the IBus private message bus. Midway OSD watches cookie and shared-status cache changes, polls the server-backed checker every minute, follows RandR monitor changes, and checks every five seconds that an invalid-state renderer child still exists.
 
 ## schedule.nix
 

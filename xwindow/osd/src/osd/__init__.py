@@ -12,19 +12,20 @@ environments.
 
 Multi-monitor: enumerates active CRTCs via Xrandr and shows one window
 per monitor sized to that monitor; falls back to the whole virtual
-screen if RandR is unavailable.
+screen if RandR is unavailable. Persistent callers can follow RandR
+topology changes and rebuild their windows after monitor changes or resume.
 
 Public API:
     OSDStyle               — visual + layout config (dataclass)
     render_surface(...)    — text → cairo ImageSurface
-    display_on_all_monitors(text, duration, style, resource_name)  — one-shot show
+    display_on_all_monitors(...) — show, optionally following monitor changes
     get_monitors(d, root)  — Xrandr-based active monitor list
 
 Internal helpers (prefixed _) handle X11 plumbing: 1-bit mask packing,
 chunked PutImage to dodge python-xlib's 16-bit length cap, per-monitor
 window creation.
 
-Performance caveat — designed for one-shot use only.
+Performance caveat — designed for low-frequency OSD updates.
     Cold-start latency is ~700-800 ms (Python + cairo + import overhead +
     pure-Python pixel loop in _make_shape_mask + X plumbing). Fine for
     fire-and-forget alerts (battery, calendar reminders, build-failed
@@ -47,6 +48,7 @@ Performance caveat — designed for one-shot use only.
 
 from __future__ import annotations
 
+import select
 import signal
 import sys
 import time
@@ -622,6 +624,7 @@ def display_on_all_monitors(
     style: OSDStyle | None = None,
     *,
     resource_name: str = "osd",
+    follow_monitor_changes: bool = False,
 ) -> None:
     """Show the OSD on every active monitor for `duration` seconds.
 
@@ -629,61 +632,95 @@ def display_on_all_monitors(
     `style.per_monitor_size` is True (default), so text scales naturally
     on a 4K laptop and a 1080p external alike. Otherwise one render is
     used at the first monitor's size and re-placed on every monitor.
+
+    When `follow_monitor_changes` is true, RandR topology events rebuild
+    every window against the current active CRTCs. Persistent indicators
+    use this to survive lid close/open and monitor connection changes.
     """
     s = style or DEFAULT_STYLE
     d = display.Display()
     screen = d.screen()
     root = screen.root
 
-    monitors = get_monitors(d, root)
-    if not monitors:
-        return
+    def create_windows():
+        monitors = get_monitors(d, root)
+        if not monitors:
+            return []
 
-    if s.per_monitor_size:
-        renders = [
-            (
-                rect,
-                render_surface(text, rect[2], rect[3], s, monitor_mm=(rect[4], rect[5])),
-            )
-            for rect in monitors
-        ]
-    else:
-        # Use the first monitor's size for everyone (e.g. fixed-banner OSDs).
-        ref_rect = monitors[0]
-        ref_w, ref_h = ref_rect[2], ref_rect[3]
-        ref_mm = (ref_rect[4], ref_rect[5])
-        shared = render_surface(text, ref_w, ref_h, s, monitor_mm=ref_mm)
-        renders = [(rect, shared) for rect in monitors]
-
-    windows = []
-    for rect, surface in renders:
-        try:
-            windows.append(
-                _create_osd_window(
-                    d,
-                    screen,
-                    root,
+        if s.per_monitor_size:
+            renders = [
+                (
                     rect,
-                    surface,
-                    s,
-                    resource_name,
+                    render_surface(
+                        text,
+                        rect[2],
+                        rect[3],
+                        s,
+                        monitor_mm=(rect[4], rect[5]),
+                    ),
                 )
-            )
-        except Exception as e:
-            sys.stderr.write(f"osd: failed on monitor {rect}: {e}\n")
-    d.sync()
+                for rect in monitors
+            ]
+        else:
+            # Use the first monitor's size for everyone (e.g. fixed banners).
+            ref_rect = monitors[0]
+            ref_w, ref_h = ref_rect[2], ref_rect[3]
+            ref_mm = (ref_rect[4], ref_rect[5])
+            shared = render_surface(text, ref_w, ref_h, s, monitor_mm=ref_mm)
+            renders = [(rect, shared) for rect in monitors]
 
-    # Clean up on SIGTERM/SIGINT so a `pkill` or systemd kill doesn't
-    # leave stale windows mapped on the root.
-    def cleanup(*_a):
-        for w in windows:
+        created = []
+        for rect, surface in renders:
             try:
-                w.unmap()
-                w.destroy()
+                created.append(
+                    _create_osd_window(
+                        d,
+                        screen,
+                        root,
+                        rect,
+                        surface,
+                        s,
+                        resource_name,
+                    )
+                )
+            except Exception as e:
+                sys.stderr.write(f"osd: failed on monitor {rect}: {e}\n")
+        d.sync()
+        return created
+
+    def destroy_windows(windows):
+        for window in windows:
+            try:
+                window.unmap()
+                window.destroy()
             except Exception:
                 pass
         try:
             d.sync()
+        except Exception:
+            pass
+
+    following = False
+    if follow_monitor_changes:
+        try:
+            randr.query_version(d)
+            root.xrandr_select_input(
+                randr.RRScreenChangeNotifyMask
+                | randr.RRCrtcChangeNotifyMask
+                | randr.RROutputChangeNotifyMask
+            )
+            d.sync()
+            following = True
+        except Exception as e:
+            sys.stderr.write(f"osd: RandR watch unavailable: {e}\n")
+
+    windows = create_windows()
+
+    # Clean up on SIGTERM/SIGINT so a `pkill` or systemd kill doesn't
+    # leave stale windows mapped on the root.
+    def cleanup(*_a):
+        destroy_windows(windows)
+        try:
             d.close()
         except Exception:
             pass
@@ -692,15 +729,20 @@ def display_on_all_monitors(
     signal.signal(signal.SIGTERM, cleanup)
     signal.signal(signal.SIGINT, cleanup)
 
-    time.sleep(duration)
+    if following:
+        deadline = time.monotonic() + max(0, duration)
+        while (remaining := deadline - time.monotonic()) > 0:
+            readable, _, _ = select.select([d.fileno()], [], [], remaining)
+            if not readable:
+                break
+            while d.pending_events():
+                d.next_event()
+            destroy_windows(windows)
+            windows = create_windows()
+    else:
+        time.sleep(max(0, duration))
 
-    for w in windows:
-        try:
-            w.unmap()
-            w.destroy()
-        except Exception:
-            pass
-    d.sync()
+    destroy_windows(windows)
     d.close()
 
 

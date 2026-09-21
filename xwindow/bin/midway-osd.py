@@ -38,6 +38,7 @@ BOX_HEIGHT_MM = 42.0
 BOX_WIDTH_MM = round(BOX_HEIGHT_MM * (939.0 / 481.0), 1)
 FOREVER_SEC = 10**9
 SAFETY_POLL_SEC = 60
+DISPLAY_HEALTH_POLL_SEC = 5
 
 _HANGUL_REFERENCE = OSDStyle(
     width_mm=HANGUL_SLOT_WIDTH_MM,
@@ -130,18 +131,34 @@ def midway_status(
 _child_pid: int | None = None
 
 
+def _child_is_running() -> bool:
+    global _child_pid
+    if _child_pid is None:
+        return False
+    try:
+        reaped, _ = os.waitpid(_child_pid, os.WNOHANG)
+    except ChildProcessError:
+        _child_pid = None
+        return False
+    if reaped == 0:
+        return True
+    _child_pid = None
+    return False
+
+
 def _display() -> None:
     display_on_all_monitors(
         TEXT,
         FOREVER_SEC,
         STYLE,
         resource_name=RESOURCE_NAME,
+        follow_monitor_changes=True,
     )
 
 
 def show() -> None:
     global _child_pid
-    if _child_pid is not None:
+    if _child_is_running():
         return
     pid = os.fork()
     if pid == 0:
@@ -155,7 +172,7 @@ def show() -> None:
 
 def hide() -> None:
     global _child_pid
-    if _child_pid is None:
+    if not _child_is_running():
         return
     pid = _child_pid
     _child_pid = None
@@ -169,21 +186,8 @@ def hide() -> None:
         pass
 
 
-def _on_sigchld(*_args) -> None:
-    global _child_pid
-    while True:
-        try:
-            pid, _ = os.waitpid(-1, os.WNOHANG)
-        except ChildProcessError:
-            return
-        if pid == 0:
-            return
-        if pid == _child_pid:
-            _child_pid = None
-
-
 class MidwayIndicator:
-    """Apply only definite valid/invalid transitions."""
+    """Keep the display aligned with the latest definite status."""
 
     def __init__(self, show_osd=show, hide_osd=hide):
         self._show = show_osd
@@ -191,21 +195,24 @@ class MidwayIndicator:
         self._invalid = False
 
     def observe(self, invalid: bool | None) -> None:
-        if invalid is None or invalid == self._invalid:
+        if invalid is None:
             return
-        self._invalid = invalid
         if invalid:
+            self._invalid = True
             self._show()
-        else:
+        elif self._invalid:
+            self._invalid = False
             self._hide()
+
+    def ensure_display(self) -> None:
+        if self._invalid:
+            self._show()
 
 
 def _run_daemon() -> int:
     if not os.environ.get("DISPLAY"):
         sys.stderr.write("midway-osd: $DISPLAY not set\n")
         return 1
-
-    signal.signal(signal.SIGCHLD, _on_sigchld)
 
     def cleanup(*_args):
         hide()
@@ -272,8 +279,13 @@ def _run_daemon() -> int:
         evaluate()
         return True
 
+    def display_health_poll() -> bool:
+        indicator.ensure_display()
+        return True
+
     evaluate()
     GLib.timeout_add_seconds(SAFETY_POLL_SEC, safety_poll)
+    GLib.timeout_add_seconds(DISPLAY_HEALTH_POLL_SEC, display_health_poll)
     GLib.MainLoop().run()
     for monitor in monitors:
         monitor.cancel()

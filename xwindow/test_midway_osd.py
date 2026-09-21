@@ -103,7 +103,7 @@ class StatusTest(unittest.TestCase):
 
 
 class IndicatorTest(unittest.TestCase):
-    def test_transitions_are_idempotent_and_unknown_preserves_state(self):
+    def test_invalid_reasserts_display_and_unknown_preserves_state(self):
         events = []
         indicator = midway_osd.MidwayIndicator(
             lambda: events.append("show"),
@@ -117,7 +117,33 @@ class IndicatorTest(unittest.TestCase):
         indicator.observe(False)
         indicator.observe(False)
 
-        self.assertEqual(events, ["show", "hide"])
+        self.assertEqual(events, ["show", "show", "hide"])
+
+    def test_health_check_recovers_a_lost_invalid_display(self):
+        events = []
+        indicator = midway_osd.MidwayIndicator(
+            lambda: events.append("show"),
+            lambda: events.append("hide"),
+        )
+
+        indicator.observe(True)
+        indicator.ensure_display()
+
+        self.assertEqual(events, ["show", "show"])
+
+
+class ChildSupervisionTest(unittest.TestCase):
+    def test_reaped_child_is_reported_as_not_running(self):
+        original_waitpid = midway_osd.os.waitpid
+        original_child_pid = midway_osd._child_pid
+        midway_osd._child_pid = 123
+        midway_osd.os.waitpid = lambda pid, options: (pid, 0)
+        try:
+            self.assertFalse(midway_osd._child_is_running())
+            self.assertIsNone(midway_osd._child_pid)
+        finally:
+            midway_osd.os.waitpid = original_waitpid
+            midway_osd._child_pid = original_child_pid
 
 
 class StyleTest(unittest.TestCase):
@@ -146,6 +172,7 @@ class StyleTest(unittest.TestCase):
             calls[0][1]["resource_name"],
             midway_osd.RESOURCE_NAME,
         )
+        self.assertTrue(calls[0][1]["follow_monitor_changes"])
 
     def test_offline_render(self):
         with tempfile.TemporaryDirectory() as directory:

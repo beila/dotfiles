@@ -135,6 +135,7 @@ class WindowIdentityTest(unittest.TestCase):
             calls[0][1]["resource_name"],
             hangul_osd.RESOURCE_NAME,
         )
+        self.assertTrue(calls[0][1]["follow_monitor_changes"])
 
 
 if __name__ == "__main__":
