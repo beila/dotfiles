@@ -235,6 +235,18 @@ rc=$(FLAKE_UPDATE_DRY_RUN=1 PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" >/
 check "exit 0" "0" "$rc"
 check_grep "DRY-RUN logged" 'DRY-RUN: skipping' "$(log_file)"
 
+echo
+echo "=== Test 11: stripped scheduler PATH finds Nix profile tools ==="
+reset_fixtures; set_nix ok; set_hm ok; set_claude missing
+FAKE_HOME="$TMPDIR/home"
+mkdir -p "$FAKE_HOME/.nix-profile/bin"
+ln -sf "$STUB_BIN/nix" "$FAKE_HOME/.nix-profile/bin/nix"
+ln -sf "$STUB_BIN/home-manager" "$FAKE_HOME/.nix-profile/bin/home-manager"
+rc=$(env -u CLAUDECODE HOME="$FAKE_HOME" PATH="/usr/bin:/bin" \
+    bash "$UNDER_TEST" >/dev/null 2>&1; echo $?)
+check "exit 0 with profile fallback" "0" "$rc"
+check_grep "profile fallback completed build" '\[INFO\] home-manager build OK' "$(log_file)"
+
 pass=$(cat "$PASS_FILE")
 fail=$(cat "$FAIL_FILE")
 echo

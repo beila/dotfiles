@@ -134,16 +134,43 @@ class IndicatorTest(unittest.TestCase):
 
 class ChildSupervisionTest(unittest.TestCase):
     def test_reaped_child_is_reported_as_not_running(self):
-        original_waitpid = midway_osd.os.waitpid
-        original_child_pid = midway_osd._child_pid
-        midway_osd._child_pid = 123
-        midway_osd.os.waitpid = lambda pid, options: (pid, 0)
+        original_child_process = midway_osd._child_process
+        midway_osd._child_process = types.SimpleNamespace(poll=lambda: 0)
         try:
             self.assertFalse(midway_osd._child_is_running())
-            self.assertIsNone(midway_osd._child_pid)
+            self.assertIsNone(midway_osd._child_process)
         finally:
-            midway_osd.os.waitpid = original_waitpid
-            midway_osd._child_pid = original_child_pid
+            midway_osd._child_process = original_child_process
+
+    def test_show_starts_one_fresh_renderer_process(self):
+        calls = []
+        process = types.SimpleNamespace(poll=lambda: None)
+        original_popen = midway_osd.subprocess.Popen
+        original_child_process = midway_osd._child_process
+        midway_osd._child_process = None
+
+        def popen(args, **kwargs):
+            calls.append((args, kwargs))
+            return process
+
+        midway_osd.subprocess.Popen = popen
+        try:
+            midway_osd.show()
+            midway_osd.show()
+        finally:
+            midway_osd.subprocess.Popen = original_popen
+            midway_osd._child_process = original_child_process
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(
+            calls[0][0],
+            [
+                midway_osd.sys.executable,
+                str(pathlib.Path(midway_osd.__file__).resolve()),
+                "--once",
+            ],
+        )
+        self.assertIs(calls[0][1]["stdin"], subprocess.DEVNULL)
 
 
 class StyleTest(unittest.TestCase):

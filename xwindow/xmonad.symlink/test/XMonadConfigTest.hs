@@ -77,10 +77,7 @@ tests =
     , Test "generic OSD identity is recognised" $
         assertEqual "osd" True (Hooks.isOsdIdentity "osd" "osd")
     , Test "named OSD identity is recognised by class" $
-        assertEqual "osd" True (Hooks.isOsdIdentity "hangul-osd" "osd")
-    , Test "Hangul OSD identity is specific" $ do
-        assertEqual "hangul" True (Hooks.isHangulOsdIdentity "hangul-osd" "osd")
-        assertEqual "generic" False (Hooks.isHangulOsdIdentity "osd" "osd")
+        assertEqual "osd" True (Hooks.isOsdIdentity "zoom-osd" "osd")
     , Test "landscape left scratchpad rectangle" $
         assertEqual
             "rectangle"

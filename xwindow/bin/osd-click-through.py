@@ -1,4 +1,4 @@
-"""Make a named top-level X11 OSD window ignore pointer input."""
+"""Configure a named top-level X11 window as a click-through OSD."""
 
 import argparse
 import sys
@@ -6,6 +6,8 @@ import time
 
 from Xlib import X, display, error
 from Xlib.ext import shape
+
+OSD_CLASS = "osd"
 
 
 def make_click_through(window):
@@ -17,6 +19,12 @@ def make_click_through(window):
         0,
         [],
     )
+
+
+def configure_osd_window(window, resource_name):
+    window.set_wm_class(resource_name, OSD_CLASS)
+    make_click_through(window)
+    window.configure(stack_mode=X.Above)
 
 
 def matching_windows(root, title):
@@ -35,6 +43,11 @@ def input_region_is_empty(window):
     return not window.shape_get_rectangles(shape.SK.Input).rectangles
 
 
+def has_osd_class(window):
+    wm_class = window.get_wm_class()
+    return wm_class is not None and wm_class[1] == OSD_CLASS
+
+
 def process_windows(title, timeout, check_only=False):
     connection = display.Display()
     root = connection.screen().root
@@ -47,9 +60,12 @@ def process_windows(title, timeout, check_only=False):
                 try:
                     if check_only:
                         connection.sync()
-                        return all(input_region_is_empty(window) for window in windows)
+                        return all(
+                            input_region_is_empty(window) and has_osd_class(window)
+                            for window in windows
+                        )
                     for window in windows:
-                        make_click_through(window)
+                        configure_osd_window(window, title)
                     connection.sync()
                     return True
                 except error.BadWindow:
@@ -65,7 +81,7 @@ def process_windows(title, timeout, check_only=False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Make a named top-level X11 OSD window click-through."
+        description="Configure a named top-level X11 window as an OSD."
     )
     parser.add_argument("title", help="Exact WM_NAME of the OSD window")
     parser.add_argument(
@@ -77,13 +93,13 @@ def main():
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Check for an empty input region without modifying the window",
+        help="Check the OSD class and empty input region without modifying the window",
     )
     args = parser.parse_args()
 
     if process_windows(args.title, args.timeout, args.check):
         return 0
-    action = "verify" if args.check else "make click-through"
+    action = "verify" if args.check else "configure"
     sys.stderr.write(f"osd-click-through: could not {action}: {args.title}\n")
     return 1
 

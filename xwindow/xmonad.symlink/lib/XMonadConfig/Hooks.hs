@@ -2,10 +2,9 @@ module XMonadConfig.Hooks (
     followToCurrentWorkspace,
     floatZoomJoinPopupHook,
     fullscreenStartupHook,
-    isHangulOsdIdentity,
     isOsdIdentity,
     raiseFocused,
-    raiseHangulOsdOnLockHook,
+    raiseOsdOnLockHook,
     raiseOsdWindows,
     rescueOffscreenHook,
     rootPropertyStartupHook,
@@ -116,10 +115,6 @@ raiseFocused = withFocused $ \window -> do
 isOsdIdentity :: String -> String -> Bool
 isOsdIdentity _resourceName resourceClass = resourceClass == "osd"
 
-isHangulOsdIdentity :: String -> String -> Bool
-isHangulOsdIdentity resourceName resourceClass =
-    resourceName == "hangul-osd" && isOsdIdentity resourceName resourceClass
-
 raiseMatchingOsdWindows :: (String -> String -> Bool) -> X ()
 raiseMatchingOsdWindows matches = withDisplay $ \display -> do
     root <- asks theRoot
@@ -133,9 +128,6 @@ raiseMatchingOsdWindows matches = withDisplay $ \display -> do
 raiseOsdWindows :: X ()
 raiseOsdWindows = raiseMatchingOsdWindows isOsdIdentity
 
-raiseHangulOsdWindows :: X ()
-raiseHangulOsdWindows = raiseMatchingOsdWindows isHangulOsdIdentity
-
 screenLocked :: X Bool
 screenLocked = do
     root <- asks theRoot
@@ -143,8 +135,8 @@ screenLocked = do
     withDisplay $ \display ->
         maybe False (elem 1) <$> io (getWindowProperty32 display atom root)
 
-raiseHangulOsdOnLockHook :: Event -> X All
-raiseHangulOsdOnLockHook event = do
+raiseOsdOnLockHook :: Event -> X All
+raiseOsdOnLockHook event = do
     shouldCheck <- case event of
         MapNotifyEvent{} -> return True
         PropertyEvent{ev_window = window, ev_atom = atom} -> do
@@ -154,7 +146,7 @@ raiseHangulOsdOnLockHook event = do
         _ -> return False
     when shouldCheck $ do
         locked <- screenLocked
-        when locked raiseHangulOsdWindows
+        when locked raiseOsdWindows
     return (All True)
 
 rootPropertyStartupHook :: X ()

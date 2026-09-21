@@ -36,6 +36,12 @@
 
 set -uo pipefail
 
+# Scheduled environments can retain an older stripped PATH until the next
+# Home Manager activation. Keep the inherited order for test stubs and local
+# overrides, then add the standard Nix profile locations needed by this job.
+PATH="${PATH:-/usr/bin:/bin}:$HOME/.nix-profile/bin:$HOME/.local/state/nix/profile/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin"
+export PATH
+
 LOG_TAG=flake-update
 DOTFILES_ROOT=${DOTFILES_ROOT:-$HOME/.dotfiles}
 # shellcheck source=/dev/null

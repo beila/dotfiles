@@ -624,7 +624,7 @@ def display_on_all_monitors(
     style: OSDStyle | None = None,
     *,
     resource_name: str = "osd",
-    follow_monitor_changes: bool = False,
+    follow_monitor_changes: bool = True,
 ) -> None:
     """Show the OSD on every active monitor for `duration` seconds.
 

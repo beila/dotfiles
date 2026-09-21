@@ -84,6 +84,8 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
 
 `script/flake-update` — weekly `systemd.user.timers.flake-update` (Sun 03:00 + 2h `RandomizedDelaySec` + `Persistent=true` so suspended laptops catch up). Runs `nix flake update` then `home-manager build --impure --flake .` (NEVER `switch`).
 
+Before preflight, the script appends the standard user, Nix daemon, and NixOS profile directories to the inherited `PATH`. This allows a cron host with a stale generated `PATH` to find `nix` and `home-manager`. Inherited entries stay first for explicit overrides and tests.
+
 **Why**: nixos-unstable + home-manager unstable produce occasional breaking changes; running `home-manager switch` blind on update day means breakage shows up at the wrong moment. The watchdog finds it on a Sunday morning instead.
 
 Failures: ERROR (paged via Telegram) for build failures and non-network `nix flake update` errors; WARN (silent) for transient network errors. Build-failure log captures the **last 40 lines + first 10 lines** of stderr — nix's verbose error trace puts the actionable line near the bottom (e.g. `error: Refusing to evaluate package 'X' because it has an unfree license`), so the older "first 20 lines" cap missed it. The Telegram body summary is extracted via `tac | grep -m1 '^error: '` so the actionable reason lands in the preview before the user clicks the log link.
@@ -94,7 +96,7 @@ Env: `FLAKE_UPDATE_DRY_RUN=1` skips the actual update (still runs build + news),
 
 The watchdog has caught real upstream breakage in production (e.g. nixpkgs reclassifying nvim plugins as unfree); when that happens, fix = add to `home.nix`'s `allowUnfreePredicate` allowlist.
 
-Test harness: `script/test_flake-update.sh` (34 assertions; stubbed `nix`, `home-manager`, `claude` via PATH; the harness `env -u CLAUDECODE`s the runner so it works whether or not Claude Code is the calling shell).
+Test harness: `script/test_flake-update.sh` (36 assertions; stubbed `nix`, `home-manager`, `claude` via `PATH`). The harness removes `CLAUDECODE` so it works from Claude Code, and verifies recovery from a stripped scheduler `PATH` through a fake Nix profile.
 
 ## Battery notify
 

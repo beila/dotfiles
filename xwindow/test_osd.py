@@ -92,7 +92,7 @@ class FakeDisplay:
 
 
 class MonitorTopologyTest(unittest.TestCase):
-    def test_randr_event_rebuilds_windows_for_current_monitors(self):
+    def test_default_randr_event_rebuilds_windows_for_current_monitors(self):
         display = FakeDisplay()
         monitor_sets = iter(
             [
@@ -132,7 +132,6 @@ class MonitorTopologyTest(unittest.TestCase):
             osd.display_on_all_monitors(
                 "MW",
                 1,
-                follow_monitor_changes=True,
             )
         finally:
             (

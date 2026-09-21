@@ -27,7 +27,7 @@ Vivaldi enables `proprietaryCodecs` so Nix links the compatible `libffmpeg.so` i
 
 Defines two inline derivations consumed by OSDs:
 
-- `osd` — local Python package built from `xwindow/osd/` (Cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, `hangul-osd`, and `midway-osd`. Every window has an empty XShape input region so pointer input passes through. Persistent callers can subscribe to RandR topology changes and rebuild OSD windows after lid close/open or monitor connection changes. The SVG image backend and millimetre sibling offsets place the restored MW asset beside the Hangul slot without mixed-DPI drift.
+- `osd` — local Python package built from `xwindow/osd/` (Cairo + XShape primitives). Used by `battery-osd`, `zoom-osd`, `hangul-osd`, and `midway-osd`. Every window has an empty XShape input region so pointer input passes through. All display calls follow RandR topology changes by default and rebuild OSD windows after lid close/open or monitor connection changes. The SVG image backend and millimetre sibling offsets place the restored MW asset beside the Hangul slot without mixed-DPI drift.
 - `osd-click-through` — lightweight Python/Xlib helper that applies the same empty input region to the title-matched dzen2 volume, brightness, and audio-device OSD windows.
 - `jejuhallasan-ttf` — single `fetchurl` of one ttf from `google/fonts` (SIL OFL 1.1). Avoids `pkgs.google-fonts` (2.3 GB).
 

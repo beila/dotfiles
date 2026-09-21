@@ -128,21 +128,16 @@ def midway_status(
     return True, None
 
 
-_child_pid: int | None = None
+_child_process: subprocess.Popen | None = None
 
 
 def _child_is_running() -> bool:
-    global _child_pid
-    if _child_pid is None:
+    global _child_process
+    if _child_process is None:
         return False
-    try:
-        reaped, _ = os.waitpid(_child_pid, os.WNOHANG)
-    except ChildProcessError:
-        _child_pid = None
-        return False
-    if reaped == 0:
+    if _child_process.poll() is None:
         return True
-    _child_pid = None
+    _child_process = None
     return False
 
 
@@ -157,31 +152,27 @@ def _display() -> None:
 
 
 def show() -> None:
-    global _child_pid
+    global _child_process
     if _child_is_running():
         return
-    pid = os.fork()
-    if pid == 0:
-        try:
-            _display()
-        except Exception as error:  # noqa: BLE001
-            sys.stderr.write(f"midway-osd[child]: {error}\n")
-        os._exit(0)
-    _child_pid = pid
+    _child_process = subprocess.Popen(
+        [sys.executable, os.path.abspath(__file__), "--once"],
+        stdin=subprocess.DEVNULL,
+    )
 
 
 def hide() -> None:
-    global _child_pid
+    global _child_process
     if not _child_is_running():
         return
-    pid = _child_pid
-    _child_pid = None
+    process = _child_process
+    _child_process = None
     try:
-        os.kill(pid, signal.SIGTERM)
+        process.terminate()
     except ProcessLookupError:
-        return
+        pass
     try:
-        os.waitpid(pid, 0)
+        process.wait()
     except ChildProcessError:
         pass
 
