@@ -1,6 +1,7 @@
 local fzf_lua = require("fzf-lua")
 local jj_diff_picker = require("jj-diff-picker")
 local jj_workspace_picker = require("jj-workspace-picker")
+local picker_clipboard = require("picker-clipboard")
 
 fzf_lua.setup_fzfvim_cmds()
 
@@ -197,6 +198,17 @@ vim.keymap.set({ "n", "v" }, "<leader> ",
 local actions = require "fzf-lua.actions"
 local fzf_utils = require "fzf-lua.utils"
 
+local function copy_git_commit(selected, opts)
+    local commit_hash = picker_clipboard.copy_git_commit(selected, opts)
+    if commit_hash then
+        vim.notify("Git commit " .. commit_hash .. " copied to clipboard", vim.log.levels.INFO)
+    end
+end
+
+local function git_copy_action()
+    return { fn = copy_git_commit, exec_silent = true, header = "copy commit-id" }
+end
+
 -- Toggle an rg flag while keeping it on the command line BEFORE rg_opts'
 -- trailing `-e` token (which consumes its next arg as the search pattern).
 -- Two behaviours we need that actions.toggle_flag doesn't give us:
@@ -241,6 +253,12 @@ fzf_lua.setup({
         ['--no-mouse'] = true,
     },
     defaults = { file_icons = false },
+    git = {
+        commits = { actions = { ["ctrl-y"] = git_copy_action() } },
+        bcommits = { actions = { ["ctrl-y"] = git_copy_action() } },
+        blame = { actions = { ["ctrl-y"] = git_copy_action() } },
+        reflog = { actions = { ["ctrl-y"] = git_copy_action() } },
+    },
     grep = {
         rg_opts = '--follow --column --line-number --no-heading --color=always --smart-case --max-columns=4096 -e',
         rg_glob = true,

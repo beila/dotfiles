@@ -2,6 +2,7 @@ local M = {}
 
 local fzf_lua = require("fzf-lua")
 local fzf_utils = require("fzf-lua.utils")
+local picker_clipboard = require("picker-clipboard")
 
 local line_history_tempfiles = {}
 
@@ -346,24 +347,8 @@ local function copy_commit_ids(selected)
 	end
 
 	local text = table.concat(ids, "\n")
-	local registers = {}
-	if vim.o.clipboard:match("unnamed") then
-		table.insert(registers, "*")
-	end
-	if vim.o.clipboard:match("unnamedplus") then
-		table.insert(registers, "+")
-	end
-	if #registers == 0 then
-		table.insert(registers, '"')
-	end
-	for _, register in ipairs(registers) do
-		vim.fn.setreg(register, text)
-	end
-	vim.fn.setreg("0", text)
-	notify(
-		string.format("%d commit ID%s copied to register %s", #ids, #ids == 1 and "" or "s", registers[1]),
-		vim.log.levels.INFO
-	)
+	picker_clipboard.copy(text)
+	notify(string.format("%d commit ID%s copied to clipboard", #ids, #ids == 1 and "" or "s"), vim.log.levels.INFO)
 end
 
 local function picker_header(state)

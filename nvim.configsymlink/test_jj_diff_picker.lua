@@ -14,6 +14,10 @@ local function assert_not_contains(text, unexpected, label)
 	end
 end
 
+local script = debug.getinfo(1, "S").source:sub(2)
+local config_root = vim.fs.dirname(script)
+local test_clipboard = dofile(config_root .. "/test_clipboard.lua")
+
 local repo = vim.fn.tempname()
 vim.fn.mkdir(repo, "p")
 
@@ -85,8 +89,6 @@ package.loaded["fzf-lua.utils"] = {
 	end,
 }
 
-local script = debug.getinfo(1, "S").source:sub(2)
-local config_root = vim.fs.dirname(script)
 package.path = config_root .. "/lua/?.lua;" .. package.path
 
 vim.cmd.edit(vim.fn.fnameescape(file))
@@ -118,6 +120,23 @@ local preview_command = captured.opts.preview:gsub("{}", vim.fn.shellescape(targ
 local preview = run({ "sh", "-c", preview_command })
 assert_contains(preview, "target one changed", "range preview")
 assert_not_contains(preview, "footer changed", "range preview")
+
+for _, register in ipairs({ "+", '"', "0" }) do
+	vim.fn.setreg(register, "")
+end
+captured.opts.actions["ctrl-x"].fn({ target_row })
+local expected_commit = vim.split(package.loaded["fzf-lua.utils"].strip_ansi_coloring(target_row), "\t", {
+	plain = true,
+})[4]
+if test_clipboard["+"] ~= expected_commit then
+	fail("ctrl-x did not copy the selected commit ID to the system clipboard")
+end
+for _, register in ipairs({ '"', "0" }) do
+	local copied = vim.fn.getreg(register)
+	if copied ~= expected_commit then
+		fail("ctrl-x did not copy the selected commit ID to register " .. register)
+	end
+end
 
 captured.opts.actions["ctrl-h"].fn({ target_row, "1" }, { last_query = "" })
 assert_contains(captured.opts.prompt, "file revisions", "unfiltered prompt")

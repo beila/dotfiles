@@ -2,6 +2,7 @@ local M = {}
 
 local fzf_lua = require("fzf-lua")
 local fzf_utils = require("fzf-lua.utils")
+local picker_clipboard = require("picker-clipboard")
 
 local function notify(message, level)
 	vim.notify("jj: " .. message, level or vim.log.levels.ERROR)
@@ -301,9 +302,8 @@ open_bookmarks = function(ctx)
 					notify("select a bookmark")
 					return
 				end
-				vim.fn.setreg('"', name)
-				vim.fn.setreg("0", name)
-				notify(string.format("bookmark %q copied", name), vim.log.levels.INFO)
+				picker_clipboard.copy(name)
+				notify(string.format("bookmark %q copied to clipboard", name), vim.log.levels.INFO)
 			end,
 			["ctrl-b"] = toggle_action(open_workspaces, ctx),
 		},

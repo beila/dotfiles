@@ -14,6 +14,10 @@ local function assert_eq(actual, expected, label)
 	end
 end
 
+local script = debug.getinfo(1, "S").source:sub(2)
+local config_root = vim.fn.fnamemodify(script, ":p:h")
+local test_clipboard = dofile(config_root .. "/test_clipboard.lua")
+
 local base = vim.fn.tempname()
 vim.fn.mkdir(base, "p")
 local repo = base .. "/main"
@@ -72,8 +76,6 @@ package.loaded["fzf-lua.utils"] = {
 	end,
 }
 
-local script = debug.getinfo(1, "S").source:sub(2)
-local config_root = vim.fn.fnamemodify(script, ":p:h")
 package.path = config_root .. "/lua/?.lua;" .. package.path
 -- Load the module under test from THIS checkout, not any installed copy that
 -- Neovim's runtime package.path might otherwise resolve first.
@@ -196,6 +198,15 @@ if captured == workspace_capture then
 	fail("ctrl-b did not re-dispatch to the bookmark picker")
 end
 assert_contains(captured.opts.prompt, "jj bookmarks", "toggled prompt")
+
+for _, register in ipairs({ "+", '"', "0" }) do
+	vim.fn.setreg(register, "")
+end
+captured.opts.actions.enter({ "wip: test revision" })
+assert_eq(test_clipboard["+"], "wip", "bookmark system clipboard")
+for _, register in ipairs({ '"', "0" }) do
+	assert_eq(vim.fn.getreg(register), "wip", "bookmark clipboard register " .. register)
+end
 
 -- ctrl-b from the bookmark picker toggles back to workspaces.
 local bookmark_capture = captured
