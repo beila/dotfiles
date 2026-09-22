@@ -186,9 +186,9 @@ in
     };
   };
 
-  # Persistent MW overlay for definite Midway authentication failures. The
-  # daemon watches cookie/cache changes and rechecks remote validity every
-  # minute through the same shared status command as the panel and Brazil.
+  # Persistent MW overlay for definite Midway or AEA authentication failures.
+  # The daemon watches cookie/cache changes and rechecks validity every minute
+  # through the same shared status command as the panel and Brazil.
   systemd.user.services.midway-osd = {
     Unit = {
       Description = "Midway-invalid OSD indicator";

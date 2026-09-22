@@ -11,13 +11,17 @@ case $now in
 esac
 
 status_output=$("$status_command" 2>/dev/null)
-IFS=$'\t' read -r status expiry checked_at reason <<<"$status_output"
+IFS=$'\t' read -r status expiry checked_at reason aea_expiry <<<"$status_output"
 status=${status:-unknown}
 expiry=${expiry:-0}
 checked_at=${checked_at:-0}
 reason=${reason:-unknown}
+aea_expiry=${aea_expiry:-0}
 case $expiry in
     ''|*[!0-9]*) expiry=0 ;;
+esac
+case $aea_expiry in
+    ''|*[!0-9]*) aea_expiry=0 ;;
 esac
 
 format_expiry() {
@@ -47,8 +51,19 @@ if [[ $status == valid ]] && ((expiry > now)); then
         color='#50fa7b'
     fi
     printf "<txt><span color='%s'>●</span> MW</txt>\n" "$color"
-    printf '<tool>Midway session verified\nExpires: %s\nRemaining: %s</tool>\n' \
-        "$(format_expiry "$expiry")" "$(format_remaining "$remaining")"
+    aea_remaining=$((aea_expiry - now))
+    printf '<tool>Midway and AEA verified\nMidway expires: %s\nMidway remaining: %s\nAEA expires: %s\nAEA remaining: %s</tool>\n' \
+        "$(format_expiry "$expiry")" "$(format_remaining "$remaining")" \
+        "$(format_expiry "$aea_expiry")" "$(format_remaining "$aea_remaining")"
+elif [[ $status == invalid && $reason == aea* ]]; then
+    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    if ((aea_expiry > 0)); then
+        printf '<tool>AEA posture expired\nExpired: %s\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
+            "$(format_expiry "$aea_expiry")" "$(format_expiry "$expiry")"
+    else
+        printf '<tool>No AEA posture credential found\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
+            "$(format_expiry "$expiry")"
+    fi
 elif [[ $status == invalid ]]; then
     printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
     printf '<tool>Midway session rejected by server\nCookie expires: %s\nRun mwinit to authenticate.</tool>\n' \

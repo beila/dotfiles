@@ -7,6 +7,7 @@ cache_file=${MIDWAY_STATUS_CACHE_FILE:-${XDG_RUNTIME_DIR:-/tmp}/midway-status-${
 cache_seconds=${MIDWAY_STATUS_CACHE_SECONDS:-60}
 curl_command=${MIDWAY_STATUS_CURL:-curl}
 curl_timeout=${MIDWAY_STATUS_TIMEOUT:-8}
+mcscli_command=${MIDWAY_STATUS_MCSCLI:-mcscli}
 now=${MIDWAY_NOW:-$(date +%s)}
 refresh=0
 quiet=0
@@ -42,9 +43,10 @@ while (($#)); do
 done
 
 emit() {
-    local status=$1 expiry=$2 checked_at=$3 reason=$4 exit_code
+    local status=$1 expiry=$2 checked_at=$3 reason=$4 aea_expiry=${5:-0} exit_code
     [[ $quiet == 1 ]] ||
-        printf '%s\t%s\t%s\t%s\n' "$status" "$expiry" "$checked_at" "$reason"
+        printf '%s\t%s\t%s\t%s\t%s\n' \
+            "$status" "$expiry" "$checked_at" "$reason" "$aea_expiry"
     case $status in
         valid) exit_code=0 ;;
         unknown) exit_code=2 ;;
@@ -53,9 +55,28 @@ emit() {
     exit "$exit_code"
 }
 
+cache_result() {
+    local status=$1 expiry=$2 reason=$3 aea_expiry=$4
+    local cache_dir cache_tmp
+
+    cache_dir=${cache_file%/*}
+    [[ $cache_dir == "$cache_file" ]] && cache_dir=.
+    if mkdir -p "$cache_dir" 2>/dev/null; then
+        umask 077
+        cache_tmp=$(mktemp "${cache_file}.tmp.XXXXXX" 2>/dev/null)
+        if [[ -n ${cache_tmp-} ]]; then
+            printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+                "$now" "$fingerprint" "$status" "$expiry" "$reason" "$aea_expiry" \
+                > "$cache_tmp"
+            mv -f -- "$cache_tmp" "$cache_file"
+        fi
+    fi
+}
+
 expiry=0
+aea_expiry=0
 if [[ -r $cookie_file ]]; then
-    expiry=$(awk -F '\t' '
+    cookie_expiries=$(awk -F '\t' '
         NF >= 7 {
             domain = $1
             sub(/^#HttpOnly_/, "", domain)
@@ -65,80 +86,114 @@ if [[ -r $cookie_file ]]; then
                 $5 ~ /^[0-9]+$/ && $5 > latest) {
                 latest = $5
             }
+            if ($6 == "amazon_enterprise_access" &&
+                $5 ~ /^[0-9]+$/ && $5 > latest_aea) {
+                latest_aea = $5
+            }
         }
-        END { printf "%.0f\n", latest }
+        END { printf "%.0f\t%.0f\n", latest, latest_aea }
     ' "$cookie_file" 2>/dev/null)
+    IFS=$'\t' read -r expiry aea_expiry <<<"$cookie_expiries"
 fi
 
 if ((expiry == 0)); then
-    emit missing 0 0 local
+    emit missing 0 0 local "$aea_expiry"
 fi
 if ((expiry <= now)); then
-    emit expired "$expiry" 0 local
+    emit expired "$expiry" 0 local "$aea_expiry"
 fi
 
 fingerprint=$(sha256sum "$cookie_file" 2>/dev/null | cut -d ' ' -f 1)
 if [[ -z $fingerprint ]]; then
-    emit unknown "$expiry" "$now" cookie-read
+    emit unknown "$expiry" "$now" cookie-read "$aea_expiry"
 fi
 
 if [[ $refresh == 0 && -r $cache_file ]]; then
-    IFS=$'\t' read -r cached_at cached_fingerprint cached_status cached_expiry cached_reason \
+    IFS=$'\t' read -r cached_at cached_fingerprint cached_status cached_expiry \
+        cached_reason cached_aea_expiry \
         < "$cache_file"
     case ${cached_at-} in
         ''|*[!0-9]*) cached_at=0 ;;
     esac
     if ((cached_at <= now && now - cached_at <= cache_seconds)) &&
         [[ ${cached_fingerprint-} == "$fingerprint" ]] &&
-        [[ ${cached_expiry-} == "$expiry" ]]; then
-        emit "${cached_status:-unknown}" "$expiry" "$cached_at" "${cached_reason:-cache}"
+        [[ ${cached_expiry-} == "$expiry" ]] &&
+        [[ ${cached_aea_expiry-} == "$aea_expiry" ]] &&
+        { [[ ${cached_status-} != valid ]] || ((aea_expiry > now)); }; then
+        emit "${cached_status:-unknown}" "$expiry" "$cached_at" \
+            "${cached_reason:-cache}" "$aea_expiry"
     fi
 fi
 
-response=$("$curl_command" \
-    --cookie "$cookie_file" \
-    --silent \
-    --show-error \
-    --fail \
-    --max-time "$curl_timeout" \
-    "$status_url" 2>/dev/null)
-curl_status=$?
-
 status=unknown
 reason=network
-if ((curl_status == 0)); then
-    if command -v jq >/dev/null 2>&1; then
-        if jq -e '.authenticated == true' >/dev/null 2>&1 <<<"$response"; then
+aea_valid=
+aea_response=
+mcscli_available=0
+if [[ $mcscli_command == */* ]]; then
+    [[ -x $mcscli_command ]] && mcscli_available=1
+elif command -v "$mcscli_command" >/dev/null 2>&1; then
+    mcscli_available=1
+fi
+
+if ((mcscli_available == 1)); then
+    aea_response=$("$mcscli_command" is-valid posture --output json 2>/dev/null)
+    if [[ $aea_response =~ \"is_valid\"[[:space:]]*:[[:space:]]*(true|false) ]]; then
+        aea_valid=${BASH_REMATCH[1]}
+    fi
+    if [[ $aea_response =~ \"expiration_time\"[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
+        aea_expiry=${BASH_REMATCH[1]}
+    fi
+fi
+
+if [[ -z $aea_valid ]]; then
+    if ((aea_expiry > now)); then
+        aea_valid=true
+    else
+        aea_valid=false
+    fi
+fi
+
+if [[ $aea_valid != true ]] || ((aea_expiry <= now)); then
+    status=invalid
+    if ((aea_expiry == 0)); then
+        reason=aea-missing
+    else
+        reason=aea
+    fi
+else
+    response=$("$curl_command" \
+        --cookie "$cookie_file" \
+        --silent \
+        --show-error \
+        --fail \
+        --max-time "$curl_timeout" \
+        "$status_url" 2>/dev/null)
+    curl_status=$?
+
+    if ((curl_status == 0)); then
+        if command -v jq >/dev/null 2>&1; then
+            if jq -e '.authenticated == true' >/dev/null 2>&1 <<<"$response"; then
+                status=valid
+                reason=server
+            elif jq -e 'type == "object" and has("authenticated") and .authenticated == false' \
+                >/dev/null 2>&1 <<<"$response"; then
+                status=invalid
+                reason=server
+            else
+                reason=response
+            fi
+        elif rg -q '"authenticated"[[:space:]]*:[[:space:]]*true' <<<"$response"; then
             status=valid
             reason=server
-        elif jq -e 'type == "object" and has("authenticated") and .authenticated == false' \
-            >/dev/null 2>&1 <<<"$response"; then
+        elif rg -q '"authenticated"[[:space:]]*:[[:space:]]*false' <<<"$response"; then
             status=invalid
             reason=server
         else
             reason=response
         fi
-    elif rg -q '"authenticated"[[:space:]]*:[[:space:]]*true' <<<"$response"; then
-        status=valid
-        reason=server
-    elif rg -q '"authenticated"[[:space:]]*:[[:space:]]*false' <<<"$response"; then
-        status=invalid
-        reason=server
-    else
-        reason=response
     fi
 fi
 
-cache_dir=${cache_file%/*}
-[[ $cache_dir == "$cache_file" ]] && cache_dir=.
-if mkdir -p "$cache_dir" 2>/dev/null; then
-    umask 077
-    cache_tmp=$(mktemp "${cache_file}.tmp.XXXXXX" 2>/dev/null)
-    if [[ -n ${cache_tmp-} ]]; then
-        printf '%s\t%s\t%s\t%s\t%s\n' \
-            "$now" "$fingerprint" "$status" "$expiry" "$reason" > "$cache_tmp"
-        mv -f -- "$cache_tmp" "$cache_file"
-    fi
-fi
-
-emit "$status" "$expiry" "$now" "$reason"
+cache_result "$status" "$expiry" "$reason" "$aea_expiry"
+emit "$status" "$expiry" "$now" "$reason" "$aea_expiry"

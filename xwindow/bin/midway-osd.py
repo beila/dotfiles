@@ -1,9 +1,9 @@
 """
-midway-osd — persistent, click-through MW overlay while Midway is unusable.
+midway-osd — persistent, click-through MW overlay while work auth is unusable.
 
 The daemon consumes the same `midway-status` TSV result as midway-genmon.
-Definite invalid, expired, and missing states show the overlay; valid hides it.
-An explicit unknown state preserves the last definite state, avoiding a false
+Definite Midway or AEA invalid states show the overlay; valid hides it. An
+explicit unknown state preserves the last definite state, avoiding a false
 transition during a transient network failure.
 
 Cookie and status-cache directory watches make authentication changes visible
@@ -89,11 +89,12 @@ def _status_cache_file() -> str:
 def midway_status(
     run=subprocess.run,
 ) -> tuple[bool | None, int | None]:
-    """Return (invalid, expiry).
+    """Return (invalid, next_expiry).
 
     invalid=True means a definite unusable state, False means verified valid,
     and None means live verification is unavailable. Malformed output or an
-    execution failure is fail-safe invalid.
+    execution failure is fail-safe invalid. next_expiry is the earliest
+    positive Midway-session or AEA-posture expiry.
     """
     try:
         proc = run(
@@ -118,13 +119,22 @@ def midway_status(
         expiry = int(fields[1])
     except ValueError:
         expiry = None
+    try:
+        aea_expiry = int(fields[4]) if len(fields) >= 5 else None
+    except ValueError:
+        aea_expiry = None
+
+    positive_expiries = [
+        value for value in (expiry, aea_expiry) if value is not None and value > 0
+    ]
+    next_expiry = min(positive_expiries) if positive_expiries else expiry
 
     if state == "valid" and proc.returncode == 0 and expiry is not None:
-        return False, expiry
+        return False, next_expiry
     if state in {"invalid", "expired", "missing"}:
-        return True, expiry
+        return True, next_expiry
     if state == "unknown":
-        return None, expiry
+        return None, next_expiry
     return True, None
 
 

@@ -185,8 +185,8 @@ in
         } (builtins.readFile ../xwindow/bin/hangul-osd.py)
       }/bin/hangul-osd-impl "$@"
     '')
-    # midway-osd: persistent MW overlay while the shared Midway checker
-    # reports a definite invalid, expired, or missing session.
+    # midway-osd: persistent MW overlay while the shared checker reports a
+    # definite invalid, expired, or missing Midway or AEA credential.
     (pkgs.writeShellScriptBin "midway-osd" ''
       export GI_TYPELIB_PATH="${pkgs.librsvg.out}/lib/girepository-1.0:${pkgs.gdk-pixbuf}/lib/girepository-1.0:${pkgs.gobject-introspection}/lib/girepository-1.0''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
       export MIDWAY_OSD_IMAGE=${../xwindow/osd/assets/mw.svg}

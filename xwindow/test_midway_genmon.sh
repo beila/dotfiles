@@ -9,41 +9,54 @@ trap 'rm -rf "$TMP"' EXIT
 
 write_status() {
     local path=$1 status=$2 expiry=$3 checked_at=${4:-1000} reason=${5:-server}
-    printf '#!/usr/bin/env bash\nprintf "%%s\\\\t%%s\\\\t%%s\\\\t%%s\\\\n" %q %q %q %q\n' \
-        "$status" "$expiry" "$checked_at" "$reason" > "$path"
+    local aea_expiry=${6:-7000}
+    printf '#!/usr/bin/env bash\nprintf "%%s\\\\t%%s\\\\t%%s\\\\t%%s\\\\t%%s\\\\n" %q %q %q %q %q\n' \
+        "$status" "$expiry" "$checked_at" "$reason" "$aea_expiry" > "$path"
     chmod +x "$path"
 }
 
 write_status "$TMP/valid" valid 33400
 valid=$(MIDWAY_STATUS_COMMAND="$TMP/valid" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $valid == *"#50fa7b"* ]]
-[[ $valid == *"Midway session verified"* ]]
-[[ $valid == *"Remaining: 9h 0m"* ]]
+[[ $valid == *"Midway and AEA verified"* ]]
+[[ $valid == *"Midway remaining: 9h 0m"* ]]
+[[ $valid == *"AEA remaining: 1h 40m"* ]]
 
 write_status "$TMP/eight-hours" valid 29800
 eight_hours=$(MIDWAY_STATUS_COMMAND="$TMP/eight-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $eight_hours == *"#50fa7b"* ]]
-[[ $eight_hours == *"Remaining: 8h 0m"* ]]
+[[ $eight_hours == *"Midway remaining: 8h 0m"* ]]
 
 write_status "$TMP/expiring" valid 29799
 expiring=$(MIDWAY_STATUS_COMMAND="$TMP/expiring" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $expiring == *"#F8BB3D"* ]]
-[[ $expiring == *"Midway session verified"* ]]
-[[ $expiring == *"Remaining: 7h 59m"* ]]
+[[ $expiring == *"Midway and AEA verified"* ]]
+[[ $expiring == *"Midway remaining: 7h 59m"* ]]
 
 write_status "$TMP/two-hours" valid 8200
 two_hours=$(MIDWAY_STATUS_COMMAND="$TMP/two-hours" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $two_hours == *"#F8BB3D"* ]]
-[[ $two_hours == *"Midway session verified"* ]]
-[[ $two_hours == *"Remaining: 2h 0m"* ]]
+[[ $two_hours == *"Midway and AEA verified"* ]]
+[[ $two_hours == *"Midway remaining: 2h 0m"* ]]
 
 write_status "$TMP/critical" valid 8199
 critical=$(MIDWAY_STATUS_COMMAND="$TMP/critical" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $critical == *"#ff5555"* ]]
-[[ $critical == *"Midway session verified"* ]]
-[[ $critical == *"Remaining: 1h 59m"* ]]
+[[ $critical == *"Midway and AEA verified"* ]]
+[[ $critical == *"Midway remaining: 1h 59m"* ]]
 
-write_status "$TMP/invalid" invalid 33400
+write_status "$TMP/aea-expired" invalid 33400 1000 aea 999
+aea_expired=$(MIDWAY_STATUS_COMMAND="$TMP/aea-expired" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $aea_expired == *"#ff5555"* ]]
+[[ $aea_expired == *"AEA posture expired"* ]]
+[[ $aea_expired == *"Run mwinit to authenticate."* ]]
+
+write_status "$TMP/aea-missing" invalid 33400 1000 aea-missing 0
+aea_missing=$(MIDWAY_STATUS_COMMAND="$TMP/aea-missing" MIDWAY_NOW=1000 bash "$MIDWAY")
+[[ $aea_missing == *"#ff5555"* ]]
+[[ $aea_missing == *"No AEA posture credential found"* ]]
+
+write_status "$TMP/invalid" invalid 33400 1000 server
 invalid=$(MIDWAY_STATUS_COMMAND="$TMP/invalid" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $invalid == *"#ff5555"* ]]
 [[ $invalid == *"Midway session rejected by server"* ]]
