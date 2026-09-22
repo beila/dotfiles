@@ -87,6 +87,15 @@ set -e
 [[ $status == 1 ]]
 rg -q $'^invalid\t10000\t1000\taea-cookie\t999$' "$TMP/out"
 
+write_cookie "$TMP/cookie" 10000 0
+set +e
+MIDWAY_TEST_AEA_VALID=true MIDWAY_TEST_POSTURE_EXPIRY=9000 \
+    MIDWAY_TEST_RESPONSE='{"authenticated":true}' run_status --refresh > "$TMP/out"
+status=$?
+set -e
+[[ $status == 1 ]]
+rg -q $'^invalid\t10000\t1000\taea-missing\t0$' "$TMP/out"
+
 write_cookie "$TMP/cookie" 999
 set +e
 MIDWAY_TEST_RESPONSE='{"authenticated":true}' run_status --refresh > "$TMP/out"
