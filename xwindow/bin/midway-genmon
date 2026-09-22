@@ -55,15 +55,18 @@ if [[ $status == valid ]] && ((expiry > now)); then
     printf '<tool>Midway and AEA verified\nMidway expires: %s\nMidway remaining: %s\nAEA expires: %s\nAEA remaining: %s</tool>\n' \
         "$(format_expiry "$expiry")" "$(format_remaining "$remaining")" \
         "$(format_expiry "$aea_expiry")" "$(format_remaining "$aea_remaining")"
-elif [[ $status == invalid && $reason == aea* ]]; then
+elif [[ $status == invalid && $reason == aea-cookie ]]; then
     printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
-    if ((aea_expiry > 0)); then
-        printf '<tool>AEA posture expired\nExpired: %s\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
-            "$(format_expiry "$aea_expiry")" "$(format_expiry "$expiry")"
-    else
-        printf '<tool>No AEA posture credential found\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
-            "$(format_expiry "$expiry")"
-    fi
+    printf '<tool>AEA cookie expired\nExpired: %s\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
+        "$(format_expiry "$aea_expiry")" "$(format_expiry "$expiry")"
+elif [[ $status == invalid && $reason == aea-missing ]]; then
+    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    printf '<tool>No AEA cookie found\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
+        "$(format_expiry "$expiry")"
+elif [[ $status == invalid && $reason == aea-posture ]]; then
+    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    printf '<tool>AEA posture rejected\nAEA cookie expires: %s\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
+        "$(format_expiry "$aea_expiry")" "$(format_expiry "$expiry")"
 elif [[ $status == invalid ]]; then
     printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
     printf '<tool>Midway session rejected by server\nCookie expires: %s\nRun mwinit to authenticate.</tool>\n' \

@@ -127,8 +127,9 @@ fi
 
 status=unknown
 reason=network
-aea_valid=
+aea_posture_valid=
 aea_response=
+aea_posture_expiry=0
 mcscli_available=0
 if [[ $mcscli_command == */* ]]; then
     [[ -x $mcscli_command ]] && mcscli_available=1
@@ -139,28 +140,27 @@ fi
 if ((mcscli_available == 1)); then
     aea_response=$("$mcscli_command" is-valid posture --output json 2>/dev/null)
     if [[ $aea_response =~ \"is_valid\"[[:space:]]*:[[:space:]]*(true|false) ]]; then
-        aea_valid=${BASH_REMATCH[1]}
+        aea_posture_valid=${BASH_REMATCH[1]}
     fi
     if [[ $aea_response =~ \"expiration_time\"[[:space:]]*:[[:space:]]*([0-9]+) ]]; then
-        aea_expiry=${BASH_REMATCH[1]}
+        aea_posture_expiry=${BASH_REMATCH[1]}
     fi
 fi
 
-if [[ -z $aea_valid ]]; then
-    if ((aea_expiry > now)); then
-        aea_valid=true
-    else
-        aea_valid=false
-    fi
+if [[ $aea_posture_valid == true ]] &&
+    ((aea_posture_expiry > 0 && aea_posture_expiry <= now)); then
+    aea_posture_valid=false
 fi
 
-if [[ $aea_valid != true ]] || ((aea_expiry <= now)); then
+if ((aea_expiry == 0)); then
     status=invalid
-    if ((aea_expiry == 0)); then
-        reason=aea-missing
-    else
-        reason=aea
-    fi
+    reason=aea-missing
+elif ((aea_expiry <= now)); then
+    status=invalid
+    reason=aea-cookie
+elif [[ $aea_posture_valid == false ]]; then
+    status=invalid
+    reason=aea-posture
 else
     response=$("$curl_command" \
         --cookie "$cookie_file" \

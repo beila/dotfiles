@@ -27,7 +27,7 @@ cat > "$TMP/mcscli" <<'EOF'
 #!/usr/bin/env bash
 printf x >> "$MIDWAY_TEST_MCS_CALLS"
 printf '{"is_valid":%s,"expiration_time":%s}\n' \
-    "${MIDWAY_TEST_AEA_VALID:-true}" "${MIDWAY_TEST_AEA_EXPIRY:-9000}"
+    "${MIDWAY_TEST_AEA_VALID:-true}" "${MIDWAY_TEST_POSTURE_EXPIRY:-9000}"
 [[ ${MIDWAY_TEST_AEA_VALID:-true} == true ]]
 EOF
 chmod +x "$TMP/mcscli"
@@ -42,7 +42,7 @@ run_status() {
     MIDWAY_TEST_RESPONSE="${MIDWAY_TEST_RESPONSE-}" \
     MIDWAY_TEST_CURL_EXIT="${MIDWAY_TEST_CURL_EXIT:-0}" \
     MIDWAY_TEST_AEA_VALID="${MIDWAY_TEST_AEA_VALID:-true}" \
-    MIDWAY_TEST_AEA_EXPIRY="${MIDWAY_TEST_AEA_EXPIRY:-9000}" \
+    MIDWAY_TEST_POSTURE_EXPIRY="${MIDWAY_TEST_POSTURE_EXPIRY:-9000}" \
     MIDWAY_NOW="${MIDWAY_NOW:-1000}" \
         "$STATUS" "$@"
 }
@@ -71,12 +71,21 @@ set -e
 rg -q $'^unknown\t10000\t1000\tnetwork\t9000$' "$TMP/out"
 
 set +e
-MIDWAY_TEST_AEA_VALID=false MIDWAY_TEST_AEA_EXPIRY=999 \
+MIDWAY_TEST_AEA_VALID=false MIDWAY_TEST_POSTURE_EXPIRY=999 \
     MIDWAY_TEST_RESPONSE='{"authenticated":true}' run_status --refresh > "$TMP/out"
 status=$?
 set -e
 [[ $status == 1 ]]
-rg -q $'^invalid\t10000\t1000\taea\t999$' "$TMP/out"
+rg -q $'^invalid\t10000\t1000\taea-posture\t9000$' "$TMP/out"
+
+write_cookie "$TMP/cookie" 10000 999
+set +e
+MIDWAY_TEST_AEA_VALID=true MIDWAY_TEST_POSTURE_EXPIRY=9000 \
+    MIDWAY_TEST_RESPONSE='{"authenticated":true}' run_status --refresh > "$TMP/out"
+status=$?
+set -e
+[[ $status == 1 ]]
+rg -q $'^invalid\t10000\t1000\taea-cookie\t999$' "$TMP/out"
 
 write_cookie "$TMP/cookie" 999
 set +e
