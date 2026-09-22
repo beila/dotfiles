@@ -184,6 +184,16 @@ tests =
             "monitor"
             Nothing
             (Monitors.classifyMonitor "DP-3" $ Just $ BS.pack [0x12, 0x34])
+    , Test "DisplayLink output includes its sysfs connector name" $
+        assertEqual
+            "connector candidates"
+            ["DVI-I-1-1", "DVI-I-1"]
+            (Monitors.sysfsOutputCandidates "DVI-I-1-1")
+    , Test "ordinary output name is not shortened" $
+        assertEqual
+            "connector candidates"
+            ["DP-1"]
+            (Monitors.sysfsOutputCandidates "DP-1")
     , Test "large offscreen window is rescued" $
         assertEqual
             "rescue"

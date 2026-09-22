@@ -286,7 +286,14 @@ readEdidVendor output = do
         try
             ( do
                 connectors <- listDirectory "/sys/class/drm"
-                case L.find (L.isSuffixOf $ "-" ++ output) connectors of
+                case
+                        listToMaybe
+                            [ connector
+                            | candidate <- Monitors.sysfsOutputCandidates output
+                            , connector <- connectors
+                            , ("-" ++ candidate) `L.isSuffixOf` connector
+                            ]
+                    of
                     Nothing -> return Nothing
                     Just connector -> do
                         edid <- BS.readFile $ "/sys/class/drm/" ++ connector ++ "/edid"

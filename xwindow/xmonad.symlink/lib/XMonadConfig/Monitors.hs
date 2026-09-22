@@ -1,10 +1,12 @@
 module XMonadConfig.Monitors (
     MonitorTarget (..),
     classifyMonitor,
+    sysfsOutputCandidates,
     shouldRescueOffscreen,
 ) where
 
 import qualified Data.ByteString as BS
+import Data.Char (isDigit)
 import qualified Data.List as L
 import XMonad (Rectangle (..))
 
@@ -20,6 +22,20 @@ classifyMonitor output vendor
     | vendor == Just (BS.pack [0x10, 0xac]) = Just DellMonitor
     | vendor == Just (BS.pack [0x4c, 0x2d]) = Just SamsungMonitor
     | otherwise = Nothing
+
+sysfsOutputCandidates :: String -> [String]
+sysfsOutputCandidates output =
+    output : case stripProviderSuffix output of
+        Just connector -> [connector]
+        Nothing -> []
+  where
+    stripProviderSuffix name =
+        case span isDigit (reverse name) of
+            ([], _) -> Nothing
+            (_, '-' : baseReversed@(baseLast : _))
+                | isDigit baseLast ->
+                    Just $ reverse baseReversed
+            _ -> Nothing
 
 shouldRescueOffscreen :: [Rectangle] -> Int -> Int -> Int -> Int -> Bool
 shouldRescueOffscreen rects x y width height =
