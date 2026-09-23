@@ -732,9 +732,21 @@ def display_on_all_monitors(
     if following:
         deadline = time.monotonic() + max(0, duration)
         while (remaining := deadline - time.monotonic()) > 0:
-            readable, _, _ = select.select([d.fileno()], [], [], remaining)
-            if not readable:
-                break
+            # python-xlib buffers events in an internal queue, not just on the
+            # socket. The d.sync() inside create_windows()/destroy_windows()
+            # performs a non-blocking socket read, so a RandR event that
+            # arrives mid-rebuild lands in that queue and leaves the fd
+            # NOT readable. Selecting on the raw fd alone would then block
+            # forever with the event stranded — and because one monitor change
+            # emits several events back-to-back (Output/Crtc/Screen), the one
+            # carrying the final geometry is exactly the one most often
+            # swallowed, so the OSD sticks on an intermediate/old layout.
+            # Drain the internal queue first; only block on the fd when the
+            # queue is empty.
+            if not d.pending_events():
+                readable, _, _ = select.select([d.fileno()], [], [], remaining)
+                if not readable:
+                    break
             while d.pending_events():
                 d.next_event()
             destroy_windows(windows)
