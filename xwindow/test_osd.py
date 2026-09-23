@@ -92,21 +92,10 @@ class FakeDisplay:
 
 
 class MonitorTopologyTest(unittest.TestCase):
-    def test_default_randr_event_rebuilds_windows_for_current_monitors(self):
-        display = FakeDisplay()
-        monitor_sets = iter(
-            [
-                [(0, 0, 1920, 1080, 510, 290)],
-                [(1920, 0, 2560, 1440, 600, 340)],
-            ]
-        )
+    def _run_follow(self, display, monitor_sets, select_results):
         created = []
-        select_results = iter(
-            [
-                ([display.fileno()], [], []),
-                ([], [], []),
-            ]
-        )
+        monitors = iter(monitor_sets)
+        selects = iter(select_results)
 
         originals = (
             osd.display.Display,
@@ -118,7 +107,7 @@ class MonitorTopologyTest(unittest.TestCase):
         )
         osd.display.Display = lambda: display
         osd.randr.query_version = lambda _display: None
-        osd.get_monitors = lambda _display, _root: next(monitor_sets)
+        osd.get_monitors = lambda _display, _root: next(monitors)
         osd.render_surface = lambda *_args, **_kwargs: object()
 
         def create_window(_display, _screen, _root, rect, *_args):
@@ -127,12 +116,9 @@ class MonitorTopologyTest(unittest.TestCase):
             return window
 
         osd._create_osd_window = create_window
-        osd.select.select = lambda *_args, **_kwargs: next(select_results)
+        osd.select.select = lambda *_args, **_kwargs: next(selects)
         try:
-            osd.display_on_all_monitors(
-                "MW",
-                1,
-            )
+            osd.display_on_all_monitors("MW", 1)
         finally:
             (
                 osd.display.Display,
@@ -142,6 +128,22 @@ class MonitorTopologyTest(unittest.TestCase):
                 osd._create_osd_window,
                 osd.select.select,
             ) = originals
+        return created
+
+    def test_fd_readable_event_rebuilds_windows_for_current_monitors(self):
+        display = FakeDisplay()
+        display.events = []  # nothing buffered internally; the fd wakes us
+        created = self._run_follow(
+            display,
+            monitor_sets=[
+                [(0, 0, 1920, 1080, 510, 290)],
+                [(1920, 0, 2560, 1440, 600, 340)],
+            ],
+            select_results=[
+                ([display.fileno()], [], []),
+                ([], [], []),
+            ],
+        )
 
         self.assertEqual(
             [window.rect for window in created],
@@ -153,6 +155,38 @@ class MonitorTopologyTest(unittest.TestCase):
         self.assertTrue(all(window.unmapped for window in created))
         self.assertTrue(all(window.destroyed for window in created))
         self.assertEqual(display.root.randr_mask, 7)
+        self.assertTrue(display.closed)
+
+    def test_buffered_event_rebuilds_even_when_fd_never_readable(self):
+        # Regression: a RandR event python-xlib already pulled into its
+        # internal queue leaves the socket fd NOT readable. The follow loop
+        # must drain that queue and rebuild rather than block on select
+        # forever — the failure left the midway OSD stranded on a stale,
+        # single-window layout after a monitor change (a fresh child at 0%
+        # CPU blocked in select, one mis-placed window).
+        display = FakeDisplay()
+        display.events = [object()]  # one event buffered internally
+        # The fd is NEVER readable: only the buffered event can drive a
+        # rebuild. Exactly one select call is expected (the terminating
+        # check once the queue has drained).
+        created = self._run_follow(
+            display,
+            monitor_sets=[
+                [(0, 0, 1920, 1080, 510, 290)],
+                [(1920, 0, 2560, 1440, 600, 340)],
+            ],
+            select_results=[
+                ([], [], []),
+            ],
+        )
+
+        self.assertEqual(
+            [window.rect for window in created],
+            [
+                (0, 0, 1920, 1080, 510, 290),
+                (1920, 0, 2560, 1440, 600, 340),
+            ],
+        )
         self.assertTrue(display.closed)
 
 
