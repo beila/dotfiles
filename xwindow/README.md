@@ -9,10 +9,10 @@ Swap left/right buttons (BTN_LEFT ↔ BTN_RIGHT).
 
 ## ExpertBT5.0 Mouse (Kensington Expert Trackball BT) — remap.json
 Left-hand button remap:
-- BTN_LEFT(272) → Super+Tab — switch windows
+- BTN_LEFT(272), physical lower-left → universal copy (same output as Super+C)
 - BTN_MIDDLE(274) → BTN_RIGHT(273)
 - BTN_RIGHT(273) → BTN_LEFT(272)
-- BTN_SIDE(275) → Super+Shift+C — close window
+- BTN_SIDE(275), physical upper-right → universal paste (same output as Super+V)
 
 ## Keyboard remapping
 

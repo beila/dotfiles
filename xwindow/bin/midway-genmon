@@ -41,8 +41,9 @@ format_remaining() {
     fi
 }
 
-if [[ $status == valid ]] && ((expiry > now)); then
-    remaining=$((expiry - now))
+print_midway_indicator() {
+    local expiry_value=$1 remaining color
+    remaining=$((expiry_value - now))
     if ((remaining < critical_seconds)); then
         color='#ff5555'
     elif ((remaining < warning_seconds)); then
@@ -51,20 +52,25 @@ if [[ $status == valid ]] && ((expiry > now)); then
         color='#50fa7b'
     fi
     printf "<txt><span color='%s'>●</span> MW</txt>\n" "$color"
+}
+
+if [[ $status == valid ]] && ((expiry > now)); then
+    remaining=$((expiry - now))
+    print_midway_indicator "$expiry"
     aea_remaining=$((aea_expiry - now))
     printf '<tool>Midway and AEA verified\nMidway expires: %s\nMidway remaining: %s\nAEA expires: %s\nAEA remaining: %s</tool>\n' \
         "$(format_expiry "$expiry")" "$(format_remaining "$remaining")" \
         "$(format_expiry "$aea_expiry")" "$(format_remaining "$aea_remaining")"
 elif [[ $status == invalid && $reason == aea-cookie ]]; then
-    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    print_midway_indicator "$expiry"
     printf '<tool>AEA cookie expired\nExpired: %s\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
         "$(format_expiry "$aea_expiry")" "$(format_expiry "$expiry")"
 elif [[ $status == invalid && $reason == aea-missing ]]; then
-    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    print_midway_indicator "$expiry"
     printf '<tool>No AEA cookie found\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
         "$(format_expiry "$expiry")"
 elif [[ $status == invalid && $reason == aea-posture ]]; then
-    printf "<txt><span color='#ff5555'>●</span> MW</txt>\n"
+    print_midway_indicator "$expiry"
     printf '<tool>AEA posture rejected\nAEA cookie expires: %s\nMidway expires: %s\nRun mwinit to authenticate.</tool>\n' \
         "$(format_expiry "$aea_expiry")" "$(format_expiry "$expiry")"
 elif [[ $status == invalid ]]; then

@@ -8,7 +8,7 @@
             }
         ],
         "target_uinput": "keyboard",
-        "output_symbol": "KEY_LEFTMETA + KEY_TAB"
+        "output_symbol": "key(KEY_COPY).key(KEY_F24)"
     },
     {
         "input_combination": [
@@ -43,6 +43,6 @@
             }
         ],
         "target_uinput": "keyboard",
-        "output_symbol": "KEY_LEFTMETA + KEY_LEFTSHIFT + KEY_C"
+        "output_symbol": "key(KEY_PASTE).key(KEY_F20)"
     }
 ]

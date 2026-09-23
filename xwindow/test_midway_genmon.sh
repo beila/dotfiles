@@ -47,19 +47,28 @@ critical=$(MIDWAY_STATUS_COMMAND="$TMP/critical" MIDWAY_NOW=1000 bash "$MIDWAY")
 
 write_status "$TMP/aea-expired" invalid 33400 1000 aea-cookie 999
 aea_expired=$(MIDWAY_STATUS_COMMAND="$TMP/aea-expired" MIDWAY_NOW=1000 bash "$MIDWAY")
-[[ $aea_expired == *"#ff5555"* ]]
+[[ $aea_expired == *"#50fa7b"* ]]
+[[ $aea_expired != *"#ff5555"* ]]
 [[ $aea_expired == *"AEA cookie expired"* ]]
 [[ $aea_expired == *"Run mwinit to authenticate."* ]]
 
 write_status "$TMP/aea-missing" invalid 33400 1000 aea-missing 0
 aea_missing=$(MIDWAY_STATUS_COMMAND="$TMP/aea-missing" MIDWAY_NOW=1000 bash "$MIDWAY")
-[[ $aea_missing == *"#ff5555"* ]]
+[[ $aea_missing == *"#50fa7b"* ]]
 [[ $aea_missing == *"No AEA cookie found"* ]]
 
 write_status "$TMP/aea-posture" invalid 33400 1000 aea-posture 7000
 aea_posture=$(MIDWAY_STATUS_COMMAND="$TMP/aea-posture" MIDWAY_NOW=1000 bash "$MIDWAY")
-[[ $aea_posture == *"#ff5555"* ]]
+[[ $aea_posture == *"#50fa7b"* ]]
 [[ $aea_posture == *"AEA posture rejected"* ]]
+
+write_status "$TMP/aea-expired-midway-expiring" invalid 29799 1000 aea-cookie 999
+aea_expired_midway_expiring=$(
+    MIDWAY_STATUS_COMMAND="$TMP/aea-expired-midway-expiring" \
+        MIDWAY_NOW=1000 bash "$MIDWAY"
+)
+[[ $aea_expired_midway_expiring == *"#F8BB3D"* ]]
+[[ $aea_expired_midway_expiring == *"AEA cookie expired"* ]]
 
 write_status "$TMP/invalid" invalid 33400 1000 server
 invalid=$(MIDWAY_STATUS_COMMAND="$TMP/invalid" MIDWAY_NOW=1000 bash "$MIDWAY")

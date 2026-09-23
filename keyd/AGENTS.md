@@ -79,7 +79,7 @@ So a config that fully works exists — but only **without** `common`'s `leftmet
 Symlinked to `~/.config/input-remapper-2/`. Per-device, runs as systemd user daemon.
 
 - Logitech USB Optical Mouse: left-handed.
-- ExpertBT5.0 Mouse (Kensington): left-handed + `BTN_SIDE` → Super+Shift+C (close window) + `BTN_LEFT` → Super+Tab.
+- ExpertBT5.0 Mouse (Kensington): left-handed + physical lower-left `BTN_LEFT` → universal copy + physical upper-right `BTN_SIDE` → universal paste. Input-remapper emits the same `copy`/F24 and `paste`/F20 sequences as keyd's Super+C/V macros, without relying on keyd to reprocess its virtual keyboard.
 
 ## Known issues
 

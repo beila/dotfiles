@@ -63,7 +63,7 @@ class StatusTest(unittest.TestCase):
             midway_osd.midway_status(
                 self.runner("valid\t2000\t1000\tserver\t1500\n")
             ),
-            (False, 1500),
+            (False, 2000),
         )
 
     def test_definite_invalid_states(self):
@@ -82,16 +82,17 @@ class StatusTest(unittest.TestCase):
                 (True, expiry),
             )
 
-    def test_aea_invalid_uses_aea_expiry(self):
-        self.assertEqual(
-            midway_osd.midway_status(
-                self.runner(
-                    "invalid\t2000\t1000\taea\t1200\n",
-                    returncode=1,
-                )
-            ),
-            (True, 1200),
-        )
+    def test_aea_invalid_hides_osd_and_uses_midway_expiry(self):
+        for reason in ("aea-cookie", "aea-missing", "aea-posture"):
+            self.assertEqual(
+                midway_osd.midway_status(
+                    self.runner(
+                        f"invalid\t2000\t1000\t{reason}\t1200\n",
+                        returncode=1,
+                    )
+                ),
+                (False, 2000),
+            )
 
     def test_unknown_is_neither_valid_nor_invalid(self):
         self.assertEqual(

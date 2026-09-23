@@ -2,9 +2,10 @@
 midway-osd — persistent, click-through MW overlay while work auth is unusable.
 
 The daemon consumes the same `midway-status` TSV result as midway-genmon.
-Definite Midway or AEA invalid states show the overlay; valid hides it. An
-explicit unknown state preserves the last definite state, avoiding a false
-transition during a transient network failure.
+Only definite Midway invalid states show the overlay; AEA-only failures are
+left to the genmon tooltip and the authentication guard. An explicit unknown
+state preserves the last definite state, avoiding a false transition during a
+transient network failure.
 
 Cookie and status-cache directory watches make authentication changes visible
 immediately. A one-shot timer catches local expiry without a file change, and
@@ -91,10 +92,10 @@ def midway_status(
 ) -> tuple[bool | None, int | None]:
     """Return (invalid, next_expiry).
 
-    invalid=True means a definite unusable state, False means verified valid,
-    and None means live verification is unavailable. Malformed output or an
-    execution failure is fail-safe invalid. next_expiry is the earliest
-    positive Midway-session or AEA-posture expiry.
+    invalid=True means a definite Midway failure, False means the OSD should
+    stay hidden, and None means live verification is unavailable. AEA-only
+    failures hide the OSD but remain invalid to other status consumers.
+    Malformed output or an execution failure is fail-safe invalid.
     """
     try:
         proc = run(
@@ -119,22 +120,20 @@ def midway_status(
         expiry = int(fields[1])
     except ValueError:
         expiry = None
-    try:
-        aea_expiry = int(fields[4]) if len(fields) >= 5 else None
-    except ValueError:
-        aea_expiry = None
-
-    positive_expiries = [
-        value for value in (expiry, aea_expiry) if value is not None and value > 0
-    ]
-    next_expiry = min(positive_expiries) if positive_expiries else expiry
+    reason = fields[3] if len(fields) >= 4 else ""
 
     if state == "valid" and proc.returncode == 0 and expiry is not None:
-        return False, next_expiry
+        return False, expiry
+    if state == "invalid" and reason in {
+        "aea-cookie",
+        "aea-missing",
+        "aea-posture",
+    }:
+        return False, expiry
     if state in {"invalid", "expired", "missing"}:
-        return True, next_expiry
+        return True, expiry
     if state == "unknown":
-        return None, next_expiry
+        return None, expiry
     return True, None
 
 
