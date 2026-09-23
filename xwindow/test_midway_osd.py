@@ -83,7 +83,9 @@ class StatusTest(unittest.TestCase):
             )
 
     def test_aea_invalid_hides_osd_and_uses_midway_expiry(self):
-        for reason in ("aea-cookie", "aea-missing", "aea-posture"):
+        # Any aea* reason hides the overlay, including a future variant not
+        # in the original fixed set — the rule is a prefix, not a denylist.
+        for reason in ("aea-cookie", "aea-missing", "aea-posture", "aea-future"):
             self.assertEqual(
                 midway_osd.midway_status(
                     self.runner(
@@ -93,6 +95,19 @@ class StatusTest(unittest.TestCase):
                 ),
                 (False, 2000),
             )
+
+    def test_midway_server_invalid_shows_osd(self):
+        # A genuine Midway server rejection (reason=server, reached only when
+        # AEA is valid) must still show the overlay.
+        self.assertEqual(
+            midway_osd.midway_status(
+                self.runner(
+                    "invalid\t2000\t1000\tserver\t1500\n",
+                    returncode=1,
+                )
+            ),
+            (True, 2000),
+        )
 
     def test_unknown_is_neither_valid_nor_invalid(self):
         self.assertEqual(

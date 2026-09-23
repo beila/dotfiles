@@ -124,11 +124,12 @@ def midway_status(
 
     if state == "valid" and proc.returncode == 0 and expiry is not None:
         return False, expiry
-    if state == "invalid" and reason in {
-        "aea-cookie",
-        "aea-missing",
-        "aea-posture",
-    }:
+    # AEA (Amazon Enterprise Access) failures belong to the genmon tooltip
+    # and the auth guard, not this overlay. Hide for ANY aea* reason
+    # (aea-missing / aea-cookie / aea-posture and any future variant) rather
+    # than a fixed set. Only a genuine Midway failure — a local cookie that
+    # is missing/expired, or a server "not authenticated" — shows the OSD.
+    if state == "invalid" and reason.startswith("aea"):
         return False, expiry
     if state in {"invalid", "expired", "missing"}:
         return True, expiry
