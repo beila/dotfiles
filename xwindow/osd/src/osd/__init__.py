@@ -747,10 +747,23 @@ def display_on_all_monitors(
                 readable, _, _ = select.select([d.fileno()], [], [], remaining)
                 if not readable:
                     break
+            # Only a RandR topology change should rebuild. Mapping our own
+            # windows (ExposureMask) makes the server queue Expose events,
+            # which create_windows()'s d.sync() pulls into the internal queue
+            # — so rebuilding on ANY drained event turns our own Expose into a
+            # trigger and the OSD destroys/recreates itself dozens of times a
+            # second (visible flicker on the large centred overlays). We only
+            # selected RandR extension input, so any non-core event
+            # (type >= X.LASTEvent) is a topology change; core events like
+            # Expose (type 12) are drained and ignored.
+            topology_changed = False
             while d.pending_events():
-                d.next_event()
-            destroy_windows(windows)
-            windows = create_windows()
+                event = d.next_event()
+                if event.type >= X.LASTEvent:
+                    topology_changed = True
+            if topology_changed:
+                destroy_windows(windows)
+                windows = create_windows()
     else:
         time.sleep(max(0, duration))
 
