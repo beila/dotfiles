@@ -42,6 +42,7 @@ two_hours=$(MIDWAY_STATUS_COMMAND="$TMP/two-hours" MIDWAY_NOW=1000 bash "$MIDWAY
 write_status "$TMP/critical" valid 8199
 critical=$(MIDWAY_STATUS_COMMAND="$TMP/critical" MIDWAY_NOW=1000 bash "$MIDWAY")
 [[ $critical == *"#ff5555"* ]]
+[[ $critical == *"MW 1h59m"* ]]
 [[ $critical == *"Midway and AEA verified"* ]]
 [[ $critical == *"Midway remaining: 1h 59m"* ]]
 
