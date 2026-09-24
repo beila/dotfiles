@@ -4,7 +4,7 @@ import Control.Exception (IOException, try)
 import Control.Monad
 import qualified Data.ByteString as BS
 import Data.Either (fromRight)
-import qualified Data.List as L (find, isSuffixOf)
+import qualified Data.List as L (find, isSuffixOf, sortOn)
 import qualified Data.Map as M (lookup)
 import Data.Maybe
 import System.Directory (getHomeDirectory, listDirectory, setCurrentDirectory)
@@ -241,7 +241,20 @@ monitorWorkspace fallbackScreen target = do
                             L.find ((== rect) . screenRect . W.screenDetail) $
                                 W.screens ws
             Nothing -> return Nothing
-        else screenWorkspace fallbackScreen
+        else positionalScreenWorkspace (fromIntegral fallbackScreen)
+
+-- Fallback used when no work (Dell/Samsung EDID) display is present — e.g. the
+-- home/dock setup where the externals are DisplayLink virtual outputs. Their
+-- xrandr names (DP-1-6-8, …) and RandR order are unstable across reconnects and
+-- their EDID isn't classifiable, so map the W/E/R index to screens ordered
+-- left-to-right by x position instead: Super+W → leftmost, E → middle, R →
+-- rightmost. With the laptop panel placed rightmost this keeps R = laptop.
+positionalScreenWorkspace :: Int -> X (Maybe WorkspaceId)
+positionalScreenWorkspace idx = withWindowSet $ \ws ->
+    let ordered = L.sortOn (rect_x . screenRect . W.screenDetail) (W.screens ws)
+     in return $ case drop idx ordered of
+            (screen : _) -> Just (W.tag (W.workspace screen))
+            [] -> Nothing
 
 focusMonitor :: ScreenId -> Monitors.MonitorTarget -> X ()
 focusMonitor fallbackScreen target =
