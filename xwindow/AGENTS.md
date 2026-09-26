@@ -112,12 +112,16 @@ Renders text with Cairo (configurable fill / outline / drop shadow), then displa
 
 ## Audio / brightness OSDs
 
+All OSD foreground and fill accents use named LEGO colours. The shared dark
+`#0d0d1a` dzen background is neutral chrome rather than an accent, so it is
+outside this palette convention.
+
 Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
 
-- `bin/volume-osd` — green, y=100
-- `bin/cycle-audio-output` (`/tmp/audio-out-osd-fifo`) — cyan, y=210
-- `bin/cycle-audio-input` (`/tmp/audio-in-osd-fifo`) — pink, y=320
-- `bin/brightness-osd` — yellow, y=430. Uses `brightnessctl` (nix), 5% steps ≤20%, 10% above.
+- `bin/volume-osd` — LEGO Bright Green `#58AB41`, y=100
+- `bin/cycle-audio-output` (`/tmp/audio-out-osd-fifo`) — LEGO Bright Bluish Green `#069D9F`, y=210
+- `bin/cycle-audio-input` (`/tmp/audio-in-osd-fifo`) — LEGO Bright Purple `#D3359D`, y=320
+- `bin/brightness-osd` — LEGO Bright Yellow `#FAC80A`, y=430. Uses `brightnessctl` (nix), 5% steps ≤20%, 10% above.
 
 Each popup runs `osd-click-through` after starting dzen2. The helper waits for the popup's exact `WM_NAME`, assigns resource class `osd`, raises it immediately, and assigns an empty XShape `Input` region. The class makes XMonad keep dzen OSDs above the lock screen alongside the shared-library overlays. Dimensions are recalculated from the current `Xft.dpi` whenever a popup is created (base: x=100, w=1240, h=100 at 96 DPI), so the next keypress after a monitor change uses the current display configuration. Font: JetBrainsMono Nerd Font, size 36 bold. Auto-hide after 2–3 seconds.
 
@@ -125,11 +129,11 @@ Regression test: `python3 xwindow/test_osd_click_through.py`.
 
 ## Battery OSD
 
-`bin/battery-osd.py` is a thin invocation script (argparse → call into the `osd` library), built as the `battery-osd` binary via `pkgs.writers.writePython3Bin` in `home.nix`.
+`bin/battery-osd.py` is a thin invocation script (argparse → call into the `osd` library), built as the `battery-osd` binary via `pkgs.writers.writePython3Bin` in `home.nix`. Warning alerts use LEGO Bright Yellow `#FAC80A`; critical alerts use LEGO Bright Red `#B40000`. Regression test: `python3 xwindow/test_battery_osd.py`.
 
 ## Zoom notification OSD
 
-`bin/zoom-osd.py` — battery-osd-style overlay (Zoom blue `#2D8CFF`, centered, `height_frac 0.25`, 6 s default) whenever Zoom raises a notification. The long-lived daemon (`systemd.user.services.zoom-osd` in `gnome.nix`, same lifecycle as hangul-osd) watches two push sources:
+`bin/zoom-osd.py` — battery-osd-style overlay (LEGO Dark Azur `#469BC3`, centered, `height_frac 0.25`, 6 s default) whenever Zoom raises a notification. The long-lived daemon (`systemd.user.services.zoom-osd` in `gnome.nix`, same lifecycle as hangul-osd) watches two push sources:
 
 - **Freedesktop notifications**: spawns `dbus-monitor "type='method_call',…member='Notify'"` and parses its stdout for `org.freedesktop.Notifications.Notify` calls without replacing gnome-flashback's notification daemon. `$ZOOM_OSD_APP_REGEX` (default `zoom`, case-insensitive) filters the Notify `app_name`.
 - **Zoom reminder/meeting windows**: a daemon thread owns a separate X connection and watches root `SubstructureNotify` plus `PropertyNotify` on newly created children. It matches either `$ZOOM_OSD_WINDOW_REGEX` (default `zoom_linux_float_message_reminder`) or the Join-button popup signature: exact title `Zoom Workplace`, Zoom WM class, `_KDE_NET_WM_WINDOW_TYPE_OVERRIDE`, and `_NET_WM_STATE_ABOVE` or `_NET_WM_STATE_STAYS_ON_TOP`. The topmost-state requirement distinguishes the small popup from Zoom's main window, which shares the class and KDE override type. Zoom clients remain pending after their first map, so a late title, type, or state change still fires after xmonad shifts the window to a hidden workspace. Other clients stop being watched at first map. The pending-created set still suppresses xmonad `copyToAllHook` remaps on later workspace changes.

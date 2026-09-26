@@ -65,10 +65,11 @@ import threading
 from osd import OSDStyle, display_on_all_monitors, render_surface
 from Xlib import X, Xatom, display
 
-# Zoom brand blue (#2D8CFF), same alpha/geometry family as battery-osd
-# (centered, fraction-sized — OSDStyle defaults).
+LEGO_DARK_AZUR = (70 / 255, 155 / 255, 195 / 255)  # #469BC3
+
+# Same alpha/geometry family as battery-osd (centered, fraction-sized).
 STYLE = OSDStyle(
-    fill_rgb=(0.176, 0.549, 1.0),
+    fill_rgb=LEGO_DARK_AZUR,
     fill_alpha=0.8,
     height_frac=0.25,
 )

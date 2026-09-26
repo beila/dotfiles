@@ -9,9 +9,14 @@ import types
 import unittest
 
 
+class FakeStyle:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
 def load_module():
     osd = types.ModuleType("osd")
-    osd.OSDStyle = lambda **_kwargs: object()
+    osd.OSDStyle = FakeStyle
     osd.display_on_all_monitors = lambda *_args, **_kwargs: None
     osd.render_surface = lambda *_args, **_kwargs: None
     sys.modules["osd"] = osd
@@ -38,6 +43,14 @@ def load_module():
 
 
 zoom_osd = load_module()
+
+
+class ZoomStyleTests(unittest.TestCase):
+    def test_uses_lego_dark_azur(self):
+        self.assertEqual(
+            zoom_osd.STYLE.fill_rgb,
+            (70 / 255, 155 / 255, 195 / 255),
+        )
 
 
 class FakeDisplay:

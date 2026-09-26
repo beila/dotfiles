@@ -23,11 +23,13 @@ import sys
 from osd import OSDStyle, display_on_all_monitors, render_surface
 
 
-# Battery alert styling per severity. Yellow is used at the 30/20/15
-# warning thresholds; red is used below 10% (critical).
+LEGO_BRIGHT_YELLOW = (250 / 255, 200 / 255, 10 / 255)  # #FAC80A
+LEGO_BRIGHT_RED = (180 / 255, 0.0, 0.0)  # #B40000
+
+# Yellow is used at the 30/20/15 warning thresholds; red is used below 10%.
 STYLES = {
-    "warn": OSDStyle(fill_rgb=(1.0, 0.78, 0.10), fill_alpha=0.8),      # #ffc71a yellow
-    "critical": OSDStyle(fill_rgb=(1.0, 0.19, 0.19), fill_alpha=0.8),  # #ff3030 red
+    "warn": OSDStyle(fill_rgb=LEGO_BRIGHT_YELLOW, fill_alpha=0.8),
+    "critical": OSDStyle(fill_rgb=LEGO_BRIGHT_RED, fill_alpha=0.8),
 }
 
 

@@ -4,6 +4,7 @@
 # Usage: volume-osd up|down|toggle
 FIFO="/tmp/volume-osd-fifo"
 LOCKFILE="/tmp/volume-osd-lock"
+OSD_FG="#58AB41" # LEGO Bright Green
 
 start_dzen() {
     rm -f "$FIFO"
@@ -12,7 +13,7 @@ start_dzen() {
     : "${scale:=1}"
     (tail -f "$FIFO" | dzen2 -p -x $((100*scale)) -y $((100*scale)) -w $((1240*scale)) -h $((100*scale)) \
         -fn "JetBrainsMono Nerd Font:size=36:style=Bold" \
-        -bg "#0d0d1a" -fg "#50fa7b" -title-name "vol-osd") &
+        -bg "#0d0d1a" -fg "$OSD_FG" -title-name "vol-osd") &
     osd-click-through "vol-osd" || true
 }
 
