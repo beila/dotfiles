@@ -88,7 +88,7 @@ firefox-container desktop entry + mimeapps.
 
 ## zmx.nix
 
-Prebuilt zmx binary from `zmx.sh` (session persistence). Source build via zmx's flake fails because `zig2nix` cannot vendor ghostty's `git+https?ref=HEAD` dependency. Also declares `zmx-history.service` under `default.target`; it runs `bin/zmx-history` with the exact packaged zmx path so bounded scrollback snapshots and cwd metadata survive process crashes and forced reboots. See `bin/AGENTS.md`.
+Official zmx release archive (session persistence). Source build via zmx's flake fails because `zig2nix` cannot vendor ghostty's `git+https?ref=HEAD` dependency. Keep the pin current: 0.5.0 could leave an abruptly disconnected client recorded as leader, causing Kitty CSI-u Control-key sequences such as `99;5u` to leak instead of reaching the foreground TUI; the fix shipped after upstream PR #141 and is present in the current 0.8.1 pin. Also declares `zmx-history.service` under `default.target`; it runs `bin/zmx-history` with the exact packaged zmx path so bounded scrollback snapshots and cwd metadata survive process crashes and forced reboots. See `bin/AGENTS.md`.
 
 ## system-deps.sh
 
