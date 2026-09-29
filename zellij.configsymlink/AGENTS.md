@@ -9,4 +9,4 @@ Symlinked to `~/.config/zellij/`.
 
 ## Known issues
 
-- **zellij + kitty keyboard protocol**: under rapid key repeat, zellij occasionally fails to parse CSI u sequences. Worked around by sending legacy control codes from ghostty for ctrl-j/k/n/p (see `ghostty.configsymlink/AGENTS.md`).
+- **Terminal relays + kitty keyboard protocol**: zellij can fail to parse CSI u sequences under rapid key repeat, and zmx can restore a keyboard-protocol mode that the newly foregrounded program did not request. Worked around by sending legacy control codes from ghostty for Control-J/K/N/P/S (see `ghostty.configsymlink/AGENTS.md`).

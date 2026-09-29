@@ -54,12 +54,13 @@ clipboard-paste-protection = false
 font-family = JetBrainsMono Nerd Font
 font-family = LXGW WenKai Mono
 
-# Send legacy control codes for keys that leak CSI u sequences under rapid
-# key repeat in zellij, causing fzf to receive them as literal query text.
+# Send legacy control codes for keys whose CSI u sequences can leak through
+# terminal session relays, causing fzf to receive them as literal query text.
 keybind = ctrl+j=text:\x0a
 keybind = ctrl+k=text:\x0b
 keybind = ctrl+n=text:\x0e
 keybind = ctrl+p=text:\x10
+keybind = ctrl+s=text:\x13
 
 # Swallow keyd's neovide-only `f20` token from `macro(paste f20)` — its
 # CSI sequence corrupts zellij's input stream. Neovide bypasses ghostty.
