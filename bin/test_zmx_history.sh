@@ -61,6 +61,7 @@ printf '%0120d TAIL-INITIAL\n' 0 > "$FAKE_ROOT/history-alpha"
 : > "$FAKE_ROOT/logs/alpha.log"
 : > "$FAKE_ROOT/history.calls"
 : > "$FAKE_ROOT/attach.calls"
+: > "$FAKE_ROOT/list.calls"
 
 cat > "$STUBS/zmx" <<'EOF'
 #!/usr/bin/env bash
@@ -71,6 +72,7 @@ case "${1:-}" in
             "$FAKE_ROOT" "$FAKE_ROOT"
         ;;
     list)
+        printf '%s\n' "$*" >> "$FAKE_ROOT/list.calls"
         while IFS= read -r session; do
             [[ -n "$session" ]] && printf 'list\n' >> "$FAKE_ROOT/logs/$session.log"
         done < "$FAKE_ROOT/sessions"
@@ -238,6 +240,7 @@ check "restore removes its staged snapshot" "no" \
     "$([[ -e "$restore_snapshot" ]] && printf yes || printf no)"
 
 : > "$FAKE_ROOT/sessions"
+export ZMX_SELECT_SESSIONS_FILE="$FAKE_ROOT/sessions"
 cat > "$STUBS/fzf" <<'EOF'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$FZF_ARGS"
@@ -294,9 +297,13 @@ export FZF_CALL_COUNT="$TMP/fzf-call-count"
 : > "$FZF_OUTPUT_FILE"
 
 FAKE_PROC="$TMP/proc"
-ZMX_LIST_DETAILS="$TMP/zmx-list-details"
 PGREP_OUTPUT="$TMP/pgrep-output"
-mkdir -p "$FAKE_PROC"/{101,111,121,131,201,202,203,211,212,999}
+mkdir -p "$FAKE_PROC"/{101,111,121,131,201,202,203,211,212,221,231,999}
+mkdir -p \
+    "$FAKE_PROC/201/task/201" \
+    "$FAKE_PROC/211/task/211" \
+    "$FAKE_PROC/221/task/221" \
+    "$FAKE_PROC/231/task/231"
 ln -s "$HOOK_CWD" "$FAKE_PROC/101/cwd"
 ln -s "$HOOK_CWD" "$FAKE_PROC/121/cwd"
 printf 'Name:\tzsh\nPPid:\t201\n' > "$FAKE_PROC/101/status"
@@ -310,13 +317,20 @@ printf 'zmx\0tail\0attached\0' > "$FAKE_PROC/202/cmdline"
 printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/203/cmdline"
 printf 'zmx\0attach\0preview-only\0zsh\0-l\0' > "$FAKE_PROC/211/cmdline"
 printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
-printf '201\n202\n203\n211\n212\n' > "$PGREP_OUTPUT"
-printf 'name=attached\tpid=101\tclients=2\nname=preview-only\tpid=111\tclients=1\nname=shelp2\tpid=121\tclients=0\nname=unknown\tpid=131\tclients=0\n' \
-    > "$ZMX_LIST_DETAILS"
+printf 'zmx\0attach\0shelp2\0zsh\0-l\0' > "$FAKE_PROC/221/cmdline"
+printf 'zmx\0attach\0unknown\0zsh\0-l\0' > "$FAKE_PROC/231/cmdline"
+printf '101\n' > "$FAKE_PROC/201/task/201/children"
+printf '111\n' > "$FAKE_PROC/211/task/211/children"
+printf '121\n' > "$FAKE_PROC/221/task/221/children"
+printf '131\n' > "$FAKE_PROC/231/task/231/children"
+printf '201\n202\n203\n211\n212\n221\n231\n' > "$PGREP_OUTPUT"
+printf 'attached\npreview-only\nshelp2\nunknown\n' > "$FAKE_ROOT/sessions"
 export ZMX_PROC_ROOT="$FAKE_PROC"
+: > "$FAKE_ROOT/list.calls"
 PATH="$STUBS:$PATH" \
-    ZMX_LIST_DETAILS_FILE="$ZMX_LIST_DETAILS" PGREP_OUTPUT_FILE="$PGREP_OUTPUT" \
+    PGREP_OUTPUT_FILE="$PGREP_OUTPUT" \
     "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-attached.stderr" || true
+check "picker startup does not call zmx list" "" "$(cat "$FAKE_ROOT/list.calls")"
 check "picker marks a real attach client despite a concurrent preview" "yes" \
     "$(rg -q '^attached ❯ 🔗' "$FZF_INPUT" && printf yes || printf no)"
 check "picker does not mark a server with only a preview client" "yes" \
@@ -348,6 +362,7 @@ check "status emoji preserve the cwd column" "16" \
 check "unmarked sessions use the same cwd column" "16" \
     "$(printf '%s' "${plain_row%"$HOOK_CWD"}" | wc -L)"
 
+: > "$FAKE_ROOT/sessions"
 PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select.stderr" || true
 if [[ ! -e "$FZF_INPUT" ]]; then
     cat "$TMP/select.stderr" >&2
@@ -442,9 +457,9 @@ check "picker binds Ctrl-backslash when a switch target exists" \
     "$switch_expect_arg" \
     "$(rg -N -F -- "$switch_expect_arg" "$FZF_ARGS" || true)"
 check "picker marks the last session with a compact rank" "yes" \
-    "$(rg -q '^second ❯ 🥇' "$FZF_INPUT" && printf yes || printf no)"
+    "$(rg -q '^second .*🥇' "$FZF_INPUT" && printf yes || printf no)"
 check "picker marks the previous session with a compact rank" "yes" \
-    "$(rg -q '^first ❯ 🥈' "$FZF_INPUT" && printf yes || printf no)"
+    "$(rg -q '^first .*🥈' "$FZF_INPUT" && printf yes || printf no)"
 check "picker promotes the last session above alphabetical results" "second" \
     "$(sed -n '1s/[[:space:]].*//p' "$FZF_INPUT")"
 check "picker restores the promoted session at the top cursor position" "load:pos(1)" \
@@ -463,7 +478,7 @@ check "Ctrl-backslash reattaches the latest session before a previous one exists
     $'attach only zsh -l\nattach only zsh -l' \
     "$(cat "$FAKE_ROOT/attach.calls")"
 check "single-session picker marks only the last session" "yes" \
-    "$(rg -q '^only ❯ 🥇' "$FZF_INPUT" \
+    "$(rg -q '^only .*🥇' "$FZF_INPUT" \
         && ! rg -q '🥈' "$FZF_INPUT" \
         && printf yes || printf no)"
 

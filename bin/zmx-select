@@ -31,6 +31,10 @@ initial_query="${1:-}"
 script_dir=$(dirname "$(readlink -f "$0")")
 export ZMX_HISTORY_HELPER="$script_dir/zmx-history"
 restore_helper="$script_dir/zmx-restore"
+zmx_info=$(zmx version 2>/dev/null || true)
+zmx_socket_dir=$(printf '%s\n' "$zmx_info" | awk '$1 == "socket_dir" { print $2; exit }')
+[[ -n "$zmx_socket_dir" ]] || zmx_socket_dir="${ZMX_DIR:-}"
+export ZMX_SOCKET_DIR="$zmx_socket_dir"
 
 # zmx spawns a login $SHELL, which on this account is bash (LDAP, no chsh), so a
 # fresh session would come up in bash. Ask for the same shell ghostty launches
@@ -57,7 +61,7 @@ set_window_session() {
 # The preview's `sh -c` expands these variables later.
 # shellcheck disable=SC2016
 preview_cmd='
-if zmx list --short 2>/dev/null | rg -Fxq -- "$1"; then
+if [ -n "$ZMX_SOCKET_DIR" ] && [ -S "$ZMX_SOCKET_DIR/$1" ]; then
     zmx history "$1" 2>/dev/null | tail -500
     exec zmx tail "$1" 2>/dev/null
 elif [ -x "$ZMX_HISTORY_HELPER" ] && "$ZMX_HISTORY_HELPER" has "$1"; then
@@ -67,8 +71,9 @@ else
     printf "%s is not running — Enter starts it.\n" "$1"
 fi'
 
-# name -> pid for every running session. zmx list emits each field as
-# "key=value" separated by tabs, with leading whitespace.
+# name -> session-process pid for every running session. Discover sockets
+# without connecting: `zmx list` can keep consuming output forever when a
+# session continuously repaints its terminal.
 proc_root=${ZMX_PROC_ROOT:-/proc}
 declare -A running=()
 declare -A running_cwd=()
@@ -76,6 +81,33 @@ declare -A running_cwd_pid=()
 declare -A attached=()
 declare -A saved=()
 declare -A saved_cwd=()
+
+list_running_names() {
+    if [[ -n "${ZMX_SELECT_SESSIONS_FILE:-}" ]]; then
+        cat "$ZMX_SELECT_SESSIONS_FILE" 2>/dev/null || true
+        return
+    fi
+
+    local socket
+    local -a sockets=()
+    [[ -n "$zmx_socket_dir" && -d "$zmx_socket_dir" ]] || return
+    shopt -s nullglob
+    sockets=("$zmx_socket_dir"/*)
+    shopt -u nullglob
+    for socket in "${sockets[@]}"; do
+        [[ -S "$socket" ]] || continue
+        printf '%s\n' "${socket##*/}"
+    done
+}
+
+session_is_running() {
+    local name=$1
+    if [[ -n "${ZMX_SELECT_SESSIONS_FILE:-}" ]]; then
+        rg -Fxq -- "$name" "$ZMX_SELECT_SESSIONS_FILE" 2>/dev/null
+    else
+        [[ -n "$zmx_socket_dir" && -S "$zmx_socket_dir/$name" ]]
+    fi
+}
 
 refresh_session_cwd() {
     local name=$1 pid cwd
@@ -91,18 +123,44 @@ refresh_session_cwd() {
 
 load_running() {
     running=()
-    local name pid
-    while IFS=$'\t' read -r name pid; do
-        [[ -n "$name" ]] && running["$name"]="$pid"
-    done < <(zmx list 2>/dev/null | awk -F'\t' '
-        {
-            for (i=1; i<=NF; i++) {
-                sub(/^[[:space:]]+/, "", $i)
-                sub(/^[^=]*=/, "", $i)
-            }
-            if ($1 != "") print $1 "\t" $2
-        }
-    ')
+    attached=()
+    local -a argv=()
+    local -a children=()
+    local name pid candidate child
+
+    while IFS= read -r name; do
+        [[ -n "$name" ]] && running["$name"]=0
+    done < <(list_running_names)
+
+    # A persistent `zmx attach` server has the session process as a direct
+    # child. Other attach processes are terminal-side clients; `zmx tail`
+    # preview processes do not match argv[1].
+    while IFS= read -r candidate; do
+        [[ "$candidate" =~ ^[0-9]+$ ]] || continue
+        argv=()
+        mapfile -d '' -t argv 2>/dev/null < "$proc_root/$candidate/cmdline" || continue
+        ((${#argv[@]} >= 3)) || continue
+        [[ "${argv[1]}" == "attach" ]] || continue
+        name=${argv[2]}
+        [[ -n "${running[$name]:-}" ]] || continue
+
+        children=()
+        if [[ -r "$proc_root/$candidate/task/$candidate/children" ]]; then
+            read -r -a children < "$proc_root/$candidate/task/$candidate/children" || true
+        fi
+        pid=""
+        for child in "${children[@]}"; do
+            if [[ "$child" =~ ^[0-9]+$ && -d "$proc_root/$child" ]]; then
+                pid=$child
+                break
+            fi
+        done
+        if [[ -n "$pid" ]]; then
+            running["$name"]="$pid"
+        else
+            attached["$name"]=1
+        fi
+    done < <(pgrep -x zmx 2>/dev/null)
 
     for name in "${!running[@]}"; do
         pid=${running[$name]}
@@ -115,39 +173,6 @@ load_running() {
             unset 'running_cwd[$name]' 'running_cwd_pid[$name]'
         fi
     done
-}
-
-load_attached() {
-    attached=()
-    local -A server_pids=()
-    local -a argv=()
-    local name session_pid key value server_pid candidate
-
-    # The parent of each session shell is a persistent `zmx attach` server.
-    # Exclude it so only terminal-side attach clients produce the marker.
-    for name in "${!running[@]}"; do
-        session_pid=${running[$name]}
-        [[ -r "$proc_root/$session_pid/status" ]] || continue
-        server_pid=""
-        while read -r key value _; do
-            if [[ "$key" == "PPid:" ]]; then
-                server_pid=$value
-                break
-            fi
-        done < "$proc_root/$session_pid/status"
-        [[ -n "$server_pid" ]] && server_pids["$server_pid"]=1
-    done
-
-    while IFS= read -r candidate; do
-        [[ "$candidate" =~ ^[0-9]+$ ]] || continue
-        [[ -z "${server_pids[$candidate]:-}" ]] || continue
-        argv=()
-        mapfile -d '' -t argv 2>/dev/null < "$proc_root/$candidate/cmdline" || continue
-        ((${#argv[@]} >= 3)) || continue
-        [[ "${argv[1]}" == "attach" ]] || continue
-        name=${argv[2]}
-        [[ -n "${running[$name]:-}" ]] && attached["$name"]=1
-    done < <(pgrep -x zmx 2>/dev/null)
 }
 
 load_saved() {
@@ -164,10 +189,10 @@ load_saved() {
 }
 
 # name -> the session shell's live cwd, $HOME-shortened, empty if unknown.
-# zmx list reports start_dir, which never moves, so read /proc instead. Blank
-# when /proc can't answer — a stale directory would be worse than none. Quote
-# the tilde: bash tilde-expands the replacement, so a bare ~ substitutes $HOME
-# back in and no-ops.
+# The server's start directory never moves, so read /proc instead. Blank when
+# /proc can't answer — a stale directory would be worse than none. Quote the
+# tilde: bash tilde-expands the replacement, so a bare ~ substitutes $HOME back
+# in and no-ops.
 session_cwd() {
     printf '%s' "${running_cwd[$1]:-}"
 }
@@ -312,7 +337,6 @@ state_header=$'\033[1;38;5;214m●\033[22;39m active  \033[32m❯\033[39m prompt
 
 while true; do
     load_running
-    load_attached
     load_saved
     build_display
 
@@ -402,7 +426,7 @@ while true; do
         base="$query"
         session="$base"
         n=2
-        while zmx list --short 2>/dev/null | rg -Fxq -- "$session"; do
+        while session_is_running "$session"; do
             session="$base-$n"
             n=$((n + 1))
         done
@@ -459,7 +483,7 @@ while true; do
     fi
     refresh_session_cwd "$session"
     last_session="$session"
-    if zmx list --short 2>/dev/null | rg -Fxq -- "$session"; then
+    if session_is_running "$session"; then
         detached_session="$session"
     else
         detached_session=""
