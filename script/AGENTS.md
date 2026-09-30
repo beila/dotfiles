@@ -43,7 +43,7 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
   `flock --close` keeps the descriptor out of jj, SSH, and telemetry children.
   While `sync_repo` owns the local lock, it exports `JJ_SERIALIZED_LOCK_HELD=1` so nested jj calls bypass the wrapper.
   `JJ_SERIALIZED_READ_ONLY=1` is a second explicit bypass for callers that guarantee an operation-pinned read-only command.
-  The fzf jj pickers use it after their one serialized snapshot so initial producers, reloads, and previews cannot deadlock each other on the external lock.
+  The shell and Neovim fzf jj pickers use it with operation-pinned reads so initial producers, reloads, and previews cannot deadlock each other on the external lock.
   Test: `script/test_jj-serialized.sh`.
 - **`test_sync_repo.sh`** — covers local-ahead push, divergence rebase, REBASE-CONFLICT (incl. snapshot-first guarantee — snapshot lands even when bookmark sync bails), timeout guard with fake-ssh stub, snapshot-only and bookmark-only flows, non-default-workspace skipping local-bookmark snapshots, unchanged snapshot call counts (one discovery, zero pushes), direct creation of missing snapshot refs, malformed `sync.remote-bookmark`, non-jj-repo skip, corrupted-store REPO-LOAD-FAIL (deleted git object → ERROR + exit 1, no push attempts), the gitfarm-style "no-description rejection" regression, and a blocked-network concurrency case proving the local lock is released while the whole-run job lock still rejects a second sync. Stubs `hostname` / `hostnamectl` for deterministic ref names; stubs claude/kiro-cli/ollama so commit-msg falls through to the file-list fallback.
 

@@ -18,9 +18,10 @@ local function fileset(path)
 	return string.format('"%s"', path:gsub("\\", "\\\\"):gsub('"', '\\"'))
 end
 
-local function run_command(root, cmd, report_error)
+local function run_command(root, cmd, report_error, env)
 	local result = vim.system(cmd, {
 		cwd = root,
+		env = env,
 		text = true,
 		timeout = 5000,
 	}):wait()
@@ -36,7 +37,14 @@ local function run_command(root, cmd, report_error)
 	return result.stdout or ""
 end
 
-local function run_jj(root, args, report_error)
+local function run_readonly_jj(root, operation, args, report_error)
+	local cmd = { "jj", "--at-operation", operation, "--ignore-working-copy", "--quiet" }
+	vim.list_extend(cmd, args)
+	local output = run_command(root, cmd, report_error, { JJ_SERIALIZED_READ_ONLY = "1" })
+	return output and vim.split(output, "\n", { plain = true, trimempty = true }) or nil
+end
+
+local function run_mutating_jj(root, args, report_error)
 	local cmd = { "jj", "--ignore-working-copy", "--quiet" }
 	vim.list_extend(cmd, args)
 	local output = run_command(root, cmd, report_error)
@@ -56,21 +64,43 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
 })
 
 local function jj_root(start_dir)
-	local result = vim.system(
-		{ "jj", "--ignore-working-copy", "root" },
-		{ cwd = start_dir, text = true, timeout = 2000 }
-	)
-		:wait()
-	if result.code ~= 0 then
+	local marker = vim.fs.find(".jj", {
+		path = start_dir,
+		upward = true,
+		type = "directory",
+	})[1]
+	if not marker then
 		return nil
 	end
-	return vim.trim(result.stdout)
+	return vim.fs.dirname(marker)
 end
 
-local function build_line_history(root, path, line_range)
-	local commit_output = run_command(root, {
+local function pin_operation(root)
+	local output = run_command(root, {
 		"jj",
+		"--at-operation",
+		"@",
+		"--ignore-working-copy",
 		"--quiet",
+		"operation",
+		"log",
+		"--no-graph",
+		"--limit",
+		"1",
+		"--color=never",
+		"-T",
+		'self.id() ++ "\n"',
+	}, true, { JJ_SERIALIZED_READ_ONLY = "1" })
+	local operation = output and vim.trim(output) or ""
+	if not operation:match("^%x+$") then
+		notify("could not pin the current JJ operation")
+		return nil
+	end
+	return operation
+end
+
+local function build_line_history(root, operation, path, line_range)
+	local commit_lines = run_readonly_jj(root, operation, {
 		"log",
 		"--no-graph",
 		"-r",
@@ -78,7 +108,7 @@ local function build_line_history(root, path, line_range)
 		"-T",
 		'commit_id ++ "\n"',
 	})
-	local start_commit = commit_output and vim.trim(commit_output) or ""
+	local start_commit = commit_lines and commit_lines[1] or ""
 	if not start_commit:match("^%x+$") then
 		notify("could not resolve the current JJ commit")
 		return nil
@@ -137,8 +167,35 @@ local function source_context()
 	if vim.bo[bufnr].buftype == "" then
 		file = vim.api.nvim_buf_get_name(bufnr)
 	end
-	local start_dir = file ~= "" and vim.fs.dirname(file) or vim.uv.cwd()
-	return bufnr, file, jj_root(start_dir)
+
+	local start_dirs = {}
+	local seen = {}
+	local function add_start_dir(start_dir)
+		if start_dir and start_dir ~= "" then
+			start_dir = vim.fs.normalize(start_dir)
+			if not seen[start_dir] then
+				seen[start_dir] = true
+				table.insert(start_dirs, start_dir)
+			end
+		end
+	end
+
+	if file ~= "" then
+		add_start_dir(vim.fs.dirname(file))
+	end
+	add_start_dir(vim.fn.getcwd())
+	add_start_dir(vim.fn.getcwd(-1, -1))
+	add_start_dir(vim.uv.cwd())
+
+	local root
+	for _, start_dir in ipairs(start_dirs) do
+		root = jj_root(start_dir)
+		if root then
+			break
+		end
+	end
+
+	return bufnr, file, root
 end
 
 local function selected_ids(selected, field, pattern)
@@ -165,7 +222,7 @@ local function selected_commit_ids(selected)
 	return selected_ids(selected, 4, "^%x+$")
 end
 
-local function resolve_range(root, selected)
+local function resolve_range(state, selected)
 	local ids = selected_commit_ids(selected)
 	if #ids == 0 then
 		notify("select at least one revision")
@@ -174,7 +231,7 @@ local function resolve_range(root, selected)
 
 	local selected_revset = table.concat(ids, " | ")
 	local template = 'commit_id ++ "\\n"'
-	local roots = run_jj(root, {
+	local roots = run_readonly_jj(state.root, state.operation, {
 		"log",
 		"--no-graph",
 		"-r",
@@ -182,7 +239,7 @@ local function resolve_range(root, selected)
 		"-T",
 		template,
 	})
-	local heads = run_jj(root, {
+	local heads = run_readonly_jj(state.root, state.operation, {
 		"log",
 		"--no-graph",
 		"-r",
@@ -198,7 +255,7 @@ local function resolve_range(root, selected)
 		return nil
 	end
 
-	local parents = run_jj(root, {
+	local parents = run_readonly_jj(state.root, state.operation, {
 		"log",
 		"--no-graph",
 		"-r",
@@ -217,9 +274,9 @@ local function resolve_range(root, selected)
 	return parents[1], heads[1]
 end
 
-local function configured_log_revset(root)
-	local lines = run_jj(root, { "config", "get", "revsets.log" }, false)
-	return lines and #lines > 0 and table.concat(lines, "\n") or "log()"
+local function configured_log_revset(root, operation)
+	local lines = run_readonly_jj(root, operation, { "config", "get", "revsets.log" }, false)
+	return lines and #lines > 0 and table.concat(lines, "\n") or "builtin_log()"
 end
 
 local function active_revset(state)
@@ -260,6 +317,15 @@ local function preview_command(state)
 		}, "; ")
 	end
 
+	local jj = shell_join({
+		"env",
+		"JJ_SERIALIZED_READ_ONLY=1",
+		"jj",
+		"--at-operation",
+		state.operation,
+		"--ignore-working-copy",
+		"--quiet",
+	})
 	local commands = {
 		[[id=$(printf '%s\n' {} | cut -s -f2 | sed 's/\x1b\[[0-9;]*m//g')]],
 		[[path=$(printf '%s\n' {} | cut -s -f3 | sed 's/\x1b\[[0-9;]*m//g')]],
@@ -269,10 +335,10 @@ local function preview_command(state)
 	if state.files then
 		table.insert(
 			commands,
-			[[jj --ignore-working-copy --quiet log --no-graph --color=always -r "$id" -T builtin_log_detailed]]
+			jj .. [[ log --no-graph --color=always -r "$id" -T builtin_log_detailed]]
 		)
 	else
-		table.insert(commands, [[jj --ignore-working-copy --quiet show --summary --color=always "$id"]])
+		table.insert(commands, jj .. [[ show --summary --color=always "$id"]])
 		table.insert(commands, [[printf '\n']])
 	end
 
@@ -281,13 +347,23 @@ local function preview_command(state)
 	end
 	table.insert(
 		commands,
-		[[if test -n "$path"; then jj --ignore-working-copy --quiet diff --color=always -r "$id" -- "$path"; else jj --ignore-working-copy --quiet diff --color=always -r "$id"; fi]]
+		[[if test -n "$path"; then ]] .. jj
+			.. [[ diff --color=always -r "$id" -- "$path"; else ]] .. jj
+			.. [[ diff --color=always -r "$id"; fi]]
 	)
 	return table.concat(commands, "; ")
 end
 
 local function log_command(state)
-	local args = { "jj", "--quiet" }
+	local args = {
+		"env",
+		"JJ_SERIALIZED_READ_ONLY=1",
+		"jj",
+		"--at-operation",
+		state.operation,
+		"--ignore-working-copy",
+		"--quiet",
+	}
 	vim.list_extend(args, log_args(state, "always"))
 	return shell_join(args)
 end
@@ -296,7 +372,7 @@ local function find_position(state, change_id)
 	if not change_id then
 		return nil
 	end
-	local lines = run_jj(state.root, log_args(state, "never"), false)
+	local lines = run_readonly_jj(state.root, state.operation, log_args(state, "never"), false)
 	for index, line in ipairs(lines or {}) do
 		if selected_change_ids({ line })[1] == change_id then
 			return index
@@ -305,15 +381,15 @@ local function find_position(state, change_id)
 	return nil
 end
 
-local function open_codediff(root, source_buf, path, selected)
-	local base, target = resolve_range(root, selected)
+local function open_codediff(state, selected)
+	local base, target = resolve_range(state, selected)
 	if not base then
 		return
 	end
 
 	local git_result = vim.system(
 		{ "git", "rev-parse", "--show-toplevel" },
-		{ cwd = root, text = true, timeout = 2000 }
+		{ cwd = state.root, text = true, timeout = 2000 }
 	)
 		:wait()
 	if git_result.code ~= 0 then
@@ -321,21 +397,21 @@ local function open_codediff(root, source_buf, path, selected)
 		return
 	end
 
-	if path then
-		if not vim.api.nvim_buf_is_valid(source_buf) then
+	if state.path then
+		if not vim.api.nvim_buf_is_valid(state.source_buf) then
 			notify("source buffer is no longer available")
 			return
 		end
 
-		local win = vim.fn.bufwinid(source_buf)
+		local win = vim.fn.bufwinid(state.source_buf)
 		if win ~= -1 then
 			vim.api.nvim_set_current_win(win)
 		else
-			vim.api.nvim_win_set_buf(0, source_buf)
+			vim.api.nvim_win_set_buf(0, state.source_buf)
 		end
 	end
 
-	local args = path and { "file", base, target } or { base, target }
+	local args = state.path and { "file", base, target } or { base, target }
 	vim.cmd({ cmd = "CodeDiff", args = args })
 end
 
@@ -404,7 +480,7 @@ open_picker = function(state)
 		},
 		actions = {
 			enter = function(selected)
-				open_codediff(state.root, state.source_buf, state.path, selected)
+				open_codediff(state, selected)
 			end,
 			["ctrl-h"] = reopen_action(state, function()
 				if state.line_history then
@@ -423,7 +499,7 @@ open_picker = function(state)
 						notify("select a revision to insert after")
 						return
 					end
-					run_jj(state.root, { "new", "--no-edit", "--after", change_id })
+					run_mutating_jj(state.root, { "new", "--no-edit", "--after", change_id })
 				end,
 				field_index = "{}",
 				header = false,
@@ -438,13 +514,14 @@ open_picker = function(state)
 	})
 end
 
-local function new_state(root, source_buf, path, line_history)
+local function new_state(root, operation, source_buf, path, line_history)
 	return {
 		root = root,
+		operation = operation,
 		source_buf = source_buf,
 		path = path,
 		line_history = line_history,
-		default_revset = configured_log_revset(root),
+		default_revset = configured_log_revset(root, operation),
 		full_revset = path and "all()" or "::workspace_view()",
 		full_log = path ~= nil,
 		files = false,
@@ -457,7 +534,10 @@ function M.revisions()
 		fzf_lua.git_commits()
 		return
 	end
-	open_picker(new_state(root, bufnr))
+	local operation = pin_operation(root)
+	if operation then
+		open_picker(new_state(root, operation, bufnr))
+	end
 end
 
 function M.current_file_revisions(line_range)
@@ -477,6 +557,11 @@ function M.current_file_revisions(line_range)
 		return
 	end
 
+	local operation = pin_operation(root)
+	if not operation then
+		return
+	end
+
 	local line_history
 	if line_range then
 		if vim.bo[bufnr].modified then
@@ -486,13 +571,13 @@ function M.current_file_revisions(line_range)
 		local line_count = vim.api.nvim_buf_line_count(bufnr)
 		local first = math.min(line_count, math.max(1, math.min(line_range[1], line_range[2])))
 		local last = math.min(line_count, math.max(line_range[1], line_range[2]))
-		line_history = build_line_history(root, relative, { first, last })
+		line_history = build_line_history(root, operation, relative, { first, last })
 		if not line_history then
 			return
 		end
 	end
 
-	open_picker(new_state(root, bufnr, relative, line_history))
+	open_picker(new_state(root, operation, bufnr, relative, line_history))
 end
 
 return M

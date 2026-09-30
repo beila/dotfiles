@@ -14,7 +14,7 @@ local function assert_not_contains(text, unexpected, label)
 	end
 end
 
-local script = debug.getinfo(1, "S").source:sub(2)
+local script = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":p")
 local config_root = vim.fs.dirname(script)
 local test_clipboard = dofile(config_root .. "/test_clipboard.lua")
 
@@ -79,6 +79,9 @@ package.loaded["fzf-lua"] = {
 	fzf_exec = function(contents, opts)
 		captured = { contents = contents, opts = opts }
 	end,
+	git_commits = function()
+		fail("unexpected Git fallback")
+	end,
 	git_bcommits = function()
 		fail("unexpected Git fallback")
 	end,
@@ -91,6 +94,24 @@ package.loaded["fzf-lua.utils"] = {
 
 package.path = config_root .. "/lua/?.lua;" .. package.path
 
+local outside = vim.fn.tempname()
+vim.fn.mkdir(outside, "p")
+local outside_file = outside .. "/outside.txt"
+vim.fn.writefile({ "outside" }, outside_file)
+vim.cmd.cd(vim.fn.fnameescape(outside))
+vim.cmd.lcd(vim.fn.fnameescape(repo))
+vim.cmd.edit(vim.fn.fnameescape(outside_file))
+require("jj-diff-picker").revisions()
+if not captured then
+	fail("picker did not open from a window-local JJ cwd")
+end
+assert_contains(captured.opts.prompt, "jj revisions", "window-local JJ cwd")
+assert_contains(captured.contents, "JJ_SERIALIZED_READ_ONLY=1", "read-only producer lock bypass")
+assert_contains(captured.contents, "--at-operation", "read-only producer operation pin")
+assert_contains(captured.opts.preview, "JJ_SERIALIZED_READ_ONLY=1", "preview lock bypass")
+assert_contains(captured.opts.preview, "--at-operation", "preview operation pin")
+
+captured = nil
 vim.cmd.edit(vim.fn.fnameescape(file))
 require("jj-diff-picker").current_file_revisions({ 4, 5 })
 
@@ -144,4 +165,5 @@ assert_contains(captured.opts.fzf_opts["--header"], "[ ] lines 4-5", "unfiltered
 assert_contains(captured.contents, "all()", "unfiltered revset")
 
 vim.fn.delete(repo, "rf")
+vim.fn.delete(outside, "rf")
 print("PASS: jj diff picker line history")

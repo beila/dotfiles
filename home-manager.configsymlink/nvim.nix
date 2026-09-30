@@ -2,6 +2,22 @@
 
 let
   _vim-vint = pkgs.vim-vint.overrideAttrs (_: { doCheck = false; doInstallCheck = false; });
+  # LLVM 21's wrappers contain Bash syntax but declare /bin/sh. Avoid
+  # rebuilding LLVM by wrapping only those launchers through Nix's Bash.
+  _clang-tools = pkgs.symlinkJoin {
+    name = "clang-tools-bash-wrappers";
+    paths = [ pkgs.clang-tools ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      for tool in ${pkgs.clang-tools}/bin/*; do
+        IFS= read -r shebang < "$tool" || true
+        [[ "$shebang" == '#!/bin/sh' ]] || continue
+        name=$(basename "$tool")
+        rm "$out/bin/$name"
+        makeWrapper ${pkgs.bash}/bin/bash "$out/bin/$name" --add-flags "$tool"
+      done
+    '';
+  };
   _codediff-nvim = pkgs.vimPlugins.codediff-nvim.overrideAttrs (_: {
     version = "2.67.0";
     src = pkgs.fetchFromGitHub {
@@ -122,7 +138,7 @@ in
     shfmt                              # bash/zsh    formatter  my-zsh.lua (via bashls)
 
     # c/c++
-    clang-tools                        # c/c++       LSP+fmt    my-cpp.lua (clangd + clang-format)
+    _clang-tools                       # c/c++       LSP+fmt    my-cpp.lua (clangd + clang-format)
     # codelldb                         # c/c++/rust  DAP        nvim-dap.lua, my-rust.lua (mason)
     cppcheck                           # c/c++       linter     my-cpp.lua
 
