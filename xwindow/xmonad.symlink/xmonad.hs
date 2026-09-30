@@ -234,14 +234,26 @@ monitorWorkspace fallbackScreen target = do
         io $ findMonitorRects dpy root
     if any ((/= Monitors.LaptopMonitor) . fst) monitorRects
         then case lookup target monitorRects of
-            Just rect ->
-                withWindowSet $ \ws ->
-                    return $
-                        fmap (W.tag . W.workspace) $
-                            L.find ((== rect) . screenRect . W.screenDetail) $
-                                W.screens ws
+            Just rect -> workspaceForRect rect
             Nothing -> return Nothing
         else positionalScreenWorkspace (fromIntegral fallbackScreen)
+
+shortcutMonitorWorkspace :: Monitors.TwoMonitorTarget -> ScreenId -> Monitors.MonitorTarget -> X (Maybe WorkspaceId)
+shortcutMonitorWorkspace twoMonitorTarget fallbackScreen fallbackTarget = do
+    outputRects <- withDisplay $ \dpy -> do
+        root <- asks theRoot
+        io $ findActiveOutputRects dpy root
+    case Monitors.selectTwoMonitorOutput twoMonitorTarget outputRects of
+        Just rect -> workspaceForRect rect
+        Nothing -> monitorWorkspace fallbackScreen fallbackTarget
+
+workspaceForRect :: Rectangle -> X (Maybe WorkspaceId)
+workspaceForRect rect =
+    withWindowSet $ \ws ->
+        return $
+            fmap (W.tag . W.workspace) $
+                L.find ((== rect) . screenRect . W.screenDetail) $
+                    W.screens ws
 
 -- Fallback used when no work (Dell/Samsung EDID) display is present — e.g. the
 -- home/dock setup where the externals are DisplayLink virtual outputs. Their
@@ -260,12 +272,32 @@ focusMonitor :: ScreenId -> Monitors.MonitorTarget -> X ()
 focusMonitor fallbackScreen target =
     monitorWorkspace fallbackScreen target >>= flip whenJust (windows . W.view)
 
+focusShortcutMonitor :: Monitors.TwoMonitorTarget -> ScreenId -> Monitors.MonitorTarget -> X ()
+focusShortcutMonitor twoMonitorTarget fallbackScreen fallbackTarget =
+    shortcutMonitorWorkspace twoMonitorTarget fallbackScreen fallbackTarget
+        >>= flip whenJust (windows . W.view)
+
 shiftToMonitor :: ScreenId -> Monitors.MonitorTarget -> X ()
 shiftToMonitor fallbackScreen target =
     monitorWorkspace fallbackScreen target >>= flip whenJust (windows . W.shift)
 
+shiftToShortcutMonitor :: Monitors.TwoMonitorTarget -> ScreenId -> Monitors.MonitorTarget -> X ()
+shiftToShortcutMonitor twoMonitorTarget fallbackScreen fallbackTarget =
+    shortcutMonitorWorkspace twoMonitorTarget fallbackScreen fallbackTarget
+        >>= flip whenJust (windows . W.shift)
+
 findMonitorRects :: Display -> Window -> IO [(Monitors.MonitorTarget, Rectangle)]
 findMonitorRects dpy root = do
+    outputRects <- findActiveOutputRects dpy root
+    matches <- forM outputRects $ \(output, rect) -> do
+        monitorTarget <- identifyMonitor output
+        return $ case monitorTarget of
+            Just target -> Just (target, rect)
+            Nothing -> Nothing
+    return $ catMaybes matches
+
+findActiveOutputRects :: Display -> Window -> IO [(String, Rectangle)]
+findActiveOutputRects dpy root = do
     resources <- RR.xrrGetScreenResourcesCurrent dpy root
     case resources of
         Nothing -> return []
@@ -274,9 +306,8 @@ findMonitorRects dpy root = do
                 outputInfo <- RR.xrrGetOutputInfo dpy rs output
                 case outputInfo of
                     Just oi | RR.xrr_oi_crtc oi /= 0 -> do
-                        monitorTarget <- identifyMonitor (RR.xrr_oi_name oi)
                         crtcInfo <- RR.xrrGetCrtcInfo dpy rs (RR.xrr_oi_crtc oi)
-                        return $ (,) <$> monitorTarget <*> (crtcRect <$> crtcInfo)
+                        return $ (,) (RR.xrr_oi_name oi) <$> (crtcRect <$> crtcInfo)
                     _ -> return Nothing
             return $ catMaybes matches
   where
@@ -340,11 +371,11 @@ myKeys =
     , ((0, xF86XK_MonBrightnessDown), spawn "$HOME/.dotfiles/xwindow/bin/brightness-osd down")
     , ((mod4Mask, xF86XK_AudioRaiseVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-output")
     , ((mod4Mask, xF86XK_AudioLowerVolume), spawn "$HOME/.dotfiles/xwindow/bin/cycle-audio-input")
-    , ((mod4Mask, xK_w), focusMonitor 0 Monitors.DellMonitor)
-    , ((mod4Mask, xK_e), focusMonitor 1 Monitors.SamsungMonitor)
+    , ((mod4Mask, xK_w), focusShortcutMonitor Monitors.InternalDisplay 0 Monitors.DellMonitor)
+    , ((mod4Mask, xK_e), focusShortcutMonitor Monitors.ExternalDisplay 1 Monitors.SamsungMonitor)
     , ((mod4Mask, xK_r), focusMonitor 2 Monitors.LaptopMonitor)
-    , ((mod4Mask .|. shiftMask, xK_w), shiftToMonitor 0 Monitors.DellMonitor)
-    , ((mod4Mask .|. shiftMask, xK_e), shiftToMonitor 1 Monitors.SamsungMonitor)
+    , ((mod4Mask .|. shiftMask, xK_w), shiftToShortcutMonitor Monitors.InternalDisplay 0 Monitors.DellMonitor)
+    , ((mod4Mask .|. shiftMask, xK_e), shiftToShortcutMonitor Monitors.ExternalDisplay 1 Monitors.SamsungMonitor)
     , ((mod4Mask .|. shiftMask, xK_r), shiftToMonitor 2 Monitors.LaptopMonitor)
     , -- https://hackage.haskell.org/package/xmonad-contrib-0.15/docs/XMonad-Actions-CycleWS.html#v:nextScreen
       ((mod4Mask, xK_quoteleft), nextScreen)

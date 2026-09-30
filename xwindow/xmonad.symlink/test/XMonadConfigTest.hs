@@ -184,6 +184,35 @@ tests =
             "monitor"
             Nothing
             (Monitors.classifyMonitor "DP-3" $ Just $ BS.pack [0x12, 0x34])
+    , Test "two-monitor shortcut selects the internal display" $
+        assertEqual
+            "output"
+            (Just "internal")
+            ( Monitors.selectTwoMonitorOutput
+                Monitors.InternalDisplay
+                [("DP-1", "external"), ("eDP-1", "internal")]
+            )
+    , Test "two-monitor shortcut selects the external display" $
+        assertEqual
+            "output"
+            (Just "external")
+            ( Monitors.selectTwoMonitorOutput
+                Monitors.ExternalDisplay
+                [("eDP-1", "internal"), ("DP-1", "external")]
+            )
+    , Test "two-monitor shortcut defers when multiple externals are active" $
+        assertEqual
+            "output"
+            Nothing
+            ( Monitors.selectTwoMonitorOutput
+                Monitors.ExternalDisplay
+                [("eDP-1", "internal"), ("DP-1", "external-1"), ("DP-2", "external-2")]
+            )
+    , Test "two-monitor shortcut defers without an external display" $
+        assertEqual
+            "output"
+            Nothing
+            (Monitors.selectTwoMonitorOutput Monitors.ExternalDisplay [("eDP-1", "internal")])
     , Test "DisplayLink output includes its sysfs connector name" $
         assertEqual
             "connector candidates"

@@ -1,6 +1,8 @@
 module XMonadConfig.Monitors (
     MonitorTarget (..),
+    TwoMonitorTarget (..),
     classifyMonitor,
+    selectTwoMonitorOutput,
     sysfsOutputCandidates,
     shouldRescueOffscreen,
 ) where
@@ -16,12 +18,29 @@ data MonitorTarget
     | LaptopMonitor
     deriving (Eq, Show)
 
+data TwoMonitorTarget
+    = InternalDisplay
+    | ExternalDisplay
+    deriving (Eq, Show)
+
 classifyMonitor :: String -> Maybe BS.ByteString -> Maybe MonitorTarget
 classifyMonitor output vendor
-    | "eDP-" `L.isPrefixOf` output = Just LaptopMonitor
+    | isInternalOutput output = Just LaptopMonitor
     | vendor == Just (BS.pack [0x10, 0xac]) = Just DellMonitor
     | vendor == Just (BS.pack [0x4c, 0x2d]) = Just SamsungMonitor
     | otherwise = Nothing
+
+selectTwoMonitorOutput :: TwoMonitorTarget -> [(String, a)] -> Maybe a
+selectTwoMonitorOutput target outputs =
+    case L.partition (isInternalOutput . fst) outputs of
+        ([(_, internal)], [(_, external)]) ->
+            Just $ case target of
+                InternalDisplay -> internal
+                ExternalDisplay -> external
+        _ -> Nothing
+
+isInternalOutput :: String -> Bool
+isInternalOutput = L.isPrefixOf "eDP-"
 
 sysfsOutputCandidates :: String -> [String]
 sysfsOutputCandidates output =
