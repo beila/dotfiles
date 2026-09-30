@@ -283,8 +283,8 @@ EOF
 chmod +x "$STUBS/xprop"
 cat > "$STUBS/pgrep" <<'EOF'
 #!/usr/bin/env bash
-[[ "$*" == "-x zmx" ]] || exit 2
-[[ -n "${PGREP_OUTPUT_FILE:-}" ]] && cat "$PGREP_OUTPUT_FILE"
+printf '%s\n' "$*" >> "$FAKE_ROOT/pgrep.calls"
+exit 99
 EOF
 chmod +x "$STUBS/pgrep"
 export XPROP_CALLS="$TMP/xprop-calls"
@@ -297,7 +297,6 @@ export FZF_CALL_COUNT="$TMP/fzf-call-count"
 : > "$FZF_OUTPUT_FILE"
 
 FAKE_PROC="$TMP/proc"
-PGREP_OUTPUT="$TMP/pgrep-output"
 mkdir -p "$FAKE_PROC"/{101,111,121,131,201,202,203,211,212,221,231,999}
 mkdir -p \
     "$FAKE_PROC/201/task/201" \
@@ -319,18 +318,21 @@ printf 'zmx\0attach\0preview-only\0zsh\0-l\0' > "$FAKE_PROC/211/cmdline"
 printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
 printf 'zmx\0attach\0shelp2\0zsh\0-l\0' > "$FAKE_PROC/221/cmdline"
 printf 'zmx\0attach\0unknown\0zsh\0-l\0' > "$FAKE_PROC/231/cmdline"
+for pid in 201 202 203 211 212 221 231; do
+    printf 'zmx\n' > "$FAKE_PROC/$pid/comm"
+done
 printf '101\n' > "$FAKE_PROC/201/task/201/children"
 printf '111\n' > "$FAKE_PROC/211/task/211/children"
 printf '121\n' > "$FAKE_PROC/221/task/221/children"
 printf '131\n' > "$FAKE_PROC/231/task/231/children"
-printf '201\n202\n203\n211\n212\n221\n231\n' > "$PGREP_OUTPUT"
 printf 'attached\npreview-only\nshelp2\nunknown\n' > "$FAKE_ROOT/sessions"
 export ZMX_PROC_ROOT="$FAKE_PROC"
 : > "$FAKE_ROOT/list.calls"
-PATH="$STUBS:$PATH" \
-    PGREP_OUTPUT_FILE="$PGREP_OUTPUT" \
-    "$SELECT_UNDER_TEST" >/dev/null 2>"$TMP/select-attached.stderr" || true
+: > "$FAKE_ROOT/pgrep.calls"
+PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-attached.stderr" || true
 check "picker startup does not call zmx list" "" "$(cat "$FAKE_ROOT/list.calls")"
+check "picker startup does not scan processes with pgrep" "" "$(cat "$FAKE_ROOT/pgrep.calls")"
 check "picker marks a real attach client despite a concurrent preview" "yes" \
     "$(rg -q '^attached ❯ 🔗' "$FZF_INPUT" && printf yes || printf no)"
 check "picker does not mark a server with only a preview client" "yes" \

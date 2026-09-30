@@ -28,11 +28,18 @@
 set -uo pipefail
 
 initial_query="${1:-}"
-script_dir=$(dirname "$(readlink -f "$0")")
+script_path=$(readlink -f "$0")
+script_dir=${script_path%/*}
 export ZMX_HISTORY_HELPER="$script_dir/zmx-history"
 restore_helper="$script_dir/zmx-restore"
 zmx_info=$(zmx version 2>/dev/null || true)
-zmx_socket_dir=$(printf '%s\n' "$zmx_info" | awk '$1 == "socket_dir" { print $2; exit }')
+zmx_socket_dir=""
+while read -r key value _; do
+    if [[ "$key" == "socket_dir" ]]; then
+        zmx_socket_dir=$value
+        break
+    fi
+done <<< "$zmx_info"
 [[ -n "$zmx_socket_dir" ]] || zmx_socket_dir="${ZMX_DIR:-}"
 export ZMX_SOCKET_DIR="$zmx_socket_dir"
 
@@ -121,12 +128,48 @@ refresh_session_cwd() {
     fi
 }
 
+refresh_changed_session_cwds() {
+    local name pid cwd i
+    local -a names=()
+    local -a paths=()
+    local -a cwds=()
+
+    for name in "${!running[@]}"; do
+        pid=${running[$name]}
+        if [[ "${running_cwd_pid[$name]:-}" != "$pid" ]]; then
+            names+=("$name")
+            paths+=("$proc_root/$pid/cwd")
+        fi
+    done
+    ((${#names[@]})) || return 0
+
+    mapfile -d '' -t cwds < <(readlink -z -- "${paths[@]}" 2>/dev/null)
+    if ((${#cwds[@]} == ${#names[@]})); then
+        for i in "${!names[@]}"; do
+            name=${names[$i]}
+            pid=${running[$name]}
+            cwd=${cwds[$i]}
+            running_cwd["$name"]="${cwd/#$HOME/'~'}"
+            running_cwd_pid["$name"]="$pid"
+        done
+        return 0
+    fi
+
+    # A session can exit between process discovery and the batched read. Retry
+    # individually so one missing cwd cannot shift every later name/path pair.
+    for name in "${names[@]}"; do
+        refresh_session_cwd "$name"
+    done
+}
+
 load_running() {
     running=()
     attached=()
     local -a argv=()
     local -a children=()
-    local name pid candidate child
+    local -a comm_files=()
+    local -a zmx_comm_files=()
+    local name pid candidate child comm_file
 
     while IFS= read -r name; do
         [[ -n "$name" ]] && running["$name"]=0
@@ -135,7 +178,17 @@ load_running() {
     # A persistent `zmx attach` server has the session process as a direct
     # child. Other attach processes are terminal-side clients; `zmx tail`
     # preview processes do not match argv[1].
-    while IFS= read -r candidate; do
+    shopt -s nullglob
+    comm_files=("$proc_root"/[0-9]*/comm)
+    shopt -u nullglob
+    if ((${#comm_files[@]})); then
+        mapfile -t zmx_comm_files < <(
+            rg -l --no-messages '^zmx$' "${comm_files[@]}" 2>/dev/null
+        )
+    fi
+    for comm_file in "${zmx_comm_files[@]}"; do
+        candidate=${comm_file%/comm}
+        candidate=${candidate##*/}
         [[ "$candidate" =~ ^[0-9]+$ ]] || continue
         argv=()
         mapfile -d '' -t argv 2>/dev/null < "$proc_root/$candidate/cmdline" || continue
@@ -160,14 +213,9 @@ load_running() {
         else
             attached["$name"]=1
         fi
-    done < <(pgrep -x zmx 2>/dev/null)
-
-    for name in "${!running[@]}"; do
-        pid=${running[$name]}
-        if [[ "${running_cwd_pid[$name]:-}" != "$pid" ]]; then
-            refresh_session_cwd "$name"
-        fi
     done
+
+    refresh_changed_session_cwds
     for name in "${!running_cwd[@]}"; do
         if [[ -z "${running[$name]:-}" ]]; then
             unset 'running_cwd[$name]' 'running_cwd_pid[$name]'
