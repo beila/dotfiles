@@ -1,0 +1,40 @@
+#!/bin/sh
+
+action=$1
+state_file=$2
+
+case "$action" in
+  toggle)
+    IFS= read -r scope < "$state_file" || scope=repo
+    if [ "$scope" = repo ]; then
+      printf '%s\n' global > "$state_file"
+    else
+      printf '%s\n' repo > "$state_file"
+    fi
+    ;;
+  list)
+    global_file=$3
+    repo_file=$4
+    IFS= read -r scope < "$state_file" || scope=global
+    if [ "$scope" = repo ]; then
+      cat "$repo_file"
+    else
+      cat "$global_file"
+    fi
+    ;;
+  prompt)
+    IFS= read -r scope < "$state_file" || scope=global
+    printf '%s> ' "$scope"
+    ;;
+  header)
+    IFS= read -r scope < "$state_file" || scope=global
+    if [ "$scope" = repo ]; then
+      printf '%s\n' 'repo scope · Ctrl-R global · Alt-S sort · Alt-R raw'
+    else
+      printf '%s\n' 'global scope · Ctrl-R repo · Alt-S sort · Alt-R raw'
+    fi
+    ;;
+  *)
+    exit 2
+    ;;
+esac
