@@ -236,7 +236,7 @@ fi
 out=$(od -An -c < "$TEST_ROOT/fzf-binding-output")
 if [ "$fzf_status" -eq 0 ] &&
    printf '%s' "$out" | rg -q 'r.*e.*p.*o.*-.*e.*n.*t.*r.*y'; then
-    pass "fzf parses the toggle, reload, prompt, and header actions"
+    pass "fzf parses the toggle, reload, and header actions"
 else
     fail "fzf rejected the scope binding" "status=$fzf_status, output=$out"
 fi

@@ -134,7 +134,6 @@ _repo_history_toggle_binding() {
 
   REPLY="ctrl-r:execute-silent(sh ${action} toggle ${state})"
   REPLY+="+reload(sh ${action} list ${state} ${global} ${repo})"
-  REPLY+="+transform-prompt(sh ${action} prompt ${state})"
   REPLY+="+transform-header(sh ${action} header ${state})"
 }
 
@@ -153,7 +152,7 @@ fzf-history-widget() {
   local repo_file="$temp_dir/repo"
   local state_file="$temp_dir/scope"
   local selected_file="$temp_dir/selected"
-  local in_repo=0 scope=global prompt header input_file
+  local in_repo=0 scope=global header input_file
   local ret=0 toggle_binding="" ctrl_r_opts="${FZF_CTRL_R_OPTS-}"
 
   {
@@ -174,11 +173,9 @@ fzf-history-widget() {
 
     if [[ "$scope" == repo ]]; then
       input_file="$repo_file"
-      prompt='repo> '
       header='repo scope · Ctrl-R global · Alt-S sort · Alt-R raw'
     else
       input_file="$global_file"
-      prompt='global> '
       if (( in_repo )); then
         header='global scope · Ctrl-R repo · Alt-S sort · Alt-R raw'
       else
@@ -207,7 +204,6 @@ fzf-history-widget() {
         --highlight-line \
         --multi \
         --query="$LBUFFER" \
-        --prompt="$prompt" \
         --header="$header" \
         "${binding_args[@]}" \
         < "$input_file" >| "$selected_file"

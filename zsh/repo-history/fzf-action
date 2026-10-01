@@ -22,10 +22,6 @@ case "$action" in
       cat "$global_file"
     fi
     ;;
-  prompt)
-    IFS= read -r scope < "$state_file" || scope=global
-    printf '%s> ' "$scope"
-    ;;
   header)
     IFS= read -r scope < "$state_file" || scope=global
     if [ "$scope" = repo ]; then
