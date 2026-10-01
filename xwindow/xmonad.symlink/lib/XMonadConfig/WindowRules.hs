@@ -32,6 +32,7 @@ floatRules =
         , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
         , className =? "Tilda" --> doFloat
         , className =? "ignition" --> doFloat
+        , className =? "Emulator" --> doFloat
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
