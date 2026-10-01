@@ -31,6 +31,18 @@ _repo_history_adapt_command() {
   REPLY="${output}${remaining}"
 }
 
+_repo_history_filter_global_candidates() {
+  command perl -0 -ne '
+    # -0 retains the consumed NUL in $_; output adds its own separator.
+    s/\0\z//;
+    if (/^\s*([0-9]+)\**\t(.*)\z/s) {
+      my ($event, $command) = ($1, $2);
+      $command =~ s/\n\z//;
+      print "g:$event\t$command\0" unless $seen{$command}++;
+    }
+  '
+}
+
 _repo_history_write_global_candidates() {
   emulate -L zsh
   setopt pipefail
@@ -41,11 +53,7 @@ _repo_history_write_global_candidates() {
 
   if (( ${+commands[perl]} )); then
     builtin printf '%s\t%s\000' "${(kv)history[@]}" |
-      command perl -0 -ne '
-        if (/^\s*([0-9]+)\**\t(.*)$/s && !$seen{$2}++) {
-          print "g:$1\t$2\0";
-        }
-      ' >| "$output"
+      _repo_history_filter_global_candidates >| "$output"
     return $?
   fi
 
@@ -53,6 +61,7 @@ _repo_history_write_global_candidates() {
   typeset -A seen
   for event in ${(Onk)history}; do
     command="${history[$event]}"
+    command="${command%$'\n'}"
     [[ -n "${seen[$command]-}" ]] && continue
     seen[$command]=1
     print -rN -- "g:${event}"$'\t'"${command}" >>! "$output"

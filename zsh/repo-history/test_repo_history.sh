@@ -137,7 +137,23 @@ else
     fail "candidate generation mismatch" "got: $out"
 fi
 
-printf '%s\n' '=== Test 7: selection supports multiline and multi-select ==='
+printf '%s\n' '=== Test 7: global candidates have exact NUL framing ==='
+run_zsh '
+    builtin printf "%s\t%s\000" \
+      3 $'\''multi\nline\n'\'' \
+      2 $'\''single\n'\'' \
+      1 $'\''single\n'\'' |
+      _repo_history_filter_global_candidates >| "$TEST_ROOT/global-candidates"
+'
+printf 'g:3\tmulti\nline\0g:2\tsingle\0' > "$TEST_ROOT/global-expected"
+if cmp -s "$TEST_ROOT/global-expected" "$TEST_ROOT/global-candidates"; then
+    pass "global candidates emit one separator and preserve multiline commands"
+else
+    fail "global candidate framing or newline normalization failed" \
+        "got: $(od -An -tx1 < "$TEST_ROOT/global-candidates")"
+fi
+
+printf '%s\n' '=== Test 8: selection supports multiline and multi-select ==='
 out=$(run_zsh '
     selected="$TEST_ROOT/selected"
     print -rN -- $'\''r:1\tfirst\nline'\'' $'\''r:2\tsecond'\'' >| "$selected"
@@ -157,7 +173,7 @@ else
     fail "selection application mismatch" "got: $out"
 fi
 
-printf '%s\n' '=== Test 8: scope action toggles and reloads NUL input ==='
+printf '%s\n' '=== Test 9: scope action toggles and reloads NUL input ==='
 printf '%s\n' repo > "$TEST_ROOT/scope"
 printf 'global-entry\0' > "$TEST_ROOT/global-input"
 printf 'repo-entry\0' > "$TEST_ROOT/repo-input"
@@ -172,7 +188,7 @@ else
     fail "scope helper mismatch" "scope=$(cat "$TEST_ROOT/scope"), output=$out"
 fi
 
-printf '%s\n' '=== Test 9: widget inserts an adapted repository command ==='
+printf '%s\n' '=== Test 10: widget inserts an adapted repository command ==='
 printf '%s\n' \
     '#!/bin/sh' \
     "perl -0 -ne 'print; exit'" > "$TEST_ROOT/fake-fzf"
@@ -201,7 +217,7 @@ else
     fail "widget inserted the wrong command" "expected [$expected], got [$out]"
 fi
 
-printf '%s\n' '=== Test 10: real fzf accepts the generated scope binding ==='
+printf '%s\n' '=== Test 11: real fzf accepts the generated scope binding ==='
 printf '%s\n' repo > "$TEST_ROOT/scope"
 binding=$(run_zsh '
     _repo_history_toggle_binding \
