@@ -6,6 +6,10 @@
 
 Env vars, sources `fzf --zsh` dynamically. **Overrides the generated `__fzfcmd`** so the built-in widgets (Ctrl-T file picker / Alt-C cd / Ctrl-R history / Ctrl-E custom cd) launch through `fzf-zellij` when inside a zellij session and `FZF_ZELLIJ` is unset (i.e. not a nested `become` invocation), else plain `fzf`. The branch lives in `__fzfcmd` itself (not buried in fzf-zellij) so the call chain `Ctrl-T → fzf-file-widget → __fzfcmd` stays readable.
 
+`zsh/repo-history/10-fzf.zsh` replaces the generated `fzf-history-widget` after this file defines `__fzf_defaults` and `__fzfcmd`. Global scope reads normal Zsh history, including commands from every repository. Repository scope reads the shared `.jj/repo` metadata history and adapts old absolute workspace roots.
+
+Ctrl-R toggles scope, Alt-S inherits the old sort toggle, and Alt-R remains the raw-display toggle. Both scopes retain multiline records, exact deduplication, the initial `LBUFFER` query, history ranking, preview, multi-select, vi-mode bindings, and fzf-zellij routing. Scope reloads use temporary inputs because the zellij child cannot access the parent shell's history array.
+
 `FZF_CTRL_T_COMMAND` / `FZF_ALT_C_COMMAND` emit raw paths (one per line) — earlier versions piped each path through `xargs ls --color=always -d` to render `ls -l`-style rows, which clipped names to invisibility inside the narrow floating-pane list column.
 
 **Previews are single-line** (no `\<newline>` continuations and no multi-line `if/elif/fi`): zsh's outer quoting munges line continuations during the `export` of these strings, and `fzf-zellij` forwards the result into a bash subshell that then chokes on `bash: syntax error near unexpected token '('`. Use `;` and `||` separators on one line. Preview branches at runtime: directory → eza `-1 -F --group-directories-first` (with icons when eza is on PATH, else `ls -1 -F`); file → bat 500 lines (else `cat`, else `file`). Names-first so the narrow pane doesn't dedicate half its width to perm/size/date columns.
@@ -14,7 +18,7 @@ Env vars, sources `fzf --zsh` dynamically. **Overrides the generated `__fzfcmd`*
 
 After sourcing, binds Ctrl-E to `fzf-cd-widget`.
 
-Test harness: `fzf/test_fzf_widgets.sh` (7 assertions: function defined, returns fzf-zellij when ZELLIJ set, returns plain fzf when ZELLIJ unset or `FZF_ZELLIJ=1`, fzf-zellij executable + filter pipeline works in fallback paths).
+Test harnesses: `fzf/test_fzf_widgets.sh` verifies `__fzfcmd` routing and fallback execution. `zsh/repo-history/test_repo_history.sh` verifies the replacement history widget, scope action, multiline selection, and current-workspace adaptation.
 
 ## fzf-zellij
 

@@ -15,6 +15,13 @@
 - `terminal.zsh` — window/tab/pane titles via precmd/preexec (OSC 1/2). Prefixed with `[$ZMX_SESSION]` inside a zmx session, and the `preexec` title keeps the directory too (`[work] ~/dev · cargo`) — a bare command replaced it, leaving a long build with no clue which directory the window belonged to; zmx forwards the OSC to the client, verified by capturing an `attach` under `script` (`^[]2;[titleprobe3] ~/.dotfiles`). Foreground TUIs may emit a later OSC title, so XMonad independently prepends `zmx-select`'s `_ZMX_SESSION` window property. `zmx history` won't show OSC — that's the VT-rendered scrollback, not the raw stream.
 - `editor.zsh` — vi mode, dot expansion, key bindings, vim-surround, text objects. `KEYTIMEOUT=1` and `zle-line-init` forces insert mode on every new prompt so stray escape sequences (e.g. from zmx re-attach or kitty keyboard protocol) don't silently leave ZLE in vicmd mode. Bindkey setup is skipped when `! -o shinstdin` (e.g. under `zsh -ic 'cmd'`) because terminfo keycaps aren't populated yet.
 - `history.zsh` — 10M entries, dedup, `HIST_IGNORE_SPACE` disabled.
+- `repo-history/` — jj repository metadata history and the repository-aware fzf Ctrl-R widget.
+  - `00-core.zsh` finds the nearest `.jj` with Zsh built-ins. It resolves linked `.jj/repo` pointer files to the shared repository.
+  - Records contain the timestamp, workspace, CWD, and command, separated by NUL bytes. They live below `${REPO_HISTORY_STATE_DIR:-${XDG_STATE_HOME:-~/.local/state}/zsh/repo-history}/repos<canonical-.jj/repo>/history`.
+  - Native `.zhistory` remains global, so repository commands stay available from other repositories and outside jj.
+  - `10-fzf.zsh` replaces only `fzf-history-widget`. Repository scope filters shared repository records, while global scope uses normal Zsh history.
+  - Ctrl-R toggles scope, Alt-S toggles sorting, and Alt-R toggles raw display. The selected scope persists for the shell lifetime and starts as repository scope.
+  - Absolute source-workspace roots are adapted before fzf displays the commands. Hishtory import is intentionally deferred.
 - `directory.zsh` — `auto_cd`, `auto_pushd`, `extended_glob`, no clobber.
 - `zmx-history.zsh` — only active when `$ZMX_SESSION` is set. Registers a `zshexit` hook that synchronously runs `bin/zmx-history snapshot <session> "$PWD"` (bounded by a five-second `timeout`) while the zmx socket still exists, so a normal shell exit preserves output produced since the daemon's last poll and the exact final directory. The helper's snapshot lock serializes this with daemon captures so an older concurrent snapshot cannot overwrite the final state.
 - `utility.zsh` — correction, `nocorrect`/`noglob` aliases, colored ls/grep, and the interactive `rm` trash wrapper described below.
@@ -95,13 +102,18 @@ Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget r
 
 Auto-tuning uses first-position `preexec`/`precmd` hooks and `zsh/datetime`. For listed functions, the parent shell measures total elapsed time while the child `zsh -ic` writes its post-zshrc function duration plus logrun's reveal/exit metadata through a private timing file. The parent pre-creates that file with `mktemp`; logrun uses `>|` for the initial record so the global `NO_CLOBBER` setting does not reject it. A successful wrapped function that stays below both time and line thresholds and has `total - function > 200ms` suggests removal; a successful unwrapped function exceeding `$LOGRUN_AUTO_SECONDS` suggests addition. Failures and interrupted/incomplete timing records are ignored. Advice prints `logrun-auto-function {add|remove} NAME`, copies that exact command through `c` (with native clipboard fallbacks), and deduplicates once per shell session/name. Set `LOGRUN_AUTO_TUNING=0` to disable advice.
 
-History: only rewritten commands arm the `zshaddhistory` hook; skipped commands retain native `HIST_VERIFY` behavior. The hook inserts the user-typed command with `print -S` (preserving lexical word boundaries), then moves the rewritten wrapper into a temporary `fc -p` context that zsh automatically discards. Consequently `↑` and history expansions (`!!`, `!$`, `!*`, absolute `!N`, and other event/word designators) resolve against the original command, not `logrun --auto ...`. Side effect: the visible command line shown in scrollback above the output is still the rewritten wrapper, so copy-paste from scrollback is suboptimal.
+History: only rewritten commands arm the logrun `zshaddhistory` behavior; skipped commands retain native `HIST_VERIFY` behavior. The hook inserts the user-typed command with `print -S`, preserving lexical word boundaries. It then moves the rewritten wrapper into a temporary `fc -p` context that Zsh discards automatically.
+
+The repository-history hook runs first. It reads `_logrun_orig_buffer` before logrun clears the value, so repository history receives the typed command rather than the wrapper. Therefore, `↑`, history expansions, and repository scope all use the original command. The visible command line in scrollback remains the rewritten wrapper, so copying it from scrollback is still suboptimal.
 
 Composes correctly with `zsh-syntax-highlighting` and `zsh-autosuggestions`: those wrap `accept-line` themselves on load; the `zz-` filename prefix guarantees our widget loads after them so we run first and rewrite before they re-execute the saved chain.
 
 Test harness: `zsh/test_logrun-auto.sh` — classifier, exclusions/helper state, rewrite/history, tuning decisions, clipboard + session deduplication, timing-prefix integration, and end-to-end logrun behavior. E2E commands use `</dev/null` so the PTY layer cannot consume the harness heredoc. Drive: `bash zsh/test_logrun-auto.sh`.
 
+Repository-history test harness: `zsh/repo-history/test_repo_history.sh` covers lazy startup, linked jj identity, and global-only behavior outside jj. It also covers logrun integration, path adaptation, multiline deduplication, multi-select insertion, scope switching, the complete widget path, and real-fzf action parsing. Drive: `bash zsh/repo-history/test_repo_history.sh`.
+
 ## Known issues
 
 - **vi mode**: custom zle widget bindings must use `bindkey -M viins` and `bindkey -M vicmd` explicitly.
 - **fzf source order**: `source <(fzf --zsh)` must come before custom bindkeys that reference fzf widgets; `zshrc.symlink` globs alphabetically — don't put static copies of fzf scripts in the glob path.
+- **repository-history hook order**: `_repo_history_zshaddhistory` must remain before `_logrun_auto_zshaddhistory`, because logrun clears `_logrun_orig_buffer` after restoring the typed command to global history.

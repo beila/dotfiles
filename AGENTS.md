@@ -23,6 +23,14 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - goal: single source of truth for shared fzf options/previews
   - direction: whichever is simpler (e.g. shared config file, shell script that both source, or generated opts)
   - 양쪽에서 어떤 단축키를 뭐에 쓰는지 먼저 정리해봐야겠다
+- [x] add jj per-repository Zsh history — implemented in `zsh/repo-history/`.
+  - Linked workspaces resolve to the same canonical `.jj/repo` and share one append-only metadata history. Native `.zhistory` remains global.
+  - Ctrl-R remembers the last scope used in the shell, starting with repository scope. Ctrl-R toggles scope, Alt-S toggles sorting, and Alt-R toggles raw display.
+  - Multiline commands, exact deduplication, preview, multi-select, vi mode, and zellij routing remain supported.
+  - Old absolute workspace roots are adapted before display and insertion.
+  - Sourcing performs no repository search or external command. Resolution starts with the first accepted command or Ctrl-R and remains cached inside the workspace.
+  - Test: `bash zsh/repo-history/test_repo_history.sh`. See `zsh/AGENTS.md` and `fzf/AGENTS.md`.
+- [ ] import existing Hishtory command/CWD records into jj repository history — deferred from the initial implementation; global and repository recording starts with newly accepted commands.
 - [ ] review each nvim plugin and cleanup/modernise
 - [x] switch nix neovim module to `hm-generated.lua` approach — nix writes `programs.neovim.initLua` (lua paths, providers, sibling-module appends) to `nvim/lua/hm-generated.lua` via `xdg.configFile`, the module's own `init.lua` output disabled with `mkForce false`; git-tracked `init.lua` restored with `pcall(require, 'hm-generated')` at top; `myinit.lua` merged into `init.lua` and deleted; `.gitignore` now ignores `/lua/hm-generated.lua` instead of `init.lua`. Verified: plugins (packpath), providers-off, vimrc chain, keymaps all load. See `home-manager.configsymlink/nvim.nix` and `nvim.configsymlink/AGENTS.md`.
 - [ ] fzf/functions.sh sets list width depending on the contents

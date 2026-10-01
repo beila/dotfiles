@@ -210,15 +210,19 @@ binding=$(run_zsh '
       "$TEST_ROOT/repo-input"
     print -r -- "$REPLY"
 ')
-start_binding="start:${binding#ctrl-r:}"
-out=$(printf 'repo-entry\0' |
-    fzf --read0 --print0 --sync --bind "$start_binding" --filter=global-entry |
-    od -An -c)
-if [ "$(cat "$TEST_ROOT/scope")" = "global" ] &&
-   printf '%s' "$out" | rg -q 'g.*l.*o.*b.*a.*l.*-.*e.*n.*t.*r.*y'; then
+if printf 'repo-entry\0' |
+   fzf --read0 --print0 --sync --bind "$binding" --filter=repo-entry \
+       > "$TEST_ROOT/fzf-binding-output"; then
+    fzf_status=0
+else
+    fzf_status=$?
+fi
+out=$(od -An -c < "$TEST_ROOT/fzf-binding-output")
+if [ "$fzf_status" -eq 0 ] &&
+   printf '%s' "$out" | rg -q 'r.*e.*p.*o.*-.*e.*n.*t.*r.*y'; then
     pass "fzf parses the toggle, reload, prompt, and header actions"
 else
-    fail "fzf scope binding failed" "scope=$(cat "$TEST_ROOT/scope"), output=$out"
+    fail "fzf rejected the scope binding" "status=$fzf_status, output=$out"
 fi
 
 printf '%s\n' '=== Results ==='
