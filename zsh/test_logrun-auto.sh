@@ -126,6 +126,12 @@ _check "classify: redirect"                  "function"   "$(_classify 'ls > /tm
 _check "classify: command substitution"      "function"   "$(_classify 'echo $(date)')"
 # Bare backticks (no escapes) — real command substitution → compound.
 _check "classify: backtick substitution"     "function"   "$(_classify 'cat `date`')"
+# A TUI leading a compound buffer still owns the terminal. Pasted
+# continuation blocks end with a newline, which makes them compound.
+_check "classify: TUI first in sequence"     "skip"       "$(_classify 'less foo; ls')"
+_check "classify: TUI first, env prefix"     "skip"       "$(_classify 'FOO=1 less foo && ls')"
+_check "classify: pasted TUI continuation"   "skip"       "$(_classify $'less \\\n  foo.txt\n')"
+_check "classify: TUI last in pipeline"      "skip"       "$(_classify 'ls | less')"
 
 # Metacharacters inside quotes are NOT operators; the buffer should be
 # treated as a normal `cmd args...` invocation. Without quote-aware

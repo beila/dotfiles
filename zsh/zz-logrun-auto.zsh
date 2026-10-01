@@ -308,17 +308,19 @@ _logrun_classify() {
     # operator works exactly as the user typed it. Skip alias
     # pre-expansion in this case — the inner shell does its own.
     if _logrun_has_unquoted_metachar "$buf"; then
-        # For pipelines, also check the last command against the TUI
-        # skiplist — e.g. `xxx | bat` should skip because bat is a TUI.
-        local last_cmd
+        # A TUI as the first command or as the last pipeline stage still
+        # needs the terminal — e.g. `xxx | bat`, or a pasted multi-line
+        # `codex \ ...` whose trailing newline makes it compound.
+        local first_cmd last_cmd tui
+        first_cmd=$(_logrun_strip_env_prefix "${buf#"${buf%%[![:space:]]*}"}")
+        first_cmd=$(_logrun_resolve_runner "$first_cmd" "${first_cmd%%[[:space:]]*}")
         last_cmd=$(_logrun_pipeline_last_cmd "$buf")
         if [[ -n "$last_cmd" ]]; then
             last_cmd=$(_logrun_resolve_runner "$last_cmd" "${last_cmd%%[[:space:]]*}")
-            local tui
-            for tui in ${=LOGRUN_TUI_SKIPLIST} ${=$(_logrun_user_skiplist)}; do
-                [[ "$last_cmd" == "$tui" ]] && return
-            done
         fi
+        for tui in ${=LOGRUN_TUI_SKIPLIST} ${=$(_logrun_user_skiplist)}; do
+            [[ "$first_cmd" == "$tui" || "$last_cmd" == "$tui" ]] && return
+        done
         _logrun_kind="compound"
         _logrun_decision="function"
         _logrun_first="${buf%%[[:space:]]*}"
