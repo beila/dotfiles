@@ -17,7 +17,7 @@
 - `history.zsh` — 10M entries, dedup, `HIST_IGNORE_SPACE` disabled.
 - `repo-history/` — jj repository metadata history and the repository-aware fzf Ctrl-R widget.
   - `00-core.zsh` finds the nearest `.jj` with Zsh built-ins. It resolves linked `.jj/repo` pointer files to the shared repository.
-  - Records contain the timestamp, workspace, CWD, and command, separated by NUL bytes. They live below `${REPO_HISTORY_STATE_DIR:-${XDG_STATE_HOME:-~/.local/state}/zsh/repo-history}/repos<canonical-.jj/repo>/history`.
+  - Records contain the timestamp, workspace, CWD, and command, separated by NUL bytes. They live below `${REPO_HISTORY_STATE_DIR:-${XDG_STATE_HOME:-~/.local/state}/zsh/repo-history}/repos<canonical-repo-root>.history`, where the root is the canonical `.jj/repo` path with `/.jj/repo` stripped. The state tree must not contain `.jj` directories, because `script/sync_all` discovers repositories through plocate and would treat them as broken repositories. Resolution appends any legacy `repos<…>/.jj/repo/history` file into the new file and removes it, so shells started before the layout change are absorbed after they restart.
   - Native `.zhistory` remains global, so repository commands stay available from other repositories and outside jj.
   - `10-fzf.zsh` replaces only `fzf-history-widget`. Repository scope filters shared repository records, while global scope uses normal Zsh history.
   - Ctrl-R toggles scope, Alt-S toggles sorting, and Alt-R toggles raw display. The selected scope persists for the shell lifetime and starts as repository scope.

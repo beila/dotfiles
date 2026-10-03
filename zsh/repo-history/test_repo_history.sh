@@ -251,7 +251,7 @@ out=$(run_zsh '
     _repo_history_zshaddhistory "echo new"
     print -r -- "$_repo_history_file"
 ')
-leftover=$(fd -H -t d '^\.jj$' "$TEST_ROOT/state")
+leftover=$(fd -HI -t d '^\.jj$' "$TEST_ROOT/state")
 if [ "$out" = "$TEST_ROOT/state/repos$TEST_ROOT/main.history" ] &&
    [ -z "$leftover" ] &&
    tr '\0' '\n' < "$out" | rg -qx legacy &&
