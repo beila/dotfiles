@@ -241,6 +241,26 @@ else
     fail "fzf rejected the scope binding" "status=$fzf_status, output=$out"
 fi
 
+printf '%s\n' '=== Test 12: state tree contains no .jj directories ==='
+legacy_dir="$TEST_ROOT/state/repos$TEST_ROOT/main/.jj/repo"
+mkdir -p "$legacy_dir"
+printf 'legacy\0' > "$legacy_dir/history"
+out=$(run_zsh '
+    cd "$TEST_ROOT/main/sub"
+    _repo_history_resolve
+    _repo_history_zshaddhistory "echo new"
+    print -r -- "$_repo_history_file"
+')
+leftover=$(fd -H -t d '^\.jj$' "$TEST_ROOT/state")
+if [ "$out" = "$TEST_ROOT/state/repos$TEST_ROOT/main.history" ] &&
+   [ -z "$leftover" ] &&
+   tr '\0' '\n' < "$out" | rg -qx legacy &&
+   tr '\0' '\n' < "$out" | rg -qx 'echo new'; then
+    pass "legacy history migrates out of the mirrored .jj path"
+else
+    fail "state tree still mirrors .jj" "file=$out, leftover=$leftover"
+fi
+
 printf '%s\n' '=== Results ==='
 printf '%s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

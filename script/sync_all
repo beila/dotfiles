@@ -47,7 +47,7 @@ repos=()
 while IFS= read -r marker; do
     dir=$(dirname "$marker")
     case "$dir" in
-        */.cache/*|*/.cargo/*|*/.nix-profile/*|*/node_modules/*) continue ;;
+        */.cache/*|*/.cargo/*|*/.local/state/*|*/.nix-profile/*|*/node_modules/*) continue ;;
     esac
     [ -d "$dir" ] || continue
     # Canonical root: prefer jj root, fall back to git top-level, else the

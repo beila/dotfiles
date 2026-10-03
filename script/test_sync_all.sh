@@ -189,16 +189,19 @@ check_grep "discovered 1 repo" 'discovered 1 repo' "$(log_file)"
 echo
 echo "=== Test 4: noise paths filtered ==="
 clear_logs; clear_state
-mkdir -p "$TMPDIR/real" "$TMPDIR/cachey/.cache/foo" "$TMPDIR/modsy/node_modules/pkg"
-printf '%s\n%s\n%s\n' \
+mkdir -p "$TMPDIR/real" "$TMPDIR/cachey/.cache/foo" "$TMPDIR/modsy/node_modules/pkg" \
+    "$TMPDIR/statey/.local/state/zsh/repo-history/repos/x/.jj"
+printf '%s\n%s\n%s\n%s\n' \
     "$TMPDIR/real/.jj" \
     "$TMPDIR/cachey/.cache/foo/.git" \
-    "$TMPDIR/modsy/node_modules/pkg/.git" > "$TEST_PLOCATE_OUTPUT"
+    "$TMPDIR/modsy/node_modules/pkg/.git" \
+    "$TMPDIR/statey/.local/state/zsh/repo-history/repos/x/.jj" > "$TEST_PLOCATE_OUTPUT"
 rc=$(run_under_test)
 check "exit 0" "0" "$rc"
 check "only the real repo processed" "1" "$(wc -l < "$SYNC_REPO_CALL_LOG")"
 check "cachey not in call log" "0" "$(grep -c cachey "$SYNC_REPO_CALL_LOG")"
 check "modsy not in call log" "0" "$(grep -c modsy "$SYNC_REPO_CALL_LOG")"
+check "statey not in call log" "0" "$(grep -c statey "$SYNC_REPO_CALL_LOG")"
 
 echo
 echo "=== Test 5: missing plocate DB -> actionable ERROR ==="

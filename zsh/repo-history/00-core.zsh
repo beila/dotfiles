@@ -69,7 +69,18 @@ _repo_history_resolve() {
 
       _repo_history_workspace_root="$dir"
       _repo_history_repo_dir="$repo_dir"
-      _repo_history_file="${REPO_HISTORY_STATE_DIR}/repos${repo_dir}/history"
+      # Mirroring the `.jj/repo` path verbatim would create `.jj` directories
+      # in the state tree, which repo scanners (sync_all via plocate) then
+      # mistake for broken repositories.
+      _repo_history_file="${REPO_HISTORY_STATE_DIR}/repos${repo_dir%/.jj/repo}.history"
+      local legacy_file="${REPO_HISTORY_STATE_DIR}/repos${repo_dir}/history"
+      # Append rather than move: shells started before the layout change keep
+      # writing to the legacy path until they restart.
+      if [[ -f "$legacy_file" ]]; then
+        command cat -- "$legacy_file" >>! "$_repo_history_file" 2>/dev/null &&
+          command rm -f -- "$legacy_file" &&
+          command rmdir -p -- "${legacy_file:h}" 2>/dev/null
+      fi
       return 0
     fi
 
