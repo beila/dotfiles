@@ -109,6 +109,19 @@ if [ -x /usr/sbin/apparmor_parser ] &&
   sudo /usr/sbin/apparmor_parser -r /etc/apparmor.d/vivaldi-dotfiles
 fi
 
+# Nix-built libfuse (and tools such as omnibin) look for the NixOS setuid
+# wrapper before PATH, and fall back to the Nix-store fusermount3, which is not
+# setuid and cannot resolve the LDAP user. Expose only the host helper there;
+# tmpfiles recreates it on each boot because /run is a tmpfs.
+if [ ! -e /etc/NIXOS ] && [ -u /usr/bin/fusermount3 ]; then
+  sudo tee /etc/tmpfiles.d/fusermount-wrapper.conf > /dev/null <<'EOF'
+# Managed by home-manager/system-deps.sh — host fusermount3 for Nix libfuse.
+d /run/wrappers/bin 0755 root root -
+L+ /run/wrappers/bin/fusermount3 - - - - /usr/bin/fusermount3
+EOF
+  sudo systemd-tmpfiles --create /etc/tmpfiles.d/fusermount-wrapper.conf
+fi
+
 # linger: keep systemd --user alive after logout so zellij servers,
 # sync timers, and other user services survive GNOME session restarts.
 # Without this, logging out stops the user manager and kills all children.

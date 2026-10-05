@@ -100,6 +100,7 @@ Official zmx release archive (session persistence). Source build via zmx's flake
 - Copies keyd configs to `/etc/keyd` and enables the service when `/dev/input` exists. Runs `loginctl enable-linger`.
 - Idempotently patches `/usr/share/X11/xkb/symbols/inet` so keycodes 198/202 (`KEY_F20`/`KEY_F24`) map to `F20`/`F24` keysyms — keyd's Super+C/V macro emits these for neovide, and `setxkbmap` (called by ibus engine switches) would otherwise wipe an `xmodmap` override. See `keyd/AGENTS.md`.
 - Installs `bwrap-codex.apparmor` and `vivaldi.apparmor` when Ubuntu's AppArmor user-namespace restriction is active. They allow `/usr/bin/bwrap` and Nix-store Vivaldi binaries to initialize their sandboxes without disabling the host-wide restriction.
+- On non-NixOS hosts with a setuid `/usr/bin/fusermount3`, installs `/etc/tmpfiles.d/fusermount-wrapper.conf`, which links `/run/wrappers/bin/fusermount3` to the host helper at every boot. Nix libfuse and fuser-based tools such as `nix run github:fzakaria/omnibin` check that NixOS wrapper path before PATH; otherwise they reach the non-setuid Nix-store helper, which fails with `could not determine username`. Only that file is created, so other `/run/wrappers/bin` consumers (`unix_chkpwd`, `pkexec`) keep their current fallback behaviour.
 
 **Re-run `script/install` after `apt upgrade xkeyboard-config`** since the package may overwrite the file (backup at `inet.dotfiles-bak`).
 
