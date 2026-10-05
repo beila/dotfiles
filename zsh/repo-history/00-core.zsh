@@ -147,11 +147,13 @@ _repo_history_zshaddhistory() {
   _repo_history_ensure_file "$_repo_history_file" || return 0
 
   local epoch="${(%):-%D{%s}}"
-  print -rN -- \
-    "$epoch" \
-    "$_repo_history_workspace_root" \
-    "${PWD:A}" \
-    "$command" >>! "$_repo_history_file" 2>/dev/null
+  {
+    print -rN -- \
+      "$epoch" \
+      "$_repo_history_workspace_root" \
+      "${PWD:A}" \
+      "$command" >>! "$_repo_history_file"
+  } 2>/dev/null || unset "_repo_history_ready_files[$_repo_history_file]"
   return 0
 }
 
