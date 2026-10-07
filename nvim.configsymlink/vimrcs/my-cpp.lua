@@ -3,7 +3,16 @@
 -- Tools installed via Mason in mason.lua: codelldb (DAP config in nvim-dap.lua)
 
 -- LSP: clangd (nix-installed via clang-tools in nvim.nix)
-vim.lsp.config.clangd = {}
+-- clangd accepts only 'file' URIs. Do not attach to virtual buffers (diff views, VCS revisions),
+-- because each request (for example, inlayHint) then fails with -32602.
+local clangd_root_markers = vim.lsp.config.clangd.root_markers
+vim.lsp.config.clangd = {
+    root_dir = function(bufnr, on_dir)
+        local name = vim.api.nvim_buf_get_name(bufnr)
+        if name:match('^%a[%w+.-]*://') and not name:match('^file://') then return end
+        on_dir(vim.fs.root(bufnr, clangd_root_markers))
+    end,
+}
 vim.lsp.enable('clangd')
 
 -- printf debug helper
