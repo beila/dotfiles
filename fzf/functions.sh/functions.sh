@@ -313,6 +313,11 @@ _jj_change_field=2
 # zsh widget's stdout, the same exit path as the ctrl-h toggle's become.
 _jj_commit_field='{+4}'
 
+# Enter in the change-log pickers. A selection of consecutive rows gives one "<oldest>::<newest>"
+# revset. Other selections give one change id on each line, the same as --accept-nth=2.
+# The awk program is in a file for the same reason as _jj_align_files.
+_jj_enter_revset="enter:become(printf '%s\n' {+n} -- {+2} | awk -f ${_fzf_functions_sh%/functions.sh}/jj-selection-revset.awk)"
+
 # Command that fixes `jj log -s` file-line alignment, piped after the file-view
 # `jj log` in _jj_log_reload. The gawk program lives in jj-align-files.awk (next
 # to this file) — NOT inline — because the reload command crosses several shell
@@ -354,7 +359,7 @@ _jh() {
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
     --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
-    --accept-nth=$_jj_change_field \
+    --accept-nth=$_jj_change_field --bind "$_jj_enter_revset" \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
@@ -394,7 +399,7 @@ _jyy() {
   [[ -n "${1:-}" ]] && pos_bind=(--bind "result:pos($(($1+1)))+unbind(result)")
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r 'all()' 2>/dev/null | _jj_log_fzf \
     --header '☐ op log (ctrl-y)' \
-    --accept-nth=$_jj_change_field \
+    --accept-nth=$_jj_change_field --bind "$_jj_enter_revset" \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind "ctrl-y:become(zsh -c 'source $_fzf_functions_sh; _jy {n} {q}')"
 }
@@ -423,7 +428,7 @@ _jhh() {
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
     --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
-    --accept-nth=$_jj_change_field \
+    --accept-nth=$_jj_change_field --bind "$_jj_enter_revset" \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
