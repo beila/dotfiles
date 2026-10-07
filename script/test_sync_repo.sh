@@ -969,6 +969,80 @@ rc=$?
 check "first sync completes after network release" "0" "$rc"
 
 echo
+echo "=== Scenario 17: sync.pre-snapshot and sync.post-update hooks ==="
+git -C "$TMPDIR" init --bare -q -b master hook-remote.git
+# setup_hook_repo <dirname>: a repo on hook-remote.git with both hooks configured.
+# pre-snapshot copies src.txt to derived.txt, so the snapshot must contain derived.txt.
+# post-update copies the pulled derived.txt to applied.txt.
+setup_hook_repo() {
+    mkdir -p "$TMPDIR/$1"
+    (
+        cd "$TMPDIR/$1"
+        jj git init --colocate
+        jj git remote add backup "$TMPDIR/hook-remote.git"
+        jj config set --repo sync.remote-bookmark 'master@backup'
+        jj config set --repo user.email 'test@example.com'
+        jj config set --repo user.name 'Test User'
+        jj config set --repo sync.pre-snapshot 'if [ -f src.txt ]; then cp src.txt derived.txt; fi'
+        jj config set --repo sync.post-update 'if [ -f derived.txt ]; then cp derived.txt applied.txt; fi'
+        printf 'applied.txt\n' > .gitignore
+    ) >/dev/null 2>&1
+}
+setup_hook_repo repoHook1
+setup_hook_repo repoHook2
+echo one > "$TMPDIR/repoHook1/src.txt"
+run_sync "$TMPDIR/repoHook1"
+hook_derived=$(git -C "$TMPDIR/hook-remote.git" show master:derived.txt 2>/dev/null)
+check "pre-snapshot output is in the pushed commit" "one" "$hook_derived"
+run_sync "$TMPDIR/repoHook2"
+check "post-update sees the pulled file" "one" "$(cat "$TMPDIR/repoHook2/applied.txt" 2>/dev/null)"
+(cd "$TMPDIR/repoHook2" && jj config set --repo sync.post-update 'echo hook broke >&2; exit 3') >/dev/null 2>&1
+echo two > "$TMPDIR/repoHook2/other.txt"
+run_sync "$TMPDIR/repoHook2"
+rc=$?
+check "failing hook does not fail the sync" "0" "$rc"
+check "sync continues after a failing hook" "two" "$(git -C "$TMPDIR/hook-remote.git" show master:other.txt 2>/dev/null)"
+grep_has "HOOK-FAIL sync.post-update (rc=3): hook broke"
+
+echo
+echo "=== Scenario 18: remote deletes a file that is also changed locally ==="
+# Transition case for a file that becomes untracked on one machine (A) while the other
+# machine (B) still commits a local change to it.
+# md_case <merge-attr>: A untracks f.json, then B syncs a local change to f.json.
+md_case() {
+    local attr=$1 remote="$TMPDIR/md-$1.git" a="repoMdA-$1" b="repoMdB-$1"
+    git -C "$TMPDIR" init --bare -q -b master "md-$1.git"
+    local r
+    for r in "$a" "$b"; do
+        mkdir -p "$TMPDIR/$r"
+        (
+            cd "$TMPDIR/$r"
+            jj git init --colocate
+            jj git remote add backup "$remote"
+            jj config set --repo sync.remote-bookmark 'master@backup'
+            jj config set --repo user.email 'test@example.com'
+            jj config set --repo user.name 'Test User'
+        ) >/dev/null 2>&1
+    done
+    printf 'f.json merge=%s\n' "$attr" > "$TMPDIR/$a/.gitattributes"
+    echo '{"a":0}' > "$TMPDIR/$a/f.json"
+    run_sync "$TMPDIR/$a"
+    run_sync "$TMPDIR/$b"
+    printf 'f.json\n' > "$TMPDIR/$a/.gitignore"
+    (cd "$TMPDIR/$a" && jj file untrack f.json) >/dev/null 2>&1
+    run_sync "$TMPDIR/$a"
+    echo '{"a":1}' > "$TMPDIR/$b/f.json"
+    run_sync "$TMPDIR/$b"
+    local in_remote conflict=0
+    in_remote=$(git -C "$remote" ls-tree --name-only master f.json)
+    grep -rq "REBASE-CONFLICT master files=f.json" "$LOG_ROOT"/*/*"$b"* 2>/dev/null && conflict=1
+    echo "INFO merge=$attr: remote has f.json=[${in_remote}] B conflict=$conflict B f.json on disk=[$(cat "$TMPDIR/$b/f.json" 2>/dev/null)]"
+}
+md_case mergiraf-then-ours
+md_case theirs
+md_case ours
+
+echo
 echo "=== Sample log file ==="
 sample=$(find "$LOG_ROOT" -name '*.log' | head -1)
 if [ -n "$sample" ]; then
