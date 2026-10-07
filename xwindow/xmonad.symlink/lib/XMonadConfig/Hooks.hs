@@ -9,6 +9,7 @@ module XMonadConfig.Hooks (
     rescueOffscreenHook,
     rootPropertyStartupHook,
     stripZoomFullscreenHook,
+    trackOsdWindowsHook,
 ) where
 
 import Control.Monad (filterM, forM_, join, unless, when)
@@ -16,6 +17,7 @@ import Data.Bits ((.|.))
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe, maybeToList)
 import Data.Monoid (All (..))
+import qualified Data.Set as S
 import XMonad
 import qualified XMonad.StackSet as W
 import qualified XMonad.Util.ExtensibleState as XS
@@ -115,18 +117,54 @@ raiseFocused = withFocused $ \window -> do
 isOsdIdentity :: String -> String -> Bool
 isOsdIdentity _resourceName resourceClass = resourceClass == "osd"
 
-raiseMatchingOsdWindows :: (String -> String -> Bool) -> X ()
-raiseMatchingOsdWindows matches = withDisplay $ \display -> do
-    root <- asks theRoot
-    io $ do
-        (_, _, children) <- queryTree display root
-        forM_ children $ \child -> do
-            hint <- getClassHint display child
-            when (matches (resName hint) (resClass hint)) $
-                raiseWindow display child
+-- Nothing means that no root scan occurred after the start or restart of XMonad.
+newtype OsdWindows = OsdWindows (Maybe (S.Set Window))
+    deriving (Typeable)
+
+instance ExtensionClass OsdWindows where
+    initialValue = OsdWindows Nothing
+
+isOsdWindow :: Display -> Window -> IO Bool
+isOsdWindow display window = do
+    hint <- getClassHint display window
+    return $ isOsdIdentity (resName hint) (resClass hint)
+
+-- The logHook runs on each title change of a managed window.
+-- A WM_CLASS round trip for each root child at that rate blocks key events.
+-- Thus, classify windows one time when they map, and keep the result.
+knownOsdWindows :: X (S.Set Window)
+knownOsdWindows = do
+    OsdWindows cached <- XS.get
+    case cached of
+        Just osds -> return osds
+        Nothing -> do
+            root <- asks theRoot
+            osds <- withDisplay $ \display -> io $ do
+                (_, _, children) <- queryTree display root
+                S.fromList <$> filterM (isOsdWindow display) children
+            XS.put (OsdWindows (Just osds))
+            return osds
+
+forgetOsdWindow :: Window -> X All
+forgetOsdWindow window = do
+    XS.modify $ \(OsdWindows cached) -> OsdWindows (S.delete window <$> cached)
+    return (All True)
+
+-- Put this hook before raiseOsdOnLockHook, which reads the set on MapNotify.
+trackOsdWindowsHook :: Event -> X All
+trackOsdWindowsHook MapNotifyEvent{ev_window = window} = do
+    osds <- knownOsdWindows
+    isOsd <- withDisplay $ \display -> io $ isOsdWindow display window
+    when isOsd $ XS.put (OsdWindows (Just (S.insert window osds)))
+    return (All True)
+trackOsdWindowsHook UnmapEvent{ev_window = window} = forgetOsdWindow window
+trackOsdWindowsHook DestroyWindowEvent{ev_window = window} = forgetOsdWindow window
+trackOsdWindowsHook _ = return (All True)
 
 raiseOsdWindows :: X ()
-raiseOsdWindows = raiseMatchingOsdWindows isOsdIdentity
+raiseOsdWindows = do
+    osds <- knownOsdWindows
+    withDisplay $ \display -> io $ mapM_ (raiseWindow display) (S.toList osds)
 
 screenLocked :: X Bool
 screenLocked = do
