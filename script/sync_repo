@@ -230,6 +230,31 @@ timeout_cmd() {
     classify_cmd "$tag" run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" "$@"
 }
 
+# --- repository hooks ---------------------------------------------------------
+# Optional per-repository commands, set in jj config like the other sync.* keys:
+#   sync.pre-snapshot  runs before the first working-copy snapshot of the run.
+#   sync.post-update   runs at the end, after fetch and rebase can change the working copy.
+# Each value is one shell command. It runs in the workspace root with the local-state
+# lock held. JJ_SERIALIZED_LOCK_HELD=1 is exported, so a jj command in the hook does not
+# wait for that lock. A hook failure is logged at ERROR, and the sync continues.
+run_sync_hook() {
+    local name=$1 cmd root err rc
+    cmd=$(jj --ignore-working-copy config get "sync.$name" 2>/dev/null) || return 0
+    [ -n "$cmd" ] || return 0
+    root=$(jj --ignore-working-copy root 2>/dev/null) || root=$PWD
+    err=$(mktemp "/tmp/sync_repo_err.XXXXXX")
+    (cd "$root" && run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" sh -c "$cmd") \
+        >/dev/null 2>"$err"
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        log ERROR "HOOK-FAIL sync.$name (rc=$rc): $(_summarize_stderr "$err")"
+        cat "$err" >&2
+    else
+        log DEBUG "HOOK-OK sync.$name"
+    fi
+    rm -f "$err"
+}
+
 # --- jj branch helpers --------------------------------------------------------
 # Step functions read these globals (set in main):
 #   PUSH_REV, GIT_DIR, WORKSPACE_NAME, SNAPSHOT_URL, SYNC_BM, SYNC_REMOTE,
@@ -782,6 +807,8 @@ step_check_repo_health
 
 jj workspace update-stale 2>/dev/null || true
 
+run_sync_hook pre-snapshot
+
 # Surface files that jj refuses to snapshot (size limit). Those files
 # silently bypass the whole sync — flag them as ERROR so the user can
 # either delete or raise snapshot.max-new-file-size per repo.
@@ -864,4 +891,5 @@ if [ -n "$BOOKMARK_PUSH_OID" ]; then
 fi
 
 step_rebase_local_chain
+run_sync_hook post-update
 release_local_lock
