@@ -314,11 +314,12 @@ _jj_change_field=2
 _jj_commit_field='{+4}'
 
 # Enter (change ids) and ctrl-x (commit ids) in the change-log pickers. A selection of
-# consecutive rows gives one "<oldest>::<newest>" revset. Other selections give one id on each line.
+# consecutive rows gives one range: "<oldest>::<newest>" for jj, and "<parent of oldest>:<newest>"
+# for the cr CLI. Other selections give one id on each line.
 # The awk program is in a file for the same reason as _jj_align_files.
-_jj_revset_awk="awk -f ${_fzf_functions_sh%/functions.sh}/jj-selection-revset.awk"
-_jj_enter_revset="enter:become(printf '%s\n' {+n} -- {+2} | $_jj_revset_awk)"
-_jj_commit_revset="ctrl-x:become(printf '%s\n' {+n} -- $_jj_commit_field | $_jj_revset_awk)"
+_jj_revset_awk_file="${_fzf_functions_sh%/functions.sh}/jj-selection-revset.awk"
+_jj_enter_revset="enter:become(printf '%s\n' {+n} -- {+2} | awk -f $_jj_revset_awk_file)"
+_jj_commit_revset="ctrl-x:become(printf '%s\n' {+n} -- $_jj_commit_field | awk -v cr_range=1 -f $_jj_revset_awk_file)"
 
 # Command that fixes `jj log -s` file-line alignment, piped after the file-view
 # `jj log` in _jj_log_reload. The gawk program lives in jj-align-files.awk (next

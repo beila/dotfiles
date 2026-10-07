@@ -270,8 +270,8 @@ out=$(capture _jh);  assert "_jh binds Enter to the revset filter"  "enter:becom
 out=$(capture _jhh); assert "_jhh binds Enter to the revset filter" "enter:become(" "$out"
 out=$(capture _jyy); assert "_jyy binds Enter to the revset filter" "enter:become(" "$out"
 assert "Enter passes indices and change ids" "{+n} -- {+2}" "$_jj_enter_revset"
-out=$(capture _jh);  assert "_jh ctrl-x uses the revset filter"  "{+n} -- {+4} | awk -f" "$out"
-out=$(capture _jhh); assert "_jhh ctrl-x uses the revset filter" "{+n} -- {+4} | awk -f" "$out"
+out=$(capture _jh);  assert "_jh ctrl-x uses the revset filter"  "{+n} -- {+4} | awk -v cr_range=1 -f" "$out"
+out=$(capture _jhh); assert "_jhh ctrl-x uses the revset filter" "{+n} -- {+4} | awk -v cr_range=1 -f" "$out"
 revset_awk="${0:a:h}/jj-selection-revset.awk"
 sel() { printf '%s\n' "$@" | awk -f "$revset_awk"; }
 assert_eq "consecutive rows: oldest::newest"      "c::a"        "$(sel 3 1 2 -- c a b)"
@@ -281,6 +281,17 @@ assert_eq "rows of one commit: plain id"          "x"           "$(sel 4 5 6 -- 
 assert_eq "connector row inside the range"        "b::a"        "$(sel 0 1 2 -- a '' b)"
 assert_eq "commit and file rows: deduplicated ids" "y::x"       "$(sel 0 1 2 3 -- x x y y)"
 assert_eq "no rows: no output"                    ""            "$(sel --)"
+# ctrl-x gives "<parent of oldest>:<newest>" for the cr CLI. awk runs the real jj binary.
+cr_ids=("${(@f)$(JJ_SERIALIZED_READ_ONLY=1 command jj --at-operation @ --quiet log --no-graph \
+  -r '::@- ~ root()' -n 3 -T 'commit_id.shortest(7) ++ "\n"')}")
+cr_parent=$(JJ_SERIALIZED_READ_ONLY=1 command jj --at-operation @ --quiet log --no-graph \
+  -r "${cr_ids[3]}" -T 'parents.map(|c| c.commit_id().shortest(7)).join(" ")')
+cr_sel() { printf '%s\n' "$@" | JJ_FZF_OPERATION=@ awk -v cr_range=1 -f "$revset_awk"; }
+assert_eq "ctrl-x consecutive rows: parent:newest" \
+  "${cr_parent%% *}:${cr_ids[1]}" "$(cr_sel 0 1 2 -- "${cr_ids[@]}")"
+assert_eq "ctrl-x gap in indices: one id on each line" \
+  "${cr_ids[1]}"$'\n'"${cr_ids[3]}" "$(cr_sel 0 2 -- "${cr_ids[1]}" "${cr_ids[3]}")"
+assert_eq "ctrl-x single row: plain id" "${cr_ids[1]}" "$(cr_sel 0 -- "${cr_ids[1]}")"
 
 echo
 echo "_gh / _gy / _gyy real-fzf end-to-end (uses the real fzf binary in filter mode):"

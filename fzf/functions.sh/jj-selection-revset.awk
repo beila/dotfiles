@@ -3,6 +3,8 @@
 # rows ({+2} or {+4}), one value on each line.
 # If the indices are consecutive, print one "<oldest>::<newest>" revset. Otherwise, print each
 # unique id on its own line.
+# With -v cr_range=1 (commit ids), print "<parent of oldest>:<newest>" for the cr CLI instead.
+# The parent is the first parent, and it comes from jj at the operation of the picker.
 # The index check does not examine the graph. Thus, adjacent rows of sibling branches also
 # become a range.
 # Rows without an id (graph connector rows) count for the index check only. File rows of
@@ -23,6 +25,15 @@ END {
     if (top == "" || idx[i] < top_idx) { top = id[i]; top_idx = idx[i] }
     if (bottom == "" || idx[i] > bottom_idx) { bottom = id[i]; bottom_idx = idx[i] }
   }
-  if (u > 1 && hi - lo + 1 == n) { print bottom "::" top; exit }
+  if (u > 1 && hi - lo + 1 == n) {
+    if (!cr_range) { print bottom "::" top; exit }
+    cmd = "JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"${JJ_FZF_OPERATION:-@}\" --quiet log --no-graph" \
+      " -r '" bottom "' -T 'parents.map(|c| c.commit_id().shortest(7)).join(\" \")' 2>/dev/null"
+    cmd | getline parents
+    close(cmd)
+    split(parents, parent, " ")
+    # The root commit has no parent. Then fall back to the id list.
+    if (parent[1] != "") { print parent[1] ":" top; exit }
+  }
   for (i = 1; i <= u; i++) print uniq[i]
 }
