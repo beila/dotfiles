@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# jj-fix-churn — list the files that `jj fix` rewrote again and again.
+# sync_repo runs `jj fix` (generalize-paths) before each push. jj fix also writes the fixed
+# content into the working copy. When a program writes the absolute path back, each sync
+# rewrites the file again, and the commits never settle.
+#
+# Usage: jj-fix-churn [-d DAYS] [-m MIN_OPS] [REPO...]
+#   Without REPO, use every jj repository in the plocate database (same source as sync_all).
+#   Output: <repo> <times rewritten>/<fix operations> <file>
+set -u
+
+days=7 min=3
+while getopts d:m: opt; do
+    case $opt in
+        d) days=$OPTARG ;;
+        m) min=$OPTARG ;;
+        *) echo "usage: jj-fix-churn [-d DAYS] [-m MIN_OPS] [REPO...]" >&2; exit 2 ;;
+    esac
+done
+shift $((OPTIND - 1))
+
+if [ $# -eq 0 ]; then
+    mapfile -t repos < <(plocate --database "$HOME/.cache/plocate.db" -r '/\.jj$' 2>/dev/null |
+        grep -vE '/(\.cache|\.cargo|\.local/state|\.nix-profile|node_modules|\.claude/worktrees)/' |
+        sed 's|/\.jj$||' | sort -u)
+else
+    repos=("$@")
+fi
+
+for repo in "${repos[@]}"; do
+    [ -d "$repo/.jj" ] || continue
+    # --ignore-working-copy everywhere: a survey must not snapshot or race a sync.
+    mapfile -t ops < <(cd "$repo" && jj --ignore-working-copy op log --no-graph -n 5000 \
+        -T "if(description.starts_with(\"fix\") && time.start().after(\"${days} days ago\"), id.short() ++ \"\n\")" 2>/dev/null)
+    [ ${#ops[@]} -gt 0 ] || continue
+    for op in "${ops[@]}"; do
+        # Files of rewritten commits only; stop before the working-copy section.
+        (cd "$repo" && jj --ignore-working-copy op show "$op" --summary --no-graph 2>/dev/null) |
+            awk '/^Changed working copy/ { exit } /^[MAD] / { sub(/^[MAD] /, ""); print }' | sort -u
+    done | sort | uniq -c | sort -rn |
+        awk -v repo="${repo/#$HOME/\~}" -v total=${#ops[@]} -v min="$min" \
+            '$1 >= min { c = $1; $1 = ""; sub(/^ /, ""); printf "%s %d/%d %s\n", repo, c, total, $0 }'
+done
