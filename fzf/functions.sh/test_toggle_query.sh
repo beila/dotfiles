@@ -270,6 +270,8 @@ out=$(capture _jh);  assert "_jh binds Enter to the revset filter"  "enter:becom
 out=$(capture _jhh); assert "_jhh binds Enter to the revset filter" "enter:become(" "$out"
 out=$(capture _jyy); assert "_jyy binds Enter to the revset filter" "enter:become(" "$out"
 assert "Enter passes indices and change ids" "{+n} -- {+2}" "$_jj_enter_revset"
+out=$(capture _jh);  assert "_jh ctrl-x uses the revset filter"  "{+n} -- {+4} | awk -f" "$out"
+out=$(capture _jhh); assert "_jhh ctrl-x uses the revset filter" "{+n} -- {+4} | awk -f" "$out"
 revset_awk="${0:a:h}/jj-selection-revset.awk"
 sel() { printf '%s\n' "$@" | awk -f "$revset_awk"; }
 assert_eq "consecutive rows: oldest::newest"      "c::a"        "$(sel 3 1 2 -- c a b)"

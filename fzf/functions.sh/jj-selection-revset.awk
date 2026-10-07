@@ -1,12 +1,12 @@
-# awk filter for the Enter key of the _jh/_jhh/_jyy fzf pickers.
-# Input: the fzf indices of the selected rows ({+n}), a "--" line, then the change ids of the
-# same rows ({+2}), one value on each line.
+# awk filter for Enter (change ids) and ctrl-x (commit ids) in the _jh/_jhh/_jyy fzf pickers.
+# Input: the fzf indices of the selected rows ({+n}), a "--" line, then the ids of the same
+# rows ({+2} or {+4}), one value on each line.
 # If the indices are consecutive, print one "<oldest>::<newest>" revset. Otherwise, print each
-# unique change id on its own line, as before.
+# unique id on its own line.
 # The index check does not examine the graph. Thus, adjacent rows of sibling branches also
 # become a range.
-# Rows without a change id (graph connector rows) count for the index check only. File rows of
-# the files view give the change id of their commit, so duplicates are removed.
+# Rows without an id (graph connector rows) count for the index check only. File rows of
+# the files view give the id of their commit, so duplicates are removed.
 
 !sep && $0 == "--" { sep = 1; next }
 !sep { idx[++n] = $0 + 0; next }

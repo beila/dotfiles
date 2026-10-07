@@ -309,14 +309,16 @@ _jj_change_field=2
 # instead of the change id, for the times you need the underlying git hash
 # (e.g. pasting into a non-jj tool). `{+4}` (not {4}) so multi-select yields one
 # commit id per selected row; --ansi strips the field's colour, like Enter does.
-# Consumed via `become(printf '%s\n' {+4})` so the hash flows straight to the
+# Consumed via _jj_commit_revset (become) so the hash flows straight to the
 # zsh widget's stdout, the same exit path as the ctrl-h toggle's become.
 _jj_commit_field='{+4}'
 
-# Enter in the change-log pickers. A selection of consecutive rows gives one "<oldest>::<newest>"
-# revset. Other selections give one change id on each line, the same as --accept-nth=2.
+# Enter (change ids) and ctrl-x (commit ids) in the change-log pickers. A selection of
+# consecutive rows gives one "<oldest>::<newest>" revset. Other selections give one id on each line.
 # The awk program is in a file for the same reason as _jj_align_files.
-_jj_enter_revset="enter:become(printf '%s\n' {+n} -- {+2} | awk -f ${_fzf_functions_sh%/functions.sh}/jj-selection-revset.awk)"
+_jj_revset_awk="awk -f ${_fzf_functions_sh%/functions.sh}/jj-selection-revset.awk"
+_jj_enter_revset="enter:become(printf '%s\n' {+n} -- {+2} | $_jj_revset_awk)"
+_jj_commit_revset="ctrl-x:become(printf '%s\n' {+n} -- $_jj_commit_field | $_jj_revset_awk)"
 
 # Command that fixes `jj log -s` file-line alignment, piped after the file-view
 # `jj log` in _jj_log_reload. The gawk program lives in jj-align-files.awk (next
@@ -363,7 +365,7 @@ _jh() {
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
-    --bind "ctrl-x:become(printf '%s\n' $_jj_commit_field)" \
+    --bind "$_jj_commit_revset" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 
@@ -432,7 +434,7 @@ _jhh() {
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
-    --bind "ctrl-x:become(printf '%s\n' $_jj_commit_field)" \
+    --bind "$_jj_commit_revset" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
 }
 
