@@ -9,6 +9,7 @@
 #   - conflict divergence: REBASE-CONFLICT, no push
 #   - non-jj repo: silent skip
 #   - corrupted store: REPO-LOAD-FAIL at ERROR, exit 1, no push
+#   - sync.pre-snapshot / sync.post-update hooks, and a failing hook
 # And asserts the snapshot-first ordering: per-host refs/heads/<MACHINE>/...
 # always land on the snapshot URL even if the bookmark-sync step fails.
 #
@@ -1003,52 +1004,6 @@ rc=$?
 check "failing hook does not fail the sync" "0" "$rc"
 check "sync continues after a failing hook" "two" "$(git -C "$TMPDIR/hook-remote.git" show master:other.txt 2>/dev/null)"
 grep_has "HOOK-FAIL sync.post-update (rc=3): hook broke"
-
-echo
-echo "=== Scenario 18: remote deletes a file that is also changed locally ==="
-# Transition case for a file that becomes untracked on one machine (A) while the other
-# machine (B) still commits a local change to it.
-# md_case <merge-attr>: A untracks f.json, then B syncs a local change to f.json.
-md_case() {
-    local attr=$1 remote="$TMPDIR/md-$1.git" a="repoMdA-$1" b="repoMdB-$1"
-    git -C "$TMPDIR" init --bare -q -b master "md-$1.git"
-    local r
-    for r in "$a" "$b"; do
-        mkdir -p "$TMPDIR/$r"
-        (
-            cd "$TMPDIR/$r"
-            jj git init --colocate
-            jj git remote add backup "$remote"
-            jj config set --repo sync.remote-bookmark 'master@backup'
-            jj config set --repo user.email 'test@example.com'
-            jj config set --repo user.name 'Test User'
-        ) >/dev/null 2>&1
-    done
-    printf 'f.json merge=%s\n' "$attr" > "$TMPDIR/$a/.gitattributes"
-    echo '{"a":0}' > "$TMPDIR/$a/f.json"
-    run_sync "$TMPDIR/$a"
-    run_sync "$TMPDIR/$b"
-    printf 'f.json\n' > "$TMPDIR/$a/.gitignore"
-    (cd "$TMPDIR/$a" && jj file untrack f.json) >/dev/null 2>&1
-    run_sync "$TMPDIR/$a"
-    echo '{"a":1}' > "$TMPDIR/$b/f.json"
-    run_sync "$TMPDIR/$b"
-    local in_remote conflict=0
-    in_remote=$(git -C "$remote" ls-tree --name-only master f.json)
-    grep -rq "REBASE-CONFLICT master files=f.json" "$LOG_ROOT"/*/*"$b"* 2>/dev/null && conflict=1
-    echo "INFO merge=$attr: remote has f.json=[${in_remote}] B conflict=$conflict B f.json on disk=[$(cat "$TMPDIR/$b/f.json" 2>/dev/null)]"
-    # Heal on B: same .gitignore line as A, untrack, keep the live content.
-    printf 'f.json\n' > "$TMPDIR/$b/.gitignore"
-    (cd "$TMPDIR/$b" && jj file untrack f.json) >/dev/null 2>&1
-    echo '{"a":2}' > "$TMPDIR/$b/f.json"
-    run_sync "$TMPDIR/$b"
-    local b_conflicts
-    b_conflicts=$(cd "$TMPDIR/$b" && jj --ignore-working-copy log -r 'conflicts()' --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
-    echo "INFO merge=$attr heal: remote has f.json=[$(git -C "$remote" ls-tree --name-only master f.json)] .gitignore=[$(git -C "$remote" show master:.gitignore 2>/dev/null)] B@-==remote=[$( [ "$(cd "$TMPDIR/$b" && jj --ignore-working-copy log -r @- --no-graph -T commit_id)" = "$(git -C "$remote" rev-parse master)" ] && echo yes || echo no)] conflicted commits=[$b_conflicts] disk=[$(cat "$TMPDIR/$b/f.json")]"
-}
-md_case mergiraf-then-ours
-md_case theirs
-md_case ours
 
 echo
 echo "=== Sample log file ==="
