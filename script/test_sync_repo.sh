@@ -1037,6 +1037,14 @@ md_case() {
     in_remote=$(git -C "$remote" ls-tree --name-only master f.json)
     grep -rq "REBASE-CONFLICT master files=f.json" "$LOG_ROOT"/*/*"$b"* 2>/dev/null && conflict=1
     echo "INFO merge=$attr: remote has f.json=[${in_remote}] B conflict=$conflict B f.json on disk=[$(cat "$TMPDIR/$b/f.json" 2>/dev/null)]"
+    # Heal on B: same .gitignore line as A, untrack, keep the live content.
+    printf 'f.json\n' > "$TMPDIR/$b/.gitignore"
+    (cd "$TMPDIR/$b" && jj file untrack f.json) >/dev/null 2>&1
+    echo '{"a":2}' > "$TMPDIR/$b/f.json"
+    run_sync "$TMPDIR/$b"
+    local b_conflicts
+    b_conflicts=$(cd "$TMPDIR/$b" && jj --ignore-working-copy log -r 'conflicts()' --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
+    echo "INFO merge=$attr heal: remote has f.json=[$(git -C "$remote" ls-tree --name-only master f.json)] .gitignore=[$(git -C "$remote" show master:.gitignore 2>/dev/null)] B@-==remote=[$( [ "$(cd "$TMPDIR/$b" && jj --ignore-working-copy log -r @- --no-graph -T commit_id)" = "$(git -C "$remote" rev-parse master)" ] && echo yes || echo no)] conflicted commits=[$b_conflicts] disk=[$(cat "$TMPDIR/$b/f.json")]"
 }
 md_case mergiraf-then-ours
 md_case theirs
