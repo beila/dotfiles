@@ -265,6 +265,21 @@ assert "_jhh has ctrl-x binding"            "ctrl-x:" "$out"
 assert "_jhh ctrl-x outputs field 4 ({+4})" "{+4}"    "$out"
 assert "_jhh header mentions commit-id"     "commit-id (ctrl-x)" "$out"
 
+echo "_jh / _jhh / _jyy Enter makes a range from consecutive rows:"
+out=$(capture _jh);  assert "_jh binds Enter to the revset filter"  "enter:become(" "$out"
+out=$(capture _jhh); assert "_jhh binds Enter to the revset filter" "enter:become(" "$out"
+out=$(capture _jyy); assert "_jyy binds Enter to the revset filter" "enter:become(" "$out"
+assert "Enter passes indices and change ids" "{+n} -- {+2}" "$_jj_enter_revset"
+revset_awk="${0:a:h}/jj-selection-revset.awk"
+sel() { printf '%s\n' "$@" | awk -f "$revset_awk"; }
+assert_eq "consecutive rows: oldest::newest"      "c::a"        "$(sel 3 1 2 -- c a b)"
+assert_eq "gap in indices: one id on each line"   $'a\nc'       "$(sel 1 3 -- a c)"
+assert_eq "single row: plain id"                  "x"           "$(sel 5 -- x)"
+assert_eq "rows of one commit: plain id"          "x"           "$(sel 4 5 6 -- x x x)"
+assert_eq "connector row inside the range"        "b::a"        "$(sel 0 1 2 -- a '' b)"
+assert_eq "commit and file rows: deduplicated ids" "y::x"       "$(sel 0 1 2 3 -- x x y y)"
+assert_eq "no rows: no output"                    ""            "$(sel --)"
+
 echo
 echo "_gh / _gy / _gyy real-fzf end-to-end (uses the real fzf binary in filter mode):"
 # Re-source again so any stubs from the previous block are gone.
