@@ -892,6 +892,8 @@ lb_rebase() {
     if [ -z "$new" ] || [ -n "$(jj log -r "(${remote_rev}..${new}) & conflicts()" --no-graph -T '"y"' 2>/dev/null)" ]; then
         log ERROR "REBASE-CONFLICT ${b} local=$local_rev remote=$remote_rev; rewound, push skipped"
         [ -n "$pre_op" ] && jj op restore "$pre_op" >/dev/null 2>&1
+        # The import can leave the bookmark conflicted. Keep the local side for the manual merge.
+        jj bookmark set "$b" -r "$local_rev" --allow-backwards >/dev/null 2>&1
         return 1
     fi
     printf '%s' "$new"

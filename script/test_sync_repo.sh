@@ -1087,6 +1087,34 @@ run_sync "$TMPDIR/repoLB2"
 check "bookmark with an undescribed commit is not pushed" "$lb_before" "$(lb_remote)"
 grep_has "SKIP-PUSH feat/x@backup: commits without description"
 
+# Both sides change the same line: the rebase is rewound and nothing is pushed.
+mkdir -p "$TMPDIR/repoLB3"
+(
+    cd "$TMPDIR/repoLB3"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/lb-remote.git"
+    jj config set --repo sync.bookmarks 'feat/x@backup'
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name 'Test User'
+) >/dev/null 2>&1
+run_sync "$TMPDIR/repoLB3"
+run_sync "$TMPDIR/repoLB1"
+check "behind bookmark is fast-forwarded" "$(lb_remote)" "$(lb_local repoLB1)"
+(cd "$TMPDIR/repoLB1" && jj new 'bookmarks(exact:"feat/x")' && echo one-a > f1 && jj commit -m "f1 a" \
+    && jj bookmark set feat/x -r @-) >/dev/null 2>&1
+(cd "$TMPDIR/repoLB3" && jj new 'bookmarks(exact:"feat/x")' && echo one-b > f1 && jj commit -m "f1 b" \
+    && jj bookmark set feat/x -r @-) >/dev/null 2>&1
+lb3_local=$(lb_local repoLB3)
+run_sync "$TMPDIR/repoLB1"
+lb_before=$(lb_remote)
+run_sync "$TMPDIR/repoLB3"
+check "conflicting bookmark is not pushed" "$lb_before" "$(lb_remote)"
+check "conflicting bookmark stays at the local commit" "$lb3_local" "$(lb_local repoLB3)"
+(cd "$TMPDIR/repoLB3" && echo DEBUG-BEGIN && jj bookmark list --all-remotes && jj op log --limit 10 --no-graph -T 'description ++ "\n"'; rg -h "feat/x|REBASE" "$LOG_ROOT"; echo DEBUG-END)
+check "rewind leaves no conflicted commits" "" \
+    "$(cd "$TMPDIR/repoLB3" && jj log -r 'conflicts()' --no-graph -T change_id 2>/dev/null)"
+grep_has "REBASE-CONFLICT feat/x"
+
 echo
 echo "=== Sample log file ==="
 sample=$(find "$LOG_ROOT" -name '*.log' | head -1)
