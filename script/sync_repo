@@ -758,6 +758,246 @@ step_rebase_local_chain() {
     jj rebase -s "roots(mutable() & ::@ ~ ::${SYNC_BM}@${SYNC_REMOTE})" -d "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
 }
 
+# --- Listed-bookmark sync -----------------------------------------------------
+# sync.bookmarks = "BOOKMARK@REMOTE ..." names bookmarks that sync_repo fetches,
+# fast-forwards, rebases onto the remote when they diverged, and pushes. Unlike
+# sync.remote-bookmark, sync_repo never moves them to @-. Transport is the same as
+# in the flow above: raw Git without the local lock, jj import and reconcile with it.
+# Arrays are indexed by the position of the entry.
+declare -a LB_NAME=() LB_REMOTE=() LB_FETCH_URL=() LB_PUSH_URL=() LB_TRACKING_BEFORE=()
+declare -a LB_FETCH_OK=() LB_FETCH_OID=() LB_PUSH_OID=() LB_PUSH_EXPECTED=() LB_PUSH_OK=()
+LB_HAS_PUSH=0
+
+# Revset of a remote bookmark. Quotes keep names with "/" or "-" literal.
+lb_remote_rev() { printf '"%s"@"%s"' "$1" "$2"; }
+
+parse_listed_bookmarks() {
+    local entry b r i
+    local -a entries=()
+    read -ra entries <<<"$1"
+    for entry in "${entries[@]}"; do
+        b=${entry%@*}
+        r=${entry##*@}
+        if [ "$entry" = "$b" ] || [ -z "$b" ] || [ -z "$r" ]; then
+            log ERROR "BAD-CONFIG sync.bookmarks entry '$entry' must be 'BOOKMARK@REMOTE'"
+            exit 1
+        fi
+        if [ "$b" = "$SYNC_BM" ] && [ "$r" = "$SYNC_REMOTE" ]; then
+            log ERROR "BAD-CONFIG sync.bookmarks entry '$entry' is also sync.remote-bookmark"
+            exit 1
+        fi
+        for i in "${!LB_NAME[@]}"; do
+            if [ "${LB_NAME[$i]}" = "$b" ] && [ "${LB_REMOTE[$i]}" = "$r" ]; then
+                log ERROR "BAD-CONFIG sync.bookmarks has '$entry' twice"
+                exit 1
+            fi
+        done
+        LB_NAME+=("$b")
+        LB_REMOTE+=("$r")
+    done
+}
+
+prepare_listed_transport() {
+    [ ${#LB_NAME[@]} -gt 0 ] || return 0
+    local remotes i b r
+    if ! remotes=$(jj git remote list 2>/dev/null); then
+        log ERROR "REMOTE-LIST-FAIL sync.bookmarks: jj git remote list failed; skipping listed bookmarks"
+        return 0
+    fi
+    for i in "${!LB_NAME[@]}"; do
+        b=${LB_NAME[$i]} r=${LB_REMOTE[$i]}
+        LB_FETCH_OK[$i]=0
+        if ! printf '%s\n' "$remotes" | awk '{print $1}' | grep -qxF -- "$r"; then
+            log INFO "SKIP ${b}@${r}: remote '${r}' not configured"
+            continue
+        fi
+        if ! LB_FETCH_URL[$i]=$($GIT --git-dir="$GIT_DIR" remote get-url "$r" 2>/dev/null); then
+            log ERROR "REMOTE-LIST-FAIL ${b}@${r}: git remote URL lookup failed"
+            continue
+        fi
+        LB_PUSH_URL[$i]=$($GIT --git-dir="$GIT_DIR" remote get-url --push "$r" 2>/dev/null || printf '%s' "${LB_FETCH_URL[$i]}")
+        LB_TRACKING_BEFORE[$i]=$($GIT --git-dir="$GIT_DIR" rev-parse --verify -q "refs/remotes/${r}/${b}" 2>/dev/null || true)
+        LB_FETCH_OK[$i]=1
+    done
+}
+
+fetch_listed_bookmarks() {
+    local i b r output
+    for i in "${!LB_NAME[@]}"; do
+        [ "${LB_FETCH_OK[$i]:-0}" = "1" ] || continue
+        b=${LB_NAME[$i]} r=${LB_REMOTE[$i]}
+        if ! output=$(timeout_cmd "fetch-head ${b}@${r}" \
+            "$GIT" ls-remote --heads "${LB_FETCH_URL[$i]}" "refs/heads/${b}"); then
+            LB_FETCH_OK[$i]=0
+            log INFO "SKIP-PUSH ${b}: fetch failed; will retry next run"
+            continue
+        fi
+        LB_FETCH_OID[$i]=$(printf '%s\n' "$output" | awk 'NR == 1 { print $1 }')
+        if [ -n "${LB_FETCH_OID[$i]}" ] && ! timeout_cmd "fetch ${b}@${r}" \
+            "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
+            --no-auto-maintenance "${LB_FETCH_URL[$i]}" "refs/heads/${b}"; then
+            LB_FETCH_OK[$i]=0
+            log INFO "SKIP-PUSH ${b}: fetch failed; will retry next run"
+        fi
+    done
+}
+
+# Publish each fetched tip to its tracking ref, import once, and track the remote
+# bookmark so that a missing local bookmark is created from it.
+apply_fetched_listed() {
+    local i b r ref current any=0 zero=0000000000000000000000000000000000000000
+    for i in "${!LB_NAME[@]}"; do
+        [ "${LB_FETCH_OK[$i]:-0}" = "1" ] || continue
+        b=${LB_NAME[$i]} r=${LB_REMOTE[$i]} ref="refs/remotes/${r}/${b}"
+        current=$($GIT --git-dir="$GIT_DIR" rev-parse --verify -q "$ref" 2>/dev/null || true)
+        if [ "$current" = "${LB_TRACKING_BEFORE[$i]}" ]; then
+            if [ -n "${LB_FETCH_OID[$i]}" ]; then
+                $GIT --git-dir="$GIT_DIR" update-ref "$ref" "${LB_FETCH_OID[$i]}" "${current:-$zero}" 2>/dev/null || true
+            elif [ -n "$current" ]; then
+                $GIT --git-dir="$GIT_DIR" update-ref -d "$ref" "$current" 2>/dev/null || true
+            fi
+        fi
+        any=1
+    done
+    [ "$any" = "1" ] || return 0
+    if ! jj git import --ignore-working-copy >/dev/null 2>&1; then
+        log ERROR "REMOTE-IMPORT-FAIL sync.bookmarks: jj git import failed; skipping listed bookmarks"
+        for i in "${!LB_NAME[@]}"; do LB_FETCH_OK[$i]=0; done
+        return 0
+    fi
+    for i in "${!LB_NAME[@]}"; do
+        [ "${LB_FETCH_OK[$i]:-0}" = "1" ] || continue
+        [ -n "${LB_FETCH_OID[$i]}" ] && jj bookmark track "${LB_NAME[$i]}@${LB_REMOTE[$i]}" >/dev/null 2>&1
+        log INFO "FETCH-OK ${LB_NAME[$i]}@${LB_REMOTE[$i]}"
+    done
+}
+
+# Print the local target of bookmark $1: "N <commit>", "C <commit> <commit>..." when
+# conflicted, or nothing when the bookmark does not exist locally.
+lb_local_state() {
+    jj bookmark list "exact:$1" -T 'if(remote, "", if(conflict, "C " ++ added_targets.map(|c| c.commit_id()).join(" ") ++ "\n", if(present, "N " ++ normal_target.commit_id() ++ "\n", "")))' 2>/dev/null
+}
+
+# Rebase the local-only commits of bookmark $1 onto $3. Rewind on a conflict.
+# Prints the rebased local tip.
+lb_rebase() {
+    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new
+    pre_op=$(jj op log --no-graph --limit 1 -T 'id.short()' 2>/dev/null)
+    change=$(jj log -r "$local_rev" --no-graph -T 'change_id' 2>/dev/null)
+    if ! jj rebase -s "roots(${remote_rev}..${local_rev})" -d "$remote_rev" >/dev/null 2>&1; then
+        log CRITICAL "REBASE-FAIL ${b} local=$local_rev remote=$remote_rev"
+        return 1
+    fi
+    new=$(jj log -r "$change" --no-graph -T 'commit_id' 2>/dev/null)
+    if [ -z "$new" ] || [ -n "$(jj log -r "(${remote_rev}..${new}) & conflicts()" --no-graph -T '"y"' 2>/dev/null)" ]; then
+        log ERROR "REBASE-CONFLICT ${b} local=$local_rev remote=$remote_rev; rewound, push skipped"
+        [ -n "$pre_op" ] && jj op restore "$pre_op" >/dev/null 2>&1
+        return 1
+    fi
+    printf '%s' "$new"
+}
+
+reconcile_listed_bookmarks() {
+    local i b r rr state kind local_rev remote_rev c range undescribed conflicted
+    for i in "${!LB_NAME[@]}"; do
+        [ "${LB_FETCH_OK[$i]:-0}" = "1" ] || continue
+        b=${LB_NAME[$i]} r=${LB_REMOTE[$i]} rr=$(lb_remote_rev "$b" "$r")
+        remote_rev=$(jj log -r "present($rr)" --no-graph -T 'commit_id' 2>/dev/null)
+        state=$(lb_local_state "$b")
+        kind=${state%% *}
+        local_rev="" conflicted=0
+        case "$kind" in
+            N) local_rev=${state#N } ;;
+            C)
+                conflicted=1
+                # jj merged a local move and a remote move. Keep the side that is not the remote.
+                for c in ${state#C }; do
+                    [ "$c" = "$remote_rev" ] || local_rev=${local_rev:+$local_rev }$c
+                done
+                if [ -z "$local_rev" ] || [ "$local_rev" != "${local_rev% *}" ]; then
+                    log ERROR "BOOKMARK-CONFLICT ${b}: targets ${state#C }; resolve with jj bookmark set"
+                    continue
+                fi
+                ;;
+            *)
+                if [ -n "$remote_rev" ]; then
+                    jj bookmark set "$b" -r "$remote_rev" >/dev/null 2>&1
+                    log INFO "FAST-FORWARD ${b}@${r} created local bookmark at $remote_rev"
+                fi
+                continue
+                ;;
+        esac
+
+        if [ -n "$remote_rev" ]; then
+            case "$(ancestry_class "$local_rev" "$remote_rev")" in
+                equal)
+                    [ "$conflicted" = "1" ] && jj bookmark set "$b" -r "$remote_rev" --allow-backwards >/dev/null 2>&1
+                    log INFO "SKIP ${b}@${r} already at $remote_rev"
+                    continue
+                    ;;
+                local-ancestor)
+                    jj bookmark set "$b" -r "$remote_rev" --allow-backwards >/dev/null 2>&1
+                    log INFO "FAST-FORWARD ${b}@${r} local=$local_rev <- remote=$remote_rev"
+                    continue
+                    ;;
+                diverged)
+                    local_rev=$(lb_rebase "$b" "$local_rev" "$remote_rev") || continue
+                    ;;
+            esac
+            jj bookmark set "$b" -r "$local_rev" --allow-backwards >/dev/null 2>&1
+            range="${remote_rev}..${local_rev}"
+        else
+            range="::${local_rev} ~ ::remote_bookmarks(remote=exact:\"${r}\") ~ root()"
+        fi
+
+        # Servers such as gitfarm reject commits without a description. Do not rewrite them here.
+        undescribed=$(jj log -r "$range" --no-graph -T 'if(!description, change_id.short() ++ " ")' 2>/dev/null)
+        if [ -n "$undescribed" ]; then
+            log ERROR "SKIP-PUSH ${b}@${r}: commits without description: ${undescribed% }"
+            continue
+        fi
+        LB_PUSH_OID[$i]=$local_rev
+        LB_PUSH_EXPECTED[$i]=$remote_rev
+        LB_HAS_PUSH=1
+    done
+}
+
+push_listed_bookmarks() {
+    local i
+    for i in "${!LB_NAME[@]}"; do
+        [ -n "${LB_PUSH_OID[$i]:-}" ] || continue
+        if timeout_cmd "push ${LB_NAME[$i]}@${LB_REMOTE[$i]}" \
+            "$GIT" --git-dir="$GIT_DIR" push "${LB_PUSH_URL[$i]}" \
+            "${LB_PUSH_OID[$i]}:refs/heads/${LB_NAME[$i]}"; then
+            LB_PUSH_OK[$i]=1
+        fi
+    done
+}
+
+finalize_listed_bookmarks() {
+    local i b r ref current any=0 zero=0000000000000000000000000000000000000000
+    for i in "${!LB_NAME[@]}"; do
+        [ "${LB_PUSH_OK[$i]:-0}" = "1" ] || continue
+        b=${LB_NAME[$i]} r=${LB_REMOTE[$i]} ref="refs/remotes/${r}/${b}"
+        current=$($GIT --git-dir="$GIT_DIR" rev-parse --verify -q "$ref" 2>/dev/null || true)
+        if [ "$current" = "${LB_PUSH_EXPECTED[$i]}" ]; then
+            $GIT --git-dir="$GIT_DIR" update-ref "$ref" "${LB_PUSH_OID[$i]}" "${current:-$zero}" 2>/dev/null ||
+                log WARN "TRACKING-REF-RACE ${b}@${r}: local ref changed after push"
+        elif [ "$current" != "${LB_PUSH_OID[$i]}" ]; then
+            log WARN "TRACKING-REF-RACE ${b}@${r}: preserving local ref ${current:-missing} after push"
+        fi
+        any=1
+    done
+    [ "$any" = "1" ] || return 0
+    jj git import --ignore-working-copy >/dev/null 2>&1 ||
+        log ERROR "REMOTE-IMPORT-FAIL sync.bookmarks: post-push jj git import failed"
+    for i in "${!LB_NAME[@]}"; do
+        [ "${LB_PUSH_OK[$i]:-0}" = "1" ] || continue
+        jj bookmark track "${LB_NAME[$i]}@${LB_REMOTE[$i]}" >/dev/null 2>&1 || true
+        log INFO "PUSH-OK ${LB_NAME[$i]}@${LB_REMOTE[$i]} rev=${LB_PUSH_OID[$i]}"
+    done
+}
+
 # --- main ---------------------------------------------------------------------
 log INFO "START"
 
@@ -789,6 +1029,10 @@ if [ -n "$remote_bookmark" ]; then
     fi
 fi
 SNAPSHOT_URL=$(jj config get sync.snapshot-url 2>/dev/null || true)
+#   sync.bookmarks       = "BOOKMARK@REMOTE ..."
+#     Bookmarks synced as they are: fetch, fast-forward or rebase, push. See
+#     "Listed-bookmark sync" above.
+parse_listed_bookmarks "$(jj config get sync.bookmarks 2>/dev/null || true)"
 
 # --- repo health gate ----------------------------------------------------------
 # The `jj root` gate at the top passes even when the store is corrupted
@@ -827,7 +1071,7 @@ run_sync_hook pre-snapshot
 
 # Only repositories that push need portable content. The capture step must come
 # before the first snapshot, so that the home directory never enters a commit.
-if [ -n "$SYNC_BM" ] || [ -n "$SNAPSHOT_URL" ]; then
+if [ -n "$SYNC_BM" ] || [ -n "$SNAPSHOT_URL" ] || [ ${#LB_NAME[@]} -gt 0 ]; then
     run_home_template capture
 fi
 
@@ -842,9 +1086,9 @@ snapshot_at_to_push_rev
 # WIP and giving it a description is worth doing on its own — it's what makes
 # `jj log` readable and the repo push-ready — and needs no remote. Everything
 # past this point exists to serve a push, so it stays behind the gate.
-if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ]; then
+if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ] && [ ${#LB_NAME[@]} -eq 0 ]; then
     step_describe_local_chain
-    log INFO "NO-SYNC-CONFIG: committed and described locally; neither sync.remote-bookmark nor sync.snapshot-url set"
+    log INFO "NO-SYNC-CONFIG: committed and described locally; none of sync.remote-bookmark, sync.snapshot-url, sync.bookmarks set"
     exit 0
 fi
 
@@ -854,6 +1098,7 @@ resolve_workspace_name
 step_describe_local_chain
 prepare_snapshot_refs
 prepare_remote_transport
+prepare_listed_transport
 
 # All remaining work in this phase is network-only. Interactive jj commands
 # can run while snapshots and remote objects transfer.
@@ -864,19 +1109,25 @@ release_local_lock
 load_snapshot_remote_refs || true
 push_prepared_snapshots
 fetch_remote_bookmark_objects
+fetch_listed_bookmarks
 
 # Import the fetched Git ref and perform all jj reconciliation under the short
 # local-state lock. Any push is represented by an immutable commit ID before
 # the lock is released again.
 acquire_local_lock
 apply_fetched_remote
+apply_fetched_listed
+# Before prepare_bookmark_sync: a rebase of a listed bookmark can rewrite @-.
+reconcile_listed_bookmarks
 prepare_bookmark_sync
 
-if [ -n "$BOOKMARK_PUSH_OID" ]; then
+if [ -n "$BOOKMARK_PUSH_OID" ] || [ "$LB_HAS_PUSH" = "1" ]; then
     release_local_lock
     push_prepared_bookmark
+    push_listed_bookmarks
     acquire_local_lock
     finalize_bookmark_push
+    finalize_listed_bookmarks
 fi
 
 step_rebase_local_chain

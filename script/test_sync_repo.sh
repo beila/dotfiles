@@ -1033,6 +1033,61 @@ check "pulled template is rendered" "dir=$HOME/x" "$(cat "$TMPDIR/repoHome2/app.
 grep_has "HOME-TEMPLATE capture: converted app.conf to app.conf.home-template"
 
 echo
+echo "=== Scenario 19: sync.bookmarks -> fetch, rebase, push listed bookmarks as they are ==="
+git -C "$TMPDIR" init --bare -q -b master lb-remote.git
+for name in repoLB1 repoLB2; do
+    mkdir -p "$TMPDIR/$name"
+    (
+        cd "$TMPDIR/$name"
+        jj git init --colocate
+        jj git remote add backup "$TMPDIR/lb-remote.git"
+        jj config set --repo sync.bookmarks 'feat/x@backup'
+        jj config set --repo user.email 'test@example.com'
+        jj config set --repo user.name 'Test User'
+    ) >/dev/null 2>&1
+done
+(
+    cd "$TMPDIR/repoLB1"
+    echo one > f1
+    jj commit -m "add f1"
+    jj bookmark create feat/x -r @-
+    jj git push --remote backup --bookmark feat/x $JJ_PUSH_NEW_FLAG
+) >/dev/null 2>&1
+lb_remote() { git -C "$TMPDIR/lb-remote.git" rev-parse "refs/heads/feat/x" 2>/dev/null; }
+lb_local() { (cd "$TMPDIR/$1" && jj log -r 'bookmarks(exact:"feat/x")' --no-graph -T commit_id 2>/dev/null); }
+
+run_sync "$TMPDIR/repoLB2"
+check "missing local bookmark is created from the remote" "$(lb_remote)" "$(lb_local repoLB2)"
+
+(cd "$TMPDIR/repoLB1" && jj new 'bookmarks(exact:"feat/x")' && echo two > f2 && jj commit -m "add f2" \
+    && jj bookmark set feat/x -r @-) >/dev/null 2>&1
+(cd "$TMPDIR/repoLB2" && jj new 'bookmarks(exact:"feat/x")' && echo three > f3 && jj commit -m "add f3" \
+    && jj bookmark set feat/x -r @-) >/dev/null 2>&1
+# Uncommitted work: sync_repo commits it from @, but must not add it to the bookmark.
+echo wip > "$TMPDIR/repoLB2/wip.txt"
+lb2_at_before=$(cd "$TMPDIR/repoLB2" && jj log -r @ --no-graph -T change_id 2>/dev/null)
+run_sync "$TMPDIR/repoLB1"
+check "local-ahead bookmark is pushed" "$(lb_local repoLB1)" "$(lb_remote)"
+run_sync "$TMPDIR/repoLB2"
+check "diverged bookmark is rebased and pushed" "$(lb_local repoLB2)" "$(lb_remote)"
+check "pushed tip has the remote change" "two" "$(git -C "$TMPDIR/lb-remote.git" show feat/x:f2 2>/dev/null)"
+check "pushed tip has the local change" "three" "$(git -C "$TMPDIR/lb-remote.git" show feat/x:f3 2>/dev/null)"
+check "working copy follows the rebased bookmark" "1" \
+    "$(cd "$TMPDIR/repoLB2" && jj log -r "$lb2_at_before & descendants(bookmarks(exact:\"feat/x\"))" --no-graph -T '"1"' 2>/dev/null)"
+check "the commit made from @ is not added to the bookmark" "" \
+    "$(git -C "$TMPDIR/lb-remote.git" ls-tree --name-only feat/x wip.txt 2>/dev/null)"
+check "the commit made from @ is kept above the bookmark" "wip" \
+    "$(cd "$TMPDIR/repoLB2" && jj file show -r "$lb2_at_before" wip.txt 2>/dev/null)"
+
+# An undescribed commit below a described tip: the push is skipped.
+(cd "$TMPDIR/repoLB2" && jj new 'bookmarks(exact:"feat/x")' && echo four > f4 && jj commit -m "" \
+    && echo five > f5 && jj commit -m "add f5" && jj bookmark set feat/x -r @-) >/dev/null 2>&1
+lb_before=$(lb_remote)
+run_sync "$TMPDIR/repoLB2"
+check "bookmark with an undescribed commit is not pushed" "$lb_before" "$(lb_remote)"
+grep_has "SKIP-PUSH feat/x@backup: commits without description"
+
+echo
 echo "=== Sample log file ==="
 sample=$(find "$LOG_ROOT" -name '*.log' | head -1)
 if [ -n "$sample" ]; then
