@@ -131,8 +131,7 @@ printf 'p=%s/q\n' "$H" >r.conf
 "$HT" capture >/dev/null 2>&1
 printf 'p=/opt/q\n' >r.conf
 "$HT" capture >/dev/null 2>&1
-check "capture copies the edit without the home directory" '[ "$(cat r.conf.home-template)" = "p=/opt/q" ]' ||
-    { echo "DEBUG"; cat r.conf.home-template; jj file list | rg r.conf; "$HT" capture; }
+check "capture copies the edit without the home directory" '[ "$(cat r.conf.home-template)" = "p=/opt/q" ]'
 "$HT" render >"$TMP/out" 2>&1
 check "render tracks the file again" 'tracked r.conf && [ ! -e r.conf.home-template ] && ! has_line .gitignore /r.conf'
 check "render reports the change" 'grep -q "tracked r.conf again" "$TMP/out"'
@@ -189,8 +188,8 @@ N="$TMP/retrack"
 mkdir -p "$N"
 cd "$N" || exit 1
 jj git init >/dev/null 2>&1
-printf 'a\nmid\nc\n' >x.conf.home-template
-printf 'a\nmid\nc\n' >x.conf
+printf 'a\nb\n@HOME@/m\nd\ne\n' >x.conf.home-template
+printf 'a\nb\n%s/m\nd\ne\n' "$H" >x.conf
 printf '/x.conf\n' >.gitignore
 "$HT" render >/dev/null 2>&1
 jj commit -m base >/dev/null 2>&1
@@ -198,12 +197,13 @@ base=$(jj log -r @- --no-graph -T change_id)
 
 jj new "$base" >/dev/null 2>&1
 rm x.conf.home-template .gitignore
-printf 'a\nmid\nc-remote\n' >x.conf
+# The remote removed the home directory and tracked the file again.
+printf 'a\nb\n/opt/m\nd\ne-remote\n' >x.conf
 jj commit -m remote >/dev/null 2>&1
 jj bookmark create upstream -r @- >/dev/null 2>&1
 
 jj new "$base" >/dev/null 2>&1
-printf 'a-local\nmid\nc\n' >x.conf
+printf 'a-local\nb\n%s/m\nd\ne\n' "$H" >x.conf
 jj config set --repo sync.remote-bookmark upstream >/dev/null 2>&1
 
 "$HT" capture >"$TMP/out" 2>&1
@@ -211,8 +211,7 @@ check "capture deletes the template that the remote deleted" '[ ! -e x.conf.home
 jj rebase -b @ -d upstream >/dev/null 2>&1
 check "rebase after the remote tracked the file again has no conflicts" '[ -z "$(jj log -r "conflicts()" --no-graph -T change_id)" ]'
 "$HT" render >"$TMP/out" 2>&1
-check "render merges the local edit into the received file" '[ "$(cat x.conf)" = "$(printf "a-local\nmid\nc-remote")" ]' ||
-    { echo "DEBUG"; cat x.conf; cat "$TMP/out"; ls "$XDG_STATE_HOME/home-template" | rg -c path; jj file show -r @ x.conf; }
+check "render merges the local edit into the received file" '[ "$(cat x.conf)" = "$(printf "a-local\nb\n/opt/m\nd\ne-remote")" ]'
 check "the received file is tracked" 'tracked x.conf'
 
 echo

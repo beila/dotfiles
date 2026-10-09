@@ -145,6 +145,16 @@ templates_in() {
     jj --ignore-working-copy file list -r "$1" "glob:\"**/*$SUFFIX\"" 2>/dev/null
 }
 
+# Templates of the working copy. Add the files on disk: a template that this run
+# created is not in @ before the next snapshot.
+working_templates() {
+    {
+        templates_in @
+        rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
+            -g "*$SUFFIX" -g '!.jj' -g '!.git' 2>/dev/null
+    } | sort -u
+}
+
 declare -A conflicted=()
 load_conflicts() {
     local path
@@ -374,9 +384,12 @@ receive_retracks() {
         x=${abs#"$root/"}
         [ -e "$x$SUFFIX" ] && continue
         s=${p%.path}
-        # Neither FILE nor its template is in @, for example after a rewound rebase.
-        # Keep the state: it is the merge base when FILE arrives later.
-        jj --ignore-working-copy file show -r @ "root:$x" >"$received" 2>/dev/null || continue
+        # The parent has the received FILE. @ can have the kept local copy already,
+        # when a jj command took a snapshot after the .gitignore entry went away.
+        # Without FILE in the parent, for example after a rewound rebase, keep the
+        # state: it is the merge base when FILE arrives later.
+        jj --ignore-working-copy file show -r 'latest(parents(@))' "root:$x" >"$received" 2>/dev/null ||
+            continue
         if [ ! -f "$x" ] || cmp -s "$received" "$x"; then
             [ -f "$x" ] || cp "$received" "$x"
         else
@@ -403,7 +416,7 @@ case "${1:-}" in
         load_conflicts
         migrate
         follow_retrack
-        while IFS= read -r t; do capture_one "$t"; done < <(templates_in @)
+        while IFS= read -r t; do capture_one "$t"; done < <(working_templates)
         convert_new
         ;;
     render)
@@ -412,7 +425,7 @@ case "${1:-}" in
         while IFS= read -r t; do
             render_one "$t"
             retrack_one "$t"
-        done < <(templates_in @)
+        done < <(working_templates)
         ;;
     *) echo "usage: home-template capture|render" >&2; exit 2 ;;
 esac

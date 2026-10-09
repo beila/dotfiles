@@ -1032,6 +1032,21 @@ run_sync "$TMPDIR/repoHome2"
 check "pulled template is rendered" "dir=$HOME/x" "$(cat "$TMPDIR/repoHome2/app.conf" 2>/dev/null)"
 grep_has "HOME-TEMPLATE capture: converted app.conf to app.conf.home-template"
 
+# The home path goes away on one machine: the file is tracked again on both.
+printf 'dir=/opt/x\n' > "$TMPDIR/repoHome1/app.conf"
+run_sync "$TMPDIR/repoHome1"
+run_sync "$TMPDIR/repoHome1"
+check "file without the home path is pushed again" "dir=/opt/x" \
+    "$(git -C "$TMPDIR/home-remote.git" show master:app.conf 2>/dev/null)"
+check "its template is removed from the remote" "" \
+    "$(git -C "$TMPDIR/home-remote.git" ls-tree --name-only master app.conf.home-template 2>/dev/null)"
+run_sync "$TMPDIR/repoHome2"
+check "the other machine takes the tracked file" "dir=/opt/x" "$(cat "$TMPDIR/repoHome2/app.conf" 2>/dev/null)"
+check "the other machine has no local change to it" "" \
+    "$(cd "$TMPDIR/repoHome2" && jj diff -r @ --name-only app.conf 2>/dev/null)"
+check "the other machine has no conflicts" "" \
+    "$(cd "$TMPDIR/repoHome2" && jj log -r 'conflicts()' --no-graph -T change_id 2>/dev/null)"
+
 echo
 echo "=== Scenario 19: sync.bookmarks -> fetch, rebase, push listed bookmarks as they are ==="
 git -C "$TMPDIR" init --bare -q -b master lb-remote.git
