@@ -959,7 +959,8 @@ reconcile_listed_bookmarks() {
             jj bookmark set "$b" -r "$local_rev" --allow-backwards >/dev/null 2>&1
             range="${remote_rev}..${local_rev}"
         else
-            range="::${local_rev} ~ ::remote_bookmarks(remote=exact:\"${r}\") ~ root()"
+            # A new bookmark: check only commits that no remote has, not all upstream history.
+            range="::${local_rev} ~ ::remote_bookmarks() ~ root()"
         fi
 
         # Servers such as gitfarm reject commits without a description. Do not rewrite them here.
