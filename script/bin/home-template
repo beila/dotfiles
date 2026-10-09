@@ -46,11 +46,32 @@ warn() { echo "home-template: $*" >&2; failed=1; }
 note() { echo "$*"; }
 
 # The home directory must not continue with a name character. Then a home of
-# /home/ab does not change /home/abc.
+# /home/ab does not change /home/abc. It also must not end a longer absolute path:
+# a home of /home/ab does not change /local/home/ab, the home of another machine.
+# A name before it without "/", as in -L/home/ab, is permitted. The loop restarts
+# after each change, because a match uses the character before the next match.
 home_re=$(printf '%s' "$HOME" | sed 's/[][\.^$*+?(){}|/]/\\&/g')
 home_repl=$(printf '%s' "$HOME" | sed 's/[\/&]/\\&/g')
 
-generalize() { sed -E "s/${home_re}([^[:alnum:]_]|\$)/${TOKEN}\\1/g" "$1"; }
+generalize() {
+    sed -E -e ':a' \
+        -e "s/(^|[^/[:alnum:]_.-])([[:alnum:]_.-]*)${home_re}([^[:alnum:]_]|\$)/\\1\\2${TOKEN}\\3/" \
+        -e 'ta' "$1"
+}
+# Rule before 2026-10-09, without the check before the match. A state file written
+# with it still agrees with the live file. Remove when every machine has synced.
+generalize_legacy() { sed -E "s/${home_re}([^[:alnum:]_]|\$)/${TOKEN}\\1/g" "$1"; }
+
+# generalize_live FILE OUT: like generalize, but accept the legacy rule when only
+# that rule agrees with the saved state.
+generalize_live() {
+    local s
+    s=$(state_file "$1")
+    generalize "$1" >"$2"
+    if [ -f "$s" ] && ! cmp -s "$2" "$s" && generalize_legacy "$1" | cmp -s - "$s"; then
+        cp "$s" "$2"
+    fi
+}
 localize() { sed "s/${TOKEN}/${home_repl}/g" "$1"; }
 
 state_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$root/$1" | sha256sum | cut -c1-16)"; }
@@ -162,7 +183,7 @@ capture_one() {
     [ -f "$x" ] && [ ! -L "$x" ] || return 0
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not captured"; return 0; }
     grep -qF "$TOKEN" "$x" && { warn "$x contains $TOKEN; not captured"; return 0; }
-    generalize "$x" >"$live"
+    generalize_live "$x" "$live"
     if cmp -s "$live" "$t"; then
         save_state "$x" "$t"
     elif [ ! -f "$s" ]; then
@@ -232,7 +253,7 @@ render_one() {
         return 0
     fi
     [ -f "$x" ] && [ ! -L "$x" ] || return 0
-    generalize "$x" >"$live"
+    generalize_live "$x" "$live"
     if cmp -s "$live" "$t"; then
         save_state "$x" "$t"
     elif [ ! -f "$s" ]; then

@@ -41,6 +41,8 @@ printf 'dir=%s\n' "$H" >sub/b.conf
 printf 'echo "$HOME"\n' >legit.sh
 printf '\0%s\n' "$H" >bin.dat
 printf '%s2/x\n' "$H" >prefix.txt
+printf '/local%s/x\n' "$H" >other-home.txt
+printf -- '-L%s/lib:%s/a\n' "$H" "$H" >flags.txt
 jj commit -m base >/dev/null 2>&1
 printf 'new=%s/n\n' "$H" >new.txt
 
@@ -57,6 +59,8 @@ check "new file is converted and never tracked" '[ -f new.txt.home-template ] &&
 check "literal \$HOME is not converted" '[ ! -e legit.sh.home-template ] && tracked legit.sh'
 check "binary file is not converted" '[ ! -e bin.dat.home-template ]'
 check "longer name with the same prefix is not converted" '[ ! -e prefix.txt.home-template ]'
+check "home path at the end of a longer path is not converted" '[ ! -e other-home.txt.home-template ]'
+check "home path after a flag and after a separator is converted" '[ "$(cat flags.txt.home-template)" = "-L@HOME@/lib:@HOME@/a" ]'
 check "capture reports conversions" 'grep -q "converted a.conf to a.conf.home-template" "$TMP/out"'
 
 printf '%s @HOME@\n' "$H" >tok.txt
@@ -107,6 +111,20 @@ check "capture lets the file win a conflict" '[ "$(sed -n 2p a.conf.home-templat
 rm sub/b.conf
 "$HT" render >/dev/null 2>&1
 check "render creates a missing file" '[ "$(cat sub/b.conf)" = "dir=$H" ]'
+
+# The legacy rule changed /local$H to /local@HOME@. A one-time fix of the template to
+# @HOME@ must reach the live file, and must not look like a local edit.
+printf '/local@HOME@/aim\n' >legacy.conf.home-template
+printf '/local%s/aim\n' "$H" >legacy.conf
+printf '/legacy.conf\n' >>.gitignore
+jj status >/dev/null 2>&1
+add_state() { mkdir -p "$XDG_STATE_HOME/home-template" && cp "$2" "$XDG_STATE_HOME/home-template/$(printf '%s' "$R/$1" | sha256sum | cut -c1-16)"; }
+add_state legacy.conf legacy.conf.home-template
+printf '@HOME@/aim\n' >legacy.conf.home-template
+"$HT" capture >/dev/null 2>&1
+check "capture keeps the fixed template" '[ "$(cat legacy.conf.home-template)" = "@HOME@/aim" ]'
+"$HT" render >/dev/null 2>&1
+check "render writes the fixed template" '[ "$(cat legacy.conf)" = "$H/aim" ]'
 
 # --- migration from a remote that converted the file first -------------------
 M="$TMP/migrate"
