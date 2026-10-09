@@ -10,7 +10,8 @@
 #                           its template, and convert new files that contain the home
 #                           directory.
 #   home-template render    After fetch and rebase. Write the template changes to FILE.
-#                           Create FILE when it does not exist.
+#                           Create FILE when it does not exist. Track FILE again when
+#                           neither FILE nor the template contains the home directory.
 #
 # sync_repo runs both steps. They operate on the jj workspace of the current directory.
 #
@@ -23,10 +24,18 @@
 # before the rebase, so that the remote deletion of FILE does not conflict with local
 # edits. The remote bookmark comes from the jj config key sync.remote-bookmark.
 #
+# The render step tracks FILE again after the merge, so the merge has already written
+# all remote template changes into FILE. Each machine makes the same change: the same
+# content for FILE, and the removal of the template and of the .gitignore entry. Thus
+# changes from two machines merge without conflicts. A machine that receives the change
+# keeps its own copy of FILE, because jj does not write over an ignored file. The render
+# step then replaces that copy with the received FILE, or merges local edits into it.
+#
 # The jj config key sync.home-template-exclude holds shell patterns, separated by
-# spaces. The capture step does not convert a path that matches one. In a pattern,
-# "*" also matches "/". Exclude files that programs append to, such as transcripts and
-# logs: a template of such a file changes at each sync.
+# spaces. Neither step converts or updates a path that matches one. In a pattern, "*"
+# also matches "/". Exclude files that programs append to, such as transcripts and
+# logs: a template of such a file changes at each sync. A template that already
+# exists for an excluded path stays as it is.
 set -uo pipefail
 
 SUFFIX=.home-template
@@ -75,7 +84,18 @@ generalize_live() {
 localize() { sed "s/${TOKEN}/${home_repl}/g" "$1"; }
 
 state_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$root/$1" | sha256sum | cut -c1-16)"; }
-save_state() { mkdir -p "$state_dir" && cp "$2" "$(state_file "$1")"; }
+# STATE.path records the absolute path of FILE. The render step uses it to find
+# files whose template another machine removed.
+save_state() {
+    local s
+    s=$(state_file "$1")
+    mkdir -p "$state_dir" && cp "$2" "$s" && printf '%s\n' "$root/$1" >"$s.path"
+}
+drop_state() {
+    local s
+    s=$(state_file "$1")
+    rm -f "$s" "$s.path"
+}
 
 is_text() {
     case "$(file -b --mime-encoding "$1")" in
@@ -148,20 +168,46 @@ add_ignore() {
     printf '%s\n' "$line" >>"$gitignore"
 }
 
+# Remove the entry of add_ignore. Remove a .gitignore that becomes empty.
+remove_ignore() {
+    local dir base gitignore line rest=$tmp_dir/gitignore
+    dir=$(dirname "$1")
+    base=$(basename "$1")
+    gitignore=$dir/.gitignore
+    [ "$dir" = . ] && gitignore=.gitignore
+    [ -f "$gitignore" ] || return 0
+    line=/$(printf '%s' "$base" | sed 's/[][*?\\]/\\&/g; s/^[#!]/\\&/; s/ $/\\ /')
+    grep -vxF -- "$line" "$gitignore" >"$rest"
+    if [ -s "$rest" ]; then
+        replace_file "$gitignore" "$rest"
+    else
+        rm -f "$gitignore"
+    fi
+}
+
+# Print the remote bookmark of sync.remote-bookmark when it exists.
+remote_rev() {
+    local remote
+    remote=$(jj --ignore-working-copy config get sync.remote-bookmark 2>/dev/null) || return 1
+    [ -n "$remote" ] || return 1
+    [ -n "$(jj --ignore-working-copy log -r "present($remote)" --no-graph -T '"y"' 2>/dev/null)" ] ||
+        return 1
+    printf '%s' "$remote"
+}
+
 # Follow a remote that untracked FILE and added FILE.home-template. Move the
 # unpushed changes of FILE into @, and untrack FILE. The live file stays. The
 # common version of FILE becomes the merge base for the render step.
 migrate() {
     local remote t x base
-    remote=$(jj --ignore-working-copy config get sync.remote-bookmark 2>/dev/null) || return 0
-    [ -n "$remote" ] || return 0
-    [ -n "$(jj --ignore-working-copy log -r "present($remote)" --no-graph -T '"y"' 2>/dev/null)" ] ||
-        return 0
+    remote=$(remote_rev) || return 0
     while IFS= read -r t; do
         x=${t%"$SUFFIX"}
         is_tracked @ "$t" && continue
         is_tracked @ "$x" || continue
         is_tracked "$remote" "$x" && continue
+        # A template in the fork point means that this machine tracked FILE again.
+        is_tracked "fork_point(@ | $remote)" "$t" && continue
         base=$tmp_dir/base
         if jj --ignore-working-copy file show -r "fork_point(@ | $remote)" "root:$x" >"$base" 2>/dev/null; then
             generalize "$base" >"$base.gen" && save_state "$x" "$base.gen"
@@ -176,10 +222,31 @@ migrate() {
     done < <(templates_in "$remote")
 }
 
+# Follow a remote that tracks FILE again and removed FILE.home-template. Move the
+# unpushed changes of the template into @, and delete the template, as the remote did.
+# Keep the .gitignore entry, so that the remote removal of it merges cleanly and FILE
+# is not added here with other content. The render step then merges FILE.
+follow_retrack() {
+    local remote t x
+    remote=$(remote_rev) || return 0
+    while IFS= read -r t; do
+        x=${t%"$SUFFIX"}
+        is_tracked "$remote" "$t" && continue
+        is_tracked "$remote" "$x" || continue
+        # Without the template in the fork point, this machine converted FILE first.
+        is_tracked "fork_point(@ | $remote)" "$t" || continue
+        JJ_EDITOR=true jj squash -u --from "$remote..@-" --into @ "root:$t" >/dev/null 2>&1 || true
+        rm -f "$t"
+        note "removed $t, as $remote tracks $x again"
+    done < <(templates_in @)
+}
+
 # Copy the local changes of FILE into its template.
 capture_one() {
     local t=$1 x=${1%"$SUFFIX"} s live=$tmp_dir/live merged=$tmp_dir/merged
     s=$(state_file "$x")
+    [ -f "$t" ] || return 0
+    is_excluded "$x" && return 0
     [ -f "$x" ] && [ ! -L "$x" ] || return 0
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not captured"; return 0; }
     grep -qF "$TOKEN" "$x" && { warn "$x contains $TOKEN; not captured"; return 0; }
@@ -243,6 +310,7 @@ render_one() {
     local t=$1 x=${1%"$SUFFIX"} s live=$tmp_dir/live merged=$tmp_dir/merged out=$tmp_dir/out
     s=$(state_file "$x")
     [ -f "$t" ] || return 0
+    is_excluded "$x" && return 0
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not rendered"; return 0; }
     if [ ! -e "$x" ]; then
         # Without the entry, the next snapshot tracks the new file.
@@ -273,16 +341,78 @@ render_one() {
     fi
 }
 
+# Track FILE again when neither FILE nor its template has the home directory.
+# Run after render_one, so FILE already has the remote changes of the template.
+retrack_one() {
+    local t=$1 x=${1%"$SUFFIX"}
+    [ -f "$t" ] && [ -f "$x" ] && [ ! -L "$x" ] || return 0
+    is_excluded "$x" && return 0
+    [ -n "${conflicted[$t]:-}" ] && return 0
+    grep -qF "$TOKEN" "$t" && return 0
+    # Without the token, the rendered FILE is a copy of the template.
+    cmp -s "$x" "$t" || return 0
+    remove_ignore "$x"
+    rm -f "$t"
+    if jj file track --include-ignored "root:$x" >/dev/null 2>&1; then
+        drop_state "$x"
+        note "tracked $x again and removed $t: no home directory is left"
+    else
+        warn "could not track $x again; restore $t from jj history"
+    fi
+}
+
+# Find each FILE that another machine tracked again. jj kept the local copy, because
+# it does not write over an ignored file. Replace the copy with the received FILE
+# when the copy has no local edits. Otherwise, merge the local edits into it.
+receive_retracks() {
+    local p abs x s received=$tmp_dir/received gen_received=$tmp_dir/gen_received
+    local live=$tmp_dir/live merged=$tmp_dir/merged out=$tmp_dir/out
+    for p in "$state_dir"/*.path; do
+        [ -f "$p" ] || continue
+        abs=$(cat "$p")
+        case "$abs" in "$root/"*) ;; *) continue ;; esac
+        x=${abs#"$root/"}
+        [ -e "$x$SUFFIX" ] && continue
+        s=${p%.path}
+        # Neither FILE nor its template is in @, for example after a rewound rebase.
+        # Keep the state: it is the merge base when FILE arrives later.
+        jj --ignore-working-copy file show -r @ "root:$x" >"$received" 2>/dev/null || continue
+        if [ ! -f "$x" ] || cmp -s "$received" "$x"; then
+            [ -f "$x" ] || cp "$received" "$x"
+        else
+            generalize_live "$x" "$live"
+            generalize "$received" >"$gen_received"
+            if cmp -s "$live" "$s"; then
+                write_live "$x" "$received"
+            elif cmp -s "$gen_received" "$s"; then
+                : # Only local edits. The next snapshot records them.
+            elif merge3 "$live" "$s" "$gen_received" "$merged"; then
+                localize "$merged" >"$out"
+                write_live "$x" "$out"
+            else
+                warn "$x has local edits that conflict with the received $x; kept the local copy"
+            fi
+        fi
+        drop_state "$x"
+        note "$x is tracked again, as another machine did"
+    done
+}
+
 case "${1:-}" in
     capture)
         load_conflicts
         migrate
+        follow_retrack
         while IFS= read -r t; do capture_one "$t"; done < <(templates_in @)
         convert_new
         ;;
     render)
         load_conflicts
-        while IFS= read -r t; do render_one "$t"; done < <(templates_in @)
+        receive_retracks
+        while IFS= read -r t; do
+            render_one "$t"
+            retrack_one "$t"
+        done < <(templates_in @)
         ;;
     *) echo "usage: home-template capture|render" >&2; exit 2 ;;
 esac

@@ -126,6 +126,26 @@ check "capture keeps the fixed template" '[ "$(cat legacy.conf.home-template)" =
 "$HT" render >/dev/null 2>&1
 check "render writes the fixed template" '[ "$(cat legacy.conf)" = "$H/aim" ]'
 
+# --- track again when the home directory is gone ------------------------------
+printf 'p=%s/q\n' "$H" >r.conf
+"$HT" capture >/dev/null 2>&1
+printf 'p=/opt/q\n' >r.conf
+"$HT" capture >/dev/null 2>&1
+check "capture copies the edit without the home directory" '[ "$(cat r.conf.home-template)" = "p=/opt/q" ]' ||
+    { echo "DEBUG"; cat r.conf.home-template; jj file list | rg r.conf; "$HT" capture; }
+"$HT" render >"$TMP/out" 2>&1
+check "render tracks the file again" 'tracked r.conf && [ ! -e r.conf.home-template ] && ! has_line .gitignore /r.conf'
+check "render reports the change" 'grep -q "tracked r.conf again" "$TMP/out"'
+check "the file keeps its content" '[ "$(cat r.conf)" = "p=/opt/q" ]'
+
+printf 'z=%s\n' "$H" >keep.log
+"$HT" capture >/dev/null 2>&1
+printf 'z=%s more\n' "$H" >keep.log
+jj config set --repo sync.home-template-exclude 'keep.log' >/dev/null 2>&1
+"$HT" capture >/dev/null 2>&1
+check "an existing template of an excluded path is not updated" '[ "$(cat keep.log.home-template)" = "z=@HOME@" ]'
+jj config unset --repo sync.home-template-exclude >/dev/null 2>&1
+
 # --- migration from a remote that converted the file first -------------------
 M="$TMP/migrate"
 mkdir -p "$M"
@@ -163,6 +183,37 @@ check "render after migration exits 0" '[ $rc -eq 0 ]' || cat "$TMP/err"
 check "render merges the local edit and the remote change" '[ "$(cat x.conf)" = "$(printf "%s/new\nmid\nline3-remote" "$H")" ]'
 "$HT" capture >/dev/null 2>&1
 check "capture after migration copies the local edit" '[ "$(cat x.conf.home-template)" = "$(printf "@HOME@/new\nmid\nline3-remote")" ]'
+
+# --- a remote that tracked the file again ---------------------------------------
+N="$TMP/retrack"
+mkdir -p "$N"
+cd "$N" || exit 1
+jj git init >/dev/null 2>&1
+printf 'a\nmid\nc\n' >x.conf.home-template
+printf 'a\nmid\nc\n' >x.conf
+printf '/x.conf\n' >.gitignore
+"$HT" render >/dev/null 2>&1
+jj commit -m base >/dev/null 2>&1
+base=$(jj log -r @- --no-graph -T change_id)
+
+jj new "$base" >/dev/null 2>&1
+rm x.conf.home-template .gitignore
+printf 'a\nmid\nc-remote\n' >x.conf
+jj commit -m remote >/dev/null 2>&1
+jj bookmark create upstream -r @- >/dev/null 2>&1
+
+jj new "$base" >/dev/null 2>&1
+printf 'a-local\nmid\nc\n' >x.conf
+jj config set --repo sync.remote-bookmark upstream >/dev/null 2>&1
+
+"$HT" capture >"$TMP/out" 2>&1
+check "capture deletes the template that the remote deleted" '[ ! -e x.conf.home-template ] && grep -q "removed x.conf.home-template" "$TMP/out"'
+jj rebase -b @ -d upstream >/dev/null 2>&1
+check "rebase after the remote tracked the file again has no conflicts" '[ -z "$(jj log -r "conflicts()" --no-graph -T change_id)" ]'
+"$HT" render >"$TMP/out" 2>&1
+check "render merges the local edit into the received file" '[ "$(cat x.conf)" = "$(printf "a-local\nmid\nc-remote")" ]' ||
+    { echo "DEBUG"; cat x.conf; cat "$TMP/out"; ls "$XDG_STATE_HOME/home-template" | rg -c path; jj file show -r @ x.conf; }
+check "the received file is tracked" 'tracked x.conf'
 
 echo
 echo "passed: $pass, failed: $fail"
