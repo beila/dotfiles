@@ -417,6 +417,19 @@ fi
 # what tee/decorator return. `unbuffer`/`stdbuf` aren't needed because
 # both spacer and watchlog implement their own periodic timers.
 #
+# `tee -p` (--output-error=warn-nopipe) keeps tee alive after the decorator
+# stage exits early and SIGPIPEs tee's stdout, so the log keeps growing
+# instead of being truncated mid-stream. It was only added in coreutils
+# 8.24; hosts stuck on older ones (e.g. Amazon Linux 2 dev desks ship
+# 8.22) reject it with "tee: invalid option -- 'p'", which used to kill
+# the whole pipeline on every single `--auto` command — and, because the
+# surrounding `script -qefc` PTY then died by SIGPIPE before restoring
+# termios, left the caller's terminal in raw mode (staircased output).
+# Probe once and degrade to plain `tee`: logs may be truncated past an
+# early decorator exit, which beats logrun not working at all.
+_tee=(tee -p)
+tee -p /dev/null </dev/null >/dev/null 2>&1 || _tee=(tee)
+#
 # In --auto mode the file-side filter is awk (not sed): one pass strips
 # ANSI for the log, counts lines (signalling SIGUSR2 + writing the
 # marker file once $auto_lines is crossed), and flags alt-screen entry
@@ -521,13 +534,10 @@ if (( auto_mode )); then
     # zsh helpers like gitstatus / zsh-async) don't inherit it and
     # block awk's EOF after we exit. tee's own fd 4 is unaffected —
     # the redirection only applies to "$@". See AGENTS.md "fd 4 isolation".
-    # `tee -p` (warn-nopipe): when the decorator stage exits early and
-    # SIGPIPEs tee's stdout, tee keeps running and continues writing to
-    # fd 4 — otherwise the log file would be truncated mid-stream
-    # (e.g. ninja output past the failure point would be visible on the
-    # tty via the decorator but missing from the log).
+    # ${_tee[@]} is `tee -p` where supported, else plain `tee`; see the
+    # pipeline comment above.
     "$@" 2>&1 4>&- \
-        | tee -p /dev/fd/4 \
+        | "${_tee[@]}" /dev/fd/4 \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}
     # Close fd 4 so awk sees EOF and exits, then wait specifically for
@@ -536,7 +546,7 @@ if (( auto_mode )); then
     [[ -n "$awk_pid" ]] && wait "$awk_pid" 2>/dev/null
 else
     "$@" 2>&1 \
-        | tee -p >("${strip_ansi[@]}" > "$log_path") \
+        | "${_tee[@]}" >("${strip_ansi[@]}" > "$log_path") \
         | eval "$decorator"
     exit_code=${PIPESTATUS[0]}
 fi
