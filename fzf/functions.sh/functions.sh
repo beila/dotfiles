@@ -108,12 +108,14 @@ _jj_extract_path='cut -s -f3 <<< {} | sed "s/\x1b\[[0-9;]*m//g"'
 # between "log> " and "log+files> " (see _jh/_jhh).
 # The picker has already snapshotted and exported JJ_FZF_OPERATION. Preview,
 # focus lookup, and reload commands stay on that exact operation.
+# Do not name a variable "path": fzf runs this in $SHELL, and zsh ties "path"
+# to PATH.
 _jj_log_preview="\
-id=\$($_jj_extract_id); path=\$($_jj_extract_path);
+id=\$($_jj_extract_id); file=\$($_jj_extract_path);
 [ -z \"\$id\" ] && exit 0;
-if [ -n \"\$path\" ]; then
+if [ -n \"\$file\" ]; then
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
-  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet diff --color=always -r \"\$id\" -- \"\$path\";
+  JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet diff --color=always -r \"\$id\" -- \"\$file\";
 elif [[ \$FZF_PROMPT == log+files* ]]; then
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation \"\$JJ_FZF_OPERATION\" --quiet log --no-graph --color=always -r \"\$id\" -T builtin_log_detailed;
 else

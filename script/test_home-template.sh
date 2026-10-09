@@ -68,6 +68,14 @@ rm tok.txt
 "$HT" capture >"$TMP/out" 2>&1
 check "second capture is a no-op" '[ ! -s "$TMP/out" ]'
 
+mkdir -p logs/host
+printf 'cwd=%s\n' "$H" >logs/host/run.log
+printf 'cwd=%s\n' "$H" >keep.jsonl
+jj config set --repo sync.home-template-exclude 'logs/* *.jsonl' >/dev/null 2>&1
+"$HT" capture >/dev/null 2>&1
+check "excluded paths are not converted, also in subdirectories" '[ ! -e logs/host/run.log.home-template ] && [ ! -e keep.jsonl.home-template ]'
+rm -r logs keep.jsonl
+
 # --- render ----------------------------------------------------------------
 printf 'path=@HOME@/x\nb=@HOME@/y\n' >a.conf.home-template
 inode=$(stat -c %i a.conf)

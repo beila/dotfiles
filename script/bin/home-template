@@ -22,6 +22,11 @@
 # The capture step also follows a remote that converted FILE first. It untracks FILE
 # before the rebase, so that the remote deletion of FILE does not conflict with local
 # edits. The remote bookmark comes from the jj config key sync.remote-bookmark.
+#
+# The jj config key sync.home-template-exclude holds shell patterns, separated by
+# spaces. The capture step does not convert a path that matches one. In a pattern,
+# "*" also matches "/". Exclude files that programs append to, such as transcripts and
+# logs: a template of such a file changes at each sync.
 set -uo pipefail
 
 SUFFIX=.home-template
@@ -78,6 +83,17 @@ write_live() {
 merge3() {
     cp "$1" "$4"
     git merge-file -q "$4" "$2" "$3" 2>/dev/null
+}
+
+excludes=()
+read -ra excludes <<<"$(jj --ignore-working-copy config get sync.home-template-exclude 2>/dev/null || true)"
+is_excluded() {
+    local p
+    for p in "${excludes[@]}"; do
+        # shellcheck disable=SC2053 # $p is a pattern.
+        [[ $1 == $p ]] && return 0
+    done
+    return 1
 }
 
 is_tracked() {
@@ -173,6 +189,7 @@ convert_new() {
     local -a untrack=()
     while IFS= read -r f; do
         case "$f" in *"$SUFFIX") continue ;; esac
+        is_excluded "$f" && continue
         [ -f "$f" ] && [ ! -L "$f" ] || continue
         t=$f$SUFFIX
         [ -e "$t" ] && continue
