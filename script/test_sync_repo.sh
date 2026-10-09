@@ -1110,8 +1110,7 @@ lb_before=$(lb_remote)
 run_sync "$TMPDIR/repoLB3"
 check "conflicting bookmark is not pushed" "$lb_before" "$(lb_remote)"
 check "conflicting bookmark stays at the local commit" "$lb3_local" "$(lb_local repoLB3)"
-(cd "$TMPDIR/repoLB3" && echo DEBUG-BEGIN && jj bookmark list --all-remotes && jj op log --limit 10 --no-graph -T 'description ++ "\n"'; rg -h "feat/x|REBASE" "$LOG_ROOT"; echo DEBUG-END)
-check "rewind leaves no conflicted commits" "" \
+check "conflict leaves no conflicted commits" "" \
     "$(cd "$TMPDIR/repoLB3" && jj log -r 'conflicts()' --no-graph -T change_id 2>/dev/null)"
 grep_has "REBASE-CONFLICT feat/x"
 

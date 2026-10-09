@@ -878,10 +878,20 @@ lb_local_state() {
     jj bookmark list "exact:$1" -T 'if(remote, "", if(conflict, "C " ++ added_targets.map(|c| c.commit_id()).join(" ") ++ "\n", if(present, "N " ++ normal_target.commit_id() ++ "\n", "")))' 2>/dev/null
 }
 
-# Rebase the local-only commits of bookmark $1 onto $3. Rewind on a conflict.
-# Prints the rebased local tip.
+# Rebase the local-only commits of bookmark $1 onto $3. Prints the rebased local tip.
+# A merge probe finds most conflicts before the rebase, so the working copy stays as
+# it is. A rebase that still produces conflicted commits is rewound.
 lb_rebase() {
-    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new
+    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new probe
+    if jj new --no-edit "$local_rev" "$remote_rev" -m "rebase-probe" >/dev/null 2>&1; then
+        probe=$(jj log -r "latest(${local_rev}+ & ${remote_rev}+, 1)" --no-graph -T 'change_id ++ "|" ++ if(conflict, "c")' 2>/dev/null)
+        jj abandon "${probe%%|*}" >/dev/null 2>&1
+        if [ "${probe#*|}" = "c" ]; then
+            log ERROR "REBASE-CONFLICT ${b} local=$local_rev remote=$remote_rev; push skipped"
+            jj bookmark set "$b" -r "$local_rev" --allow-backwards >/dev/null 2>&1
+            return 1
+        fi
+    fi
     pre_op=$(jj op log --no-graph --limit 1 -T 'id.short()' 2>/dev/null)
     change=$(jj log -r "$local_rev" --no-graph -T 'change_id' 2>/dev/null)
     if ! jj rebase -s "roots(${remote_rev}..${local_rev})" -d "$remote_rev" >/dev/null 2>&1; then
