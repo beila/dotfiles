@@ -33,6 +33,8 @@ export LOG_REL_BASE="$TMPDIR"
 export LOG_NOTIFY_MODE=never
 export LOG_KEEP_THRESHOLD=DEBUG
 export SYNC_LOG_ROOT_KEEP=1
+# home-template keeps its merge state here.
+export XDG_STATE_HOME="$TMPDIR/state"
 
 # Stub the AI commit-message providers so sync_repo's snapshot_at_to_push_rev
 # doesn't pay claude / kiro-cli / ollama latency in the test loop. Without
@@ -1004,6 +1006,31 @@ rc=$?
 check "failing hook does not fail the sync" "0" "$rc"
 check "sync continues after a failing hook" "two" "$(git -C "$TMPDIR/hook-remote.git" show master:other.txt 2>/dev/null)"
 grep_has "HOOK-FAIL sync.post-update (rc=3): hook broke"
+
+echo
+echo "=== Scenario 18: home-directory path -> pushed only as a template, rendered on pull ==="
+git -C "$TMPDIR" init --bare -q -b master home-remote.git
+for name in repoHome1 repoHome2; do
+    mkdir -p "$TMPDIR/$name"
+    (
+        cd "$TMPDIR/$name"
+        jj git init --colocate
+        jj git remote add backup "$TMPDIR/home-remote.git"
+        jj config set --repo sync.remote-bookmark 'master@backup'
+        jj config set --repo user.email 'test@example.com'
+        jj config set --repo user.name 'Test User'
+    ) >/dev/null 2>&1
+done
+printf 'dir=%s/x\n' "$HOME" > "$TMPDIR/repoHome1/app.conf"
+run_sync "$TMPDIR/repoHome1"
+check "pushed template has the token" "dir=@HOME@/x" \
+    "$(git -C "$TMPDIR/home-remote.git" show master:app.conf.home-template 2>/dev/null)"
+check "file with the home path is not pushed" "" \
+    "$(git -C "$TMPDIR/home-remote.git" ls-tree --name-only master app.conf 2>/dev/null)"
+check "local file keeps the home path" "dir=$HOME/x" "$(cat "$TMPDIR/repoHome1/app.conf")"
+run_sync "$TMPDIR/repoHome2"
+check "pulled template is rendered" "dir=$HOME/x" "$(cat "$TMPDIR/repoHome2/app.conf" 2>/dev/null)"
+grep_has "HOME-TEMPLATE capture: converted app.conf to app.conf.home-template"
 
 echo
 echo "=== Sample log file ==="

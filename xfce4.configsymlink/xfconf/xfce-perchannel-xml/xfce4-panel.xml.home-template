@@ -83,7 +83,7 @@
       <property name="style" type="uint" value="0"/>
     </property>
     <property name="plugin-21" type="string" value="directorymenu">
-      <property name="base-directory" type="string" value="/home/ANT.AMAZON.COM/hojin"/>
+      <property name="base-directory" type="string" value="@HOME@"/>
     </property>
     <property name="plugin-11" type="string" value="separator">
       <property name="style" type="uint" value="0"/>
@@ -125,7 +125,7 @@
         <property name="color" type="string" value="rgba(0,0,0,0)"/>
         <property name="use-color" type="bool" value="false"/>
       </property>
-      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/weather-genmon"/>
+      <property name="command" type="string" value="@HOME@/.dotfiles/xwindow/bin/weather-genmon"/>
       <property name="use-label" type="bool" value="false"/>
       <property name="text" type="string" value="(genmon)"/>
       <property name="update-period" type="int" value="600000"/>
@@ -136,7 +136,7 @@
       <property name="style" type="uint" value="0"/>
     </property>
     <property name="plugin-23" type="string" value="genmon">
-      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/sysmon-genmon"/>
+      <property name="command" type="string" value="@HOME@/.dotfiles/xwindow/bin/sysmon-genmon"/>
       <property name="update-period" type="int" value="20000"/>
       <property name="enable-single-row" type="bool" value="true"/>
       <property name="use-label" type="bool" value="false"/>
@@ -147,7 +147,7 @@
       <property name="style" type="uint" value="0"/>
     </property>
     <property name="plugin-7" type="string" value="genmon">
-      <property name="command" type="string" value="/home/ANT.AMAZON.COM/hojin/.dotfiles/xwindow/bin/midway-genmon"/>
+      <property name="command" type="string" value="@HOME@/.dotfiles/xwindow/bin/midway-genmon"/>
       <property name="use-label" type="bool" value="false"/>
       <property name="text" type="string" value="(genmon)"/>
       <property name="update-period" type="int" value="30000"/>

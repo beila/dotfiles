@@ -310,8 +310,8 @@ in
     # DOTFILES_ROOT — absolute path to ~/.dotfiles. Also computed in
     # zsh/zshenv.symlink (more flexibly, by resolving the zshenv symlink
     # itself), but exporting here makes it visible to systemd user units,
-    # cron jobs, and anything else that doesn't source zshenv. jj fix
-    # invocations and bootstrap rely on this.
+    # cron jobs, and anything else that doesn't source zshenv. Bootstrap
+    # relies on this.
     DOTFILES_ROOT = "$HOME/.dotfiles";
     # LOGRUN_TUI_SKIPLIST — space-separated list of curses-style apps
     # whose terminal handling breaks under any stdout pipe. The

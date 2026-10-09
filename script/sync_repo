@@ -6,12 +6,8 @@ if [ "${SYNC_REPO_DEBUG:-0}" = "1" ]; then
     set -x
 fi
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-# Exported: the `jj fix` generalize-paths tool runs as `sh -c
-# '"$DOTFILES_ROOT/script/bin/generalize-paths"'` and reads this from the
-# ENVIRONMENT. Scheduled sync (sync-repos.service) runs with a systemd env
-# that does not carry DOTFILES_ROOT, so without the export the tool resolves
-# to "/script/bin/generalize-paths" → exit 127, jj fix treats it as a no-op,
-# and home paths leak into pushed commits unscrubbed.
+# Exported for repository hooks. Scheduled sync (sync-repos.service) runs with
+# a systemd env that does not carry DOTFILES_ROOT.
 export DOTFILES_ROOT=$(dirname "$SCRIPT_DIR")
 GIT=${GIT_EXECUTABLE:-git}
 MACHINE_NAME=$(hostnamectl --pretty 2>/dev/null | grep -v '\.')
@@ -255,6 +251,26 @@ run_sync_hook() {
     rm -f "$err"
 }
 
+# --- home-directory templates -------------------------------------------------
+# script/bin/home-template keeps the home directory of this machine out of pushed
+# commits. Its stdout lines are changes and go to the log at INFO.
+run_home_template() {
+    local step=$1 out err rc line
+    out=$(mktemp "/tmp/sync_repo_out.XXXXXX")
+    err=$(mktemp "/tmp/sync_repo_err.XXXXXX")
+    run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" \
+        "$DOTFILES_ROOT/script/bin/home-template" "$step" >"$out" 2>"$err"
+    rc=$?
+    while IFS= read -r line; do
+        log INFO "HOME-TEMPLATE $step: $line"
+    done <"$out"
+    if [ $rc -ne 0 ]; then
+        log ERROR "HOME-TEMPLATE-FAIL $step (rc=$rc): $(_summarize_stderr "$err")"
+        cat "$err" >&2
+    fi
+    rm -f "$out" "$err"
+}
+
 # --- jj branch helpers --------------------------------------------------------
 # Step functions read these globals (set in main):
 #   PUSH_REV, GIT_DIR, WORKSPACE_NAME, SNAPSHOT_URL, SYNC_BM, SYNC_REMOTE,
@@ -289,8 +305,8 @@ snapshot_at_to_push_rev() {
 # (interactive `jj new`, agent edits, etc.) can still be undescribed, and the
 # rebase in handle_diverged carries that forward unchanged.
 #
-# Same revset shape as step_run_jj_fix: local-only chain when a remote
-# bookmark is configured, else just @-. Skips empty commits (they can't be
+# Revset: the local-only chain when a remote bookmark is configured, else
+# just @-. Skips empty commits (they can't be
 # described meaningfully and aren't pushed by gitfarm anyway).
 step_describe_local_chain() {
     local revset="@-"
@@ -809,6 +825,12 @@ jj workspace update-stale 2>/dev/null || true
 
 run_sync_hook pre-snapshot
 
+# Only repositories that push need portable content. The capture step must come
+# before the first snapshot, so that the home directory never enters a commit.
+if [ -n "$SYNC_BM" ] || [ -n "$SNAPSHOT_URL" ]; then
+    run_home_template capture
+fi
+
 # Surface files that jj refuses to snapshot (size limit). Those files
 # silently bypass the whole sync — flag them as ERROR so the user can
 # either delete or raise snapshot.max-new-file-size per repo.
@@ -819,10 +841,7 @@ snapshot_at_to_push_rev
 # No push target configured: finalize the work locally and stop. Committing
 # WIP and giving it a description is worth doing on its own — it's what makes
 # `jj log` readable and the repo push-ready — and needs no remote. Everything
-# past this point exists to serve a push, so it stays behind the gate. In
-# particular step_run_jj_fix must NOT run here: it rewrites file content
-# (generalize-paths) to make commits portable before they leave the machine,
-# which is not something to inflict on a repo we aren't pushing.
+# past this point exists to serve a push, so it stays behind the gate.
 if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ]; then
     step_describe_local_chain
     log INFO "NO-SYNC-CONFIG: committed and described locally; neither sync.remote-bookmark nor sync.snapshot-url set"
@@ -831,36 +850,6 @@ fi
 
 resolve_git_dir
 resolve_workspace_name
-
-# Generalize absolute home-directory paths to portable placeholders before
-# push. `jj fix` runs whatever fix tools are configured globally (see
-# jj.configsymlink/config.toml — currently `generalize-paths`); this is
-# generic plumbing, not specific to that one tool. Restricted to local-only
-# commits (`<bookmark>@<remote>..@-` when a remote bookmark is configured,
-# else just `@-`) so we never rewrite commits that are already on the
-# remote — that would create divergence on push.
-step_run_jj_fix() {
-    local revset="@-"
-    if [ -n "$SYNC_BM" ]; then
-        # Confirm the remote bookmark exists locally before using it as
-        # an ancestor anchor. If fetch hasn't run yet (e.g. first sync on
-        # a new clone) it might not, so fall back to just @-.
-        if jj log -r "${SYNC_BM}@${SYNC_REMOTE}" --no-graph -T '"y"' 2>/dev/null | grep -q y; then
-            revset="${SYNC_BM}@${SYNC_REMOTE}..@-"
-        fi
-    fi
-    # Defense in depth: jj fix swallows a tool's nonzero exit and reports
-    # "Nothing changed", so a misconfigured tool (e.g. DOTFILES_ROOT unset →
-    # generalize-paths not found) scrubs nothing yet looks successful. Surface
-    # that as ERROR instead of leaking home paths silently into the push.
-    if [ ! -x "$DOTFILES_ROOT/script/bin/generalize-paths" ]; then
-        log ERROR "FIX-TOOL-MISSING generalize-paths not executable at \$DOTFILES_ROOT=$DOTFILES_ROOT; home paths will NOT be scrubbed"
-    fi
-    # Quiet unless something changed; jj fix prints "Nothing changed."
-    # when the tools were no-ops, which is the steady-state expectation.
-    jj fix -s "$revset" 2>/dev/null || true
-}
-step_run_jj_fix
 
 step_describe_local_chain
 prepare_snapshot_refs
@@ -891,5 +880,6 @@ if [ -n "$BOOKMARK_PUSH_OID" ]; then
 fi
 
 step_rebase_local_chain
+run_home_template render
 run_sync_hook post-update
 release_local_lock

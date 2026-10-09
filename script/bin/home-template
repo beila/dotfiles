@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+# home-template — keep the home directory of this machine out of jj history.
+#
+# A text file that contains the absolute home directory gets a tracked copy,
+# FILE.home-template, in which the home directory is the token @HOME@. FILE itself
+# becomes ignored and untracked, so it can keep the absolute path that its program
+# needs. GTK bookmarks use the same token (script/bin/generate-gtk-bookmarks).
+#
+#   home-template capture   Before the snapshot. Copy local changes of each FILE into
+#                           its template, and convert new files that contain the home
+#                           directory.
+#   home-template render    After fetch and rebase. Write the template changes to FILE.
+#                           Create FILE when it does not exist.
+#
+# sync_repo runs both steps. They operate on the jj workspace of the current directory.
+#
+# A state file keeps the template content on which FILE and the template last agreed.
+# It shows which side changed after that. When both sides changed, git merge-file
+# merges them. When the merge has conflicts, FILE wins. The jj history keeps the
+# other version.
+#
+# The capture step also follows a remote that converted FILE first. It untracks FILE
+# before the rebase, so that the remote deletion of FILE does not conflict with local
+# edits. The remote bookmark comes from the jj config key sync.remote-bookmark.
+set -uo pipefail
+
+SUFFIX=.home-template
+TOKEN=@HOME@
+
+die() { echo "home-template: $*" >&2; exit 2; }
+[ -n "${HOME:-}" ] || die "\$HOME is unset"
+root=$(jj --ignore-working-copy root 2>/dev/null) || die "not in a jj workspace"
+cd "$root" || exit 2
+
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/home-template
+tmp_dir=$(mktemp -d)
+trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
+
+failed=0
+warn() { echo "home-template: $*" >&2; failed=1; }
+note() { echo "$*"; }
+
+# The home directory must not continue with a name character. Then a home of
+# /home/ab does not change /home/abc.
+home_re=$(printf '%s' "$HOME" | sed 's/[][\.^$*+?(){}|/]/\\&/g')
+home_repl=$(printf '%s' "$HOME" | sed 's/[\/&]/\\&/g')
+
+generalize() { sed -E "s/${home_re}([^[:alnum:]_]|\$)/${TOKEN}\\1/g" "$1"; }
+localize() { sed "s/${TOKEN}/${home_repl}/g" "$1"; }
+
+state_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$root/$1" | sha256sum | cut -c1-16)"; }
+save_state() { mkdir -p "$state_dir" && cp "$2" "$(state_file "$1")"; }
+
+is_text() {
+    case "$(file -b --mime-encoding "$1")" in
+        us-ascii | utf-8) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# Replace a tracked file. Keep the mode of the old file, or of $3 for a new file.
+replace_file() {
+    local target=$1 src=$2 mode_ref=${3:-$1} tmp
+    cmp -s "$src" "$target" && return 0
+    tmp=$(mktemp "$target.XXXXXX") || return 1
+    cat "$src" >"$tmp"
+    chmod --reference="$mode_ref" "$tmp" 2>/dev/null || chmod 644 "$tmp"
+    mv -f "$tmp" "$target"
+}
+
+# Write a live file in place. Programs that keep the file open, and hard links,
+# continue to see the same inode.
+write_live() {
+    cmp -s "$2" "$1" || cat "$2" >"$1"
+}
+
+# merge3 OURS BASE THEIRS OUT. Returns non-zero when the merge has conflicts.
+merge3() {
+    cp "$1" "$4"
+    git merge-file -q "$4" "$2" "$3" 2>/dev/null
+}
+
+is_tracked() {
+    [ -n "$(jj --ignore-working-copy file list -r "$1" "root:$2" 2>/dev/null)" ]
+}
+
+templates_in() {
+    jj --ignore-working-copy file list -r "$1" "glob:\"**/*$SUFFIX\"" 2>/dev/null
+}
+
+declare -A conflicted=()
+load_conflicts() {
+    local path
+    while read -r path _; do
+        [ -n "$path" ] && conflicted["$path"]=1
+    done < <(jj --ignore-working-copy resolve --list -r @ 2>/dev/null)
+}
+
+# Add an anchored entry for FILE to the .gitignore of its directory.
+add_ignore() {
+    local dir base gitignore line
+    dir=$(dirname "$1")
+    base=$(basename "$1")
+    gitignore=$dir/.gitignore
+    [ "$dir" = . ] && gitignore=.gitignore
+    line=/$(printf '%s' "$base" | sed 's/[][*?\\]/\\&/g; s/^[#!]/\\&/; s/ $/\\ /')
+    [ -f "$gitignore" ] && grep -qxF -- "$line" "$gitignore" && return 0
+    if [ -s "$gitignore" ] && [ -n "$(tail -c1 "$gitignore")" ]; then
+        printf '\n' >>"$gitignore"
+    fi
+    printf '%s\n' "$line" >>"$gitignore"
+}
+
+# Follow a remote that untracked FILE and added FILE.home-template. Move the
+# unpushed changes of FILE into @, and untrack FILE. The live file stays. The
+# common version of FILE becomes the merge base for the render step.
+migrate() {
+    local remote t x base
+    remote=$(jj --ignore-working-copy config get sync.remote-bookmark 2>/dev/null) || return 0
+    [ -n "$remote" ] || return 0
+    [ -n "$(jj --ignore-working-copy log -r "present($remote)" --no-graph -T '"y"' 2>/dev/null)" ] ||
+        return 0
+    while IFS= read -r t; do
+        x=${t%"$SUFFIX"}
+        is_tracked @ "$t" && continue
+        is_tracked @ "$x" || continue
+        is_tracked "$remote" "$x" && continue
+        base=$tmp_dir/base
+        if jj --ignore-working-copy file show -r "fork_point(@ | $remote)" "root:$x" >"$base" 2>/dev/null; then
+            generalize "$base" >"$base.gen" && save_state "$x" "$base.gen"
+        fi
+        JJ_EDITOR=true jj squash -u --from "$remote..@-" --into @ "root:$x" >/dev/null 2>&1 || true
+        add_ignore "$x"
+        if jj file untrack "root:$x" >/dev/null 2>&1; then
+            note "stopped tracking $x, as $remote did"
+        else
+            warn "could not untrack $x; check the .gitignore entry"
+        fi
+    done < <(templates_in "$remote")
+}
+
+# Copy the local changes of FILE into its template.
+capture_one() {
+    local t=$1 x=${1%"$SUFFIX"} s live=$tmp_dir/live merged=$tmp_dir/merged
+    s=$(state_file "$x")
+    [ -f "$x" ] && [ ! -L "$x" ] || return 0
+    [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not captured"; return 0; }
+    grep -qF "$TOKEN" "$x" && { warn "$x contains $TOKEN; not captured"; return 0; }
+    generalize "$x" >"$live"
+    if cmp -s "$live" "$t"; then
+        save_state "$x" "$t"
+    elif [ ! -f "$s" ]; then
+        replace_file "$t" "$live" && save_state "$x" "$live"
+        note "updated $t from $x (no saved state)"
+    elif cmp -s "$live" "$s"; then
+        : # Only the template changed. The render step writes it to FILE.
+    elif cmp -s "$t" "$s"; then
+        replace_file "$t" "$live" && save_state "$x" "$live"
+        note "updated $t from $x"
+    elif merge3 "$live" "$s" "$t" "$merged"; then
+        replace_file "$t" "$merged" && save_state "$x" "$live"
+        note "merged $x into $t"
+    else
+        replace_file "$t" "$live" && save_state "$x" "$live"
+        warn "$x and $t both changed with conflicts; kept $x (jj history has the template version)"
+    fi
+}
+
+# Convert text files that contain the home directory. Search tracked files, and
+# untracked files that jj will track at the next snapshot.
+convert_new() {
+    local f t gen=$tmp_dir/gen
+    local -a untrack=()
+    while IFS= read -r f; do
+        case "$f" in *"$SUFFIX") continue ;; esac
+        [ -f "$f" ] && [ ! -L "$f" ] || continue
+        t=$f$SUFFIX
+        [ -e "$t" ] && continue
+        is_text "$f" || continue
+        if grep -qF "$TOKEN" "$f"; then
+            warn "$f contains the home directory and $TOKEN; not converted"
+            continue
+        fi
+        generalize "$f" >"$gen"
+        cmp -s "$gen" "$f" && continue
+        replace_file "$t" "$gen" "$f" || { warn "could not write $t"; continue; }
+        add_ignore "$f"
+        save_state "$f" "$gen"
+        is_tracked @ "$f" && untrack+=("root:$f")
+        note "converted $f to $t"
+    done < <(
+        {
+            jj --ignore-working-copy file list 2>/dev/null
+            rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
+                -g '!.jj' -g '!.git' 2>/dev/null
+        } | sort -u | tr '\n' '\0' | xargs -0 -r rg -l -F --no-messages -- "$HOME" 2>/dev/null
+    )
+    if [ ${#untrack[@]} -gt 0 ] && ! jj file untrack "${untrack[@]}" >/dev/null; then
+        warn "could not untrack ${untrack[*]}"
+    fi
+}
+
+# Write the template changes to FILE.
+render_one() {
+    local t=$1 x=${1%"$SUFFIX"} s live=$tmp_dir/live merged=$tmp_dir/merged out=$tmp_dir/out
+    s=$(state_file "$x")
+    [ -f "$t" ] || return 0
+    [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not rendered"; return 0; }
+    if [ ! -e "$x" ]; then
+        # Without the entry, the next snapshot tracks the new file.
+        add_ignore "$x"
+        localize "$t" >"$out"
+        replace_file "$x" "$out" "$t" && save_state "$x" "$t"
+        note "created $x from $t"
+        return 0
+    fi
+    [ -f "$x" ] && [ ! -L "$x" ] || return 0
+    generalize "$x" >"$live"
+    if cmp -s "$live" "$t"; then
+        save_state "$x" "$t"
+    elif [ ! -f "$s" ]; then
+        warn "$x differs from $t and has no saved state; kept $x"
+    elif cmp -s "$live" "$s"; then
+        localize "$t" >"$out"
+        write_live "$x" "$out" && save_state "$x" "$t"
+        note "updated $x from $t"
+    elif cmp -s "$t" "$s"; then
+        : # Only FILE changed. The next capture step copies it to the template.
+    elif merge3 "$live" "$s" "$t" "$merged"; then
+        localize "$merged" >"$out"
+        write_live "$x" "$out" && save_state "$x" "$t"
+        note "merged $t into $x"
+    else
+        warn "$x and $t both changed with conflicts; kept $x"
+    fi
+}
+
+case "${1:-}" in
+    capture)
+        load_conflicts
+        migrate
+        while IFS= read -r t; do capture_one "$t"; done < <(templates_in @)
+        convert_new
+        ;;
+    render)
+        load_conflicts
+        while IFS= read -r t; do render_one "$t"; done < <(templates_in @)
+        ;;
+    *) echo "usage: home-template capture|render" >&2; exit 2 ;;
+esac
+exit "$failed"
