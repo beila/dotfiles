@@ -23,6 +23,9 @@
 # The session just detached from is listed first; all other running and saved
 # session names are sorted together. The first argument seeds the fzf query.
 #
+# Sessions attached through zmx-remote-attach show the remote state and cwd.
+# `zmx-select --stream-state NAME` is the remote side of that helper.
+#
 # Adapted from https://github.com/neurosnap/zmx (session picker section).
 
 set -uo pipefail
