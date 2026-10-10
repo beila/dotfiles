@@ -139,22 +139,24 @@ is_excluded() {
 
 # is_tracked REV PATH. Each `jj file list` takes about a second in a repository with
 # 20,000 files, so load the list once for each revision.
+# Keys are REV, US, PATH. Revisions such as "fork_point(@ | x)" contain "|".
+US=$'\x1f'
 declare -A tracked_files=() tracked_loaded=()
 is_tracked() {
     local rev=$1 p
     if [ -z "${tracked_loaded[$rev]:-}" ]; then
         while IFS= read -r p; do
-            tracked_files["$rev|$p"]=1
+            tracked_files["$rev$US$p"]=1
         done < <(jj --ignore-working-copy file list -r "$rev" 2>/dev/null)
         tracked_loaded[$rev]=1
     fi
-    [ -n "${tracked_files["$rev|$2"]:-}" ]
+    [ -n "${tracked_files["$rev$US$2"]:-}" ]
 }
 # Forget the list of REV after a change to it.
 forget_tracked() {
     local key
     for key in "${!tracked_files[@]}"; do
-        [ "${key%%|*}" = "$1" ] && unset 'tracked_files[$key]'
+        [ "${key%%"$US"*}" = "$1" ] && unset 'tracked_files[$key]'
     done
     unset 'tracked_loaded[$1]'
 }
@@ -227,7 +229,7 @@ remote_rev() {
 # unpushed changes of FILE into @, and untrack FILE. The live file stays. The
 # common version of FILE becomes the merge base for the render step.
 migrate() {
-    local remote t x base
+    local remote t x base changed=0
     remote=$(remote_rev) || return 0
     while IFS= read -r t; do
         x=${t%"$SUFFIX"}
@@ -247,7 +249,10 @@ migrate() {
         else
             warn "could not untrack $x; check the .gitignore entry"
         fi
+        changed=1
     done < <(templates_in "$remote")
+    [ "$changed" = 1 ] && forget_tracked @
+    return 0
 }
 
 # Follow a remote that tracks FILE again and removed FILE.home-template. Move the
@@ -255,7 +260,7 @@ migrate() {
 # Keep the .gitignore entry, so that the remote removal of it merges cleanly and FILE
 # is not added here with other content. The render step then merges FILE.
 follow_retrack() {
-    local remote t x
+    local remote t x changed=0
     remote=$(remote_rev) || return 0
     while IFS= read -r t; do
         x=${t%"$SUFFIX"}
@@ -266,7 +271,10 @@ follow_retrack() {
         JJ_EDITOR=true jj squash -u --from "$remote..@-" --into @ "root:$t" >/dev/null 2>&1 || true
         rm -f "$t"
         note "removed $t, as $remote tracks $x again"
+        changed=1
     done < <(templates_in @)
+    [ "$changed" = 1 ] && forget_tracked @
+    return 0
 }
 
 # Copy the local changes of FILE into its template.
@@ -326,7 +334,10 @@ convert_new() {
             jj --ignore-working-copy file list 2>/dev/null
             rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
                 -g '!.jj' -g '!.git' 2>/dev/null
-        } | sort -u | tr '\n' '\0' | xargs -0 -r rg -l -F --no-messages -- "$HOME" 2>/dev/null
+        } | sort -u | tr '\n' '\0' | xargs -0 -r rg -l -F --no-messages -- "$HOME" 2>/dev/null |
+            # rg prints in no fixed order. Machines that convert the same files then add
+            # the same .gitignore lines in the same order, so the changes merge cleanly.
+            LC_ALL=C sort
     )
     if [ ${#untrack[@]} -gt 0 ] && ! jj file untrack "${untrack[@]}" >/dev/null; then
         warn "could not untrack ${untrack[*]}"

@@ -343,6 +343,25 @@ echo "$out" | grep -qE '\b2\b' \
     || { echo "FAIL: stdout doesn't mention resolved count (got: $out)"; fail=$((fail+1)); }
 
 # ────────────────────────────────────────────────────────────────────────────
+echo
+echo "=== Scenario 15: .gitignore -> union-dedupe from the global attributes ==="
+# git.configsymlink/attributes sets it. Two machines convert overlapping files
+# of one directory in another order.
+make_repo_with_conflict "$TMPDIR/gitignore" ".gitignore|/keep
+|/keep
+/a
+/b
+|/keep
+/b
+/c
+"
+"$RESOLVER" "$TMPDIR/gitignore" >/dev/null 2>&1
+assert_no_conflicts_at ".gitignore conflict is resolved" "$TMPDIR/gitignore"
+check ".gitignore keeps the entries of both sides once" "$(printf '/keep\n/a\n/b\n/c')" \
+    "$(cat "$TMPDIR/gitignore/.gitignore")"
+check ".gitignore has no duplicate lines" "" "$(sort "$TMPDIR/gitignore/.gitignore" | uniq -d)"
+
+# ────────────────────────────────────────────────────────────────────────────
 # Note: there's no "operates only on @" scenario because jj propagates
 # conflicts forward. A child of a conflicted commit is itself conflicted at
 # the same paths, so "move @ off the conflict to make it benign" isn't a

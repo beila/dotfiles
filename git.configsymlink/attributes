@@ -15,3 +15,9 @@ artworks.toml diff=artworkstoml
 package-lock.json   merge=ours
 pnpm-lock.yaml      merge=ours
 go.sum              merge=ours
+
+# script/bin/home-template adds .gitignore entries on each machine. Two machines
+# that convert different files in one directory change the same lines. A 3-way
+# union keeps the entries of both and still applies a removal from one side.
+# mergiraf has no grammar for .gitignore. resolve-by-attrs applies this in sync_repo.
+.gitignore          merge=union-dedupe

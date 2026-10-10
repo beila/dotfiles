@@ -253,12 +253,14 @@ run_sync_hook() {
 
 # --- home-directory templates -------------------------------------------------
 # script/bin/home-template keeps the home directory of this machine out of pushed
-# commits. Its stdout lines are changes and go to the log at INFO.
+# commits. Its stdout lines are changes and go to the log at INFO. It reads the file
+# list of large repositories several times, so it has its own, longer timeout.
+HOME_TEMPLATE_TIMEOUT=${HOME_TEMPLATE_TIMEOUT:-300}
 run_home_template() {
     local step=$1 out err rc line
     out=$(mktemp "/tmp/sync_repo_out.XXXXXX")
     err=$(mktemp "/tmp/sync_repo_err.XXXXXX")
-    run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" \
+    run_without_lock timeout --kill-after=10 "$HOME_TEMPLATE_TIMEOUT" \
         "$DOTFILES_ROOT/script/bin/home-template" "$step" >"$out" 2>"$err"
     rc=$?
     while IFS= read -r line; do
