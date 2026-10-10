@@ -137,8 +137,26 @@ is_excluded() {
     return 1
 }
 
+# is_tracked REV PATH. Each `jj file list` takes about a second in a repository with
+# 20,000 files, so load the list once for each revision.
+declare -A tracked_files=() tracked_loaded=()
 is_tracked() {
-    [ -n "$(jj --ignore-working-copy file list -r "$1" "root:$2" 2>/dev/null)" ]
+    local rev=$1 p
+    if [ -z "${tracked_loaded[$rev]:-}" ]; then
+        while IFS= read -r p; do
+            tracked_files["$rev|$p"]=1
+        done < <(jj --ignore-working-copy file list -r "$rev" 2>/dev/null)
+        tracked_loaded[$rev]=1
+    fi
+    [ -n "${tracked_files["$rev|$2"]:-}" ]
+}
+# Forget the list of REV after a change to it.
+forget_tracked() {
+    local key
+    for key in "${!tracked_files[@]}"; do
+        [ "${key%%|*}" = "$1" ] && unset 'tracked_files[$key]'
+    done
+    unset 'tracked_loaded[$1]'
 }
 
 templates_in() {
