@@ -88,6 +88,11 @@ declare -A running_cwd_pid=()
 declare -A attached=()
 declare -A saved=()
 declare -A saved_cwd=()
+# name -> host, state, and cwd of a session attached through zmx-remote-attach.
+declare -A remote_host=()
+declare -A remote_state=()
+declare -A remote_cwd=()
+remote_dir=${ZMX_REMOTE_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/remote"}
 
 list_running_names() {
     if [[ -n "${ZMX_SELECT_SESSIONS_FILE:-}" ]]; then
@@ -159,6 +164,54 @@ refresh_changed_session_cwds() {
     # individually so one missing cwd cannot shift every later name/path pair.
     for name in "${names[@]}"; do
         refresh_session_cwd "$name"
+    done
+}
+
+# zmx-remote-attach writes "host<TAB>remote name<TAB>helper pid" to
+# $remote_dir/NAME while ssh runs. Its watcher keeps "state<TAB>cwd" of the
+# remote session in NAME.state. A dead helper pid means that ssh ended.
+load_remote_sessions() {
+    local name meta host pid state cwd
+    remote_host=()
+    remote_state=()
+    remote_cwd=()
+    [[ -d "$remote_dir" ]] || return 0
+    for name in "${!running[@]}"; do
+        meta="$remote_dir/${name//\//_}"
+        [[ -r "$meta" ]] || continue
+        IFS=$'\t' read -r host _ pid < "$meta" || continue
+        [[ -n "$host" && "$pid" =~ ^[0-9]+$ && -d "$proc_root/$pid" ]] || continue
+        remote_host["$name"]=$host
+        if [[ -r "$meta.state" ]] \
+            && IFS=$'\t' read -r state cwd < "$meta.state"; then
+            remote_state["$name"]=$state
+            remote_cwd["$name"]=$cwd
+        fi
+    done
+}
+
+# Runs on the remote host for zmx-remote-attach. Prints "state<TAB>cwd" of one
+# session when it changes. A repeat line every 10 seconds makes the process end
+# soon after the ssh connection closes.
+stream_state() {
+    local name=$1 line last="" quiet=0
+    while true; do
+        load_running
+        if [[ -n "${running[$name]:-}" ]]; then
+            session_activity "$name"
+            refresh_session_cwd "$name"
+            line="$activity_state"$'\t'"${running_cwd[$name]:-}"
+        else
+            line=$'unknown\t'
+        fi
+        if [[ "$line" != "$last" ]] || ((quiet >= 20)); then
+            printf '%s\n' "$line" || exit 0
+            last=$line
+            quiet=0
+        else
+            quiet=$((quiet + 1))
+        fi
+        sleep 0.5
     done
 }
 
@@ -242,7 +295,13 @@ load_saved() {
 # tilde: bash tilde-expands the replacement, so a bare ~ substitutes $HOME back
 # in and no-ops.
 session_cwd() {
-    printf '%s' "${running_cwd[$1]:-}"
+    local name=$1 host
+    host=${remote_host[$name]:-}
+    if [[ -n "$host" ]]; then
+        printf '%s:%s' "$host" "${remote_cwd[$name]:-}"
+    else
+        printf '%s' "${running_cwd[$name]:-}"
+    fi
 }
 
 saved_session_cwd() {
@@ -290,6 +349,14 @@ format_row() {  # name -> $row_text
     if [[ -n "${running[$name]:-}" ]]; then
         session_activity "$name"
         cwd=${running_cwd[$name]:-}
+        # The local shell waits on ssh, so the remote session decides the state.
+        if [[ -n "${remote_host[$name]:-}" ]]; then
+            cwd="${remote_host[$name]}:${remote_cwd[$name]:-}"
+            case "${remote_state[$name]:-}" in
+                prompt) activity_state=remote_prompt ;;
+                active) activity_state=active ;;
+            esac
+        fi
         if [[ -n "${attached[$name]:-}" ]]; then
             status+="🔗"
             status_icons=$((status_icons + 1))
@@ -311,6 +378,11 @@ format_row() {  # name -> $row_text
         prompt)
             activity="❯"
             activity_styled=$'\033[32m❯\033[39m'
+            activity_width_adjustment=2
+            ;;
+        remote_prompt)
+            activity="❯"
+            activity_styled=$'\033[36m❯\033[39m'
             activity_width_adjustment=2
             ;;
         dead)
@@ -381,10 +453,15 @@ detached_session=""
 ctrl_backslash="ctrl-\\"
 query="$initial_query"
 removed_entry=false
-state_header=$'\033[1;38;5;214m●\033[22;39m active  \033[32m❯\033[39m prompt  \033[2;90m·\033[22;39m dead  🥇 last  🥈 previous  🔗 attached'
+state_header=$'\033[1;38;5;214m●\033[22;39m active  \033[32m❯\033[39m prompt  \033[36m❯\033[39m remote prompt  \033[2;90m·\033[22;39m dead  🥇 last  🥈 previous  🔗 attached'
+
+if [[ "$initial_query" == --stream-state ]]; then
+    stream_state "${2:?usage: zmx-select --stream-state NAME}"
+fi
 
 while true; do
     load_running
+    load_remote_sessions
     load_saved
     build_display
 

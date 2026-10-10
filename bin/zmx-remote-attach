@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# zmx-remote-attach — attach to the zmx session of the same name on HOST
+#
+# Usage: zmx-remote-attach HOST [REMOTE_NAME]
+#
+# Run it inside a local zmx session. REMOTE_NAME defaults to $ZMX_SESSION.
+# While ssh runs, a watcher keeps a second ssh connection that streams the
+# state and cwd of the remote session into a runtime file. zmx-select reads
+# that file, so the picker opens without a remote query.
+
+set -uo pipefail
+
+host=${1:?usage: zmx-remote-attach HOST [REMOTE_NAME]}
+local_name=${ZMX_SESSION:?zmx-remote-attach must run inside a local zmx session}
+remote_name=${2:-$local_name}
+printf -v remote_q '%q' "$remote_name"
+
+remote_dir=${ZMX_REMOTE_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/remote"}
+mkdir -p "$remote_dir"
+meta="$remote_dir/${local_name//\//_}"
+state="$meta.state"
+
+# Reconnect after a failure. Back off, so that a remote host without the
+# --stream-state mode does not get a connection every few seconds.
+watch_remote() {
+    local delay=2 line
+    while kill -0 "$$" 2>/dev/null; do
+        # The remote shell expands the tilde.
+        # shellcheck disable=SC2088
+        while IFS= read -r line; do
+            delay=2
+            printf '%s\n' "$line" > "$state.tmp" && mv -f -- "$state.tmp" "$state"
+        done < <(ssh -o BatchMode=yes -o ServerAliveInterval=15 "$host" \
+            "exec ~/.dotfiles/bin/zmx-select --stream-state $remote_q" \
+            < /dev/null 2> /dev/null)
+        rm -f -- "$state"
+        sleep "$delay"
+        ((delay < 30)) && delay=$((delay * 2))
+    done
+}
+
+printf '%s\t%s\t%s\n' "$host" "$remote_name" "$$" > "$meta"
+# Give the watcher its own process group. Then one kill also stops its ssh.
+set -m
+watch_remote < /dev/null > /dev/null 2>&1 &
+watcher=$!
+set +m
+
+cleanup() {
+    kill -- "-$watcher" 2> /dev/null
+    rm -f -- "$meta" "$state" "$state.tmp"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 143' TERM
+
+ssh -t "$host" "exec zmx attach $remote_q zsh -l"

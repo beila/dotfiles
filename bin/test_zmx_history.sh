@@ -325,7 +325,26 @@ printf '101\n' > "$FAKE_PROC/201/task/201/children"
 printf '111\n' > "$FAKE_PROC/211/task/211/children"
 printf '121\n' > "$FAKE_PROC/221/task/221/children"
 printf '131\n' > "$FAKE_PROC/231/task/231/children"
-printf 'attached\npreview-only\nshelp2\nunknown\n' > "$FAKE_ROOT/sessions"
+# remote1 and remote2 wait on ssh (foreground group 341). Live helper 999
+# connects remote1 to host c. The helper of remote2 has ended.
+mkdir -p "$FAKE_PROC"/{141,151,241,251} "$FAKE_PROC/241/task/241" "$FAKE_PROC/251/task/251"
+ln -s "$HOOK_CWD" "$FAKE_PROC/141/cwd"
+ln -s "$HOOK_CWD" "$FAKE_PROC/151/cwd"
+printf '141 (zsh) S 241 141 141 34816 341 0\n' > "$FAKE_PROC/141/stat"
+printf '151 (zsh) S 251 151 151 34816 341 0\n' > "$FAKE_PROC/151/stat"
+printf 'zmx\0attach\0remote1\0zsh\0-l\0' > "$FAKE_PROC/241/cmdline"
+printf 'zmx\0attach\0remote2\0zsh\0-l\0' > "$FAKE_PROC/251/cmdline"
+printf 'zmx\n' > "$FAKE_PROC/241/comm"
+printf 'zmx\n' > "$FAKE_PROC/251/comm"
+printf '141\n' > "$FAKE_PROC/241/task/241/children"
+printf '151\n' > "$FAKE_PROC/251/task/251/children"
+export ZMX_REMOTE_DIR="$TMP/remote"
+mkdir -p "$ZMX_REMOTE_DIR"
+printf 'c\tremote1\t999\n' > "$ZMX_REMOTE_DIR/remote1"
+printf 'prompt\t~/remote-dir\n' > "$ZMX_REMOTE_DIR/remote1.state"
+printf 'c\tremote2\t998\n' > "$ZMX_REMOTE_DIR/remote2"
+printf 'prompt\t~/stale-dir\n' > "$ZMX_REMOTE_DIR/remote2.state"
+printf 'attached\npreview-only\nremote1\nremote2\nshelp2\nunknown\n' > "$FAKE_ROOT/sessions"
 export ZMX_PROC_ROOT="$FAKE_PROC"
 : > "$FAKE_ROOT/list.calls"
 : > "$FAKE_ROOT/pgrep.calls"
@@ -341,6 +360,16 @@ check "picker does not mark a server with only a preview client" "yes" \
         && printf yes || printf no)"
 check "picker marks a shell-owned foreground group as a prompt" "yes" \
     "$(rg -q '^shelp2 ❯[[:space:]]' "$FZF_INPUT" && printf yes || printf no)"
+check "picker shows the remote prompt and cwd of a remote attach" "yes" \
+    "$(rg -q '^remote1 ❯[[:space:]]+c:~/remote-dir$' "$FZF_INPUT" && printf yes || printf no)"
+remote_prompt_marker=$'\033[36m❯\033[39m'
+check "picker gives remote prompts a cyan marker" "yes" \
+    "$(rg -Fq "$remote_prompt_marker" "$FZF_RAW_INPUT" && printf yes || printf no)"
+check "picker ignores remote state after the helper ends" "yes" \
+    "$(rg -q "^remote2 ●[[:space:]]+$HOOK_CWD\$" "$FZF_INPUT" && printf yes || printf no)"
+stream_line=$(PATH="$STUBS:$PATH" timeout 2 "$SELECT_UNDER_TEST" --stream-state shelp2 \
+    2>/dev/null | head -n 1)
+check "stream mode prints the session state and cwd" "prompt"$'\t'"$HOOK_CWD" "$stream_line"
 check "picker leaves unavailable activity unmarked" "yes" \
     "$(rg -q '^unknown[[:space:]]*$' "$FZF_INPUT" && printf yes || printf no)"
 active_marker=$'\033[1;38;5;214m●\033[22;39m'
