@@ -42,7 +42,7 @@
 - `c` — copy (Wayland/X11 aware)
 - `p` — paste (Wayland/X11 aware)
 - `o` — open (Wayland/X11 aware)
-- `say_done` — TTS notification when commands >10s finish; only on desktop machines; runs in a subshell. Calls `bin/say` (see `bin/AGENTS.md`).
+- `say_done` — TTS notification when commands >10s finish; only on desktop machines; runs in a background subshell with stdio discarded, so backend notices (e.g. the Edge→Piper fallback) never print over the next prompt. Calls `bin/say` (see `bin/AGENTS.md`).
 - `ju` — jj unique
 - `jda` — jj describe with AI commit-msg; prints the generated description
 
