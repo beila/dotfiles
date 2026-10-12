@@ -10,7 +10,8 @@ _cmd_timer_precmd() {
         local duration=$(( $(date +%s) - _cmd_start ))
         unset _cmd_start
         if [[ $duration -gt 10 ]] && [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
-            (say_done &)
+            # Keep backend diagnostics out of the next prompt.
+            (say_done </dev/null >/dev/null 2>&1 &)
         fi
     fi
 }
