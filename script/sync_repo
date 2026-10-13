@@ -363,7 +363,7 @@ resolve_workspace_name() {
 # the file or raise snapshot.max-new-file-size for this repo.
 # The refusal stays until the user acts, so each run logs it again. Notify
 # again only after a longer window than the transient-error default.
-SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW=${SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW:-604800}
+SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW=${SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW:-86400}
 check_refused_snapshots() {
     local err
     local LOG_NOTIFY_DEDUP_WINDOW=$SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW
