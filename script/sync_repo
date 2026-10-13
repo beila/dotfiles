@@ -361,8 +361,12 @@ resolve_workspace_name() {
 # Detect files jj refuses to snapshot (size limit). Such files silently
 # bypass the entire sync — surface as ERROR so the user can either delete
 # the file or raise snapshot.max-new-file-size for this repo.
+# The refusal stays until the user acts, so each run logs it again. Notify
+# again only after a longer window than the transient-error default.
+SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW=${SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW:-604800}
 check_refused_snapshots() {
     local err
+    local LOG_NOTIFY_DEDUP_WINDOW=$SYNC_REFUSED_SNAPSHOT_DEDUP_WINDOW
     err=$(jj status 2>&1 1>/dev/null)
     if echo "$err" | grep -q "Refused to snapshot"; then
         local files

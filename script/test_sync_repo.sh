@@ -659,6 +659,27 @@ else
     echo "FAIL: log missing REFUSED-SNAPSHOT for toobig.txt"
     fail=$((fail+1))
 fi
+# The refusal persists across runs. The second run must not notify again even
+# with a short global window, because REFUSED-SNAPSHOT uses its own window.
+cat > "$TMPDIR/notify-record" <<EOF
+#!/bin/sh
+printf '%s\n' "\$*" >> "$TMPDIR/refused-notifications.log"
+EOF
+chmod +x "$TMPDIR/notify-record"
+for _ in 1 2; do
+    LOG_NOTIFY_MODE=always LOG_NOTIFY_CMD="$TMPDIR/notify-record" \
+        LOG_NOTIFY_DEDUP_WINDOW=1 LOG_NOTIFY_DEDUP_DIR="$TMPDIR/refused-dedup" \
+        bash "$SYNC_REPO" "$TMPDIR/repoBigFile" >/dev/null 2>&1
+    sleep 2
+done
+refused_notes=$(grep -c 'REFUSED-SNAPSHOT' "$TMPDIR/refused-notifications.log" 2>/dev/null)
+if [ "${refused_notes:-0}" = "1" ]; then
+    echo "PASS: repeated REFUSED-SNAPSHOT notified once"
+    pass=$((pass+1))
+else
+    echo "FAIL: repeated REFUSED-SNAPSHOT notified ${refused_notes:-0} times (want 1)"
+    fail=$((fail+1))
+fi
 # Sanity: a clean repo without big files should NOT emit REFUSED-SNAPSHOT.
 mkdir -p "$TMPDIR/repoCleanForRefusal"
 (
