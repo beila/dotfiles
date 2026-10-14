@@ -1,13 +1,23 @@
 {
-  "name": "default",
-  "mcpServers": {
-    "tts": {
-      "command": "~/.dotfiles/bin/mcp-tts"
+  "name" : "default",
+  "mcpServers" : {
+    "tts" : {
+      "command" : "~/.dotfiles/bin/mcp-tts"
+    },
+    "creds-agent" : {
+      "command" : "aim",
+      "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
+      "env" : {
+        "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
+        "AIM_CREDS_AGENT_INJECTION" : "903ad49d-14f7-449b-90f8-2d49f2f0c2fe"
+      }
     }
   },
-  "toolsSettings": {
-    "execute_bash": {
-      "autoAllowReadonly": true
+  "toolsSettings" : {
+    "execute_bash" : {
+      "autoAllowReadonly" : true
     }
-  }
+  },
+  "tools" : [ "@creds-agent" ],
+  "allowedTools" : [ "@creds-agent" ]
 }
