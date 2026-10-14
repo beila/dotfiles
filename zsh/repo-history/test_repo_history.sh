@@ -297,11 +297,15 @@ out=$(run_zsh '
     command mkdir -p -- "${_repo_history_file:h}"
     print -rN -- "100}" "$TEST_ROOT/main" "$TEST_ROOT/main" "legacy" >| "$_repo_history_file"
     _repo_history_zshaddhistory "current"
-    IFS= read -r -d $'\''\0'\'' -A _ < /dev/null
-    fields=("${(@0)$(< "$_repo_history_file")}")
+    fields=()
+    while IFS= read -r -d $'\''\0'\'' field; do
+      fields+=("$field")
+    done < "$_repo_history_file"
     print -r -- "epoch=${fields[5]}"
     _repo_history_write_repo_candidates "$TEST_ROOT/epoch-candidates"
-    tr "\\0" "\\n" < "$TEST_ROOT/epoch-candidates"
+    while IFS= read -r -d $'\''\0'\'' item; do
+      print -r -- "$item"
+    done < "$TEST_ROOT/epoch-candidates"
 ')
 if printf '%s\n' "$out" | rg -qx 'epoch=[0-9]+' &&
    printf '%s\n' "$out" | rg -qx 'r:100:1	legacy'; then

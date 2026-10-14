@@ -22,6 +22,8 @@
   - `10-fzf.zsh` replaces only `fzf-history-widget`. Repository scope filters shared repository records, while global scope uses normal Zsh history.
   - Ctrl-R toggles scope, Alt-S toggles sorting, and Alt-R toggles raw display. The selected scope persists for the shell lifetime and starts as repository scope.
   - Absolute source-workspace roots are adapted before fzf displays the commands. Hishtory import is intentionally deferred.
+  - Records of other hosts come from `script/sync_repo` (see `script/AGENTS.md`, "Repository history sync"). They live in `<file without .history>.remote/<host>.history`. Each Ctrl-R reads the local file and these copies, sorts all records by epoch, and keeps the newest copy of each adapted command. Remote records are never written into the local file, because `sync_repo` exports the local file as this host's data.
+  - The recorder uses `$EPOCHSECONDS`. Records written before this change have a stray `}` after the epoch (`${(%):-%D{%s}}` closed the expansion early). The reader removes it.
 - `directory.zsh` — `auto_cd`, `auto_pushd`, `extended_glob`, no clobber.
 - `zmx-history.zsh` — only active when `$ZMX_SESSION` is set. Registers a `zshexit` hook that synchronously runs `bin/zmx-history snapshot <session> "$PWD"` (bounded by a five-second `timeout`) while the zmx socket still exists, so a normal shell exit preserves output produced since the daemon's last poll and the exact final directory. The helper's snapshot lock serializes this with daemon captures so an older concurrent snapshot cannot overwrite the final state.
 - `utility.zsh` — correction, `nocorrect`/`noglob` aliases, colored ls/grep, and the interactive `rm` trash wrapper described below.
