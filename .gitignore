@@ -19,3 +19,6 @@ work-dotfiles
 /nvim.log
 *.pyc
 /screenrc.symlink
+
+# Per-host Nix GitHub token (see nix.configsymlink/nix.conf).
+nix.configsymlink/access-tokens.conf
