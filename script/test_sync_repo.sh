@@ -109,9 +109,10 @@ setup_repo() {
 
 # Stub `hostname -s` (sync_repo's fallback when hostnamectl is unavailable)
 # so $MACHINE_NAME is deterministic across test runs.
+# FAKE_HOSTNAME lets one scenario act as several hosts.
 cat >"$TMPDIR/stubs/hostname" <<STUB
 #!/bin/sh
-echo "$TESTHOST"
+echo "\${FAKE_HOSTNAME:-$TESTHOST}"
 STUB
 chmod +x "$TMPDIR/stubs/hostname"
 # Stub hostnamectl too — its --pretty output includes a literal newline that
@@ -1149,6 +1150,94 @@ check "conflicting bookmark stays at the local commit" "$lb3_local" "$(lb_local 
 check "conflict leaves no conflicted commits" "" \
     "$(cd "$TMPDIR/repoLB3" && jj log -r 'conflicts()' --no-graph -T change_id 2>/dev/null)"
 grep_has "REBASE-CONFLICT feat/x"
+
+echo
+echo "=== Scenario RH: repository history is shared between hosts ==="
+git -C "$TMPDIR" init --bare -q -b master rh-remote.git
+RH_STATE="$XDG_STATE_HOME/zsh/repo-history"
+rh_setup() {
+    mkdir -p "$TMPDIR/$1"
+    (
+        cd "$TMPDIR/$1"
+        jj git init --colocate
+        jj config set --repo sync.snapshot-url "$TMPDIR/rh-remote.git"
+        jj config set --repo user.email 'test@example.com'
+        jj config set --repo user.name 'Test User'
+        echo "$1" > f.txt
+        jj commit -m "init $1"
+    ) >/dev/null 2>&1
+}
+rh_file() { printf '%s' "$RH_STATE/repos$(realpath "$TMPDIR/$1").history"; }
+rh_append() {
+    local file root
+    file=$(rh_file "$1")
+    root=$(realpath "$TMPDIR/$1")
+    mkdir -p "${file%/*}"
+    printf '%s\0%s\0%s\0%s\0' "$2" "$root" "$root" "$3" >> "$file"
+}
+rh_remote_commands() {
+    git -C "$TMPDIR/rh-remote.git" cat-file blob "refs/heads/$1/_repo-history:history" 2>/dev/null |
+        perl -0 -ne 'chomp; print "$_\n" if $. % 4 == 0'
+}
+rh_ref() { git -C "$TMPDIR/rh-remote.git" rev-parse -q --verify "refs/heads/$1/_repo-history" 2>/dev/null; }
+
+rh_setup repoRH1
+rh_setup repoRH2
+rh_append repoRH1 100 "make build"
+rh_append repoRH1 101 "export API_TOKEN=abc"
+rh_append repoRH1 102 $'multi\nline'
+FAKE_HOSTNAME=hostA run_sync "$TMPDIR/repoRH1"
+check "history push: complete records without secrets" $'make build\nmulti\nline' "$(rh_remote_commands hostA)"
+check "history push: local ref keeps the pushed commit" "$(rh_ref hostA)" \
+    "$(git -C "$TMPDIR/repoRH1" rev-parse -q --verify refs/repo-history/self 2>/dev/null)"
+check "history push: jj does not show the history ref" "" \
+    "$(cd "$TMPDIR/repoRH1" && jj bookmark list --all-remotes 2>/dev/null | rg _repo-history)"
+
+rh_append repoRH2 200 "cargo test"
+FAKE_HOSTNAME=hostB run_sync "$TMPDIR/repoRH2"
+rh2_cache="$(rh_file repoRH2 | sed 's/\.history$//').remote"
+check "history fetch: host B has a copy of host A" \
+    "$(git -C "$TMPDIR/rh-remote.git" cat-file blob "refs/heads/hostA/_repo-history:history" | od -An -tx1)" \
+    "$(od -An -tx1 < "$rh2_cache/hostA.history" 2>/dev/null)"
+check "history fetch: the copy records its commit" "$(rh_ref hostA)" "$(cat "$rh2_cache/hostA.tip" 2>/dev/null)"
+check "history fetch: own records are not merged into the copy" "0" \
+    "$(tr '\0' '\n' < "$(rh_file repoRH2)" | rg -c 'make build' || echo 0)"
+check "history push: host B pushed its own ref" "cargo test" "$(rh_remote_commands hostB)"
+
+rh_a_before=$(rh_ref hostA)
+FAKE_HOSTNAME=hostA run_sync "$TMPDIR/repoRH1"
+check "history push: an unchanged file makes no commit" "$rh_a_before" "$(rh_ref hostA)"
+rh1_cache="$(rh_file repoRH1 | sed 's/\.history$//').remote"
+check "history fetch: host A has a copy of host B" "1" \
+    "$(tr '\0' '\n' < "$rh1_cache/hostB.history" 2>/dev/null | rg -c '^cargo test$' || true)"
+
+# Lose the local state of host A. The next push must keep the old records.
+git -C "$TMPDIR/repoRH1" update-ref -d refs/repo-history/self
+rm -f "$(rh_file repoRH1)"
+rh_append repoRH1 103 "after reinstall"
+FAKE_HOSTNAME=hostA run_sync "$TMPDIR/repoRH1"
+check "history recovery: old and new records are pushed" \
+    "$(printf '%s\n' 'make build' multi line 'after reinstall' | sort)" \
+    "$(rh_remote_commands hostA | sort)"
+check "history recovery: the push is a fast-forward" "0" \
+    "$(git -C "$TMPDIR/rh-remote.git" merge-base --is-ancestor "$rh_a_before" "$(rh_ref hostA)"; echo $?)"
+grep_has "REPO-HISTORY-RESTORED"
+
+# An incomplete record at the end is not exported.
+printf '%s\0%s\0' 104 "$(realpath "$TMPDIR/repoRH1")" >> "$(rh_file repoRH1)"
+rh_a_before=$(rh_ref hostA)
+FAKE_HOSTNAME=hostA run_sync "$TMPDIR/repoRH1"
+check "history push: an incomplete record is not exported" "$rh_a_before" "$(rh_ref hostA)"
+
+git -C "$TMPDIR/rh-remote.git" update-ref -d refs/heads/hostB/_repo-history
+FAKE_HOSTNAME=hostA run_sync "$TMPDIR/repoRH1"
+check "history fetch: a deleted remote ref removes the copy" "absent" \
+    "$([ -e "$rh1_cache/hostB.history" ] && echo present || echo absent)"
+
+(cd "$TMPDIR/repoRH2" && jj config set --repo sync.repo-history false) >/dev/null 2>&1
+rh_append repoRH2 201 "not shared"
+FAKE_HOSTNAME=hostB run_sync "$TMPDIR/repoRH2"
+check "sync.repo-history=false: nothing is pushed" "" "$(rh_ref hostB)"
 
 echo
 echo "=== Sample log file ==="

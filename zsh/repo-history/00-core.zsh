@@ -146,7 +146,8 @@ _repo_history_zshaddhistory() {
   _repo_history_resolve || return 0
   _repo_history_ensure_file "$_repo_history_file" || return 0
 
-  local epoch="${(%):-%D{%s}}"
+  zmodload -F zsh/datetime p:EPOCHSECONDS 2>/dev/null
+  local epoch="$EPOCHSECONDS"
   {
     print -rN -- \
       "$epoch" \

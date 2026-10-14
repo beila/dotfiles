@@ -261,6 +261,55 @@ else
     fail "state tree still mirrors .jj" "file=$out, leftover=$leftover"
 fi
 
+printf '%s\n' '=== Test 13: records of other hosts are merged by time ==='
+out=$(run_zsh '
+    REPO_HISTORY_STATE_DIR="$TEST_ROOT/merge-state"
+    _repo_history_clear_resolution
+    _repo_history_ready_files=()
+    cd "$TEST_ROOT/main"
+    _repo_history_resolve
+    remote_dir="${_repo_history_file%.history}.remote"
+    command mkdir -p -- "$remote_dir" "${_repo_history_file:h}"
+    print -rN -- 100 /other/ws /other/ws "tool /other/ws/pkg" \
+      300 /other/ws /other/ws "shared" >| "$remote_dir/hostB.history"
+    print -rN -- 200 "$TEST_ROOT/main" "$TEST_ROOT/main" "shared" \
+      400 "$TEST_ROOT/main" "$TEST_ROOT/main" "local newest" \
+      500 "$TEST_ROOT/main" >| "$_repo_history_file"
+    _repo_history_write_repo_candidates "$TEST_ROOT/merge-candidates"
+    while IFS= read -r -d $'\''\0'\'' item; do
+      print -r -- "$item"
+    done < "$TEST_ROOT/merge-candidates"
+')
+expected=$(printf 'r:400:2\tlocal newest\nr:300:4\tshared\nr:100:3\ttool %s/main/pkg' "$TEST_ROOT")
+if [ "$out" = "$expected" ]; then
+    pass "local and remote records merge newest-first with adapted roots"
+else
+    fail "merge order or deduplication mismatch" "expected [$expected], got [$out]"
+fi
+
+printf '%s\n' '=== Test 14: epochs are numeric, and older records stay readable ==='
+out=$(run_zsh '
+    REPO_HISTORY_STATE_DIR="$TEST_ROOT/epoch-state"
+    _repo_history_clear_resolution
+    _repo_history_ready_files=()
+    cd "$TEST_ROOT/main"
+    _repo_history_resolve
+    command mkdir -p -- "${_repo_history_file:h}"
+    print -rN -- "100}" "$TEST_ROOT/main" "$TEST_ROOT/main" "legacy" >| "$_repo_history_file"
+    _repo_history_zshaddhistory "current"
+    IFS= read -r -d $'\''\0'\'' -A _ < /dev/null
+    fields=("${(@0)$(< "$_repo_history_file")}")
+    print -r -- "epoch=${fields[5]}"
+    _repo_history_write_repo_candidates "$TEST_ROOT/epoch-candidates"
+    tr "\\0" "\\n" < "$TEST_ROOT/epoch-candidates"
+')
+if printf '%s\n' "$out" | rg -qx 'epoch=[0-9]+' &&
+   printf '%s\n' "$out" | rg -qx 'r:100:1	legacy'; then
+    pass "new epochs have no stray brace and legacy epochs are accepted"
+else
+    fail "epoch format mismatch" "got: $out"
+fi
+
 printf '%s\n' '=== Results ==='
 printf '%s passed, %s failed\n' "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

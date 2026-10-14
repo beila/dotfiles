@@ -73,22 +73,42 @@ _repo_history_write_repo_candidates() {
   local output="$1"
   : >| "$output"
   _repo_history_resolve || return 1
-  [[ -r "$_repo_history_file" ]] || return 0
+  # sync_repo writes the records of other hosts to the ".remote" directory.
+  # Read them together with the local records. Do not merge them into the
+  # local file, because sync_repo exports the local file as this host's data.
+  local -a files
+  files=("$_repo_history_file" "${_repo_history_file%.history}.remote"/*.history(N))
 
-  local epoch workspace_root cwd command
-  local -a epochs workspace_roots commands
-  while IFS= read -r -d $'\0' epoch &&
-        IFS= read -r -d $'\0' workspace_root &&
-        IFS= read -r -d $'\0' cwd &&
-        IFS= read -r -d $'\0' command; do
-    epochs+=("$epoch")
-    workspace_roots+=("$workspace_root")
-    commands+=("$command")
-  done < "$_repo_history_file"
+  local file epoch workspace_root cwd command
+  local -a epochs workspace_roots commands keys
+  for file in "${files[@]}"; do
+    [[ -r "$file" ]] || continue
+    while IFS= read -r -d $'\0' epoch &&
+          IFS= read -r -d $'\0' workspace_root &&
+          IFS= read -r -d $'\0' cwd &&
+          IFS= read -r -d $'\0' command; do
+      # Older records end the epoch with "}" because of a recorder defect.
+      epoch="${epoch%\}}"
+      [[ "$epoch" == <-> ]] || continue
+      epochs+=("$epoch")
+      workspace_roots+=("$workspace_root")
+      commands+=("$command")
+      keys+=("${epoch}:${#commands}")
+    done < "$file"
+  done
+
+  # Several files are not in time order together. Sort by epoch, so that the
+  # newest copy of a command wins the deduplication.
+  local -a order
+  local key
+  for key in "${(@n)keys}"; do
+    order+=("${key##*:}")
+  done
 
   typeset -A seen
-  local i adapted
-  for (( i = ${#commands}; i >= 1; --i )); do
+  local i j adapted
+  for (( j = ${#order}; j >= 1; --j )); do
+    i=${order[j]}
     _repo_history_adapt_command \
       "${workspace_roots[i]}" \
       "$_repo_history_workspace_root" \
