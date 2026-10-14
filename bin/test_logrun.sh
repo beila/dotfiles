@@ -432,9 +432,8 @@ check_grep "case21b: --no-zshrc log content"   "^direct\$" "$log"
 
 # -----------------------------------------------------------------------------
 # Case 22: --auto + threshold tripped AND non-zero exit. Failure branch
-# applies the FAILED rename. The in-run reveal already printed `Log: <orig>`,
-# so the final banner is `Log renamed: <FAILED path>` instead of a second
-# `Log:` line — keeps the user from thinking two separate logs were created.
+# applies the FAILED rename. Only one banner appears, `Log: <FAILED path>`,
+# and the original path is not printed.
 # -----------------------------------------------------------------------------
 new_logdir; d=$LOG_DIR
 LOGRUN_AUTO_LINES=2 "$UNDER_TEST" --auto --no-zshrc --log-dir "$d" \
@@ -447,8 +446,8 @@ banner_failed=$(grep -c 'FAILED.txt' "$d/stderr" 2>/dev/null; true)
 check "case22c: combo banner mentions FAILED"  "1" "$banner_failed"
 log_count=$(grep -cE '^Log: ' "$d/stderr" 2>/dev/null; true)
 check "case22d: only one 'Log:' banner"        "1" "$log_count"
-renamed_count=$(grep -cE '^Log renamed: ' "$d/stderr" 2>/dev/null; true)
-check "case22e: 'Log renamed:' line emitted"   "1" "$renamed_count"
+final_count=$(grep -cE '^Log: .*\.FAILED\.txt$' "$d/stderr" 2>/dev/null; true)
+check "case22e: banner shows the final path"   "1" "$final_count"
 
 # Case 23: --auto + -c does not buffer first line until later commands
 # finish. Regression for the bug where awk on the foreground side of the

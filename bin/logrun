@@ -330,16 +330,12 @@ strip_ansi=(sed -ur 's/\x1B\[([0-9]{1,3}(;[0-9]{1,2};?)?)?[mGK]//g; s/\x1B\][^\x
 _logrun_on_reveal() {
     # Suppressed when the wrapped command opted out via logrun-nolog.
     [[ -s "$LOGRUN_NOLOG_FILE" ]] && return
-    # Two markers, two purposes:
-    #   "$auto_lines_file.shown"   touched by awk/timer so logrun-decorator
-    #                              activates mid-run (synchronous; can't wait
-    #                              for the deferred USR2 trap below).
-    #   "$auto_lines_file.banner"  this trap's once-flag; controls whether
-    #                              we've already emitted the "Log:" line.
-    [[ -e "$auto_lines_file.banner" ]] && return
-    : > "$auto_lines_file.banner"
-    : > "$auto_lines_file.shown"   # idempotent; in case awk hasn't run
-    echo "Log: $log_path" >&2
+    # awk and the timer also touch this marker, so that logrun-decorator
+    # activates mid-run. This command is idempotent.
+    # The "Log:" banner is printed only at the end, with the final path.
+    # Bash runs this trap only after the pipeline returns, so an earlier
+    # banner gives no information before the end.
+    : > "$auto_lines_file.shown"
 }
 # Use a marker file rather than a shell variable for the "did we reveal?"
 # state, because bash signal traps run async with respect to the main
@@ -365,7 +361,7 @@ export LOGRUN_MOVE_FILE
 export LOGRUN_NOLOG_FILE
 # Clean side-channel files on exit. The auto_lines_file/auto_tui_file are
 # empty strings outside --auto mode so `rm -f ""` is a no-op.
-trap 'rm -f "$LOGRUN_MOVE_FILE" "$LOGRUN_NOLOG_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_lines_file.banner" "$auto_tui_file"; \
+trap 'rm -f "$LOGRUN_MOVE_FILE" "$LOGRUN_NOLOG_FILE" "$auto_lines_file" "$auto_lines_file.shown" "$auto_tui_file"; \
       [[ -n "$auto_timer_pid" ]] && kill "$auto_timer_pid" 2>/dev/null; :' EXIT
 
 _logrun_on_move() {
@@ -574,18 +570,15 @@ if (( auto_mode )); then
     [[ -s "$auto_lines_file" ]] && revealed=1
 
     if (( revealed )); then
-        # Threshold tripped during the run. On non-zero exit, apply the
-        # FAILED rename and surface the renamed path (the in-run trap
-        # already printed the original path, so this becomes a "Log
-        # renamed: …" line so the user doesn't think two separate logs
-        # were created).
+        # Threshold tripped during the run. Apply the FAILED rename before
+        # the banner, so that the banner shows only the final path.
         if (( exit_code != 0 )) && [[ -n "$fail_suffix" ]]; then
             failed_path="${log_path%.txt}.${fail_suffix}"
             if mv "$log_path" "$failed_path" 2>/dev/null; then
                 log_path="$failed_path"
-                echo "Log renamed: $log_path" >&2
             fi
         fi
+        echo "Log: $log_path" >&2
     else
         # Under threshold: the wrap stays invisible. Erase the log
         # regardless of exit code — a fast failure looks identical to
