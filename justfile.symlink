@@ -90,20 +90,22 @@ workspace $target $source=".":
     cd "${source}"
 
     my_branch={{ my_branch }}
-    if ! jj --version > /dev/null 2>&1;
-    then
+    if ! jj --version > /dev/null 2>&1 || ! jj root &> /dev/null; then
         git worktree add "${target}" ${my_branch:+-b ${my_branch}}
+        exit 0
     fi
 
-    if [[ -d .git || -f .git ]]; then
+    # A jj that is new enough creates the git worktree of a colocated
+    # repository. A git worktree that is registered first makes that fail.
+    jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
+    if [[ ( -d .git || -f .git ) && ! -e "${target}/.git" ]]; then
+        # An older jj made no git worktree. Make it first, then put the
+        # jj workspace in its directory.
+        jj workspace forget "${my_branch:-${target:t}}"
+        rm -rf "${target}"
         git worktree add "${target}" ${my_branch:+-b ${my_branch}}
-
-        jj root &> /dev/null || exit 0
-
         gitdir="$(<"${target}"/.git)"
         rm -rf "${target}"
         jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
         echo "${gitdir}" > "${target}"/.git
-    else
-        jj workspace add "${target}" ${my_branch:+--name ${my_branch}}
     fi
