@@ -520,6 +520,20 @@ _logrun_tune_precmd() {
 typeset -g _logrun_orig_buffer=""
 
 _logrun_auto_accept_line() {
+    # Expand history references before the rewrite. The (q) quoting of the
+    # -c form escapes "!", so zsh does not expand it after the rewrite.
+    if [[ -o banghist && ( "$BUFFER" == *'!'* || "$BUFFER" == '^'* ) ]]; then
+        local _logrun_unexpanded="$BUFFER"
+        zle .expand-history
+        if [[ "$BUFFER" != "$_logrun_unexpanded" && -o histverify ]]; then
+            # Let zsh show the expansion for verification. The next accept
+            # receives the expanded line and rewrites it.
+            BUFFER="$_logrun_unexpanded"
+            _logrun_orig_buffer=""
+            zle .accept-line
+            return
+        fi
+    fi
     local _logrun_input_buffer="$BUFFER"
     _logrun_orig_buffer=""
     local _logrun_decision _logrun_first _logrun_kind

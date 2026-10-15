@@ -59,13 +59,27 @@ note() { echo "$*"; }
 # a home of /home/ab does not change /local/home/ab, the home of another machine.
 # A name before it without "/", as in -L/home/ab, is permitted. The loop restarts
 # after each change, because a match uses the character before the next match.
-home_re=$(printf '%s' "$HOME" | sed 's/[][\.^$*+?(){}|/]/\\&/g')
+#
+# $HOME can be a symbolic link, for example /home/ab -> /local/home/ab. Programs
+# that resolve links write the real path, so the real path is also the home
+# directory. Replace it first. The render step writes $HOME.
+escape_re() { printf '%s' "$1" | sed 's/[][\.^$*+?(){}|/]/\\&/g'; }
+home_re=$(escape_re "$HOME")
+home_real=$(readlink -f "$HOME" 2>/dev/null) || home_real=$HOME
+home_real_re=$(escape_re "$home_real")
 home_repl=$(printf '%s' "$HOME" | sed 's/[\/&]/\\&/g')
 
-generalize() {
+generalize_re() {
     sed -E -e ':a' \
-        -e "s/(^|[^/[:alnum:]_.-])([[:alnum:]_.-]*)${home_re}([^[:alnum:]_]|\$)/\\1\\2${TOKEN}\\3/" \
-        -e 'ta' "$1"
+        -e "s/(^|[^/[:alnum:]_.-])([[:alnum:]_.-]*)${1}([^[:alnum:]_]|\$)/\\1\\2${TOKEN}\\3/" \
+        -e 'ta' "$2"
+}
+generalize() {
+    if [ "$home_real" = "$HOME" ]; then
+        generalize_re "$home_re" "$1"
+    else
+        generalize_re "$home_real_re" "$1" | generalize_re "$home_re" -
+    fi
 }
 # Rule before 2026-10-09, without the check before the match. A state file written
 # with it still agrees with the live file. Remove when every machine has synced.
@@ -334,7 +348,8 @@ convert_new() {
             jj --ignore-working-copy file list 2>/dev/null
             rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
                 -g '!.jj' -g '!.git' 2>/dev/null
-        } | sort -u | tr '\n' '\0' | xargs -0 -r rg -l -F --no-messages -- "$HOME" 2>/dev/null |
+        } | sort -u | tr '\n' '\0' |
+            xargs -0 -r rg -l -F --no-messages -e "$HOME" -e "$home_real" -- 2>/dev/null |
             # rg prints in no fixed order. Machines that convert the same files then add
             # the same .gitignore lines in the same order, so the changes merge cleanly.
             LC_ALL=C sort

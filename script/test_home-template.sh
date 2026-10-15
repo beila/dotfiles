@@ -214,6 +214,30 @@ check "rebase after the remote tracked the file again has no conflicts" '[ -z "$
 check "render merges the local edit into the received file" '[ "$(cat x.conf)" = "$(printf "a-local\nb\n/opt/m\nd\ne-remote")" ]'
 check "the received file is tracked" 'tracked x.conf'
 
+# --- home directory is a symbolic link ----------------------------------------
+# On electra, $HOME is /home/hojin -> /local/home/hojin. Programs that resolve
+# links write the real path. Both forms must become the token.
+mkdir -p "$TMP/local/link-home"
+ln -s "$TMP/local/link-home" "$TMP/link-home"
+R="$TMP/repo-link"
+mkdir -p "$R"
+cd "$R" || exit 1
+jj git init >/dev/null 2>&1
+printf 'real=%s/local/link-home/a\nlink=%s/link-home/b\n' "$TMP" "$TMP" >paths.conf
+HOME="$TMP/link-home" XDG_STATE_HOME="$TMP/state-link" "$HT" capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "symlinked home: capture exits 0" '[ $rc -eq 0 ]'
+check "symlinked home: real path and link path become the token" \
+    '[ "$(cat paths.conf.home-template)" = "$(printf "real=@HOME@/a\nlink=@HOME@/b")" ]'
+rm paths.conf
+HOME="$TMP/link-home" XDG_STATE_HOME="$TMP/state-link" "$HT" render >"$TMP/out" 2>"$TMP/err"
+check "symlinked home: render writes \$HOME" \
+    '[ "$(cat paths.conf)" = "$(printf "real=%s/link-home/a\nlink=%s/link-home/b" "$TMP" "$TMP")" ]'
+HOME="$TMP/link-home" XDG_STATE_HOME="$TMP/state-link" "$HT" capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "symlinked home: capture after render changes nothing" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && [ ! -s "$TMP/err" ]'
+
 echo
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

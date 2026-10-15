@@ -325,13 +325,16 @@ _check "e2e/nolog: passthrough"     "NOLOG=1 echo unwrapped" "$BUFFER"
 # Real ZLE regression: HIST_VERIFY must expose the original command, and
 # history word designators must use the original command's lexical words.
 zmodload zsh/zpty
+# _logrun_history_read_until MARKER [FIRST]: with FIRST, MARKER must come
+# after FIRST. Use it to wait for the prompt after the command output: the
+# echo of the typed line contains the prompt too.
 _logrun_history_read_until() {
-    local marker=$1 chunk i
+    local marker=$1 first=${2-} chunk i
     _logrun_history_output=""
     for i in {1..1000}; do
         chunk=""
         zpty -r -t "$_logrun_history_pty" chunk 2>/dev/null && _logrun_history_output+="$chunk"
-        [[ "$_logrun_history_output" == *"$marker"* ]] && return 0
+        [[ "$_logrun_history_output" == *"$first"*"$marker"* ]] && return 0
         sleep 0.01
     done
     return 1
@@ -339,18 +342,25 @@ _logrun_history_read_until() {
 
 typeset -g _logrun_history_output="" _logrun_history_pty="logrun_history"
 typeset -i _logrun_bang_ok=0 _logrun_last_arg_ok=0
-zpty -b logrun_history zsh -f
+# Compound commands run as `logrun -c`, which starts `zsh -ic`. An empty
+# ZDOTDIR keeps the user's zshrc and its prompt out of the pty output. The
+# empty .zshrc stops zsh-newuser-install.
+_logrun_history_zdotdir=$(mktemp -d /tmp/test_logrun-auto-zdotdir.XXXXXX)
+: >"$_logrun_history_zdotdir/.zshrc"
+zpty -b logrun_history env ZDOTDIR="$_logrun_history_zdotdir" zsh -f
 zpty -w logrun_history "PS1='HIST''PROMPT> '; HISTFILE=/dev/null; HISTSIZE=100; SAVEHIST=100; setopt banghist histverify histnostore inc_append_history share_history; LOGRUN_AUTO_TUNING=0; source ${(q)WIDGET_PATH}"
 if _logrun_history_read_until 'HISTPROMPT> '; then
     zpty -w logrun_history "/usr/bin/printf '<%s>\\n' alpha gamma; /usr/bin/true sentinel"
-    if _logrun_history_read_until 'HISTPROMPT> '; then
+    if _logrun_history_read_until 'HISTPROMPT> ' '<gamma>'; then
         zpty -w logrun_history '!!'
-        if _logrun_history_read_until 'HISTPROMPT> '; then
+        # The echo of "!!" already contains the prompt. Wait for the redraw
+        # of HIST_VERIFY.
+        if _logrun_history_read_until 'HISTPROMPT> /usr/bin/printf'; then
             [[ "$_logrun_history_output" == *'HISTPROMPT> /usr/bin/printf'* && "$_logrun_history_output" != *'HISTPROMPT> logrun '* ]] && _logrun_bang_ok=1
             zpty -w -n logrun_history $'\n'
             if _logrun_history_read_until 'HISTPROMPT> '; then
                 zpty -w logrun_history 'echo !$'
-                if _logrun_history_read_until 'HISTPROMPT> '; then
+                if _logrun_history_read_until 'HISTPROMPT> echo sentinel'; then
                     [[ "$_logrun_history_output" == *'HISTPROMPT> echo sentinel'* ]] && _logrun_last_arg_ok=1
                 fi
             fi
@@ -363,7 +373,7 @@ zpty -d logrun_history 2>/dev/null
 _logrun_history_pty="logrun_history_related"
 typeset -i _logrun_all_args_ok=0 _logrun_event_ok=0
 typeset _logrun_target_event=""
-zpty -b "$_logrun_history_pty" zsh -f
+zpty -b "$_logrun_history_pty" env ZDOTDIR="$_logrun_history_zdotdir" zsh -f
 zpty -w "$_logrun_history_pty" "PS1='HIST''EVENT:%h> '; HISTFILE=/dev/null; HISTSIZE=100; SAVEHIST=100; setopt banghist histverify histnostore inc_append_history share_history; LOGRUN_AUTO_TUNING=0; source ${(q)WIDGET_PATH}"
 if _logrun_history_read_until 'HISTEVENT:'; then
     zpty -w "$_logrun_history_pty" "/usr/bin/printf '<%s>\\n' alpha gamma"
@@ -387,6 +397,25 @@ fi
 _check 'history/pty: !* expands original arguments' "1" "$_logrun_all_args_ok"
 _check 'history/pty: !N expands original event' "1" "$_logrun_event_ok"
 zpty -d "$_logrun_history_pty" 2>/dev/null
+
+# Without HIST_VERIFY, a rewritten -c command must get the expansion. The
+# (q) quoting of the rewrite escaped "!", so `!$` reached the command as text.
+_logrun_history_pty="logrun_history_noverify"
+typeset -i _logrun_noverify_ok=0
+zpty -b "$_logrun_history_pty" env ZDOTDIR="$_logrun_history_zdotdir" zsh -f
+zpty -w "$_logrun_history_pty" "PS1='HIST''NV> '; HISTFILE=/dev/null; HISTSIZE=100; setopt banghist; LOGRUN_AUTO_TUNING=0; source ${(q)WIDGET_PATH}"
+if _logrun_history_read_until 'HISTNV> '; then
+    zpty -w "$_logrun_history_pty" "/usr/bin/true expanded-arg"
+    if _logrun_history_read_until 'HISTNV> ' 'expanded-arg'; then
+        zpty -w "$_logrun_history_pty" 'echo "<$(/usr/bin/printf %s !$)>"'
+        if _logrun_history_read_until 'HISTNV> ' '>'$'\r'; then
+            [[ "$_logrun_history_output" == *'<expanded-arg>'* ]] && _logrun_noverify_ok=1
+        fi
+    fi
+fi
+_check 'history/pty: !$ in a -c command expands without HIST_VERIFY' "1" "$_logrun_noverify_ok"
+zpty -d "$_logrun_history_pty" 2>/dev/null
+rm -rf "$_logrun_history_zdotdir"
 
 echo
 echo "PASS: $PASS  FAIL: $FAIL"
