@@ -6,7 +6,7 @@
       "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
       "env" : {
         "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
-        "AIM_CREDS_AGENT_INJECTION" : "babad3dc-7322-48e9-be29-a4131f5d52d2"
+        "AIM_CREDS_AGENT_INJECTION" : "c6694cf7-a3f0-4a21-9194-5adb6bfc6750"
       }
     }
   },
