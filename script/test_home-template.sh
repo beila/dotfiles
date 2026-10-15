@@ -215,7 +215,7 @@ check "render merges the local edit into the received file" '[ "$(cat x.conf)" =
 check "the received file is tracked" 'tracked x.conf'
 
 # --- home directory is a symbolic link ----------------------------------------
-# On electra, $HOME is /home/hojin -> /local/home/hojin. Programs that resolve
+# On electra, $HOME is a link like /home/alice -> /local/home/alice. Programs that resolve
 # links write the real path. Both forms must become the token.
 mkdir -p "$TMP/local/link-home"
 ln -s "$TMP/local/link-home" "$TMP/link-home"
