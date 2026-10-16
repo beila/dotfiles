@@ -48,7 +48,12 @@ cd "$root" || exit 2
 
 state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/home-template
 tmp_dir=$(mktemp -d)
-trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
+trap 'rm -rf "$tmp_dir"' EXIT
+# A signal must stop the run. Without the exit, the loops continue without $tmp_dir
+# and write empty templates.
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 failed=0
 warn() { echo "home-template: $*" >&2; failed=1; }
@@ -175,6 +180,20 @@ forget_tracked() {
     unset 'tracked_loaded[$1]'
 }
 
+# A FILE with a template is ignored and untracked. Collect the untrack operations, and
+# run them in one jj command at the end of the step.
+untrack=()
+ensure_untracked() {
+    add_ignore "$1"
+    is_tracked @ "$1" && untrack+=("root:$1")
+    return 0
+}
+flush_untrack() {
+    [ ${#untrack[@]} -gt 0 ] || return 0
+    jj file untrack "${untrack[@]}" >/dev/null || warn "could not untrack ${untrack[*]}"
+    untrack=()
+}
+
 templates_in() {
     jj --ignore-working-copy file list -r "$1" "glob:\"**/*$SUFFIX\"" 2>/dev/null
 }
@@ -184,8 +203,7 @@ templates_in() {
 working_templates() {
     {
         templates_in @
-        rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
-            -g "*$SUFFIX" -g '!.jj' -g '!.git' 2>/dev/null
+        trackable_untracked -g "*$SUFFIX"
     } | sort -u
 }
 
@@ -300,6 +318,8 @@ capture_one() {
     [ -f "$x" ] && [ ! -L "$x" ] || return 0
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not captured"; return 0; }
     grep -qF "$TOKEN" "$x" && { warn "$x contains $TOKEN; not captured"; return 0; }
+    # Repair a conversion that stopped before the untrack step.
+    ensure_untracked "$x"
     generalize_live "$x" "$live"
     if cmp -s "$live" "$t"; then
         save_state "$x" "$t"
@@ -320,43 +340,72 @@ capture_one() {
     fi
 }
 
+# Untracked files that jj will track at the next snapshot. jj also reads the info/exclude
+# file of the Git store and core.excludesFile, but rg reads them only in a plain Git
+# checkout. A secondary workspace has no such checkout, so give both files to rg.
+# Arguments go to rg.
+trackable_untracked() {
+    local -a ignore=()
+    local git_dir global
+    git_dir=$(jj --ignore-working-copy git root 2>/dev/null) &&
+        [ -f "$git_dir/info/exclude" ] && ignore+=(--ignore-file "$git_dir/info/exclude")
+    global=$(git config --path --get core.excludesFile 2>/dev/null) &&
+        [ -f "$global" ] && ignore+=(--ignore-file "$global")
+    rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
+        ${ignore[@]+"${ignore[@]}"} -g '!.jj' -g '!.git' "$@" 2>/dev/null
+}
+
+# A run converts at most this number of new files. A larger number is almost always
+# generated output, such as a build tree that no .gitignore excludes. Each conversion
+# runs sed on the file and adds .gitignore lines, and a large batch exceeds the timeout.
+max_new=$(jj --ignore-working-copy config get sync.home-template-max-new 2>/dev/null) || max_new=
+[[ $max_new =~ ^[0-9]+$ ]] || max_new=50
+
 # Convert text files that contain the home directory. Search tracked files, and
 # untracked files that jj will track at the next snapshot.
 convert_new() {
     local f t gen=$tmp_dir/gen
-    local -a untrack=()
+    local -a candidates=()
     while IFS= read -r f; do
         case "$f" in *"$SUFFIX") continue ;; esac
         is_excluded "$f" && continue
         [ -f "$f" ] && [ ! -L "$f" ] || continue
-        t=$f$SUFFIX
-        [ -e "$t" ] && continue
+        [ -e "$f$SUFFIX" ] && continue
         is_text "$f" || continue
         if grep -qF "$TOKEN" "$f"; then
             warn "$f contains the home directory and $TOKEN; not converted"
             continue
         fi
-        generalize "$f" >"$gen"
-        cmp -s "$gen" "$f" && continue
-        replace_file "$t" "$gen" "$f" || { warn "could not write $t"; continue; }
-        add_ignore "$f"
-        save_state "$f" "$gen"
-        is_tracked @ "$f" && untrack+=("root:$f")
-        note "converted $f to $t"
+        candidates+=("$f")
     done < <(
         {
             jj --ignore-working-copy file list 2>/dev/null
-            rg --files --hidden --no-require-git --no-ignore-parent --no-ignore-dot \
-                -g '!.jj' -g '!.git' 2>/dev/null
+            trackable_untracked
         } | sort -u | tr '\n' '\0' |
             xargs -0 -r rg -l -F --no-messages -e "$HOME" -e "$home_real" -- 2>/dev/null |
             # rg prints in no fixed order. Machines that convert the same files then add
             # the same .gitignore lines in the same order, so the changes merge cleanly.
             LC_ALL=C sort
     )
-    if [ ${#untrack[@]} -gt 0 ] && ! jj file untrack "${untrack[@]}" >/dev/null; then
-        warn "could not untrack ${untrack[*]}"
+    if [ ${#candidates[@]} -gt "$max_new" ]; then
+        warn "${#candidates[@]} new files contain the home directory (limit $max_new); converted none." \
+            "Ignore generated directories, add them to sync.home-template-exclude," \
+            "or raise sync.home-template-max-new. Directories with the most files:" \
+            "$(printf '%s\n' "${candidates[@]}" | sed -E 's|^([^/]+)/.*|\1/|; t; s|.*|./|' |
+                sort | uniq -c | sort -rn | head -n 5 | awk '{printf " %s (%s)", $2, $1}')"
+        return 0
     fi
+    for f in "${candidates[@]}"; do
+        t=$f$SUFFIX
+        generalize "$f" >"$gen" || { warn "could not read $f"; continue; }
+        cmp -s "$gen" "$f" && continue
+        # Save the state first. A run that stops after it leaves no template without a
+        # state, and the next run converts the file again.
+        save_state "$f" "$gen" || { warn "could not save the state of $f"; continue; }
+        replace_file "$t" "$gen" "$f" || { warn "could not write $t"; continue; }
+        ensure_untracked "$f"
+        note "converted $f to $t"
+    done
 }
 
 # Write the template changes to FILE.
@@ -462,6 +511,7 @@ case "${1:-}" in
         follow_retrack
         while IFS= read -r t; do capture_one "$t"; done < <(working_templates)
         convert_new
+        flush_untrack
         ;;
     render)
         load_conflicts

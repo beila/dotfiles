@@ -214,6 +214,38 @@ check "rebase after the remote tracked the file again has no conflicts" '[ -z "$
 check "render merges the local edit into the received file" '[ "$(cat x.conf)" = "$(printf "a-local\nb\n/opt/m\nd\ne-remote")" ]'
 check "the received file is tracked" 'tracked x.conf'
 
+# --- limits and ignore sources -------------------------------------------------
+G="$TMP/generated"
+mkdir -p "$G"
+cd "$G" || exit 1
+# Without a Git checkout, rg does not read info/exclude by itself.
+jj git init --no-colocate >/dev/null 2>&1
+mkdir -p build_x
+for i in 1 2 3; do printf 'dir=%s/b%s\n' "$H" "$i" >"build_x/f$i.txt"; done
+jj config set --repo sync.home-template-max-new 2 >/dev/null 2>&1
+"$HT" capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "more new files than the limit: nothing is converted" \
+    '[ $rc -eq 1 ] && [ -z "$(find . -name "*.home-template" -not -path "./.jj/*")" ] && [ ! -e build_x/.gitignore ]'
+check "the limit warning names the directory" 'grep -q "3 new files" "$TMP/err" && grep -q "build_x/ (3)" "$TMP/err"'
+
+# jj reads info/exclude of the Git store, also in a workspace without a Git checkout.
+git_dir=$(jj --ignore-working-copy git root)
+mkdir -p "$git_dir/info"
+printf '/build_x/\n' >>"$git_dir/info/exclude"
+"$HT" capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "files that info/exclude ignores are not converted" '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ]' ||
+    cat "$TMP/out" "$TMP/err"
+jj config unset --repo sync.home-template-max-new >/dev/null 2>&1
+
+# A conversion that stopped before the untrack step leaves FILE tracked.
+printf 'p=%s/half\n' "$H" >half.conf
+jj status >/dev/null 2>&1
+printf 'p=@HOME@/half\n' >half.conf.home-template
+"$HT" capture >"$TMP/out" 2>"$TMP/err"
+check "capture untracks a FILE that has a template" '! tracked half.conf && has_line .gitignore /half.conf'
+
 # --- home directory is a symbolic link ----------------------------------------
 # On electra, $HOME is a link like /home/alice -> /local/home/alice. Programs that resolve
 # links write the real path. Both forms must become the token.
