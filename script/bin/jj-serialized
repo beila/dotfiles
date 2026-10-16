@@ -14,6 +14,17 @@ if [ "${JJ_SERIALIZED_LOCK_HELD:-0}" = "1" ] ||
     exec "$REAL_JJ" "$@"
 fi
 
+# Help, version, and completion output never loads the working copy. Shell startup
+# runs these commands, so a long sync must not block a new shell.
+prev=
+for arg in "$@"; do
+    case "$prev $arg" in
+        *" -h"|*" --help"|*" --version"|" help"|" version"|"util completion"|"util config-schema"|"util markdown-help"|"util install-man-pages")
+            exec "$REAL_JJ" "$@" ;;
+    esac
+    prev=$arg
+done
+
 # Honor jj's global repository selector when the command runs outside the
 # target checkout. Relative paths are resolved from the caller's directory.
 repo_dir=$PWD

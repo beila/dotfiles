@@ -93,6 +93,19 @@ check "declared read-only command bypasses locking" \
     "start:one start:two end:two end:one" \
     "$(tr '\n' ' ' < "$EVENTS" | sed 's/ $//')"
 
+for cmd in "util --help" "util completion zsh" "-r util completion zsh" "--version"; do
+    : > "$EVENTS"
+    TEST_GIT_ROOT="$TMPDIR/repo-a/.git" TEST_ID=one TEST_SLEEP=0.4 "$WRAPPER" hold &
+    first=$!
+    wait_for_event start:one
+    # shellcheck disable=SC2086
+    TEST_GIT_ROOT="$TMPDIR/repo-a/.git" TEST_ID=two TEST_SLEEP=0 "$WRAPPER" $cmd
+    wait "$first"
+    check "shell-startup command '$cmd' bypasses locking" \
+        "start:one start:two end:two end:one" \
+        "$(tr '\n' ' ' < "$EVENTS" | sed 's/ $//')"
+done
+
 : > "$EVENTS"
 (
     cd "$TMPDIR" || exit
