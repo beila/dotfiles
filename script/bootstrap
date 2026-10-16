@@ -152,6 +152,8 @@ install_dotfiles () {
   do
     local base="$HOME/.$(basename "${dir%.*}")"
     find -H -L "$dir" -type f | while read -r src; do
+      # AIM rewrites the Kiro agent files. kiro-agent-split copies them below.
+      case "$src" in "$DOTFILES_ROOT"/kiro.filesymlink/agents/*.json) continue ;; esac
       local rel="${src#$dir/}"
       local dst="$base/$rel"
       mkdir -p "$(dirname "$dst")"
@@ -167,6 +169,8 @@ install_dotfiles () {
       fi
     done
   done
+
+  "$DOTFILES_ROOT/script/bin/kiro-agent-split" apply && success "copied kiro agents to $HOME/.kiro/agents"
 }
 
 setup_dotfiles_sync () {

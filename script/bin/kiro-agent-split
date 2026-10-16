@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+# Keep the AIM token churn of the Kiro agent files out of the repository.
+# AIM writes a new AIM_CREDS_AGENT_INJECTION value into each agent file at each Kiro launch.
+# The live files in ~/.kiro/agents are copies, not links. The tracked files keep a fixed value.
+#
+#   kiro-agent-split extract   live file edits -> kiro.filesymlink/agents (tracked values stay)
+#   kiro-agent-split apply     kiro.filesymlink/agents -> live files (live values stay)
+#
+# sync_repo runs extract as sync.pre-snapshot and apply as sync.post-update (jj/user.toml in
+# private-dotfiles). script/bootstrap runs apply instead of making links.
+# The edits are textual. Thus the AIM formatting stays, and the diffs stay small.
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")/../.." && pwd -P)
+tracked_dir=${KIRO_AGENT_SPLIT_TRACKED:-$root/kiro.filesymlink/agents}
+live_dir=${KIRO_AGENT_SPLIT_LIVE:-$HOME/.kiro/agents}
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/kiro-agent-split/$(printf '%s' "$tracked_dir" | sha256sum | cut -c1-16)
+ephemeral_keys=(AIM_CREDS_AGENT_INJECTION)
+
+# The machines have different home directories. The tracked files use the literal "$HOME".
+home_re=$(printf '%s' "$HOME" | sed 's/[][\.*^$|]/\\&/g')
+home_sub=$(printf '%s' "$HOME" | sed 's/[\&|]/\\&/g')
+generalize() { sed -e "s|$home_re|\$HOME|g"; }
+localize() { sed -e "s|\\\$HOME|$home_sub|g"; }
+
+value_of() {
+    [ -f "$2" ] || return 0
+    sed -n 's/.*"'"$1"'" *: *"\([A-Za-z0-9._-]*\)".*/\1/p' "$2" | head -n 1
+}
+
+# with_values_of FILE: copy stdin to stdout, with the ephemeral values of FILE.
+with_values_of() {
+    local args=() key value
+    for key in "${ephemeral_keys[@]}"; do
+        value=$(value_of "$key" "$1")
+        if [ -n "$value" ]; then
+            args+=(-e "s/\(\"$key\" *: *\"\)[A-Za-z0-9._-]*\"/\1$value\"/")
+        fi
+    done
+    sed -e '' ${args[@]+"${args[@]}"}
+}
+
+# Replace TARGET with FILE when the bytes are different. A link becomes a regular file.
+install_if_changed() {
+    local file=$1 target=$2
+    if [ ! -L "$target" ] && cmp -s "$file" "$target"; then
+        rm -f "$file"
+        return 0
+    fi
+    # The live files contain a token. A new live file is private, as AIM makes it.
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+        chmod --reference="$target" "$file"
+    else
+        chmod 600 "$file"
+    fi
+    mv -f "$file" "$target"
+}
+
+# Older setups linked the live file to the tracked file. AIM then wrote into the repository.
+detach() {
+    local live=$1 tmp
+    [ -L "$live" ] && [ -f "$live" ] || return 0
+    tmp=$(mktemp "$live.XXXXXX")
+    cat "$live" >"$tmp"
+    install_if_changed "$tmp" "$live"
+}
+
+# The state copy is the tracked content at the last sync. It is the base of a 3-way merge
+# when both the live file and the tracked file changed.
+extract_one() {
+    local tracked=$1 live=$2 base=$3 next merged
+    [ -e "$live" ] || return 0
+    if [ -f "$base.live" ]; then
+        echo "kiro-agent-split: $base.live has an unmerged live edit; ${tracked##*/} not changed" >&2
+        return 1
+    fi
+    detach "$live"
+    if ! jq empty "$live" 2>/dev/null; then
+        echo "kiro-agent-split: $live is not valid JSON; ${tracked##*/} not changed" >&2
+        return 1
+    fi
+    next=$(mktemp "$tracked.XXXXXX")
+    generalize <"$live" | with_values_of "$tracked" >"$next"
+    if [ -f "$base" ] && cmp -s "$next" "$base"; then
+        rm -f "$next"
+    elif [ -f "$base" ] && ! cmp -s "$tracked" "$base"; then
+        merged=$(mktemp "$tracked.XXXXXX")
+        if git merge-file -p "$tracked" "$base" "$next" >"$merged"; then
+            rm -f "$next"
+            install_if_changed "$merged" "$tracked"
+        else
+            rm -f "$merged"
+            mv -f "$next" "$base.live"
+            echo "kiro-agent-split: ${tracked##*/} and $live both changed." \
+                "Merge $base.live into the tracked file, remove $base.live, and run apply." >&2
+            return 1
+        fi
+    else
+        install_if_changed "$next" "$tracked"
+    fi
+    cp "$tracked" "$base"
+}
+
+apply_one() {
+    local tracked=$1 live=$2 base=$3 next
+    if ! jq empty "$tracked" 2>/dev/null; then
+        echo "kiro-agent-split: $tracked is not valid JSON (unresolved conflict?); $live not changed" >&2
+        return 1
+    fi
+    if [ -f "$base.live" ]; then
+        echo "kiro-agent-split: $base.live has an unmerged live edit; $live not changed" >&2
+        return 1
+    fi
+    detach "$live"
+    next=$(mktemp "$live.XXXXXX")
+    localize <"$tracked" | with_values_of "$live" >"$next"
+    install_if_changed "$next" "$live"
+    cp "$tracked" "$base"
+}
+
+case "${1:-}" in
+    extract | apply) mode=$1 ;;
+    *) echo "usage: kiro-agent-split extract|apply" >&2; exit 2 ;;
+esac
+
+mkdir -p "$live_dir" "$state_dir"
+status=0
+for tracked in "$tracked_dir"/*.json; do
+    [ -f "$tracked" ] || continue
+    name=${tracked##*/}
+    "${mode}_one" "$tracked" "$live_dir/$name" "$state_dir/$name" || status=1
+done
+exit "$status"

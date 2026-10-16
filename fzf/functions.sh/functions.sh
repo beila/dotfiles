@@ -323,6 +323,34 @@ _jj_revset_awk_file="${_fzf_functions_sh%/functions.sh}/jj-selection-revset.awk"
 _jj_enter_revset="enter:become(printf '%s\n' {+n} -- {+2} | awk -f $_jj_revset_awk_file)"
 _jj_commit_revset="ctrl-x:become(printf '%s\n' {+n} -- $_jj_commit_field | awk -v cr_range=1 -f $_jj_revset_awk_file)"
 
+# Print the fzf action for ctrl-d: open CodeDiff from the parent of the oldest selected
+# commit to the newest selected commit. This is the same range rule as the Enter action
+# of the Neovim JJ revision picker (lua/jj-diff-picker.lua).
+# Print a change-header action with the error if the selection is not one ancestry range.
+_jj_codediff_action() {
+  local ids=() id
+  for id in "$@"; do [[ -n "$id" ]] && ids+=("$id"); done
+  (( ${#ids} )) || { echo "change-header(⚠ select at least one revision)"; return; }
+  local rs="${(j: | :)ids}" roots heads parents
+  _jj_codediff_ids() {
+    JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --no-graph \
+      -r "$1" -T 'commit_id ++ "\n"' 2>/dev/null
+  }
+  roots=("${(@f)$(_jj_codediff_ids "roots($rs)")}")
+  heads=("${(@f)$(_jj_codediff_ids "heads($rs)")}")
+  if (( ${#roots} != 1 || ${#heads} != 1 )) || [[ -z $roots[1] ]]; then
+    echo "change-header(⚠ selected revisions do not form one ancestry range)"; return
+  fi
+  parents=("${(@f)$(_jj_codediff_ids "parents($roots[1])")}")
+  if (( ${#parents} != 1 )) || [[ -z $parents[1] ]]; then
+    echo "change-header(⚠ the oldest selected revision must have exactly one parent)"; return
+  fi
+  echo "execute(nvim -c 'CodeDiff $parents[1] $heads[1]')"
+}
+# Pass the ids as positional arguments. fzf quotes each {+4} value, and that quoting
+# breaks when the value is inside the single-quoted zsh -c script.
+_jj_codediff_bind="ctrl-d:transform(zsh -c 'source $_fzf_functions_sh; _jj_codediff_action \"\$@\"' _ $_jj_commit_field)"
+
 # Command that fixes `jj log -s` file-line alignment, piped after the file-view
 # `jj log` in _jj_log_reload. The gawk program lives in jj-align-files.awk (next
 # to this file) — NOT inline — because the reload command crosses several shell
@@ -363,12 +391,12 @@ _jh() {
   rl_files=$(_jj_log_reload 'fzf_oneline ++ fzf_files_suffix' "$rv")
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
-    --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
+    --header '☐ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x) codediff (ctrl-d)' \
     --accept-nth=$_jj_change_field --bind "$_jj_enter_revset" \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
-    --bind "$_jj_commit_revset" \
+    --bind "$_jj_commit_revset" --bind "$_jj_codediff_bind" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jhh \"\$FZF_ID\" {q}')"
 }
 
@@ -432,12 +460,12 @@ _jhh() {
   rl_files=$(_jj_log_reload 'fzf_oneline_author ++ fzf_files_suffix' "$rv")
   JJ_SERIALIZED_READ_ONLY=1 jj --at-operation "$JJ_FZF_OPERATION" --quiet log --color=always -T 'fzf_oneline_author' -r "$rv" 2>/dev/null | _jj_log_fzf \
     --prompt 'log> ' \
-    --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x)' \
+    --header '☑ full log (ctrl-h) files (ctrl-s) insert after (ctrl-o) commit-id (ctrl-x) codediff (ctrl-d)' \
     --accept-nth=$_jj_change_field --bind "$_jj_enter_revset" \
     "${pos_bind[@]}" ${2:+--query "$2"} \
     --bind 'ctrl-o:transform:id=$('"$_jj_change_id"'); if err=$(jj new --no-edit --after "$id" 2>&1); then [[ $FZF_PROMPT == log+files* ]] && echo "'"$rl_files"'" || echo "'"$rl_plain"'"; else echo "change-header(⚠ $err)"; fi' \
     --bind 'ctrl-s:transform:[[ $FZF_PROMPT == log+files* ]] && echo "change-prompt(log> )+'"$rl_plain"'" || echo "change-prompt(log+files> )+'"$rl_files"'"' \
-    --bind "$_jj_commit_revset" \
+    --bind "$_jj_commit_revset" --bind "$_jj_codediff_bind" \
     --bind "ctrl-h:become(FZF_ID=\$($_jj_change_id) zsh -c 'source $_fzf_functions_sh; _jh \"\$FZF_ID\" {q}')"
 }
 
