@@ -4,6 +4,9 @@
     "tts" : {
       "command" : "~/.dotfiles/bin/mcp-tts"
     },
+    "artifactory-mcp" : {
+      "command" : "$HOME/.toolbox/bin/artifactory-mcp"
+    },
     "creds-agent" : {
       "command" : "aim",
       "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],

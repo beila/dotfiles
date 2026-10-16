@@ -1,7 +1,7 @@
 {
   "name" : "builder",
   "description" : "Local override: builder agent + TTS MCP server",
-  "tools" : [ "@builtin", "@builder-mcp", "@tts", "@creds-agent" ],
+  "tools" : [ "@builtin", "@builder-mcp", "@tts", "@artifactory-mcp", "@creds-agent" ],
   "allowedTools" : [ "fs_read", "glob", "grep", "code", "web_search", "web_fetch", "WorkspaceSearch", "execute_bash:cat *", "execute_bash:ls *", "execute_bash:head *", "execute_bash:tail *", "execute_bash:wc *", "execute_bash:file *", "execute_bash:stat *", "execute_bash:find *", "execute_bash:fd *", "execute_bash:rg *", "execute_bash:jq *", "execute_bash:git -P *", "execute_bash:git status*", "execute_bash:git ls-files*", "execute_bash:jj *", "@builder-mcp/ReadInternalWebsites", "@builder-mcp/InternalCodeSearch", "@builder-mcp/InternalSearch", "@builder-mcp/SkillsTool", "@builder-mcp/TicketingReadActions", "@builder-mcp/TaskeiGetRooms", "@builder-mcp/TaskeiGetTask", "@builder-mcp/TaskeiListTasks", "@builder-mcp/ToolReactivationTool", "@builder-mcp/WorkspaceSearch", "@tts", "fs_write:*AGENTS.md", "@creds-agent" ],
   "resources" : [ "file://README.md", "file://AGENTS.md", "file://.kiro/steering/**/*.md", "file://$HOME/.aim/packages/AmazonBuilderCoreAIAgents-1.0/eventId-6430624819/context/amazon-builder/**/*.md" ],
   "useLegacyMcpJson" : false,
@@ -16,6 +16,9 @@
     },
     "tts" : {
       "command" : "~/.dotfiles/bin/mcp-tts"
+    },
+    "artifactory-mcp" : {
+      "command" : "$HOME/.toolbox/bin/artifactory-mcp"
     },
     "creds-agent" : {
       "command" : "aim",

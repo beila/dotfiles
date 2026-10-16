@@ -82,7 +82,9 @@ extract_one() {
     next=$(mktemp "$tracked.XXXXXX")
     generalize <"$live" | with_values_of "$tracked" >"$next"
     if [ -f "$base" ] && cmp -s "$next" "$base"; then
+        # Only the ephemeral values changed. A tracked edit waits for apply.
         rm -f "$next"
+        return 0
     elif [ -f "$base" ] && ! cmp -s "$tracked" "$base"; then
         merged=$(mktemp "$tracked.XXXXXX")
         if git merge-file -p "$tracked" "$base" "$next" >"$merged"; then
@@ -107,11 +109,12 @@ apply_one() {
         echo "kiro-agent-split: $tracked is not valid JSON (unresolved conflict?); $live not changed" >&2
         return 1
     fi
-    if [ -f "$base.live" ]; then
-        echo "kiro-agent-split: $base.live has an unmerged live edit; $live not changed" >&2
+    # Merge a live edit since the last sync first, so that apply never discards it.
+    # The first apply on a machine also has no state copy.
+    extract_one "$tracked" "$live" "$base" || {
+        echo "kiro-agent-split: $live not changed" >&2
         return 1
-    fi
-    detach "$live"
+    }
     next=$(mktemp "$live.XXXXXX")
     localize <"$tracked" | with_values_of "$live" >"$next"
     install_if_changed "$next" "$live"

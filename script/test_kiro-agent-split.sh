@@ -98,6 +98,14 @@ rm -rf "$L"
 "$KAS" apply
 check "apply creates a missing live file with mode 600" '[ -f "$L/a.json" ] && [ "$(stat -c %a "$L/a.json")" = 600 ]'
 
+# --- apply without a state copy -----------------------------------------------
+rm -rf "$XDG_STATE_HOME"
+agent tok-live "$H" '
+  "tools" : [ "@live" ],' >"$L/a.json"
+"$KAS" apply
+check "the first apply keeps a live edit" 'grep -qF "\"@live\"" "$L/a.json" && grep -qF "\"@live\"" "$T/a.json"'
+check "the first apply keeps the live token" 'grep -qF "\"tok-live\"" "$L/a.json" && ! grep -qF tok-live "$T/a.json"'
+
 echo
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

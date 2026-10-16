@@ -4,6 +4,15 @@
 
 ## Agents (`agents/*.json`)
 
+These files are copied, not linked. AIM writes a new `AIM_CREDS_AGENT_INJECTION` value into each agent file at each Kiro launch. Through a link, that write put a "rotate token" commit into the repository many times an hour. `script/bin/kiro-agent-split` keeps `~/.kiro/agents/*.json` as regular files (mode 600):
+
+- `extract` (`sync.pre-snapshot`) copies live edits into the tracked file. The tracked token stays fixed, and the home directory becomes a literal `$HOME`. The edits are textual, so the AIM/Jackson formatting stays.
+- `apply` (`sync.post-update`, and `script/bootstrap` instead of a link) writes the tracked file to the live file with the live token and the absolute home directory. It runs the extract step first, so it never discards a live edit.
+- A per-file state copy under `${XDG_STATE_HOME:-~/.local/state}/kiro-agent-split/` is the base of a 3-way merge (`git merge-file`) when both sides changed. On a conflict both files stay unchanged, and the live side is saved as `<state>.live`. Merge it into the tracked file by hand, remove it, and run `apply`.
+- A live link from an older setup becomes a regular file at the first run. Test: `bash script/test_kiro-agent-split.sh`.
+
+Edit either the tracked file or the live file; the next sync copies the change to the other side. Other injected entries (for example the toolbox `artifactory-mcp` server) are not ephemeral and are tracked.
+
 - `default.json` — MCP TTS server, `autoAllowReadonly`.
 - `no-mcp.json` — no MCP servers; used by `bin/commit-msg` to avoid orphaned MCP processes.
 - `builder.json` — local override of the AmazonBuilderCoreAIAgents `builder` agent: adds the TTS MCP server, narrowed `execute_bash` allowlist for read-only operations, and an `fs_write:*AGENTS.md` permission so Kiro can edit AGENTS.md without prompting. Legacy Kiro v2 executes `postToolUse` commands but discards their output, so the `fs_write` hook stores prose findings by working directory and `userPromptSubmit` injects and consumes them on the next prompt; a later clean prose write clears stale findings. `agentSpawn` still publishes AIM metrics. When moving to Kiro CLI 3 hooks, replace this queue with a standalone agent-action hook rather than keeping both.
