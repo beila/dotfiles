@@ -440,6 +440,34 @@ echo "=== Test 20: dedup window=0 disables dedup ==="
 )
 
 echo
+echo "=== Test 20b: ERROR in a command substitution keeps the log and dedups across runs ==="
+# Regression: sync_repo calls lb_rebase and timeout_cmd in "$(...)". The parent
+# deleted the log and dropped the dedup key, so each run notified again.
+(
+    setup_test_env
+    export LOG_TAG="test20b"
+    export LOG_CONTEXT="myrepo"
+    (
+        source "$LIB"
+        log INFO "START"
+        _out=$(log ERROR "REBASE-CONFLICT build local=abc123def456 remote=aaaaaaaaaaaa")
+        _out=$(log ERROR "REBASE-CONFLICT build local=abc123def456 remote=aaaaaaaaaaaa")
+    )
+    (
+        source "$LIB"
+        log INFO "START"
+        _out=$(log ERROR "REBASE-CONFLICT build local=0123456789ab remote=bbbbbbbbbbbb")
+    )
+    sleep 1
+    mock_lines=$(wc -l < "$NOTIFY_MOCK_FILE")
+    check "subshell ERROR deduped within and across runs" "1" "$mock_lines"
+    count=$(ls "$TMPDIR/logs/testhost/" 2>/dev/null | grep -c "^test20b\." || true)
+    check "subshell ERROR retains both run logs" "2" "$count"
+    state_left=$(ls "$TMPDIR"/log.test20b.state.* 2>/dev/null | wc -l)
+    check "state files removed at finalize" "0" "$state_left"
+)
+
+echo
 echo "=== Test 21: INFO-only run leaves no log file ==="
 (
     setup_test_env

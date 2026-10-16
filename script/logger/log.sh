@@ -89,11 +89,6 @@
 # Keep the log file only if the run produced an event at this level or higher.
 # Set to DEBUG to keep every run; NEVER to always delete.
 : "${LOG_KEEP_THRESHOLD:=ERROR}"
-# Notification deduplication: suppress a notification if the same
-# (TAG, CONTEXT, LEVEL, normalized-message) signature was already notified
-# within this many seconds. Defaults to 6 hours. Set to 0 to disable.
-: "${LOG_NOTIFY_DEDUP_WINDOW:=21600}"
-: "${LOG_NOTIFY_DEDUP_DIR:=$LOG_ROOT/.notify-dedup}"
 
 # Machine name matches sync_repo's convention.
 if [ -z "${LOG_MACHINE_NAME:-}" ]; then
@@ -111,6 +106,10 @@ _LOG_EXIT_INSTALLED=0
 # Signatures (sha1 hashes) accumulated for dedup-state persistence at
 # log_finalize. Deferred so we never touch $LOG_NOTIFY_DEDUP_DIR mid-run.
 _LOG_PENDING_DEDUP_KEYS=""
+# Run state in /tmp that subshells append to: "L <level-num>" and "K <key>".
+# A log call in "$(...)" cannot change the variables of the parent, so without
+# this file the parent deletes the log and forgets the dedup key.
+_LOG_STATE_FILE=""
 
 _log_level_num() {
     case "$1" in
@@ -167,6 +166,7 @@ _log_init_file() {
         mkdir -p "$dir" 2>/dev/null
         _LOG_FILE="$_LOG_FINAL_FILE"
     fi
+    _LOG_STATE_FILE=$(mktemp "${TMPDIR:-/tmp}/log.${LOG_TAG}.state.XXXXXX" 2>/dev/null)
     _LOG_FILE_CREATED_BY_US=1
 
     # Install EXIT trap (once per process) so we can retroactively delete the
@@ -211,6 +211,21 @@ _log_promote_to_final() {
 log_finalize() {
     [ -z "$_LOG_FILE" ] && return 0
     [ "$_LOG_FILE_CREATED_BY_US" -ne 1 ] && return 0
+
+    if [ -n "$_LOG_STATE_FILE" ] && [ -f "$_LOG_STATE_FILE" ]; then
+        local kind value
+        while read -r kind value; do
+            case "$kind" in
+                L) [ "$value" -gt "$_LOG_MAX_LEVEL_NUM" ] && _LOG_MAX_LEVEL_NUM=$value ;;
+                K) case "$_LOG_PENDING_DEDUP_KEYS" in
+                       *" $value "*) ;;
+                       *) _LOG_PENDING_DEDUP_KEYS="$_LOG_PENDING_DEDUP_KEYS $value " ;;
+                   esac ;;
+            esac
+        done < "$_LOG_STATE_FILE"
+        rm -f "$_LOG_STATE_FILE"
+        _LOG_STATE_FILE=""
+    fi
 
     local keep_num
     case "$(printf '%s' "$LOG_KEEP_THRESHOLD" | tr '[:lower:]' '[:upper:]')" in
@@ -310,6 +325,10 @@ _log_notify_dedup_ok() {
     case "$_LOG_PENDING_DEDUP_KEYS" in
         *" $key "*) return 1 ;;
     esac
+    if [ -n "$_LOG_STATE_FILE" ]; then
+        grep -qxF "K $key" "$_LOG_STATE_FILE" 2>/dev/null && return 1
+        printf 'K %s\n' "$key" >> "$_LOG_STATE_FILE"
+    fi
     # Record intent to persist this key on log_finalize.
     _LOG_PENDING_DEDUP_KEYS="$_LOG_PENDING_DEDUP_KEYS $key "
     return 0
@@ -336,6 +355,7 @@ log() {
     level_num=$(_log_level_num "$level")
     if [ "$level_num" -gt "$_LOG_MAX_LEVEL_NUM" ]; then
         _LOG_MAX_LEVEL_NUM=$level_num
+        [ -n "$_LOG_STATE_FILE" ] && printf 'L %s\n' "$level_num" >> "$_LOG_STATE_FILE"
     fi
 
     local line

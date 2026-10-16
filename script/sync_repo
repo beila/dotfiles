@@ -1015,7 +1015,7 @@ step_rebase_local_chain() {
 # in the flow above: raw Git without the local lock, jj import and reconcile with it.
 # Arrays are indexed by the position of the entry.
 declare -a LB_NAME=() LB_REMOTE=() LB_FETCH_URL=() LB_PUSH_URL=() LB_TRACKING_BEFORE=()
-declare -a LB_FETCH_OK=() LB_FETCH_OID=() LB_PUSH_OID=() LB_PUSH_EXPECTED=() LB_PUSH_OK=()
+declare -a LB_FETCH_OK=() LB_FETCH_OID=() LB_PUSH_OID=() LB_PUSH_EXPECTED=() LB_PUSH_OK=() LB_PUSH_REPLACE=()
 LB_HAS_PUSH=0
 
 # Revset of a remote bookmark. Quotes keep names with "/" or "-" literal.
@@ -1157,6 +1157,17 @@ lb_rebase() {
         return 1
     fi
     printf '%s' "$new"
+}
+
+# Succeed when every remote-only commit is a predecessor of a local commit. Then this
+# machine rewrote the remote version (jj rebase, jj split, jj describe), and the local
+# tip replaces it. A commit from another machine is never a local predecessor.
+lb_supersedes() {
+    local local_rev=$1 remote_rev=$2 remote_only predecessors
+    remote_only=$(jj log -r "${local_rev}..${remote_rev}" --no-graph -T 'commit_id ++ "\n"' 2>/dev/null) || return 1
+    [ -n "$remote_only" ] || return 1
+    predecessors=$(jj evolog -r "${remote_rev}..${local_rev}" --no-graph -T 'commit.commit_id() ++ "\n"' 2>/dev/null) || return 1
+    [ -z "$(comm -23 <(printf '%s\n' "$remote_only" | sort -u) <(printf '%s\n' "$predecessors" | sort -u))" ]
 }
 
 reconcile_listed_bookmarks() {
