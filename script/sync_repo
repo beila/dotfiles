@@ -1128,13 +1128,28 @@ lb_local_state() {
     jj bookmark list "exact:$1" -T 'if(remote, "", if(conflict, "C " ++ added_targets.map(|c| c.commit_id()).join(" ") ++ "\n", if(present, "N " ++ normal_target.commit_id() ++ "\n", "")))' 2>/dev/null
 }
 
+# Print the tip of change $1 above $2. The remote can hold an older commit of the same
+# change, so only descendants of the remote tip count.
+lb_tip_above() {
+    local tip
+    tip=$(jj log -r "change_id($1) & $2+::" --no-graph -T 'commit_id ++ "\n"' 2>/dev/null)
+    [ "$tip" = "${tip%%$'\n'*}" ] && printf '%s' "$tip"
+}
+
 # Rebase the local-only commits of bookmark $1 onto $3. Prints the rebased local tip.
 # A merge probe finds most conflicts before the rebase, so the working copy stays as
-# it is. A rebase that still produces conflicted commits is rewound.
+# it is. resolve-by-attrs clears conflicts that .gitattributes drivers can merge. A
+# rebase that still produces conflicted commits is rewound.
 lb_rebase() {
-    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new probe
+    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new probe c
+    local resolver="$SCRIPT_DIR/bin/resolve-by-attrs"
+    [ -x "$resolver" ] || resolver=""
     if jj new --no-edit "$local_rev" "$remote_rev" -m "rebase-probe" >/dev/null 2>&1; then
         probe=$(jj log -r "latest(${local_rev}+ & ${remote_rev}+, 1)" --no-graph -T 'change_id ++ "|" ++ if(conflict, "c")' 2>/dev/null)
+        if [ "${probe#*|}" = "c" ] && [ -n "$resolver" ]; then
+            "$resolver" -r "${probe%%|*}" >/dev/null 2>&1 || true
+            [ -z "$(jj resolve --list -r "${probe%%|*}" 2>/dev/null)" ] && probe="${probe%%|*}|"
+        fi
         jj abandon "${probe%%|*}" >/dev/null 2>&1
         if [ "${probe#*|}" = "c" ]; then
             log ERROR "REBASE-CONFLICT ${b} local=$local_rev remote=$remote_rev; push skipped"
@@ -1148,7 +1163,15 @@ lb_rebase() {
         log CRITICAL "REBASE-FAIL ${b} local=$local_rev remote=$remote_rev"
         return 1
     fi
-    new=$(jj log -r "$change" --no-graph -T 'commit_id' 2>/dev/null)
+    new=$(lb_tip_above "$change" "$remote_rev")
+    if [ -n "$new" ] && [ -n "$resolver" ]; then
+        # The rebase does not apply merge drivers. Resolve the oldest commits first,
+        # because jj rebases the descendants of each resolved commit.
+        for c in $(jj log -r "(${remote_rev}..${new}) & conflicts()" --reversed --no-graph -T 'change_id ++ " "' 2>/dev/null); do
+            "$resolver" -r "$c" >/dev/null 2>&1 || true
+        done
+        new=$(lb_tip_above "$change" "$remote_rev")
+    fi
     if [ -z "$new" ] || [ -n "$(jj log -r "(${remote_rev}..${new}) & conflicts()" --no-graph -T '"y"' 2>/dev/null)" ]; then
         log ERROR "REBASE-CONFLICT ${b} local=$local_rev remote=$remote_rev; rewound, push skipped"
         [ -n "$pre_op" ] && jj op restore "$pre_op" >/dev/null 2>&1
@@ -1214,7 +1237,12 @@ reconcile_listed_bookmarks() {
                     continue
                     ;;
                 diverged)
-                    local_rev=$(lb_rebase "$b" "$local_rev" "$remote_rev") || continue
+                    if lb_supersedes "$local_rev" "$remote_rev"; then
+                        LB_PUSH_REPLACE[$i]=1
+                        log INFO "REWRITTEN ${b}@${r} local=$local_rev replaces remote=$remote_rev"
+                    else
+                        local_rev=$(lb_rebase "$b" "$local_rev" "$remote_rev") || continue
+                    fi
                     ;;
             esac
             jj bookmark set "$b" -r "$local_rev" --allow-backwards >/dev/null 2>&1
@@ -1237,10 +1265,19 @@ reconcile_listed_bookmarks() {
 }
 
 push_listed_bookmarks() {
-    local i
+    local i tag ref current
     for i in "${!LB_NAME[@]}"; do
         [ -n "${LB_PUSH_OID[$i]:-}" ] || continue
-        if timeout_cmd "push ${LB_NAME[$i]}@${LB_REMOTE[$i]}" \
+        tag="${LB_NAME[$i]}@${LB_REMOTE[$i]}" ref="refs/heads/${LB_NAME[$i]}"
+        if [ "${LB_PUSH_REPLACE[$i]:-0}" = "1" ]; then
+            # gitfarm rejects force pushes, and delete+push has no lease. Check the remote tip immediately before.
+            current=$(timeout_cmd "lease $tag" "$GIT" ls-remote --heads "${LB_PUSH_URL[$i]}" "$ref") || continue
+            if [ "${current%%[[:space:]]*}" != "${LB_PUSH_EXPECTED[$i]}" ]; then
+                log INFO "SKIP-PUSH ${tag}: remote moved after fetch; will retry next run"
+                continue
+            fi
+            push_force_replace "$tag" "${LB_PUSH_URL[$i]}" "${LB_PUSH_OID[$i]}" "$ref" && LB_PUSH_OK[$i]=1
+        elif timeout_cmd "push $tag" \
             "$GIT" --git-dir="$GIT_DIR" push "${LB_PUSH_URL[$i]}" \
             "${LB_PUSH_OID[$i]}:refs/heads/${LB_NAME[$i]}"; then
             LB_PUSH_OK[$i]=1

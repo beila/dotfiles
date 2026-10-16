@@ -1151,6 +1151,21 @@ check "conflict leaves no conflicted commits" "" \
     "$(cd "$TMPDIR/repoLB3" && jj log -r 'conflicts()' --no-graph -T change_id 2>/dev/null)"
 grep_has "REBASE-CONFLICT feat/x"
 
+# This machine rewrites pushed commits: a new commit goes below the tip, and the tip is
+# reworded. The remote holds older commits of the same changes, so local replaces it.
+# A rebase would stack the new commits on the old ones and duplicate each change.
+lb_old=$(lb_remote)
+(cd "$TMPDIR/repoLB1" && jj new --no-edit -B 'bookmarks(exact:"feat/x")' -m "inserted below" \
+    && jj describe -r 'bookmarks(exact:"feat/x")' -m "f1 a reworded") >/dev/null 2>&1
+lb1_rewritten=$(lb_local repoLB1)
+run_sync "$TMPDIR/repoLB1"
+check "rewritten bookmark replaces the remote" "$lb1_rewritten" "$(lb_remote)"
+check "the old remote tip is not an ancestor of the new tip" "" \
+    "$(git -C "$TMPDIR/lb-remote.git" rev-list feat/x 2>/dev/null | grep -x "$lb_old")"
+check "each change appears once below the bookmark" "" \
+    "$(cd "$TMPDIR/repoLB1" && jj log -r '::bookmarks(exact:"feat/x")' --no-graph -T 'change_id ++ "\n"' 2>/dev/null | sort | uniq -d)"
+grep_has "REWRITTEN feat/x@backup"
+
 echo
 echo "=== Scenario RH: repository history is shared between hosts ==="
 git -C "$TMPDIR" init --bare -q -b master rh-remote.git
