@@ -102,8 +102,9 @@ local function shell_join(args)
 	return table.concat(vim.tbl_map(vim.fn.shellescape, args), " ")
 end
 
--- Each workspace row is `<name> <marker>\t<root>`: fzf shows only the first
--- field (--with-nth=1) and the selection carries the root in field 2. The
+-- Each workspace row is `<name> <marker>\t<root>\t<name>`: fzf shows only the
+-- first field (--with-nth=1). The selection carries the root in field 2 and the
+-- bare name in field 3. The
 -- current workspace (the one the picker was launched from) gets a trailing
 -- green marker AFTER the name so every name stays left-aligned in the same
 -- column. We use an ANSI-green filled circle rather than the 🟢 emoji: many
@@ -119,7 +120,7 @@ local function workspace_list_command(color, current_root)
 		"list",
 		"--color=" .. color,
 		"-T",
-		'name ++ "\\t" ++ if(root, root, "") ++ "\\n"',
+		'name ++ "\\t" ++ if(root, root, "") ++ "\\t" ++ name ++ "\\n"',
 	})
 	-- Append the current-workspace marker to the name of the row whose
 	-- (color-stripped) root matches the launcher's root; leave the rest as-is
@@ -143,17 +144,38 @@ local function workspace_preview_command()
 	}, "; ")
 end
 
-local function selected_root(selected)
+-- Return the root and the bare name of the selected workspace row.
+local function selected_workspace(selected)
 	local line = selected and selected[1]
 	if not line then
 		return nil
 	end
 	local fields = vim.split(fzf_utils.strip_ansi_coloring(line), "\t", { plain = true })
-	local root = fields[2]
-	if root and root ~= "" then
-		return vim.trim(root)
+	local root = fields[2] and vim.trim(fields[2])
+	if not root or root == "" then
+		return nil
 	end
-	return nil
+	local name = fields[3] and vim.trim(fields[3])
+	return root, (name ~= "" and name or nil)
+end
+
+-- Return a map from workspace name to root for the repository of `start_dir`.
+local function workspace_roots_by_name(start_dir)
+	local out = run_jj(start_dir, {
+		"workspace",
+		"list",
+		"--color=never",
+		"-T",
+		'name ++ "\\t" ++ if(root, root, "") ++ "\\n"',
+	})
+	local roots = {}
+	for line in (out or ""):gmatch("[^\n]+") do
+		local name, root = line:match("^(.-)\t(.*)$")
+		if name and root ~= "" then
+			roots[name] = root
+		end
+	end
+	return roots
 end
 
 -- The bookmark (branch) picker mirrors zsh `_jb`: `jj bookmark list` with the
@@ -189,51 +211,72 @@ local function selected_bookmark(selected)
 end
 
 -- Point every window in the current tab at the equivalent file in the chosen
--- workspace. The relative path is taken from the launcher window's file within
--- its own workspace, then rebased onto the target workspace root.
-local function switch_tab_to_workspace(source_win, source_root, source_file, target_root)
-	if vim.fs.normalize(target_root) == vim.fs.normalize(source_root) then
-		notify("already in this workspace", vim.log.levels.INFO)
-		return
-	end
-
+-- workspace. Each window's file is rebased from its own workspace root. A file
+-- from another repository goes to the workspace with the same name there.
+local function switch_tab_to_workspace(source_win, source_root, target_root, target_name)
 	if not vim.api.nvim_win_is_valid(source_win) then
 		notify("source window is no longer available")
 		return
 	end
 
-	-- Rebase EACH window's own file onto the target workspace, so a tab showing
-	-- file1 | file2 becomes file1 | file2 in the new workspace (not file1 |
-	-- file1). Every window is also lcd'd into the target root so relative
-	-- pickers, LSP root detection, and the jj statusline follow.
+	-- Cache the workspace roots of each other repository for this switch only.
+	local roots_by_workspace = {}
+	local function counterpart_root(file)
+		if vim.fs.relpath(source_root, file) then
+			return source_root, target_root
+		end
+		local own_root = probe_workspace_root(vim.fs.dirname(file))
+		if not own_root then
+			return nil
+		end
+		if not roots_by_workspace[own_root] then
+			roots_by_workspace[own_root] = workspace_roots_by_name(own_root)
+		end
+		return own_root, target_name and roots_by_workspace[own_root][target_name] or false
+	end
+
+	-- Rebase EACH window's own file, so file1 | file2 becomes file1 | file2 in
+	-- the target (not file1 | file1). The lcd makes relative pickers, LSP root
+	-- detection, and the jj statusline follow the new workspace.
 	local windows = vim.api.nvim_tabpage_list_wins(vim.api.nvim_win_get_tabpage(source_win))
 	local skipped = {}
+	local moved = 0
 	for _, win in ipairs(windows) do
 		if vim.api.nvim_win_is_valid(win) then
 			local bufnr = vim.api.nvim_win_get_buf(win)
 			local win_file = vim.bo[bufnr].buftype == "" and vim.api.nvim_buf_get_name(bufnr) or ""
 
 			local target_path
+			local win_root = target_root
 			if win_file ~= "" then
-				local relative = vim.fs.relpath(source_root, win_file)
-				if relative then
-					local candidate = vim.fs.joinpath(target_root, relative)
-					if vim.fn.filereadable(candidate) == 1 then
-						target_path = candidate
-					else
-						skipped[#skipped + 1] = relative .. " (absent in target)"
-					end
+				local own_root, new_root = counterpart_root(win_file)
+				local label = vim.fn.fnamemodify(win_file, ":t")
+				if not own_root then
+					-- Keep a file that is not in a jj workspace (e.g. a diff buffer).
+					skipped[#skipped + 1] = label .. " (outside jj)"
+				elseif not new_root then
+					-- Keep the cwd too, because target_root is in a different repository.
+					win_root = nil
+					skipped[#skipped + 1] = label .. " (no workspace " .. tostring(target_name) .. ")"
 				else
-					-- File lives outside the source workspace (e.g. a diff
-					-- buffer or a file from another repo); leave it in place.
-					skipped[#skipped + 1] = vim.fn.fnamemodify(win_file, ":t") .. " (outside workspace)"
+					win_root = new_root
+					local relative = vim.fs.relpath(own_root, win_file)
+					local candidate = vim.fs.joinpath(new_root, relative)
+					if vim.fn.filereadable(candidate) == 0 then
+						skipped[#skipped + 1] = relative .. " (absent in target)"
+					elseif vim.fs.normalize(candidate) ~= vim.fs.normalize(win_file) then
+						target_path = candidate
+					end
 				end
 			end
 
 			vim.api.nvim_win_call(win, function()
-				vim.cmd.lcd(vim.fn.fnameescape(target_root))
+				if win_root then
+					vim.cmd.lcd(vim.fn.fnameescape(win_root))
+				end
 				if target_path then
 					vim.cmd.edit(vim.fn.fnameescape(target_path))
+					moved = moved + 1
 				end
 			end)
 		end
@@ -241,6 +284,8 @@ local function switch_tab_to_workspace(source_win, source_root, source_file, tar
 
 	if #skipped > 0 then
 		notify("kept " .. #skipped .. " window(s) unmapped: " .. table.concat(skipped, ", "), vim.log.levels.WARN)
+	elseif moved == 0 and vim.fs.normalize(target_root) == vim.fs.normalize(source_root) then
+		notify("already in this workspace", vim.log.levels.INFO)
 	end
 end
 
@@ -273,12 +318,12 @@ open_workspaces = function(ctx)
 		},
 		actions = {
 			enter = function(selected)
-				local target_root = selected_root(selected)
+				local target_root, target_name = selected_workspace(selected)
 				if not target_root then
 					notify("select a workspace")
 					return
 				end
-				switch_tab_to_workspace(ctx.source_win, ctx.source_root, ctx.source_file, target_root)
+				switch_tab_to_workspace(ctx.source_win, ctx.source_root, target_root, target_name)
 			end,
 			["ctrl-b"] = toggle_action(open_bookmarks, ctx),
 		},

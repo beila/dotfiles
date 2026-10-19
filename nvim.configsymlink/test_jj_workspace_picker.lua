@@ -170,6 +170,49 @@ if not seen[vim.fs.normalize(feature .. "/sample2.txt")] then
 end
 vim.cmd("tabclose")
 
+-- A window that shows a file from another repository goes to the workspace
+-- with the same name in that repository. A repository without that workspace
+-- keeps its file and its cwd.
+local function jj_repo(dir, file, text)
+	vim.fn.mkdir(dir, "p")
+	run({ "jj", "git", "init", "." }, { cwd = dir })
+	vim.fn.writefile({ text }, dir .. "/" .. file)
+end
+local other = base .. "/other"
+local other_feature = base .. "/other-feature"
+jj_repo(other, "other.txt", "other file, default workspace")
+run({ "jj", "workspace", "add", "--name", "feature", other_feature }, { cwd = other })
+vim.fn.writefile({ "other file, feature workspace" }, other_feature .. "/other.txt")
+local lonely = base .. "/lonely"
+jj_repo(lonely, "lonely.txt", "lonely file")
+
+vim.cmd("tabnew")
+vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
+local launcher_win = vim.api.nvim_get_current_win()
+vim.cmd("vsplit " .. vim.fn.fnameescape(other .. "/other.txt"))
+local other_win = vim.api.nvim_get_current_win()
+vim.cmd("vsplit " .. vim.fn.fnameescape(lonely .. "/lonely.txt"))
+local lonely_win = vim.api.nvim_get_current_win()
+vim.cmd.lcd(vim.fn.fnameescape(lonely))
+vim.api.nvim_set_current_win(launcher_win)
+
+captured = nil
+require("jj-workspace-picker").workspaces()
+captured.opts.actions.enter({ feature_row })
+
+local function win_file(win)
+	return vim.fs.normalize(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(win)))
+end
+local function win_cwd(win)
+	return vim.fs.normalize(vim.fn.getcwd(vim.fn.win_id2win(win)))
+end
+assert_eq(win_file(launcher_win), vim.fs.normalize(feature .. "/sample.txt"), "launcher repo window")
+assert_eq(win_file(other_win), vim.fs.normalize(other_feature .. "/other.txt"), "other repo window")
+assert_eq(win_cwd(other_win), vim.fs.normalize(other_feature), "other repo window cwd")
+assert_eq(win_file(lonely_win), vim.fs.normalize(lonely .. "/lonely.txt"), "repo without the workspace")
+assert_eq(win_cwd(lonely_win), vim.fs.normalize(lonely), "repo without the workspace cwd")
+vim.cmd("tabclose")
+
 -- Single-window case: selecting the feature workspace switches the current
 -- window to the feature copy of the same relative file.
 vim.cmd.edit(vim.fn.fnameescape(repo .. "/sample.txt"))
