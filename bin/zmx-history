@@ -19,6 +19,7 @@ Usage: zmx-history [serve]
        zmx-history has SESSION
        zmx-history show SESSION
        zmx-history remove SESSION
+       zmx-history rename OLD NEW
        zmx-history list [--with-cwd]
 EOF
     exit 2
@@ -149,6 +150,28 @@ remove_session() (
     sync "$history_dir" 2>/dev/null || true
 )
 
+# Move the snapshot and cwd of OLD to NEW. The name file goes last, so that
+# `list` never shows NEW without its snapshot.
+rename_session() (
+    local old=$1 new=$2 old_target new_target
+    exec 8>"$history_dir/.snapshot.lock"
+    flock 8 || return
+
+    old_target=$(history_path "$old")
+    new_target=$(history_path "$new")
+    [[ -f "$old_target" ]] || return 0
+    rm -f -- "${new_target%.history}.name"
+    mv -f -- "$old_target" "$new_target" || return
+    if [[ -f "${old_target%.history}.cwd" ]]; then
+        mv -f -- "${old_target%.history}.cwd" "${new_target%.history}.cwd"
+    else
+        rm -f -- "${new_target%.history}.cwd"
+    fi
+    write_name_file "$new" "$new_target"
+    rm -f -- "${old_target%.history}.name"
+    sync "$history_dir" 2>/dev/null || true
+)
+
 list_sessions() {
     if [[ -n "${ZMX_HISTORY_SESSIONS_FILE:-}" ]]; then
         cat "$ZMX_HISTORY_SESSIONS_FILE" 2>/dev/null || true
@@ -266,6 +289,11 @@ case "$command" in
         [[ $# -eq 2 ]] || usage
         prepare_dirs
         remove_session "$2"
+        ;;
+    rename)
+        [[ $# -eq 3 ]] || usage
+        prepare_dirs
+        rename_session "$2" "$3"
         ;;
     list)
         [[ $# -eq 1 || ($# -eq 2 && "$2" == "--with-cwd") ]] || usage

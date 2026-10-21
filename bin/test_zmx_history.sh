@@ -415,7 +415,7 @@ check "picker selects the first result whenever the fuzzy query changes" \
     "$(rg -N -Fx -- "--bind=change:first" "$FZF_ARGS" || true)"
 check "picker leaves mouse dragging available for terminal text selection" "--no-mouse" \
     "$(rg -N -Fx -- "--no-mouse" "$FZF_ARGS" || true)"
-initial_expect_arg="--expect=ctrl-n,ctrl-d,esc"
+initial_expect_arg="--expect=ctrl-n,ctrl-d,ctrl-r,esc"
 check "initial picker leaves Ctrl-backslash unbound" \
     "$initial_expect_arg" \
     "$(rg -N -F -- "$initial_expect_arg" "$FZF_ARGS" || true)"
@@ -483,7 +483,7 @@ FZF_RESPONSES_DIR="$responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
 check "repeated Ctrl-backslash alternates between the last two sessions" \
     $'attach first zsh -l\nattach second zsh -l\nattach first zsh -l\nattach second zsh -l' \
     "$(cat "$FAKE_ROOT/attach.calls")"
-switch_expect_arg="--expect=ctrl-n,ctrl-d,esc,ctrl-\\"
+switch_expect_arg="--expect=ctrl-n,ctrl-d,ctrl-r,esc,ctrl-\\"
 check "picker binds Ctrl-backslash when a switch target exists" \
     "$switch_expect_arg" \
     "$(rg -N -F -- "$switch_expect_arg" "$FZF_ARGS" || true)"
@@ -512,6 +512,81 @@ check "single-session picker marks only the last session" "yes" \
     "$(rg -q '^only .*🥇' "$FZF_INPUT" \
         && ! rg -q '🥈' "$FZF_INPUT" \
         && printf yes || printf no)"
+
+# Ctrl-R renames a stopped session through its snapshot.
+printf 'stopped rename\n' > "$FAKE_ROOT/history-oldstop"
+"$UNDER_TEST" snapshot oldstop "$SAVED_CWD"
+: > "$FAKE_ROOT/sessions"
+rename_responses="$TMP/fzf-rename-stopped"
+mkdir -p "$rename_responses"
+printf '\nctrl-r\noldstop\n' > "$rename_responses/1"
+printf ' new  stop \n' > "$rename_responses/2"
+: > "$FAKE_ROOT/attach.calls"
+: > "$FZF_CALL_COUNT"
+FZF_RESPONSES_DIR="$rename_responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-rename-stopped.stderr" || true
+check "Ctrl-R moves a stopped snapshot to the new name" "stopped rename" \
+    "$("$UNDER_TEST" show new-stop 2>/dev/null)"
+check "Ctrl-R moves the saved cwd of a stopped session" "$SAVED_CWD" \
+    "$("$UNDER_TEST" cwd new-stop 2>/dev/null)"
+check "Ctrl-R trims the name and joins its words with hyphens" "new-stop" \
+    "$("$UNDER_TEST" list)"
+check "Ctrl-R does not attach a session" "" "$(cat "$FAKE_ROOT/attach.calls")"
+"$UNDER_TEST" remove new-stop
+
+# Ctrl-R renames a running session and records the rename for its shell.
+printf 'shelp2\n' > "$FAKE_ROOT/sessions"
+printf 'running rename\n' > "$FAKE_ROOT/history-shelp2"
+"$UNDER_TEST" snapshot shelp2
+export ZMX_RENAME_DIR="$TMP/renamed"
+rename_responses="$TMP/fzf-rename-running"
+mkdir -p "$rename_responses"
+printf '\nctrl-r\nshelp2\n' > "$rename_responses/1"
+printf 'renamed\n' > "$rename_responses/2"
+: > "$FZF_CALL_COUNT"
+FZF_RESPONSES_DIR="$rename_responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-rename-running.stderr" || true
+check "Ctrl-R renames a running session" "renamed" "$(cat "$FAKE_ROOT/sessions")"
+check "Ctrl-R lists the running session with the new name" "yes" \
+    "$(rg -q '^renamed ❯' "$FZF_INPUT" && ! rg -q '^shelp2' "$FZF_INPUT" \
+        && printf yes || printf no)"
+check "Ctrl-R records the new name and shell pid" $'renamed\t121' \
+    "$(cat "$ZMX_RENAME_DIR/shelp2" 2>/dev/null)"
+check "Ctrl-R moves the snapshot of a running session" "renamed" "$("$UNDER_TEST" list)"
+
+# Single quotes keep $$ for the zsh process under test.
+# shellcheck disable=SC2016
+follow_script='source "$ZSH_HOOK"; add-zsh-hook -d zshexit _zmx_history_snapshot_on_exit
+print -r -- first$'"'"'\t'"'"'$$ > $ZMX_RENAME_DIR/hop0
+print -r -- second$'"'"'\t'"'"' > $ZMX_RENAME_DIR/first
+_zmx_follow_rename; print -r -- $ZMX_SESSION'
+check "renamed shell follows a chain of renames" "second" \
+    "$(ZSH_HOOK="$ZSH_HOOK" ZMX_SESSION=hop0 zsh -f -c "$follow_script" 2>/dev/null)"
+printf 'other\t1\n' > "$ZMX_RENAME_DIR/reused"
+check "another shell ignores a rename of a reused name" "reused" \
+    "$(ZMX_SESSION=reused zsh -f -c \
+        "source '$ZSH_HOOK'; add-zsh-hook -d zshexit _zmx_history_snapshot_on_exit; \
+         _zmx_follow_rename; print -r -- \$ZMX_SESSION" 2>/dev/null)"
+check "the follow hook runs before other precmd hooks" "_zmx_follow_rename" \
+    "$(ZMX_SESSION=reused zsh -f -c \
+        "precmd_functions=(title); source '$ZSH_HOOK'; \
+         add-zsh-hook -d zshexit _zmx_history_snapshot_on_exit; \
+         print -r -- \$precmd_functions[1]" 2>/dev/null)"
+
+# Ctrl-R rejects a name that is already in use.
+printf 'renamed\nother\n' > "$FAKE_ROOT/sessions"
+rename_responses="$TMP/fzf-rename-duplicate"
+mkdir -p "$rename_responses"
+printf '\nctrl-r\nrenamed\n' > "$rename_responses/1"
+printf 'other\n' > "$rename_responses/2"
+: > "$FZF_CALL_COUNT"
+FZF_RESPONSES_DIR="$rename_responses" PATH="$STUBS:$PATH" "$SELECT_UNDER_TEST" \
+    >/dev/null 2>"$TMP/select-rename-duplicate.stderr" || true
+check "Ctrl-R keeps both sessions when the new name exists" $'renamed\nother' \
+    "$(cat "$FAKE_ROOT/sessions")"
+check "picker shows why the rename failed" "yes" \
+    "$(rg -q 'session "other" already exists' "$FZF_ARGS" && printf yes || printf no)"
+"$UNDER_TEST" remove renamed
 
 printf '\n%d passed, %d failed\n' "$PASS" "$FAIL"
 [[ $FAIL -eq 0 ]]

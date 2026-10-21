@@ -7,6 +7,7 @@
 #   Ctrl-N   — create a new session with the typed query; auto-suffixes -2, -3, ...
 #              if that name is already in use
 #   Ctrl-D   — forget the highlighted stopped session and its saved scrollback
+#   Ctrl-R   — rename the highlighted session, running or stopped
 #   Ctrl-/   — cycle horizontal, vertical, and hidden preview layouts
 #   Ctrl-\   — switch to the previous session, or reattach the latest one when
 #              there is no previous session yet
@@ -37,11 +38,12 @@ export ZMX_HISTORY_HELPER="$script_dir/zmx-history"
 restore_helper="$script_dir/zmx-restore"
 zmx_info=$(zmx version 2>/dev/null || true)
 zmx_socket_dir=""
+zmx_log_dir=""
 while read -r key value _; do
-    if [[ "$key" == "socket_dir" ]]; then
-        zmx_socket_dir=$value
-        break
-    fi
+    case "$key" in
+        socket_dir) zmx_socket_dir=$value ;;
+        log_dir) zmx_log_dir=$value ;;
+    esac
 done <<< "$zmx_info"
 [[ -n "$zmx_socket_dir" ]] || zmx_socket_dir="${ZMX_DIR:-}"
 export ZMX_SOCKET_DIR="$zmx_socket_dir"
@@ -96,6 +98,9 @@ declare -A remote_host=()
 declare -A remote_state=()
 declare -A remote_cwd=()
 remote_dir=${ZMX_REMOTE_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/remote"}
+# OLD -> "NEW<TAB>shell pid" for each renamed session. zsh/zmx-history.zsh
+# reads it to update ZMX_SESSION in the shell of the session.
+rename_dir=${ZMX_RENAME_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/renamed"}
 
 list_running_names() {
     if [[ -n "${ZMX_SELECT_SESSIONS_FILE:-}" ]]; then
@@ -218,6 +223,18 @@ stream_state() {
     done
 }
 
+# Prints the current name of a session that zmx-select renamed. The argv of a
+# zmx server keeps the name that the session had at its start.
+renamed_session() {
+    local name=$1 next hops=0
+    while [[ -r "$rename_dir/$name" ]] && ((hops++ < 10)); do
+        IFS=$'\t' read -r next _ < "$rename_dir/$name" || break
+        [[ -n "$next" ]] || break
+        name=$next
+    done
+    printf '%s' "$name"
+}
+
 load_running() {
     running=()
     attached=()
@@ -251,6 +268,7 @@ load_running() {
         ((${#argv[@]} >= 3)) || continue
         [[ "${argv[1]}" == "attach" ]] || continue
         name=${argv[2]}
+        [[ -n "${running[$name]:-}" ]] || name=$(renamed_session "$name")
         [[ -n "${running[$name]:-}" ]] || continue
 
         children=()
@@ -450,12 +468,78 @@ build_display() {
     fi
 }
 
+# Rows start with the session name, and the remote metadata uses it as a file
+# name. Thus a name must be one word without a slash.
+valid_session_name() {
+    [[ -n "$1" && "$1" != *[[:space:]/]* && "$1" != -* ]]
+}
+
+# Sets $notice when the rename does not occur.
+rename_session() {
+    local old=$1 new=$2 pid map_tmp
+    if ! valid_session_name "$new"; then
+        notice="Rename failed: \"$new\" is not a valid session name."
+        return 1
+    fi
+    if [[ -n "${running[$new]:-}" || -n "${saved[$new]:-}" ]] || session_is_running "$new"; then
+        notice="Rename failed: session \"$new\" already exists."
+        return 1
+    fi
+
+    if [[ -n "${running[$old]:-}" ]]; then
+        # zmx has no rename command. A client finds a session through its
+        # socket path, so a new hard link renames the session. The link
+        # fails when NEW already exists.
+        if [[ -n "${ZMX_SELECT_SESSIONS_FILE:-}" ]]; then
+            awk -v old="$old" -v new="$new" '$0 == old { $0 = new } { print }' \
+                "$ZMX_SELECT_SESSIONS_FILE" > "$ZMX_SELECT_SESSIONS_FILE.tmp" \
+                && mv -f -- "$ZMX_SELECT_SESSIONS_FILE.tmp" "$ZMX_SELECT_SESSIONS_FILE"
+        elif ln -- "$zmx_socket_dir/$old" "$zmx_socket_dir/$new" 2>/dev/null; then
+            rm -f -- "$zmx_socket_dir/$old"
+        else
+            notice="Rename failed: the socket of \"$old\" cannot be linked."
+            return 1
+        fi
+
+        # The server continues to write OLD.log. zmx-history finds changes
+        # through NEW.log, so give the same file the new name too.
+        if [[ -n "$zmx_log_dir" && -f "$zmx_log_dir/$old.log" ]]; then
+            ln -f -- "$zmx_log_dir/$old.log" "$zmx_log_dir/$new.log" 2>/dev/null || true
+        fi
+
+        # zmx-remote-attach continues to write the files of OLD.
+        if [[ -e "$remote_dir/$old" ]]; then
+            ln -sfn -- "$old" "$remote_dir/$new"
+            ln -sfn -- "$old.state" "$remote_dir/$new.state"
+        fi
+
+        pid=${running[$old]}
+        [[ "$pid" == 0 ]] && pid=""
+        mkdir -p -- "$rename_dir"
+        map_tmp="$rename_dir/.$old.$$"
+        printf '%s\t%s\n' "$new" "$pid" > "$map_tmp" \
+            && mv -f -- "$map_tmp" "$rename_dir/$old"
+    fi
+
+    # A running session can also have a snapshot. Move it, so that OLD does
+    # not stay in the list as a stopped session.
+    if [[ -x "$ZMX_HISTORY_HELPER" ]]; then
+        "$ZMX_HISTORY_HELPER" rename "$old" "$new" || true
+    fi
+
+    [[ "$last_session" == "$old" ]] && last_session=$new
+    [[ "$previous_session" == "$old" ]] && previous_session=$new
+    [[ "$detached_session" == "$old" ]] && detached_session=$new
+    return 0
+}
+
 last_session=""
 previous_session=""
 detached_session=""
 ctrl_backslash="ctrl-\\"
 query="$initial_query"
 removed_entry=false
+notice=""
 state_header=$'\033[1;38;5;214m●\033[22;39m active  \033[32m❯\033[39m prompt  \033[36m❯\033[39m remote prompt  \033[2;90m·\033[22;39m dead  🥇 last  🥈 previous  🔗 attached'
 
 if [[ "$initial_query" == --stream-state ]]; then
@@ -497,11 +581,15 @@ while true; do
         done
     fi
 
-    expect_keys="ctrl-n,ctrl-d,esc"
+    expect_keys="ctrl-n,ctrl-d,ctrl-r,esc"
     if [[ (-n "$previous_session" && -n "${running[$previous_session]:-}") \
         || (-n "$detached_session" && -n "${running[$detached_session]:-}") ]]; then
         expect_keys+=",$ctrl_backslash"
     fi
+
+    header="$state_header"$'\nEnter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-R: rename | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit'
+    [[ -z "$notice" ]] || header+=$'\n\033[31m'"$notice"$'\033[39m'
+    notice=""
 
     rc=0
     output=$(printf '%s' "$display" | fzf \
@@ -512,7 +600,7 @@ while true; do
         --no-mouse \
         --reverse \
         --prompt="zmx> " \
-        --header="$state_header"$'\nEnter: attach | Ctrl-\\: previous | Esc: return | Ctrl-N: new | Ctrl-D: forget saved | Ctrl-/: preview | Ctrl-C: exit' \
+        --header="$header" \
         --preview="sh -c '$preview_cmd' _ {1}" \
         --preview-window=right:60%:follow \
         --bind="ctrl-/:change-preview-window(down,50%|hidden|)" \
@@ -531,6 +619,25 @@ while true; do
             [[ "$last_session" == "$session" ]] && last_session=""
             query=""
             removed_entry=true
+        fi
+        continue
+    elif [[ "$key" == "ctrl-r" ]]; then
+        session=$(printf '%s' "$selected" | awk '{print $1}')
+        [[ -n "$session" ]] || continue
+        # Use a second fzf with no rows as a line editor. Esc cancels.
+        new_name=$(fzf \
+            --height=3 \
+            --reverse \
+            --no-info \
+            --prompt="rename $session> " \
+            --query="$session" \
+            --bind="enter:print-query" < /dev/null) || continue
+        # Rows use the first word as the name, so join the typed words with "-".
+        new_name=$(printf '%s' "$new_name" \
+            | sed -E 's/^[[:space:]]+|[[:space:]]+$//g; s/[[:space:]]+/-/g')
+        if [[ -n "$new_name" && "$new_name" != "$session" ]] \
+            && rename_session "$session" "$new_name"; then
+            query=""
         fi
         continue
     elif [[ "$key" == "esc" ]]; then
