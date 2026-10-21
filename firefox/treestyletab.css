@@ -11,6 +11,18 @@
 
 /* Indicating state, domain, containers */
 
+/* The Nova theme shows the container marker at the top. Show it at the right edge. */
+tab-item .contextual-identity-marker {
+  position-anchor: none !important;
+  inset-block: var(--contextual-identity-marker-margin) !important;
+  inset-inline: auto 0 !important;
+  margin: 0 !important;
+  width: var(--contextual-identity-marker-size) !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  mask-image: none !important;
+}
+
 /* Change styling of the favicon of pending (unloaded) tabs */
 tab-item.discarded tab-favicon {
   opacity: 0.5 !important;
