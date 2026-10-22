@@ -54,6 +54,7 @@ A title tag covers the **right half of every visible ghostty window**. Its text 
 
 ## ManageHook
 
+- **Ignition rule** — `className =? "ignition"` (the IgnitionX host app, "Ignition X Window") floats and is shifted to `5:ignition` (Super+5). Every test run opens a new window; shifting it keeps focus and the current layout untouched. A float cannot be lowered behind tiled windows, because xmonad always restacks floats above them.
 - **Anki focus rule** — `className =? "Anki"` explicitly focuses a newly managed Anki window. Qt maps Anki normally on the current workspace but does not take focus here; under a full-window layout that leaves it completely hidden behind the focused client and looks like launch failed.
 
 Split into: `floatRules`, `browserRules`, `mailRules`, `editorRules`, `calendarRules`, `meetingRules`, `messengerRules`.

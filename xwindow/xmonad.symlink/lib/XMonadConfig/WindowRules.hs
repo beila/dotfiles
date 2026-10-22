@@ -31,7 +31,8 @@ floatRules =
         [ appName =? "Alert" --> doFloat
         , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
         , className =? "Tilda" --> doFloat
-        , className =? "ignition" --> doFloat
+        , -- Every test run opens a new window. Keep it away from the current workspace.
+          className =? "ignition" --> doShift C.ignitionWorkspace <> doFloat
         , className =? "Emulator" --> doFloat
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
