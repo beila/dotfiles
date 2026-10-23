@@ -36,6 +36,9 @@
     "preToolUse" : [ {
       "matcher" : "execute_bash",
       "command" : "f=\"$HOME/.dotfiles/work-dotfiles/agent-hooks/autosde-cr-gate\"; [ ! -x \"$f\" ] || exec \"$f\""
+    }, {
+      "matcher" : "@builder-mcp/CRRevisionCreator",
+      "command" : "f=\"$HOME/.dotfiles/work-dotfiles/agent-hooks/autosde-cr-gate\"; [ ! -x \"$f\" ] || exec \"$f\""
     } ],
     "postToolUse" : [ {
       "matcher" : "fs_write",
