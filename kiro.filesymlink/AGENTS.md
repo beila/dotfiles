@@ -32,6 +32,7 @@ Shared-skill symlinks: each entry points repo-relatively at `../../../.agents/sk
 - `kiro.filesymlink/steering/instructions.md` — canonical, always-loaded instruction set (Korean-TTS rule, no-sudo, fast-tools rule). Root AGENTS.md's "Agent Instructions" section just points here.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-builder-context-do-not-delete.md` — Amazon-internal SDE context (Brazil/CRUX/Apollo/…); kept in work-dotfiles so the public repo stays employer-agnostic.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-production-safety-do-not-delete.md` — AWS production-safety rules; same rationale.
+- `work-dotfiles/kiro.filesymlink/steering/amazon-autosde-before-cr.md` — the AutoSDE pre-CR review loop. Claude also includes it from `~/.claude/CLAUDE.md`. Codex cannot include it (its `AGENTS.md` is the public `instructions.md`), so Codex learns the loop from the block message of `work-dotfiles/agent-hooks/autosde-cr-gate`, which runs as a `PreToolUse`/`preToolUse` Bash hook in Claude, Codex, and the Kiro `builder` and `default` agents.
 
 ## Global Claude instructions
 

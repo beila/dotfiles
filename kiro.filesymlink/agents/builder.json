@@ -33,6 +33,10 @@
     "agentSpawn" : [ {
       "command" : "aim agents publish-metrics --agent-name 'amzn-builder' --agent-package 'AmazonBuilderCoreAIAgents-1.0' || true"
     } ],
+    "preToolUse" : [ {
+      "matcher" : "execute_bash",
+      "command" : "f=\"$HOME/.dotfiles/work-dotfiles/agent-hooks/autosde-cr-gate\"; [ ! -x \"$f\" ] || exec \"$f\""
+    } ],
     "postToolUse" : [ {
       "matcher" : "fs_write",
       "command" : "env PROSE_LINT_OUTPUT=kiro-store \"$HOME/.claude/hooks/prose-lint.sh\""
