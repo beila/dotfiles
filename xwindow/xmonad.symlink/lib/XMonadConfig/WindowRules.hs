@@ -34,7 +34,8 @@ floatRules =
         , className =? "Tilda" --> doFloat
         , -- Every test run opens a new window. Keep it away from the current workspace.
           ignitionQuery --> doShift C.ignitionWorkspace <> doFloat
-        , className =? "Emulator" --> doFloat
+        , -- The Android emulator and its tool window belong with the Ignition test window.
+          className =? "Emulator" --> doShift C.ignitionWorkspace <> doFloat
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
