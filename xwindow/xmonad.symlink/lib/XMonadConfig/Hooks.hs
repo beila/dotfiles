@@ -49,9 +49,8 @@ rescueOffscreenHook ConfigureEvent{ev_window = window, ev_x = x, ev_y = y, ev_wi
             (fromIntegral height)
         )
         $ withWindowSet
-        $ \stackSet -> do
-            isIgnition <- runQuery WindowRules.ignitionQuery window
-            when (M.member window (W.floating stackSet) && not isIgnition) $
+        $ \stackSet ->
+            when (M.member window $ W.floating stackSet) $
                 windows $
                     W.float window (W.RationalRect 0.1 0.1 0.5 0.5)
     return (All True)

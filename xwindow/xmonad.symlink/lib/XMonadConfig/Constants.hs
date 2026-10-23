@@ -8,7 +8,6 @@ module XMonadConfig.Constants (
     focusAccentColor,
     ghosttyClass,
     hiddenScratchpadWorkspace,
-    ignitionWorkspace,
     inactiveTagBorderColor,
     inactiveTagTextColor,
     isLeadingScratchpad,
@@ -23,11 +22,10 @@ where
 
 import XMonad (WorkspaceId)
 
-browserWorkspace, mailWorkspace, editorWorkspace, ignitionWorkspace, calendarWorkspace, meetingWorkspace, messengerWorkspace :: WorkspaceId
+browserWorkspace, mailWorkspace, editorWorkspace, calendarWorkspace, meetingWorkspace, messengerWorkspace :: WorkspaceId
 browserWorkspace = "1:browser"
 mailWorkspace = "2:mail"
 editorWorkspace = "3:nvim"
-ignitionWorkspace = "5:ignition"
 calendarWorkspace = "7:calendar"
 meetingWorkspace = "8:meeting"
 messengerWorkspace = "9:messenger"
@@ -38,7 +36,7 @@ workspaceIds =
     , mailWorkspace
     , editorWorkspace
     , "4"
-    , ignitionWorkspace
+    , "5"
     , "6"
     , calendarWorkspace
     , meetingWorkspace

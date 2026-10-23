@@ -43,20 +43,13 @@ type MyLayout =
         (ModifiedLayout AvoidStruts (ModifiedLayout AvoidStruts (Choose Tall (Choose (Mirror Tall) Full))))
 
 main :: IO ()
-main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook unfsHook $ rescreenHook monitorHotplugCfg myConfig
+main = xmonad $ docks $ ewmhFullscreen $ setEwmhFullscreenHooks fsHook doSink $ rescreenHook monitorHotplugCfg myConfig
   where
-    -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise.
-    -- Ignition keeps the geometry that it sets, and an unfullscreen does not tile it.
+    -- Keep Zoom "Meeting" tiled even when it requests fullscreen; default behaviour otherwise
     fsHook =
         composeOne
             [ className =? "zoom" <&&> title =? "Meeting" -?> idHook
-            , WindowRules.ignitionQuery -?> idHook
             , pure True -?> doFullFloat
-            ]
-    unfsHook =
-        composeOne
-            [ WindowRules.ignitionQuery -?> idHook
-            , pure True -?> doSink
             ]
 
 myConfig :: XConfig MyLayout
@@ -389,10 +382,6 @@ myKeys =
     , ((mod4Mask, xK_equal), nextScreen)
     , ((mod4Mask, xK_0), moveTo Next (emptyWS :&: Not (WSIs $ return (\w -> W.tag w == C.hiddenScratchpadWorkspace)))) -- find a free workspace (skip NSP)
     , ((mod4Mask, xK_s), spawn "scrot -s - | xclip -selection clipboard -t image/png") -- screenshot selection to clipboard
-    , -- The default Super+T, except that Ignition always floats.
-      ((mod4Mask, xK_t), withFocused $ \window -> do
-            isIgnition <- runQuery WindowRules.ignitionQuery window
-            unless isIgnition $ windows $ W.sink window)
     ]
         ++
         -- https://wiki.haskell.org/Xmonad/Frequently_asked_questions#Replacing_greedyView_with_view

@@ -1,6 +1,5 @@
 module XMonadConfig.WindowRules (
     applicationManageHook,
-    ignitionQuery,
     unfocusWindow,
     zoomJoinPopupQuery,
 ) where
@@ -32,10 +31,6 @@ floatRules =
         [ appName =? "Alert" --> doFloat
         , isInProperty "_NET_WM_WINDOW_TYPE" "_NET_WM_WINDOW_TYPE_DESKTOP" --> doLower
         , className =? "Tilda" --> doFloat
-        , -- Every test run opens a new window. Keep it away from the current workspace.
-          ignitionQuery --> doShift C.ignitionWorkspace <> doFloat
-        , -- The Android emulator and its tool window belong with the Ignition test window.
-          className =? "Emulator" --> doShift C.ignitionWorkspace <> doFloat
         , className =? "Gnome-panel" --> doFloat
         , appName =? "gnome-panel" --> doFloat
         , className =? "copyq" --> doFloat
@@ -87,10 +82,6 @@ meetingRules =
           -- after xmonad has resized it, so force its small intended geometry.
           title =? "annotate_toolbar" --> doRectFloat (W.RationalRect 0.485 0.02 0.03 0.045)
         ]
-
--- The IgnitionX host app always floats, and xmonad does not change its geometry.
-ignitionQuery :: Query Bool
-ignitionQuery = className =? "ignition"
 
 zoomJoinPopupQuery :: Query Bool
 zoomJoinPopupQuery =
