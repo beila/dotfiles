@@ -54,6 +54,7 @@ enabled=true
 enabled=true
 
 [system]
+command_lock=$HOME/.dotfiles/xwindow/bin/lock-screen
 enabled=true
 
 [timer]

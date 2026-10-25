@@ -40,6 +40,17 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 - **`raiseFocused`** (logHook): calls `raiseWindow` on the focused tiled window after every focus change. Picom draws a window's shadow at that window's Z-level, so without this, the glow is hidden wherever a higher-stacked tiled neighbor overlaps the shadow zone. Firefox is excluded because restacking its X11 window against the XFCE dock produces stale duplicated bands in its rendered surface. `windowTags` then raises every title tag above the clients.
 - **`raiseOsdWindows`** (last in logHook): re-raises override-redirect windows whose resource class is `osd` after focused clients and title tags. Persistent Hangul OSD windows otherwise become permanently covered on the first focus change after they are mapped; one-shot OSDs can be covered before their timeout for the same reason. Resource class keeps all library OSDs grouped while resource name identifies a specific OSD. The logHook raises only a cached `OsdWindows` set, without class queries. `trackOsdWindowsHook` classifies each window one time on `MapNotify` and removes it on unmap or destroy. One root scan seeds the set after a start or restart. The previous per-logHook `queryTree` plus a `WM_CLASS` round trip for each root child (~110 windows) ran on every client title change. An agent spinner in a terminal title (~10 Hz) then kept XMonad saturated, so key bindings such as brightness ran 10+ seconds late.
 - **Lock-screen OSD stacking**: During initialization, XMonad adds `PropertyChangeMask` to its existing root event mask so `_XMONAD_SCREEN_LOCKED` updates reach the event hooks. When that property becomes active, and after any window maps while locked, `raiseOsdOnLockHook` re-raises every window whose resource class is `osd`. This covers Hangul, Midway, Zoom, battery, volume, brightness, and audio-device OSDs regardless of whether the lock state, lock window, or OSD maps first. OSD input regions remain empty, so the overlays do not intercept lock-screen input.
+- **Albert lock guard**: Both Albert's System → Lock action and XMonad's
+  Super+Alt+L binding run `bin/lock-screen`. Albert 35 starts an action before
+  it hides the launcher, so its direct `org.gnome.ScreenSaver.Lock` call can
+  race GNOME Screensaver's X11 keyboard grab. The wrapper waits until the
+  active window is no longer Albert, waits another 100 milliseconds for X11
+  input state to settle, and then runs `gnome-screensaver-command --lock`. It
+  fails after two seconds if Albert retains focus, rather than displaying a
+  lock screen that might pass keyboard input to the previous client. GNOME
+  Screensaver remains the locker, so the daily `random-lockscreen` wallpaper
+  and the `ActiveChanged` → `_XMONAD_SCREEN_LOCKED` OSD path remain unchanged.
+  Test: `bash xwindow/test_lock_screen.sh`.
 
 ## Window title tag (`windowTags`)
 
@@ -84,6 +95,7 @@ These application-specific rules live in `xmonad.symlink/lib/XMonadConfig/Window
 - Super+N → `W.view` (focus workspace without swapping monitors)
 - Ctrl+Super+N → `W.greedyView` (bring workspace to current monitor)
 - Super+Shift+Enter → gnome-terminal
+- Super+Alt+L → guarded GNOME lock through `xwindow/bin/lock-screen`
 - Super+\` / Super+= → next screen
 - Super+0 → next empty workspace
 - Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)

@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -u
+
+xprop_cmd=${LOCK_SCREEN_XPROP:-xprop}
+sleep_cmd=${LOCK_SCREEN_SLEEP:-sleep}
+locker_cmd=${LOCK_SCREEN_COMMAND:-gnome-screensaver-command}
+wait_interval=${LOCK_SCREEN_WAIT_INTERVAL:-0.05}
+settle_interval=${LOCK_SCREEN_SETTLE_INTERVAL:-0.10}
+max_attempts=${LOCK_SCREEN_WAIT_ATTEMPTS:-40}
+
+albert_is_active() {
+	local active_window class
+
+	active_window=$("$xprop_cmd" -root _NET_ACTIVE_WINDOW 2>/dev/null) || return 1
+	active_window=${active_window##* }
+	[[ $active_window == 0x* && $active_window != 0x0 ]] || return 1
+
+	class=$("$xprop_cmd" -id "$active_window" WM_CLASS 2>/dev/null) || return 1
+	[[ ${class,,} == *'"albert"'* ]]
+}
+
+waited=0
+attempts=0
+while albert_is_active; do
+	if ((attempts >= max_attempts)); then
+		printf 'lock-screen: Albert did not release input focus\n' >&2
+		exit 1
+	fi
+	waited=1
+	attempts=$((attempts + 1))
+	"$sleep_cmd" "$wait_interval"
+done
+
+if ((waited)); then
+	"$sleep_cmd" "$settle_interval"
+fi
+
+exec "$locker_cmd" --lock

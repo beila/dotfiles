@@ -102,6 +102,9 @@ myConfig =
 rootCursorCommand :: String
 rootCursorCommand = "/usr/bin/xsetroot -cursor_name left_ptr"
 
+lockScreenCommand :: String
+lockScreenCommand = "$HOME/.dotfiles/xwindow/bin/lock-screen"
+
 resetStrutsOnStartup :: X ()
 resetStrutsOnStartup =
     broadcastMessage (SetStruts [minBound .. maxBound] []) >> refresh
@@ -355,7 +358,7 @@ readEdidVendor output = do
 
 myKeys :: [((KeyMask, KeySym), X ())]
 myKeys =
-    [ ((mod4Mask .|. mod1Mask, xK_l), spawn "gnome-screensaver-command --lock")
+    [ ((mod4Mask .|. mod1Mask, xK_l), spawn lockScreenCommand)
     , -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
       -- (see keyd/common's [meta] layer emitting XF86Copy/XF86Paste). xmonad
       -- doesn't see these — keyd swallows the Super and emits a bare keysym

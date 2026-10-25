@@ -119,6 +119,11 @@ tests =
             "root cursor command"
             "/usr/bin/xsetroot -cursor_name left_ptr"
             Config.rootCursorCommand
+    , Test "lock shortcut uses the guarded lock command" $
+        assertEqual
+            "lock command"
+            "$HOME/.dotfiles/xwindow/bin/lock-screen"
+            Config.lockScreenCommand
     , Test "workspace identifiers retain key order" $
         assertEqual
             "workspaces"
