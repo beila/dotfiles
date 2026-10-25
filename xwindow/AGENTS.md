@@ -50,7 +50,13 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   lock screen that might pass keyboard input to the previous client. GNOME
   Screensaver remains the locker, so the daily `random-lockscreen` wallpaper
   and the `ActiveChanged` → `_XMONAD_SCREEN_LOCKED` OSD path remain unchanged.
-  Test: `bash xwindow/test_lock_screen.sh`.
+  Do not replace GNOME Screensaver for this incident alone. Reconsider the
+  locker if keyboard input reaches an underlying client again after the guarded
+  entry point was used. First exclude another unguarded lock command. Any
+  replacement must preserve the random background, input-transparent OSD
+  stacking, a reliable `_XMONAD_SCREEN_LOCKED` signal, and fail-safe behavior
+  that never displays a password dialog without an exclusive input grab. Test:
+  `bash xwindow/test_lock_screen.sh`.
 
 ## Window title tag (`windowTags`)
 
