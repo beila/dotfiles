@@ -8,7 +8,7 @@
             }
         ],
         "target_uinput": "keyboard",
-        "output_symbol": "key(KEY_COPY).key(KEY_F24)"
+        "output_symbol": "key(KEY_COPY).key(KEY_F24).key(KEY_F19)"
     },
     {
         "input_combination": [

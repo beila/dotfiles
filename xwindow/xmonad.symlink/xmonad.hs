@@ -25,6 +25,7 @@ import XMonad.Util.NamedScratchpad
 
 import Graphics.X11.ExtraTypes.XF86
 import qualified Graphics.X11.Xrandr as RR
+import qualified XMonadConfig.Clipboard as Clipboard
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Hooks as Hooks
 import qualified XMonadConfig.Monitors as Monitors
@@ -72,11 +73,9 @@ myConfig =
                 , spawn "bash $HOME/.dotfiles/xwindow/bin/xmonad-lock-state"
                 , WindowTags.cleanStrayTags
                 , WindowTags.refreshTagMetrics
-                , -- Safety net for fresh checkouts: map keycodes 198/202 →
-                  -- F20/F24 for the keyd Super+V/C macro. system-deps.sh
-                  -- patches inet durably; this xmodmap covers the gap until
-                  -- script/install runs.
-                  spawn "xmodmap -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
+                , -- Keep the keyd fallback and neovide keys mapped.
+                  -- system-deps.sh also patches these mappings into xkb.
+                  spawn "xmodmap -e 'keycode 197 = F19' -e 'keycode 198 = F20' -e 'keycode 202 = F24'"
                 ]
         , handleEventHook = handleEventHook gnomeConfig <> Hooks.rescueOffscreenHook <> Hooks.stripZoomFullscreenHook <> Hooks.floatZoomJoinPopupHook <> Hooks.trackOsdWindowsHook <> Hooks.raiseOsdOnLockHook <> WindowTags.windowTagEventHook
         , logHook = logHook gnomeConfig >> Hooks.followToCurrentWorkspace (title =? "zoom_linux_float_video_window") >> Hooks.raiseFocused >> WindowTags.windowTags >> Hooks.raiseOsdWindows
@@ -104,6 +103,17 @@ rootCursorCommand = "/usr/bin/xsetroot -cursor_name left_ptr"
 
 lockScreenCommand :: String
 lockScreenCommand = "$HOME/.dotfiles/xwindow/bin/lock-screen"
+
+telegramCopyFallback :: X ()
+telegramCopyFallback =
+    withFocused $ \window -> do
+        appClass <- runQuery className window
+        windowTitle <- runQuery title window
+        when (Clipboard.needsControlCopyFallback appClass windowTitle) $
+            spawn $
+                "xdotool key --clearmodifiers --window "
+                    ++ show window
+                    ++ " ctrl+c"
 
 resetStrutsOnStartup :: X ()
 resetStrutsOnStartup =
@@ -359,10 +369,10 @@ readEdidVendor output = do
 myKeys :: [((KeyMask, KeySym), X ())]
 myKeys =
     [ ((mod4Mask .|. mod1Mask, xK_l), spawn lockScreenCommand)
-    , -- Super+C / Super+V → universal copy/paste, dispatched at keyd level
-      -- (see keyd/common's [meta] layer emitting XF86Copy/XF86Paste). xmonad
-      -- doesn't see these — keyd swallows the Super and emits a bare keysym
-      -- which the focused app handles natively.
+    , -- F19 follows XF86Copy and F24 in the keyd Super+C macro.
+      -- Telegram Web needs the conventional Ctrl+C event for message copies.
+      ((0, xK_F19), telegramCopyFallback)
+    , -- Super+C / Super+V use the keyd universal copy and paste macros.
       ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
     , ((0, xF86XK_TouchpadToggle), spawn "$HOME/.dotfiles/xwindow/bin/albert-toggle") -- Super tap via keyd (prog1 = f21)
     , ((0, xF86XK_TouchpadOn), scratchpadToggle C.PrimaryScratchpad) -- Alt_L tap via keyd (prog2 = f22)

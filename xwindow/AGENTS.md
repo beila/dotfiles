@@ -105,7 +105,9 @@ These application-specific rules live in `xmonad.symlink/lib/XMonadConfig/Window
 - Super+\` / Super+= → next screen
 - Super+0 → next empty workspace
 - Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)
-- Super+C / Super+V → universal copy/paste, dispatched by keyd as `macro(copy f24)` / `macro(paste f20)` (xmonad doesn't see them — see `keyd/AGENTS.md`)
+- Super+C / Super+V → universal copy/paste via `macro(copy f24 f19)` / `macro(paste f20)`.
+  - XMonad consumes F19 and sends targeted Control+C only to Telegram Web in Firefox.
+  - See `keyd/AGENTS.md`.
 - Super+Shift+V → `copyq toggle` (clipboard history)
 
 ## OSD library (`xwindow/osd/`)

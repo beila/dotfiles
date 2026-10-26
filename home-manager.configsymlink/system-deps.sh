@@ -35,21 +35,34 @@ if command -v gnome-session &>/dev/null; then
   sudo cp "$SCRIPT_DIR/../xwindow/gnome-flashback-xmonad.session" /usr/share/gnome-session/sessions/
   sudo cp "$SCRIPT_DIR/../xwindow/xmonad.desktop" /usr/share/applications/
 
-  # Map X11 keycodes 198/202 → F20/F24 keysyms for neovide's Super+C/V path.
-  # Patches the rule file directly because setxkbmap (called by ibus engine
-  # switches) wipes any xmodmap override. Idempotent.
+  # Map keycode 197 to the Telegram Web fallback key.
+  # Map keycodes 198/202 to the neovide copy and paste keys.
+  # Patch the rule file because ibus setxkbmap calls clear xmodmap changes.
   INET=/usr/share/X11/xkb/symbols/inet
-  if [ -f "$INET" ] && grep -q '<FK20>.*XF86AudioMicMute' "$INET"; then
-    sudo sed -i.dotfiles-bak \
-      -e 's|key <FK20>   {      \[ XF86AudioMicMute      \]       };|key <FK20>   {      [ F20                   ]       };  // dotfiles|' \
-      "$INET"
+  if [ -f "$INET" ]; then
+    XKB_CHANGED=0
+    if grep -q '<FK20>.*XF86AudioMicMute' "$INET"; then
+      sudo sed -i.dotfiles-bak \
+        -e 's|key <FK20>   {      \[ XF86AudioMicMute      \]       };|key <FK20>   {      [ F20                   ]       };  // dotfiles|' \
+        "$INET"
+      XKB_CHANGED=1
+    fi
+    if ! grep -q '<FK19>.*F19' "$INET"; then
+      sudo sed -i \
+        '/key <FK20>.*F20/i\    key <FK19>   {      [ F19                   ]       };  // dotfiles' \
+        "$INET"
+      XKB_CHANGED=1
+    fi
     if ! grep -q '<FK24>.*F24' "$INET"; then
       sudo sed -i \
         '/key <FK20>.*F20.*dotfiles/a\    key <FK24>   {      [ F24                   ]       };  // dotfiles' \
         "$INET"
+      XKB_CHANGED=1
     fi
-    # Apply to the live session.
-    setxkbmap "$(setxkbmap -query | awk '/^layout:/{print $2}')" 2>/dev/null || true
+    if [ "$XKB_CHANGED" -eq 1 ]; then
+      # Apply the durable mappings to the current session.
+      setxkbmap "$(setxkbmap -query | awk '/^layout:/{print $2}')" 2>/dev/null || true
+    fi
   fi
 fi
 

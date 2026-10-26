@@ -21,17 +21,25 @@ Copied to `/etc/keyd/` by `home-manager.configsymlink/system-deps.sh`. Reload wi
 
 ## Universal copy/paste
 
-Super+C / Super+V are remapped in `keyd/common`'s `[meta]` block to a two-token macro:
+Super+C / Super+V are remapped in `keyd/common`'s `[meta]` block:
 
 ```
-c = macro(copy f24)
+c = macro(copy f24 f19)
 v = macro(paste f20)
 ```
 
 - The bare `copy`/`paste` keysym (XF86Copy / XF86Paste, evdev `KEY_COPY` / `KEY_PASTE`) handles ghostty / firefox / GTK / Qt.
 - The `f24` / `f20` second token is for **neovide**, whose winit `get_special_key` table drops bare `XF86Copy`/`XF86Paste` but explicitly handles `NamedKey::F1`–`F35`.
+- The copy-only `f19` token is a reserved XMonad fallback.
+  - XMonad consumes it globally.
+  - It sends targeted `Control+C` only when the Firefox title contains `Telegram Web`.
+  - Telegram's selected-message copy path does not react to bare `XF86Copy`.
 - **F21–F23 are reserved for prog1/2/3** (Albert / scratchpads via keyd v2.6.0); F24 is the kernel `KEY_F24` ceiling; F20 is the next free slot below the prog range.
-- **Required xkb override** (`home-manager.configsymlink/system-deps.sh` patches `/usr/share/X11/xkb/symbols/inet`): X11 keycodes 198/202 default to `XF86AudioMicMute` / empty under `inet(evdev)`, which winit can't translate to `NamedKey::F20`/`F24`; the patch maps them to `F20`/`F24` so neovide receives the keystrokes. xmonad's startupHook also runs `xmodmap` for fresh checkouts before `script/install`.
+- **Required xkb override**: `home-manager.configsymlink/system-deps.sh` patches `/usr/share/X11/xkb/symbols/inet`.
+  - X11 key codes 197/198/202 map to `F19`/`F20`/`F24`.
+  - F19 is the XMonad Telegram fallback.
+  - F20/F24 let neovide receive the keystrokes.
+  - `~/.Xmodmap` and XMonad's startup hook apply the same mappings before `script/install`.
 - **GNOME caveat**: `home-manager.configsymlink/gnome.nix` strips `<Super>v` from `toggle-message-tray` (moves it to `<Super>m`) so gnome-shell doesn't grab Super+V before keyd's macro runs.
 - **Super+Shift+V** opens the copyq history picker via a `[meta+shift]` composite layer that prevents the explicit `v` binding from swallowing the shifted variant.
 - **nvim mappings** (`nvim.configsymlink/vimrcs/my-clipboard.lua`, identical for both `<F24>`/`<F20>` and `<XF86Copy>`/`<XF86Paste>`): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`.
@@ -79,7 +87,7 @@ So a config that fully works exists — but only **without** `common`'s `leftmet
 Symlinked to `~/.config/input-remapper-2/`. Per-device, runs as systemd user daemon.
 
 - Logitech USB Optical Mouse: left-handed.
-- ExpertBT5.0 Mouse (Kensington): left-handed + physical lower-left `BTN_LEFT` → universal copy + physical upper-right `BTN_SIDE` → universal paste. Input-remapper emits the same `copy`/F24 and `paste`/F20 sequences as keyd's Super+C/V macros, without relying on keyd to reprocess its virtual keyboard.
+- ExpertBT5.0 Mouse (Kensington): left-handed + physical lower-left `BTN_LEFT` → universal copy + physical upper-right `BTN_SIDE` → universal paste. Input-remapper emits the same `copy`/F24/F19 and `paste`/F20 sequences as keyd's Super+C/V macros, without relying on keyd to reprocess its virtual keyboard.
 
 ## Known issues
 

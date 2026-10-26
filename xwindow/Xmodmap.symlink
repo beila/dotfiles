@@ -59,3 +59,6 @@ add Control = Control_L
 keycode 127 = XF86AudioRaiseVolume
 keycode 78 = XF86AudioLowerVolume
 keycode 107 = XF86AudioMute
+
+! Reserve F19 for the Telegram Web copy fallback.
+keycode 197 = F19

@@ -8,6 +8,7 @@ import qualified Main as Config
 import System.Exit (exitFailure)
 import XMonad
 import qualified XMonad.StackSet as W
+import qualified XMonadConfig.Clipboard as Clipboard
 import qualified XMonadConfig.Constants as C
 import qualified XMonadConfig.Hooks as Hooks
 import qualified XMonadConfig.Monitors as Monitors
@@ -114,6 +115,31 @@ tests =
             "Super+B binding"
             False
             (M.member (mod4Mask, xK_b) (keys Config.myConfig keyConfig))
+    , Test "F19 Telegram copy fallback is bound" $
+        assertEqual
+            "F19 binding"
+            True
+            (M.member (0, xK_F19) (keys Config.myConfig keyConfig))
+    , Test "Telegram Firefox needs the Ctrl+C fallback" $
+        assertEqual
+            "fallback"
+            True
+            (Clipboard.needsControlCopyFallback "firefox" "Telegram Web — Mozilla Firefox")
+    , Test "Telegram fallback accepts a title prefix" $
+        assertEqual
+            "fallback"
+            True
+            (Clipboard.needsControlCopyFallback "Firefox" "(2) Telegram Web — Mozilla Firefox")
+    , Test "ordinary Firefox does not need the fallback" $
+        assertEqual
+            "fallback"
+            False
+            (Clipboard.needsControlCopyFallback "firefox" "Inbox — Mozilla Firefox")
+    , Test "another browser does not need the fallback" $
+        assertEqual
+            "fallback"
+            False
+            (Clipboard.needsControlCopyFallback "Vivaldi-stable" "Telegram Web")
     , Test "root cursor uses the host cursor theme" $
         assertEqual
             "root cursor command"

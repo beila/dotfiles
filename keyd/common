@@ -40,18 +40,19 @@ sysrq = mute
 pause = brightnessup
 scrolllock = brightnessdown
 
-# Super+C / Super+V → universal copy/paste. Two-token macro:
+# Super+C / Super+V → universal copy/paste.
 #   - bare copy/paste (XF86Copy/XF86Paste) hits ghostty / firefox / GTK / Qt
 #   - f24/f20 hits neovide, whose winit get_special_key drops bare XF86Copy/Paste
 #     but explicitly handles F1–F35.
+#   - f19 lets xmonad send Ctrl+C only to Telegram Web in Firefox.
 # F21–F23 are reserved for prog1/2/3 (albert / scratchpads); F24 is the kernel
-# KEY_F24 ceiling, F20 is the next free slot below the prog range.
-# X11 keycodes 198/202 → F20/F24 keysym mapping is patched into xkb's inet
-# rule by system-deps.sh (xmodmap won't survive ibus's setxkbmap calls).
+# KEY_F24 ceiling. F19 and F20 are the next free slots below the prog range.
+# system-deps.sh patches X11 keycodes 197/198/202 to F19/F20/F24.
+# The xkb patch survives ibus setxkbmap calls.
 # Token names are lowercase keyd identifiers — `macro(XF86Copy)` would type
 # the literal string.
 [meta]
-c = macro(copy f24)
+c = macro(copy f24 f19)
 v = macro(paste f20)
 
 # Pass Super+Shift+{C,V} through unmodified so xmonad sees them
