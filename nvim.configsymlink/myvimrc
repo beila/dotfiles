@@ -122,11 +122,11 @@ augroup myautocommands
 augroup END
 
 if has("gui_running")
-    silent! source ~/.session.vim
+    silent! lua require('session-focus').restore()
 
     augroup remember_session
       autocmd!
-      autocmd VimLeave * silent! mksession! ~/.session.vim
+      autocmd VimLeavePre * silent! lua require('session-focus').save()
     augroup END
 endif
 

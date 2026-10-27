@@ -76,6 +76,7 @@ also covers Gradle processes launched directly from the flake shell.
 - `vimrcs/lsp.lua` — keymaps incl. `<leader>e` floating diagnostic.
 - `vimrcs/nvim-dap.lua` — codelldb + shared DAP keymaps.
 - `vimrcs/nvim-lint.lua` — linter-by-filetype config.
+- `lua/session-focus.lua` — GUI `VimLeavePre` writes `~/.session.vim` plus the active tab and window indices in `~/.session-focus.json`, before shutdown can change the selected split. Startup restores the session, then reapplies focus after `VimEnter` so later startup handlers cannot override it. The final tab and window switch suppresses autocommands because unrelated `BufEnter` errors must not abort focus restoration. A missing or invalid focus file retains the standard session behavior. Regression coverage: `test_session_focus.lua`.
 
 ## Plugin-specific
 
@@ -124,7 +125,7 @@ A sibling-repo home-manager module appends a snippet to `programs.neovim.initLua
 
 `vimrcs/my-clipboard.lua` maps `<F24>`/`<F20>` AND `<XF86Copy>`/`<XF86Paste>` (sent by keyd's Super+C / Super+V macro): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`. See `keyd/AGENTS.md`.
 
-`lua/clipboard-yank.lua` defines the `<leader>y` system-clipboard mapping. In normal mode, it moves a prefixed count after the `"+` register selector, so `2<leader>yap` behaves like native `"+2yap`. Uncounted and visual yanks retain their previous behavior. Regression coverage: `test_counted_clipboard_yank.lua`.
+`lua/clipboard-yank.lua` defines the `<leader>y` system-clipboard mapping. In normal mode, it moves a prefixed count after the `"+` register selector, so `2<leader>yap` behaves like native `"+2yap`. It also collects any positive integer between `<leader>` and `y`, so forms such as `<leader>3yip`, `<leader>2yas`, `<leader>2yi(`, and `<leader>12yip` use the system clipboard without triggering numbered-mark jumps. The following motion or text object remains native Neovim behavior. Uncounted and visual yanks retain their previous behavior. Regression coverage: `test_counted_clipboard_yank.lua`.
 
 ## Known issues
 
