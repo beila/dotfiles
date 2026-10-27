@@ -90,7 +90,9 @@ Previews: a generic `:fzf-tab:complete:*:*' fzf-preview` rule branches at runtim
 
 **Required `:completion:*:descriptions' format` change**: the colorful `' %F{yellow}-- %d --%f'` form leaked literal escape codes into the picker as candidates because fzf-tab doesn't expand zsh prompt escapes; switched to plain `'[%d]'` bracketed form.
 
-Test harness: `zsh/test_fzf-tab.sh` (7 assertions: plugin file present, widget registered, fzf-command unset (intentional — verifies we don't accidentally re-introduce the fzf-zellij integration), compinit cold + warm OK, plugin loads cleanly even when fzf-zellij missing from PATH, and unquoted Nix flake references remain literal with `NOMATCH` enabled).
+Test harness: `zsh/test_fzf-tab.sh`. Its seven assertions cover the plugin
+file, widget registration, default fzf command, compinit cache, missing
+fzf-zellij, and literal unquoted Nix flake references with `NOMATCH` enabled.
 
 ## logrun-auto widget
 
