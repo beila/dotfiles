@@ -13,6 +13,7 @@
 #   5. With fzf-zellij PATH-masked, fzf-tab still loads cleanly (zstyle
 #      points to a missing path; fzf-tab handles this by falling back to
 #      its built-in `-ftb-fzf` which calls plain `fzf`).
+#   6. Unquoted Nix flake references keep `#` literal while NOMATCH stays on.
 
 set -u
 
@@ -109,6 +110,16 @@ if printf '%s' "$out" | grep -qE '^[1-9][0-9]*$'; then
     pass "fzf-tab loaded ($out widgets) without fzf-zellij on PATH"
 else
     fail "fzf-tab did not load when fzf-zellij missing" "output: $out"
+fi
+
+echo
+echo "=== Test 6: unquoted Nix flake references remain literal ==="
+out=$(zsh_eval 'print -r -- nixpkgs#foliate; print -r -- "nomatch=$options[nomatch]"')
+if printf '%s\n' "$out" | grep -qx 'nixpkgs#foliate' &&
+   printf '%s\n' "$out" | grep -qx 'nomatch=on'; then
+    pass "flake reference stayed literal with NOMATCH enabled"
+else
+    fail "flake reference was treated as a glob" "output: $out"
 fi
 
 echo

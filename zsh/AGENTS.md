@@ -24,13 +24,13 @@
   - Absolute source-workspace roots are adapted before fzf displays the commands. Hishtory import is intentionally deferred.
   - Records of other hosts come from `script/sync_repo` (see `script/AGENTS.md`, "Repository history sync"). They live in `<file without .history>.remote/<host>.history`. Each Ctrl-R reads the local file and these copies, sorts all records by epoch, and keeps the newest copy of each adapted command. Remote records are never written into the local file, because `sync_repo` exports the local file as this host's data.
   - The recorder uses `$EPOCHSECONDS`. Records written before this change have a stray `}` after the epoch (`${(%):-%D{%s}}` closed the expansion early). The reader removes it.
-- `directory.zsh` — `auto_cd`, `auto_pushd`, `extended_glob`, no clobber.
+- `directory.zsh` — `auto_cd`, `auto_pushd`, startup `extended_glob`, no clobber.
 - `zmx-history.zsh` — only active when `$ZMX_SESSION` is set. Registers a `zshexit` hook that synchronously runs `bin/zmx-history snapshot <session> "$PWD"` (bounded by a five-second `timeout`) while the zmx socket still exists, so a normal shell exit preserves output produced since the daemon's last poll and the exact final directory. The helper's snapshot lock serializes this with daemon captures so an older concurrent snapshot cannot overwrite the final state. A precmd hook `_zmx_follow_rename` is placed first in `precmd_functions`, so the `terminal.zsh` title uses its result. It follows zmx-select's rename map (`$XDG_RUNTIME_DIR/zmx-select/renamed/<old>` → `new<TAB>shell pid`, up to 10 hops) and exports the new `ZMX_SESSION`. An entry applies only when its pid is empty or equals `$$`, so a later session that reuses the old name keeps its own identity. Nested shells keep the old name. The zshexit hook calls the same function before it snapshots. The fast path is one `-r` test per prompt.
 - `utility.zsh` — correction, `nocorrect`/`noglob` aliases, colored ls/grep, and the interactive `rm` trash wrapper described below.
 - `config.zsh` — preexec/precmd timer that triggers `say_done` for commands taking >10s on desktop machines.
 - `functions.zsh` — autoloads everything in `functions/`; turns `aliased_<name>` files into `<name>` aliases (smart_sudo idiom). Also autoloads `exa_functions/` when `eza` is on PATH.
 - `fuzzy_completion.zsh` — single `zstyle` setting case-insensitive partial-word matching for the completion system.
-- `completion.zsh` — compinit, caching, menu select, AWS bashcompinit, **fzf-tab** (see below).
+- `completion.zsh` — compinit, caching, menu select, AWS bashcompinit, **fzf-tab** (see below). It disables global `EXTENDED_GLOB` after initialization, so unquoted Nix flake references keep `#` literal while `NOMATCH` remains enabled.
 - `syntax-highlighting.zsh` — `fast-syntax-highlighting` (nix).
 - `autosuggestions.zsh` — `zsh-autosuggestions` (nix).
 - `git.zsh` — git aliases, no git-flow.
@@ -90,7 +90,7 @@ Previews: a generic `:fzf-tab:complete:*:*' fzf-preview` rule branches at runtim
 
 **Required `:completion:*:descriptions' format` change**: the colorful `' %F{yellow}-- %d --%f'` form leaked literal escape codes into the picker as candidates because fzf-tab doesn't expand zsh prompt escapes; switched to plain `'[%d]'` bracketed form.
 
-Test harness: `zsh/test_fzf-tab.sh` (6 assertions: plugin file present, widget registered, fzf-command unset (intentional — verifies we don't accidentally re-introduce the fzf-zellij integration), compinit cold + warm OK, plugin loads cleanly even when fzf-zellij missing from PATH).
+Test harness: `zsh/test_fzf-tab.sh` (7 assertions: plugin file present, widget registered, fzf-command unset (intentional — verifies we don't accidentally re-introduce the fzf-zellij integration), compinit cold + warm OK, plugin loads cleanly even when fzf-zellij missing from PATH, and unquoted Nix flake references remain literal with `NOMATCH` enabled).
 
 ## logrun-auto widget
 

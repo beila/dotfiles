@@ -255,3 +255,6 @@ if [[ -e ~/.nix-profile/share/fzf-tab/fzf-tab.plugin.zsh ]]; then
     zstyle ':fzf-tab:complete:systemctl-*:*' fzf-preview \
         'SYSTEMD_COLORS=1 systemctl status $word 2>/dev/null'
 fi
+
+# Keep unquoted Nix flake references literal after completion initialization.
+unsetopt EXTENDED_GLOB
