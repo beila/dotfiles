@@ -38,6 +38,12 @@ if not actual:find("second paragraph", 1, true) or actual:find("third paragraph"
 	fail("leading count did not copy exactly two paragraphs: " .. vim.inspect(actual))
 end
 
+actual = yank([[ 2yap]])
+
+if actual ~= expected then
+	fail("count after leader copied " .. vim.inspect(actual) .. ", expected " .. vim.inspect(expected))
+end
+
 expected = yank([["+yap]])
 actual = yank([[ yap]])
 

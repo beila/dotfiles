@@ -1,0 +1,78 @@
+{
+  "current_condition": [
+    {
+      "FeelsLikeC": "13",
+      "humidity": "61",
+      "temp_C": "14",
+      "weatherDesc": [{ "value": "Sunny" }],
+      "weatherIconUrl": [{ "value": "" }],
+      "winddir16Point": "W",
+      "windspeedKmph": "11"
+    }
+  ],
+  "nearest_area": [
+    {
+      "areaName": [{ "value": "Bexley" }]
+    }
+  ],
+  "weather": [
+    {
+      "astronomy": [
+        {
+          "sunrise": "06:30 AM",
+          "sunset": "05:30 PM"
+        }
+      ],
+      "hourly": [
+        {
+          "chanceofrain": "0",
+          "tempC": "12",
+          "time": "900",
+          "weatherDesc": [{ "value": "Sunny" }]
+        },
+        {
+          "chanceofrain": "80",
+          "tempC": "11",
+          "time": "1200",
+          "weatherDesc": [{ "value": "Light rain" }]
+        },
+        {
+          "chanceofrain": "0",
+          "tempC": "9",
+          "time": "2100",
+          "weatherDesc": [{ "value": "Clear" }]
+        }
+      ]
+    },
+    {
+      "date": "2026-10-28",
+      "maxtempC": "15",
+      "mintempC": "8",
+      "hourly": [
+        {},
+        {},
+        {},
+        {},
+        {
+          "chanceofrain": "0",
+          "weatherDesc": [{ "value": "Clear" }]
+        }
+      ]
+    },
+    {
+      "date": "2026-10-29",
+      "maxtempC": "13",
+      "mintempC": "7",
+      "hourly": [
+        {},
+        {},
+        {},
+        {},
+        {
+          "chanceofrain": "75",
+          "weatherDesc": [{ "value": "Heavy rain" }]
+        }
+      ]
+    }
+  ]
+}
