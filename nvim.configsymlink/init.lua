@@ -14,8 +14,7 @@ vim.keymap.set("x", "<leader>p", [["_d"+P]])
 vim.keymap.set({"n", "v"}, "<leader>p", [["+p]])
 vim.keymap.set({"n", "v"}, "<leader>P", [["+P]])
 
-vim.keymap.set({"n", "v"}, "<leader>y", [["+y]])
-vim.keymap.set({"n", "v"}, "<leader>Y", [["+Y]])
+require('clipboard-yank').setup()
 
 -- Brief highlight on yank (from kickstart.nvim)
 vim.api.nvim_create_autocmd('TextYankPost', {

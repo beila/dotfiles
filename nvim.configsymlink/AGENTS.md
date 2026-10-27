@@ -124,6 +124,8 @@ A sibling-repo home-manager module appends a snippet to `programs.neovim.initLua
 
 `vimrcs/my-clipboard.lua` maps `<F24>`/`<F20>` AND `<XF86Copy>`/`<XF86Paste>` (sent by keyd's Super+C / Super+V macro): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`. See `keyd/AGENTS.md`.
 
+`lua/clipboard-yank.lua` defines the `<leader>y` system-clipboard mapping. In normal mode, it moves a prefixed count after the `"+` register selector, so `2<leader>yap` behaves like native `"+2yap`. Uncounted and visual yanks retain their previous behavior. Regression coverage: `test_counted_clipboard_yank.lua`.
+
 ## Known issues
 
 - **fzf-lua**: `fzf_opts['--bind']` overwritten by `create_fzf_binds` — custom fzf binds must go through the `actions` table or `keymap.fzf`, not `fzf_opts`.
