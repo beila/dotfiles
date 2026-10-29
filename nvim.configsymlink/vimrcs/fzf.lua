@@ -287,6 +287,7 @@ fzf_lua.setup({
     oldfiles = { include_current_session = true },
     lsp = {
         git_icons = true,
+        symbols = { child_prefix = false },
         finder = { actions = { ["ctrl-]"] = { function() fzf_lua.lsp_definitions() end } } },
     },
 })
