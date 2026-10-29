@@ -104,8 +104,10 @@ also covers Gradle processes launched directly from the flake shell.
 - **Paragraph dim** (`lua/paragraph-dim.lua`, enabled in `my-text.lua`) — auto-enabled for text, markdown, rst, org, asciidoc, tex, mail, gitcommit. Adjacent paragraphs get a light dim (`near = 0.35`) and the rest a strong dim (`far = 0.6`). Inspired by [Limelight](https://github.com/junegunn/limelight.vim), which it replaced because Limelight has only one dim level; `limelight-vim` was removed from `nvim.nix`.
 - **Table mode** (`my-markdown.lua`) — `silent! TableModeEnable` on markdown FileType.
 - **fzf-lua** (`vimrcs/fzf.lua`) — `<leader>f` selects JJ/Git tracked files. `Ctrl-G` toggles submodule files, while `Ctrl-F` toggles all files and preserves the query. `<leader>F` lists all files, `<C-g><C-f>` lists changed files, and `Ctrl-N`/`Ctrl-P` scroll the preview. Global `--no-mouse` leaves dragging to Neovim for terminal text selection across every picker, including the CodeDiff JJ revision picker.
-  LSP symbol pickers disable the nested-symbol prefix. Symbol kinds, checkboxes,
-  and names therefore remain aligned while every symbol retains its jump target.
+  LSP symbol pickers disable horizontal row scrolling, so selecting a long
+  symbol cannot shift that row left. Markdown document symbols retain heading
+  hierarchy, but a source-line filter removes inline fragment artifacts such
+  as Marksman's `#s-1` entries. ATX and Setext headings remain visible.
   Regression coverage: `test_fzf_lsp_symbols.lua`.
   Git commit, buffer-commit, blame, and reflog pickers override `Ctrl-Y` with the shared `picker-clipboard` action. It copies the selected commit ID to the system `+` clipboard plus the unnamed and yank registers without enabling `clipboard=unnamedplus`, so normal `yy`/`p` remain isolated. Regression coverage: `test_fzf_git_clipboard.lua`.
 

@@ -232,6 +232,25 @@ local function toggle_rg_flag(flag)
         opts.__call_fn(o)
     end
 end
+
+local function keep_document_symbol(item, ctx)
+    local bufnr = ctx and ctx.bufnr
+    if not bufnr or not vim.api.nvim_buf_is_valid(bufnr)
+        or vim.bo[bufnr].filetype ~= "markdown" then
+        return true
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum + 1, false)
+    local line = lines[1] or ""
+    local next_line = lines[2] or ""
+    local content_col = line:find("%S") or 1
+    local symbol_col = item.col or content_col
+    if line:match("^%s*#+%s+") then
+        return symbol_col <= content_col
+    end
+    return next_line:match("^%s*[=-]+%s*$") ~= nil and symbol_col <= content_col
+end
+
 fzf_lua.setup({
     keymap = {
         --[[
@@ -287,7 +306,8 @@ fzf_lua.setup({
     oldfiles = { include_current_session = true },
     lsp = {
         git_icons = true,
-        symbols = { child_prefix = false },
+        symbols = { fzf_opts = { ["--no-hscroll"] = true } },
+        document_symbols = { regex_filter = keep_document_symbol },
         finder = { actions = { ["ctrl-]"] = { function() fzf_lua.lsp_definitions() end } } },
     },
 })
