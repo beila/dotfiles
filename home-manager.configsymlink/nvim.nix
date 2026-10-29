@@ -95,7 +95,6 @@ in
       fidget-nvim
       gitsigns-nvim
       _codediff-nvim
-      limelight-vim
       indent-blankline-nvim
       mini-ai
       nvim-surround
