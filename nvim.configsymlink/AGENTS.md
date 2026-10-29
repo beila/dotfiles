@@ -107,7 +107,8 @@ also covers Gradle processes launched directly from the flake shell.
   LSP symbol pickers disable horizontal row scrolling, so selecting a long
   symbol cannot shift that row left. Markdown document symbols retain heading
   hierarchy, but a source-line filter removes inline fragment artifacts such
-  as Marksman's `#s-1` entries. ATX and Setext headings remain visible.
+  as Marksman's `#s-1` entries. ATX and Setext headings remain visible. The F8
+  mapping snapshots source lines before the asynchronous LSP request starts.
   Regression coverage: `test_fzf_lsp_symbols.lua`.
   Git commit, buffer-commit, blame, and reflog pickers override `Ctrl-Y` with the shared `picker-clipboard` action. It copies the selected commit ID to the system `+` clipboard plus the unnamed and yank registers without enabling `clipboard=unnamedplus`, so normal `yy`/`p` remain isolated. Regression coverage: `test_fzf_git_clipboard.lua`.
 

@@ -167,12 +167,27 @@ vim.keymap.set({ "n", "v", "i" }, "<leader><tab>",
     function() fzf_lua.tabs() end,
     {})
 
+local function keep_markdown_heading(item, lines)
+    local line = lines[item.lnum] or ""
+    local next_line = lines[item.lnum + 1] or ""
+    local content_col = line:find("%S") or 1
+    local symbol_col = item.col or content_col
+    if line:match("^%s*#+%s+") then
+        return symbol_col <= content_col
+    end
+    return next_line:match("^%s*[=-]+%s*$") ~= nil and symbol_col <= content_col
+end
+
 vim.keymap.set({ "n", "v", "i" }, "<F8>",
     function()
         local workspace = false
+        local markdown_lines
+        if vim.bo.filetype == "markdown" then
+            markdown_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+        end
         local function open(query)
             local fn = workspace and fzf_lua.lsp_workspace_symbols or fzf_lua.lsp_document_symbols
-            fn({
+            local opts = {
                 query = query,
                 fzf_opts = { ['--header'] = (workspace and '☑' or '☐') .. ' workspace (ctrl-g)' },
                 actions = {
@@ -181,7 +196,13 @@ vim.keymap.set({ "n", "v", "i" }, "<F8>",
                         open(opts.last_query)
                     end, exec_silent = true },
                 },
-            })
+            }
+            if not workspace and markdown_lines then
+                opts.regex_filter = function(item)
+                    return keep_markdown_heading(item, markdown_lines)
+                end
+            end
+            fn(opts)
         end
         open()
     end,
@@ -231,24 +252,6 @@ local function toggle_rg_flag(flag)
         local o = vim.tbl_deep_extend("keep", { cmd = cmd, resume = true }, opts.__call_opts or {})
         opts.__call_fn(o)
     end
-end
-
-local function keep_document_symbol(item, ctx)
-    local bufnr = ctx and ctx.bufnr
-    if not bufnr or not vim.api.nvim_buf_is_valid(bufnr)
-        or vim.bo[bufnr].filetype ~= "markdown" then
-        return true
-    end
-
-    local lines = vim.api.nvim_buf_get_lines(bufnr, item.lnum - 1, item.lnum + 1, false)
-    local line = lines[1] or ""
-    local next_line = lines[2] or ""
-    local content_col = line:find("%S") or 1
-    local symbol_col = item.col or content_col
-    if line:match("^%s*#+%s+") then
-        return symbol_col <= content_col
-    end
-    return next_line:match("^%s*[=-]+%s*$") ~= nil and symbol_col <= content_col
 end
 
 fzf_lua.setup({
@@ -307,7 +310,6 @@ fzf_lua.setup({
     lsp = {
         git_icons = true,
         symbols = { fzf_opts = { ["--no-hscroll"] = true } },
-        document_symbols = { regex_filter = keep_document_symbol },
         finder = { actions = { ["ctrl-]"] = { function() fzf_lua.lsp_definitions() end } } },
     },
 })
