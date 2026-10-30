@@ -105,11 +105,13 @@ also covers Gradle processes launched directly from the flake shell.
 - **Table mode** (`my-markdown.lua`) — `silent! TableModeEnable` on markdown FileType.
 - **fzf-lua** (`vimrcs/fzf.lua`) — `<leader>f` selects JJ/Git tracked files. `Ctrl-G` toggles submodule files, while `Ctrl-F` toggles all files and preserves the query. `<leader>F` lists all files, `<C-g><C-f>` lists changed files, and `Ctrl-N`/`Ctrl-P` scroll the preview. Global `--no-mouse` leaves dragging to Neovim for terminal text selection across every picker, including the CodeDiff JJ revision picker.
   LSP symbol pickers disable horizontal row scrolling, so selecting a long
-  symbol cannot shift that row left. Markdown document symbols retain heading
-  hierarchy, but a source-line filter removes inline fragment artifacts such
-  as Marksman's `#s-1` entries. ATX and Setext headings remain visible. The F8
-  mapping snapshots source lines before the asynchronous LSP request starts.
-  Regression coverage: `test_fzf_lsp_symbols.lua`.
+  symbol cannot shift that row left. Document symbols use an eight-column tab
+  stop, so line and column fields with different digit counts align before the
+  symbol hierarchy. Markdown document symbols retain heading hierarchy, but a
+  source-line filter removes inline fragment artifacts such as Marksman's
+  `#s-1` entries. ATX and Setext headings remain visible. The F8 mapping
+  snapshots source lines before the asynchronous LSP request starts. Regression
+  coverage: `test_fzf_lsp_symbols.lua`.
   Git commit, buffer-commit, blame, and reflog pickers override `Ctrl-Y` with the shared `picker-clipboard` action. It copies the selected commit ID to the system `+` clipboard plus the unnamed and yank registers without enabling `clipboard=unnamedplus`, so normal `yy`/`p` remain isolated. Regression coverage: `test_fzf_git_clipboard.lua`.
 
   **Grep dialog toggles** appear in a stacked header. `Ctrl-R` runs `actions.toggle_ignore`, `Ctrl-G` runs `actions.grep_lgrep`, `Ctrl-W` toggles `--word-regexp`, and `Ctrl-S` toggles `--case-sensitive`. The two flag toggles use a local `toggle_rg_flag` helper instead of `actions.toggle_flag`. It inserts the flag immediately before the trailing `-e`, keeping the user's query as the ripgrep pattern. It also positions the flag after `--smart-case`, so ripgrep's last case flag takes effect. `Ctrl-S` shadows the inherited `file_split` action only within grep.

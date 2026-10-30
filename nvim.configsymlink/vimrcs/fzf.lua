@@ -310,6 +310,7 @@ fzf_lua.setup({
     lsp = {
         git_icons = true,
         symbols = { fzf_opts = { ["--no-hscroll"] = true } },
+        document_symbols = { fzf_opts = { ["--tabstop"] = "8" } },
         finder = { actions = { ["ctrl-]"] = { function() fzf_lua.lsp_definitions() end } } },
     },
 })

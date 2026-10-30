@@ -44,6 +44,9 @@ end
 if setup.lsp.symbols.fzf_opts["--no-hscroll"] ~= true then
 	fail("selected LSP symbols can still shift horizontally")
 end
+if setup.lsp.document_symbols.fzf_opts["--tabstop"] ~= "8" then
+	fail("document symbol positions do not align before the hierarchy")
+end
 
 vim.bo.filetype = "markdown"
 vim.api.nvim_buf_set_lines(0, 0, -1, false, {
