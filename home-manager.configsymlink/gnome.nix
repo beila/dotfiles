@@ -81,14 +81,8 @@ in
       idle-monitor = false;
       screensaver = false;
     };
-    "org/gnome/desktop/session" = {
-      idle-delay = lib.gvariant.mkUint32 0;
-    };
-    "org/gnome/desktop/screensaver" = {
-      idle-activation-enabled = false;
-      lock-enabled = false;
-      ubuntu-lock-on-suspend = false;
-    };
+    # Corporate dconf policy locks the GNOME screensaver keys.
+    # Disable the Flashback locker modules instead.
     # Free up Super+V for our universal-paste binding (keyd's [meta] layer
     # emits M-v as the second token; gnome-shell otherwise grabs <Super>v
     # before any app sees it). Default was ['<Super>v', '<Super>m']; keep

@@ -49,6 +49,8 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   suspend inhibition. Its locker is `xsecurelock-run`, backed by XSecureLock's
   separate grab, authentication, and saver processes. GNOME Flashback's idle
   monitor and screensaver modules are disabled, so two lockers cannot compete.
+  The daemon passes the active login session ID explicitly because graphical
+  process IDs on this workstation do not resolve through logind.
   A second unsafe GNOME lock occurred on 2026-10-31 through automatic idle
   activation, not Albert. GNOME reported the session as locked while Ghostty
   was active and XMonad accepted Super+2. This crossed the replacement
