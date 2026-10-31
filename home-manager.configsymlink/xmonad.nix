@@ -1,5 +1,12 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
+let
+  xsecurelockWithMpv = pkgs.xsecurelock.overrideAttrs (old: {
+    configureFlags = (old.configureFlags or []) ++ [
+      "--with-mpv=${lib.getExe pkgs.mpv}"
+    ];
+  });
+in
 {
   xsession.windowManager.xmonad = {
     enable = true;
@@ -7,7 +14,12 @@
     extraPackages = hp: [];
   };
 
-  home.packages = [ pkgs.xfce4-panel pkgs.xfconf ];
+  home.packages = [
+    pkgs.xfce4-panel
+    pkgs.xfconf
+    pkgs.xss-lock
+    xsecurelockWithMpv
+  ];
 
   # Register xfconfd with dbus/systemd so xfce4-panel can persist config.
   # Re-runs on every home-manager switch to keep symlinks pointing to the

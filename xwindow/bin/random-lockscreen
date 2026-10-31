@@ -68,6 +68,12 @@ if [[ "${PIC,,}" == *.heic ]]; then
     fi
 fi
 
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/random-lockscreen"
+mkdir -p "$CACHE_DIR"
+current_tmp=$(mktemp "$CACHE_DIR/.current.XXXXXX")
+printf '%s\n' "$PIC" >"$current_tmp"
+mv "$current_tmp" "$CACHE_DIR/current"
+
 if ! command -v gsettings >/dev/null 2>&1; then
     log ERROR "gsettings not installed. This script expects a GNOME/glib session. Install glib or disable random-lockscreen.timer."
     exit 1

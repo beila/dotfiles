@@ -78,6 +78,16 @@ in
     };
     "org/gnome/gnome-flashback" = {
       desktop = false;
+      idle-monitor = false;
+      screensaver = false;
+    };
+    "org/gnome/desktop/session" = {
+      idle-delay = lib.gvariant.mkUint32 0;
+    };
+    "org/gnome/desktop/screensaver" = {
+      idle-activation-enabled = false;
+      lock-enabled = false;
+      ubuntu-lock-on-suspend = false;
     };
     # Free up Super+V for our universal-paste binding (keyd's [meta] layer
     # emits M-v as the second token; gnome-shell otherwise grabs <Super>v

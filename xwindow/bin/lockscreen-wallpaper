@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -u
+
+current=${LOCKSCREEN_WALLPAPER_FILE:-${XDG_CACHE_HOME:-$HOME/.cache}/random-lockscreen/current}
+gsettings_cmd=${LOCKSCREEN_WALLPAPER_GSETTINGS:-gsettings}
+
+if [[ -r $current ]]; then
+	IFS= read -r image <"$current"
+	if [[ -f $image ]]; then
+		printf '%s\n' "$image"
+		exit
+	fi
+fi
+
+uri=$(
+	"$gsettings_cmd" get \
+		org.gnome.desktop.screensaver \
+		picture-uri 2>/dev/null
+) || exit 0
+uri=${uri#\'}
+uri=${uri%\'}
+[[ $uri == file://* ]] || exit 0
+image=${uri#file://}
+[[ -f $image ]] && printf '%s\n' "$image"

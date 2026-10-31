@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -u
+
+xset_cmd=${SCREEN_LOCKER_XSET:-xset}
+xss_lock_cmd=${SCREEN_LOCKER_XSS_LOCK:-xss-lock}
+locker_cmd=${SCREEN_LOCKER_COMMAND:-$HOME/.dotfiles/xwindow/bin/xsecurelock-run}
+lock_file=${SCREEN_LOCKER_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/screen-locker-daemon.lock}
+timeout=${SCREEN_LOCKER_TIMEOUT:-900}
+cycle=${SCREEN_LOCKER_CYCLE:-5}
+
+exec 9>"$lock_file"
+flock -n 9 || exit 0
+
+"$xset_cmd" s "$timeout" "$cycle" || exit 1
+
+while true; do
+	"$xss_lock_cmd" -l -- "$locker_cmd"
+	status=$?
+	[[ ${SCREEN_LOCKER_ONCE:-0} == 1 ]] && exit "$status"
+	sleep 1
+done

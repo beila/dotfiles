@@ -35,28 +35,70 @@ set -euo pipefail
 printf 'sleep:%s\n' "$1" >> "$LOCK_SCREEN_TEST_EVENTS"
 EOF
 
-cat >"$TEST_DIR/locker" <<'EOF'
+cat >"$TEST_DIR/xset" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 checks=$(cat "$LOCK_SCREEN_TEST_STATE")
 if ((checks < 3)); then
-    printf 'locker started while Albert was active\n' >&2
+    printf 'screen saver activated while Albert was active\n' >&2
     exit 1
 fi
-printf 'locker:%s\n' "$*" >> "$LOCK_SCREEN_TEST_EVENTS"
+printf 'xset:%s\n' "$*" >> "$LOCK_SCREEN_TEST_EVENTS"
 EOF
 
-chmod +x "$TEST_DIR/xprop" "$TEST_DIR/sleep" "$TEST_DIR/locker"
+cat >"$TEST_DIR/pgrep-running" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+
+cat >"$TEST_DIR/direct-unexpected" <<'EOF'
+#!/usr/bin/env bash
+printf 'direct locker was called\n' >&2
+exit 1
+EOF
+
+chmod +x \
+	"$TEST_DIR/xprop" \
+	"$TEST_DIR/sleep" \
+	"$TEST_DIR/xset" \
+	"$TEST_DIR/pgrep-running" \
+	"$TEST_DIR/direct-unexpected"
 
 LOCK_SCREEN_XPROP="$TEST_DIR/xprop" \
 	LOCK_SCREEN_SLEEP="$TEST_DIR/sleep" \
-	LOCK_SCREEN_COMMAND="$TEST_DIR/locker" \
+	LOCK_SCREEN_XSET="$TEST_DIR/xset" \
+	LOCK_SCREEN_PGREP="$TEST_DIR/pgrep-running" \
+	LOCK_SCREEN_DIRECT_LOCKER="$TEST_DIR/direct-unexpected" \
+	LOCK_SCREEN_COMMAND="$TEST_DIR/direct-unexpected" \
 	LOCK_SCREEN_TEST_STATE="$STATE_FILE" \
 	LOCK_SCREEN_TEST_EVENTS="$EVENT_LOG" \
 	"$UNDER_TEST"
 
 [[ $(cat "$STATE_FILE") == 3 ]]
-[[ $(tail -n 1 "$EVENT_LOG") == "locker:--lock" ]]
+[[ $(tail -n 1 "$EVENT_LOG") == "xset:s activate" ]]
+
+cat >"$TEST_DIR/pgrep-missing" <<'EOF'
+#!/usr/bin/env bash
+exit 1
+EOF
+
+cat >"$TEST_DIR/direct-locker" <<'EOF'
+#!/usr/bin/env bash
+printf 'direct:%s\n' "$*" >> "$LOCK_SCREEN_TEST_EVENTS"
+EOF
+
+chmod +x "$TEST_DIR/pgrep-missing" "$TEST_DIR/direct-locker"
+
+LOCK_SCREEN_XPROP="$TEST_DIR/xprop" \
+	LOCK_SCREEN_SLEEP="$TEST_DIR/sleep" \
+	LOCK_SCREEN_XSET="$TEST_DIR/xset" \
+	LOCK_SCREEN_PGREP="$TEST_DIR/pgrep-missing" \
+	LOCK_SCREEN_DIRECT_LOCKER="$TEST_DIR/direct-locker" \
+	LOCK_SCREEN_TEST_STATE="$STATE_FILE" \
+	LOCK_SCREEN_TEST_EVENTS="$EVENT_LOG" \
+	"$UNDER_TEST"
+
+[[ $(tail -n 1 "$EVENT_LOG") == "direct:" ]]
 
 cat >"$TEST_DIR/xprop-stuck" <<'EOF'
 #!/usr/bin/env bash
@@ -80,6 +122,9 @@ chmod +x "$TEST_DIR/xprop-stuck" "$TEST_DIR/locker-unexpected"
 set +e
 LOCK_SCREEN_XPROP="$TEST_DIR/xprop-stuck" \
 	LOCK_SCREEN_SLEEP="$TEST_DIR/sleep" \
+	LOCK_SCREEN_XSET="$TEST_DIR/xset" \
+	LOCK_SCREEN_PGREP="$TEST_DIR/pgrep-running" \
+	LOCK_SCREEN_DIRECT_LOCKER="$TEST_DIR/locker-unexpected" \
 	LOCK_SCREEN_COMMAND="$TEST_DIR/locker-unexpected" \
 	LOCK_SCREEN_WAIT_ATTEMPTS=2 \
 	LOCK_SCREEN_TEST_EVENTS="$EVENT_LOG" \

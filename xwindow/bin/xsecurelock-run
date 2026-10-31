@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -u
+
+property=_XMONAD_SCREEN_LOCKED
+xprop_cmd=${XSECURELOCK_RUN_XPROP:-xprop}
+locker_cmd=${XSECURELOCK_RUN_COMMAND:-xsecurelock}
+wallpaper_cmd=${XSECURELOCK_RUN_WALLPAPER:-$HOME/.dotfiles/xwindow/bin/lockscreen-wallpaper}
+lock_file=${XSECURELOCK_RUN_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/xsecurelock-run.lock}
+
+publish_state() {
+	"$xprop_cmd" -root -f "$property" 32c -set "$property" "$1"
+}
+
+if [[ ${1:-} == --notify ]]; then
+	publish_state 1
+	exit
+fi
+if (($#)); then
+	printf 'usage: %s\n' "${0##*/}" >&2
+	exit 2
+fi
+
+exec 9>"$lock_file"
+flock -n 9 || exit 0
+
+trap 'publish_state 0' EXIT
+trap 'exit 1' HUP INT TERM
+
+export XSECURELOCK_SAVER=saver_mpv
+export XSECURELOCK_LIST_VIDEOS_COMMAND="$wallpaper_cmd"
+export XSECURELOCK_IMAGE_DURATION_SECONDS=86400
+export XSECURELOCK_VIDEOS_FLAGS=--panscan=1.0
+export XSECURELOCK_SAVER_DELAY_MS=250
+
+"$locker_cmd" -- "$0" --notify

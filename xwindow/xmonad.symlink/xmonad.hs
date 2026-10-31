@@ -70,7 +70,7 @@ myConfig =
                 , Hooks.fullscreenStartupHook
                 , spawn "pgrep xfce4-panel || xfce4-panel"
                 , spawn "pgrep -fx albert >/dev/null || albert"
-                , spawn "bash $HOME/.dotfiles/xwindow/bin/xmonad-lock-state"
+                , spawn "$HOME/.dotfiles/xwindow/bin/screen-locker-daemon"
                 , WindowTags.cleanStrayTags
                 , WindowTags.refreshTagMetrics
                 , -- Keep the keyd fallback and neovide keys mapped.

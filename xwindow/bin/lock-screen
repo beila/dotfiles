@@ -3,7 +3,9 @@ set -u
 
 xprop_cmd=${LOCK_SCREEN_XPROP:-xprop}
 sleep_cmd=${LOCK_SCREEN_SLEEP:-sleep}
-locker_cmd=${LOCK_SCREEN_COMMAND:-gnome-screensaver-command}
+xset_cmd=${LOCK_SCREEN_XSET:-xset}
+pgrep_cmd=${LOCK_SCREEN_PGREP:-pgrep}
+direct_locker=${LOCK_SCREEN_DIRECT_LOCKER:-$HOME/.dotfiles/xwindow/bin/xsecurelock-run}
 wait_interval=${LOCK_SCREEN_WAIT_INTERVAL:-0.05}
 settle_interval=${LOCK_SCREEN_SETTLE_INTERVAL:-0.10}
 max_attempts=${LOCK_SCREEN_WAIT_ATTEMPTS:-40}
@@ -35,4 +37,8 @@ if ((waited)); then
 	"$sleep_cmd" "$settle_interval"
 fi
 
-exec "$locker_cmd" --lock
+if "$pgrep_cmd" -u "$UID" -x xss-lock >/dev/null 2>&1; then
+	exec "$xset_cmd" s activate
+fi
+
+exec "$direct_locker"

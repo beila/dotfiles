@@ -26,7 +26,6 @@ fi
 # GNOME-specific setup (skip on headless/non-GNOME machines)
 if command -v gnome-session &>/dev/null; then
   $PKG_INSTALL \
-    gnome-screensaver \
     ibus-hangul \
     gnome-session-flashback
 

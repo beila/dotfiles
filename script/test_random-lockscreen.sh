@@ -16,7 +16,9 @@ export LOG_ROOT="$TMPDIR/logs"
 export LOG_REL_BASE="$TMPDIR"
 export LOG_MACHINE_NAME="testhost"
 export LOG_NOTIFY_MODE=never
+export LOG_KEEP_THRESHOLD=DEBUG
 export DOTFILES_ROOT
+export XDG_CACHE_HOME="$TMPDIR/cache"
 
 WP_DIR="$TMPDIR/walls"
 mkdir -p "$WP_DIR"
@@ -98,6 +100,9 @@ rc=$(run_under_test)
 check "exit 0" "0" "$rc"
 check "gsettings called 3 times" "3" "$(wc -l < "$GSETTINGS_CALL_LOG")"
 check_grep "INFO mentions chosen wallpaper" '\[INFO\] set wallpaper to' "$(log_file)"
+current_wallpaper=$(cat "$XDG_CACHE_HOME/random-lockscreen/current" 2>/dev/null)
+check "current wallpaper is an image" "yes" "$([[ $current_wallpaper =~ /(one\.jpg|two\.png|three\.JPG)$ ]] && printf yes || printf no)"
+check "current wallpaper exists" "yes" "$([[ -f $current_wallpaper ]] && printf yes || printf no)"
 
 echo
 echo "=== Test 2: wallpaper dir missing ==="
@@ -186,4 +191,4 @@ pass=$(cat "$PASS_FILE")
 fail=$(cat "$FAIL_FILE")
 echo
 echo "=== Results: $pass passed, $fail failed ==="
-[ $fail -eq 0 ]
+[ "$fail" -eq 0 ]
