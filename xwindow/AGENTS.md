@@ -12,6 +12,10 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 
 `bash xwindow/test_xmonad_dock.sh` runs the real layout, startup, focus-restacking, Zoom window, and lock-screen OSD hooks inside Xephyr with a synthetic 48px EWMH dock. It covers strut toggling and restart recovery plus the normal-client and Firefox focus-restacking cases. It also verifies that neither Zoom notification-window signature steals focus and that a generic, non-Hangul OSD rises above a lock window regardless of whether the lock state or window map arrives last.
 
+`bash xwindow/test_lock_screen.sh`, `bash xwindow/test_xsecurelock_run.sh`,
+and `bash xwindow/test_screen_locker_daemon.sh` cover manual lock routing,
+post-grab state publication, fail-open behavior, and idle-lock coordination.
+
 Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in `xmonad.symlink/lib/XMonadConfig/Constants.hs`. Scratchpads use the typed `ScratchpadSlot` instead of passing `"ghostty1"`/`"ghostty2"` strings through toggle logic.
 
 `xmonad.symlink/lib/XMonadConfig/Scratchpad.hs` contains the pure scratchpad rectangle calculation and state-to-action decision table. `scratchpadToggle` observes XMonad state and executes the returned action; the seven supported missing/fullscreen/floating states are covered by unit tests.
@@ -40,23 +44,30 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 - **`raiseFocused`** (logHook): calls `raiseWindow` on the focused tiled window after every focus change. Picom draws a window's shadow at that window's Z-level, so without this, the glow is hidden wherever a higher-stacked tiled neighbor overlaps the shadow zone. Firefox is excluded because restacking its X11 window against the XFCE dock produces stale duplicated bands in its rendered surface. `windowTags` then raises every title tag above the clients.
 - **`raiseOsdWindows`** (last in logHook): re-raises override-redirect windows whose resource class is `osd` after focused clients and title tags. Persistent Hangul OSD windows otherwise become permanently covered on the first focus change after they are mapped; one-shot OSDs can be covered before their timeout for the same reason. Resource class keeps all library OSDs grouped while resource name identifies a specific OSD. The logHook raises only a cached `OsdWindows` set, without class queries. `trackOsdWindowsHook` classifies each window one time on `MapNotify` and removes it on unmap or destroy. One root scan seeds the set after a start or restart. The previous per-logHook `queryTree` plus a `WM_CLASS` round trip for each root child (~110 windows) ran on every client title change. An agent spinner in a terminal title (~10 Hz) then kept XMonad saturated, so key bindings such as brightness ran 10+ seconds late.
 - **Lock-screen OSD stacking**: During initialization, XMonad adds `PropertyChangeMask` to its existing root event mask so `_XMONAD_SCREEN_LOCKED` updates reach the event hooks. When that property becomes active, and after any window maps while locked, `raiseOsdOnLockHook` re-raises every window whose resource class is `osd`. This covers Hangul, Midway, Zoom, battery, volume, brightness, and audio-device OSDs regardless of whether the lock state, lock window, or OSD maps first. OSD input regions remain empty, so the overlays do not intercept lock-screen input.
-- **Albert lock guard**: Both Albert's System → Lock action and XMonad's
-  Super+Alt+L binding run `bin/lock-screen`. Albert 35 starts an action before
-  it hides the launcher, so its direct `org.gnome.ScreenSaver.Lock` call can
-  race GNOME Screensaver's X11 keyboard grab. The wrapper waits until the
-  active window is no longer Albert, waits another 100 milliseconds for X11
-  input state to settle, and then runs `gnome-screensaver-command --lock`. It
-  fails after two seconds if Albert retains focus, rather than displaying a
-  lock screen that might pass keyboard input to the previous client. GNOME
-  Screensaver remains the locker, so the daily `random-lockscreen` wallpaper
-  and the `ActiveChanged` → `_XMONAD_SCREEN_LOCKED` OSD path remain unchanged.
-  Do not replace GNOME Screensaver for this incident alone. Reconsider the
-  locker if keyboard input reaches an underlying client again after the guarded
-  entry point was used. First exclude another unguarded lock command. Any
-  replacement must preserve the random background, input-transparent OSD
-  stacking, a reliable `_XMONAD_SCREEN_LOCKED` signal, and fail-safe behavior
-  that never displays a password dialog without an exclusive input grab. Test:
-  `bash xwindow/test_lock_screen.sh`.
+- **Fail-safe X11 locker**: `screen-locker-daemon` configures a 15-minute X
+  screensaver timeout and runs `xss-lock -l`, which coordinates idle locks and
+  suspend inhibition. Its locker is `xsecurelock-run`, backed by XSecureLock's
+  separate grab, authentication, and saver processes. GNOME Flashback's idle
+  monitor and screensaver modules are disabled, so two lockers cannot compete.
+  A second unsafe GNOME lock occurred on 2026-10-31 through automatic idle
+  activation, not Albert. GNOME reported the session as locked while Ghostty
+  was active and XMonad accepted Super+2. This crossed the replacement
+  threshold recorded after the 2026-10-25 incident.
+- **Manual lock routing**: Both Albert's System → Lock action and XMonad's
+  Super+Alt+L binding run `lock-screen`. It still waits for Albert to release
+  focus. When `xss-lock` is running, it activates the X screensaver so the
+  coordinator owns the lock lifecycle. It invokes `xsecurelock-run` directly
+  only when the coordinator is absent.
+- **Verified lock state**: XSecureLock runs a notifier only after it acquires
+  the lock. The notifier sets `_XMONAD_SCREEN_LOCKED=1`; the parent clears it
+  after XSecureLock exits. A failed grab therefore leaves the desktop visibly
+  unlocked and never publishes a false locked state. A runtime `flock` blocks
+  concurrent locker instances.
+- **Lock wallpaper**: XSecureLock uses its `saver_mpv` helper. The helper reads
+  the image path selected by `random-lockscreen` through
+  `lockscreen-wallpaper`. The package override embeds the exact Nix `mpv` path.
+  The helper falls back to the previous GNOME picture URI before the first new
+  daily selection.
 
 ## Window title tag (`windowTags`)
 
@@ -66,7 +77,11 @@ A title tag covers the **right half of every visible ghostty window**. Its text 
 - **Focus and composed title are part of the cache key**: the cache stores client rectangle, the OSC title composed with `_ZMX_SESSION`, focus state, and `TagMetrics`. Omitting focus previously left a newly focused scratchpad painted with the low-contrast inactive style until its title or geometry changed; including the composed title repaints immediately when either input changes.
 - **DPI scaling is applied once**: `xmonad.tag.fontSize` uses Xft point units, so it is not multiplied manually. The current `Xft.dpi` is included explicitly in the font pattern, while the pixel-based tag height scales from its 96-DPI base of `24`. Manually scaling both the point size and the height previously doubled the font scale after a metric refresh. Hard floors of `11` points and `24` pixels prevent stale resources such as the former `4.5`/`9` settings from shrinking the tag. Width is always derived from the current client geometry.
 - **Live metric refresh repaints synchronously**: `TagMetricsState` is loaded at startup, after RandR rescreen events, and whenever the root window's `RESOURCE_MANAGER` property changes. Each refresh immediately resizes and repaints visible tags, so they cannot remain at the 96-DPI defaults until a later focus or layout event. This lets `xrdb -merge` update tags without restarting xmonad; keys are `xmonad.tag.{fontSize,height}`.
-- **Lock-screen suppression**: `bin/xmonad-lock-state` subscribes to GNOME Flashback's `org.gnome.ScreenSaver.ActiveChanged` signal and mirrors the state into the root-window `_XMONAD_SCREEN_LOCKED` property. `windowTags` destroys all title overlays while that property is active and recreates them on unlock, preventing override-redirect tags from appearing over the lock screen. XMonad starts the bridge at startup; a runtime `flock` keeps restarts from creating duplicate monitors. Test: `bash xwindow/test_xmonad_lock_state.sh`.
+- **Lock-screen suppression**: `xsecurelock-run` sets the root-window
+  `_XMONAD_SCREEN_LOCKED` property only after XSecureLock confirms the grab.
+  `windowTags` destroys all title overlays while that property is active and
+  recreates them on unlock, preventing override-redirect tags from appearing
+  over the lock screen.
 - **Stacking and cleanup**: `windowTags` runs after `raiseFocused`, raises each tag above its client, and removes tags for windows that are no longer visible. `cleanStrayTags` removes the current `xmonad-window-tag` class plus old `xmonad-float-tag`/`xmonad-decoration` windows after a restart, then resets `WindowTags`; logHook can run before startup cleanup, so retaining those destroyed XIDs would prevent recreation.
 
 ## ManageHook
@@ -101,7 +116,7 @@ These application-specific rules live in `xmonad.symlink/lib/XMonadConfig/Window
 - Super+N → `W.view` (focus workspace without swapping monitors)
 - Ctrl+Super+N → `W.greedyView` (bring workspace to current monitor)
 - Super+Shift+Enter → gnome-terminal
-- Super+Alt+L → guarded GNOME lock through `xwindow/bin/lock-screen`
+- Super+Alt+L → guarded XSecureLock activation through `xwindow/bin/lock-screen`
 - Super+\` / Super+= → next screen
 - Super+0 → next empty workspace
 - Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)
@@ -248,8 +263,13 @@ The restored Cinzel Decorative MW vector is `osd/assets/mw.svg`, painted in LEGO
   - **FAN** (tooltip-only, no panel sparkline): `thinkpad`/`fan1_input` RPM. Tooltip-only because a sparkline would need an arbitrary RPM→% normalization; the raw current value is the honest, compact signal and keeps the panel narrow.
   - Both temp and fan show `n/a` in the tooltip when the sensor isn't found; temp pushes `-1` ("no data") to history so missing samples render blank, not as a false low reading.
 - `battery-genmon` — standalone battery genmon (fallback; battery is also in `sysmon-genmon`).
-- `random-lockscreen` — daily systemd timer; sets gnome lock screen wallpaper from `WALLPAPER_DIR` (default `~/Pictures/Favourites`). Uses `script/logger/log.sh`. Actionable ERRORs for missing/empty dir, DBus/schema unreachable, gsettings missing.
-  - **HEIC handling**: candidates include `*.heic`; if a HEIC is picked, transcodes it to JPG (full resolution, q≈92) into `${XDG_CACHE_HOME:-~/.cache}/random-lockscreen/<basename>.<src-mtime>.jpg` and sets `picture-uri` to the cached file. Cache key includes source mtime so re-saves trigger re-conversion; older mtime variants for the same basename are removed before writing. ffmpeg over ImageMagick because Ubuntu's `convert-im6.q16` ships a buggy HEIC reader (`error/heic.c/IsHEIFSuccess/139`); ffmpeg's libavcodec unwraps the embedded HEVC/MJPEG cleanly. Conversion failure logs WARN and re-rolls.
+- `random-lockscreen` — daily systemd timer; selects a lock image from
+  `WALLPAPER_DIR` (default `~/Pictures/Favourites`) and writes its path to
+  `${XDG_CACHE_HOME:-~/.cache}/random-lockscreen/current` for
+  `lockscreen-wallpaper`. It also updates the legacy GNOME picture URI. Uses
+  `script/logger/log.sh`. Actionable errors identify missing images, DBus
+  failures, schema failures, and missing commands.
+  - **HEIC handling**: candidates include `*.heic`; if a HEIC is picked, transcodes it to JPG (full resolution, q≈92) into `${XDG_CACHE_HOME:-~/.cache}/random-lockscreen/<basename>.<src-mtime>.jpg` and stores the cached path. Cache key includes source mtime so re-saves trigger re-conversion; older mtime variants for the same basename are removed before writing. ffmpeg over ImageMagick because Ubuntu's `convert-im6.q16` ships a buggy HEIC reader (`error/heic.c/IsHEIFSuccess/139`); ffmpeg's libavcodec unwraps the embedded HEVC/MJPEG cleanly. Conversion failure logs WARN and re-rolls.
   - **Why not skip HEIC entirely**: gnome-shell on this machine inherits `GDK_PIXBUF_MODULE_FILE` from a Nix-store `loaders.cache` (set by librsvg's home-manager wrapper) that has no HEIF loader, so a raw HEIC URI silently renders as the primary fallback colour (black) on the lock screen — converting to JPG sidesteps gdk-pixbuf's loader set entirely.
   - Test harness: `script/test_random-lockscreen.sh`.
 - `on-input-change` — called by inputplug on `XISlaveAdded`; sleeps 3s for GNOME's keymap reset to settle, then re-applies `xmodmap ~/.Xmodmap`.

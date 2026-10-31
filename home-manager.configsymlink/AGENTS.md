@@ -41,7 +41,7 @@ The mount runs in the foreground under systemd, creates its mount point before s
 
 ## gnome.nix
 
-- dconf settings (key repeat, mouse speed, Yaru cursor at size 64, Korean Sebeolsik 390, disable gnome-panel/desktop). Yaru supplies a 96-pixel cursor asset at the session's 2× scale; the previous DMZ-White theme topped out at 48 pixels and ignored larger requested sizes. `~/.local/share/icons/Yaru` is an out-of-store link to `/usr/share/icons/Yaru`, because Nix `libXcursor` omits host icon directories from its compiled search path.
+- dconf settings (key repeat, mouse speed, Yaru cursor at size 64, Korean Sebeolsik 390, disable gnome-panel/desktop). GNOME Flashback's idle monitor and screensaver are disabled because `xss-lock` and XSecureLock own idle, manual, and suspend locking. Yaru supplies a 96-pixel cursor asset at the session's 2× scale; the previous DMZ-White theme topped out at 48 pixels and ignored larger requested sizes. `~/.local/share/icons/Yaru` is an out-of-store link to `/usr/share/icons/Yaru`, because Nix `libXcursor` omits host icon directories from its compiled search path.
 - GNOME housekeeping is enabled through `org/gnome/desktop/privacy`: `remove-old-trash-files = true` purges trash entries older than the shared `old-files-age = 30` day limit.
 - IBus integration (`pkgs.ibus` for ABI-matched GTK3/GTK4 IM modules + `~/.config/environment.d/30-ibus.conf` for `GTK_IM_MODULE` etc.). `GTK_PATH` includes both `${pkgs.ibus}/lib/gtk-3.0` and `${pkgs.ibus}/lib/gtk-4.0`, but GTK3 runtime loading also requires an `immodules.cache`. `gnome.nix` mirrors NixOS's input-method module by running `gtk-query-immodules-3.0` with the IBus GTK3 path and installing the generated cache at `$profile/etc/gtk-3.0/immodules.cache`; Nix's patched GTK3 discovers it through `NIX_PROFILES`. Without that cache, Vivaldi reads GTK3's stock cache, which does not list `im-ibus.so`, so no key event reaches the IBus Hangul engine.
 - gnome-flashback systemd drop-ins (xmonad session requires `gnome-flashback.target` + service-restart override).
@@ -82,7 +82,9 @@ picom compositor for focused-window glow. xrender backend (no GL/nixGL needed), 
 
 ## xmonad.nix
 
-xmonad + contrib via nix 0.18, xfce4-panel + xfconf, xfconf dbus activation hook. See `xwindow/AGENTS.md`.
+xmonad + contrib via nix 0.18, xfce4-panel + xfconf, and the xfconf DBus
+activation hook. It installs `xss-lock` and an XSecureLock build whose
+`saver_mpv` helper embeds the Nix `mpv` path. See `xwindow/AGENTS.md`.
 
 ## xdg.nix
 
