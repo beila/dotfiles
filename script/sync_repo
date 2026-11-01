@@ -196,30 +196,89 @@ classify_cmd() {
     return $rc
 }
 
-# push_force_replace <tag> <url> <commit> <branch>
-# Emulate force-push via delete+push for servers that reject --force (gitfarm).
-# The caller has already confirmed that the branch exists and differs, so a
-# successful delete is required before the replacement push. Otherwise the
-# push would fail non-fast-forward and the bogus OTHER-ERR would mask the real
-# cause (concurrent push, transient network, server hook).
-#
-# Pushes to a URL directly (not a configured remote name) so git does NOT
-# update local refs/remotes/<remote>/* tracking refs. This keeps jj's view
-# free of hostname-prefixed remote bookmarks — they exist only on the server,
-# never in the local jj/git store.
-push_force_replace() {
-    local tag=$1 url=$2 commit=$3 branch=$4
-    transfer_cmd "push-del $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" --delete "$branch"
-    local del_class=$_LAST_CLASSIFICATION
-    case "$del_class" in
-        OK)
-            transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}"
-            ;;
-        *)
-            log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
+# try_atomic_force_replace <tag> <url> <commit> <branch> <expected>
+# Return 2 only when the server rejects force updates.
+try_atomic_force_replace() {
+    local tag=$1 url=$2 commit=$3 branch=$4 expected=$5
+    local err before after rc summary
+    local -a created=()
+    case "$SYNC_REPO_TRANSFER_TIMEOUT" in
+        "" | *[!0-9]*)
+            log ERROR "BAD-CONFIG SYNC_REPO_TRANSFER_TIMEOUT='$SYNC_REPO_TRANSFER_TIMEOUT' must be a non-negative integer"
             return 1
             ;;
     esac
+    err=$(mktemp "/tmp/sync_repo_err.XXXXXX") || return 1
+    before=$(mktemp "/tmp/sync_repo_packs_before.XXXXXX") || {
+        rm -f "$err"
+        return 1
+    }
+    after=$(mktemp "/tmp/sync_repo_packs_after.XXXXXX") || {
+        rm -f "$err" "$before"
+        return 1
+    }
+    list_tmp_pack_files >"$before"
+    run_without_lock timeout --kill-after=10 "$SYNC_REPO_TRANSFER_TIMEOUT" \
+        "$GIT" --git-dir="$GIT_DIR" push \
+        "--force-with-lease=${branch}:${expected}" "$url" "${commit}:${branch}" \
+        2>"$err"
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+        rm -f "$err" "$before" "$after"
+        return 0
+    fi
+
+    summary=$(_summarize_stderr "$err")
+    if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+        log WARN "TIMEOUT force-push $tag: exceeded ${SYNC_REPO_TRANSFER_TIMEOUT}s; killed"
+        list_tmp_pack_files >"$after"
+        mapfile -t created < <(comm -13 "$before" "$after")
+        remove_tmp_pack_files "timeout force-push $tag" "${created[@]}"
+    elif grep -qiE 'stale info|cannot lock ref.*expected' "$err"; then
+        log INFO "SKIP-PUSH $tag: remote moved after discovery; will retry next run"
+    elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing|fine to retry your request' "$err"; then
+        log WARN "NETWORK-ERR force-push $tag: $summary"
+    elif grep -qiE '(force|forced).*(denied|not allowed|prohibited|disabled|reject)|pre-receive hook declined' "$err"; then
+        log DEBUG "ATOMIC-REPLACE-UNAVAILABLE $tag: $summary"
+        rm -f "$err" "$before" "$after"
+        return 2
+    else
+        log ERROR "OTHER-ERR force-push $tag (rc=$rc): $summary"
+    fi
+    cat "$err" >&2
+    rm -f "$err" "$before" "$after"
+    return 1
+}
+
+# push_force_replace <tag> <url> <commit> <branch> <expected>
+# Prefer an atomic leased update. Serialize the delete fallback because Git
+# temporarily deletes a matching remote-tracking ref.
+push_force_replace() {
+    local tag=$1 url=$2 commit=$3 branch=$4 expected=$5
+    local atomic_rc del_class fallback_rc=1 release_after=0
+    try_atomic_force_replace "$tag" "$url" "$commit" "$branch" "$expected"
+    atomic_rc=$?
+    [ "$atomic_rc" -eq 0 ] && return 0
+    [ "$atomic_rc" -eq 2 ] || return 1
+
+    if [ "$LOCAL_LOCK_HELD" = "0" ]; then
+        acquire_local_lock
+        release_after=1
+    fi
+    transfer_cmd "push-del $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" --delete "$branch"
+    del_class=$_LAST_CLASSIFICATION
+    case "$del_class" in
+        OK)
+            if transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}"; then
+                fallback_rc=0
+            fi
+            ;;
+        *)
+            log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
+            ;;
+    esac
+    [ "$release_after" = "0" ] || release_local_lock
+    return "$fallback_rc"
 }
 
 # timeout_cmd <tag> <cmd...>
@@ -546,7 +605,7 @@ push_snapshot_ref() {
         transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push \
             "$SNAPSHOT_URL" "${commit}:${branch}" || return 1
     else
-        push_force_replace "$tag" "$SNAPSHOT_URL" "$commit" "$branch" || return 1
+        push_force_replace "$tag" "$SNAPSHOT_URL" "$commit" "$branch" "$remote_commit" || return 1
     fi
     SNAPSHOT_REMOTE_COMMITS["$branch"]=$commit
 }
@@ -1151,7 +1210,8 @@ push_listed_bookmarks() {
                 log INFO "SKIP-PUSH ${tag}: remote moved after fetch; will retry next run"
                 continue
             fi
-            push_force_replace "$tag" "${LB_PUSH_URL[$i]}" "${LB_PUSH_OID[$i]}" "$ref" && LB_PUSH_OK[$i]=1
+            push_force_replace "$tag" "${LB_PUSH_URL[$i]}" "${LB_PUSH_OID[$i]}" \
+                "$ref" "${LB_PUSH_EXPECTED[$i]}" && LB_PUSH_OK[$i]=1
         elif transfer_cmd "push $tag" \
             "$GIT" --git-dir="$GIT_DIR" push "${LB_PUSH_URL[$i]}" \
             "${LB_PUSH_OID[$i]}:refs/heads/${LB_NAME[$i]}"; then

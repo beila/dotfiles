@@ -265,15 +265,13 @@ else
     echo "FAIL: log has no TIMEOUT/NETWORK-ERR entry"
     fail=$((fail+1))
 fi
-# Regression: when push-del fails (network, concurrent push, etc.) the follow-up
-# push MUST be skipped — proceeding would non-fast-forward and emit a bogus
-# OTHER-ERR that masks the real delete failure. Assert both sides.
-if grep -rq 'SKIP-PUSH' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
-    echo "PASS: log recorded SKIP-PUSH after failed delete"
-    pass=$((pass+1))
-else
-    echo "FAIL: log missing SKIP-PUSH (push should skip when delete fails)"
+# A failed atomic replacement must not fall back after a network failure.
+if grep -rq 'push-del' "$LOG_ROOT"/*/sync_repo.*repoH* 2>/dev/null; then
+    echo "FAIL: network failure triggered the delete fallback"
     fail=$((fail+1))
+else
+    echo "PASS: network failure did not trigger the delete fallback"
+    pass=$((pass+1))
 fi
 # Regression: when bookmark fetch fails (timeout / network), the bookmark
 # push MUST be skipped. Otherwise stale ${SYNC_BM}@${SYNC_REMOTE} leads to
@@ -423,7 +421,7 @@ GIT_EXECUTABLE="$TMPDIR/stubs/git-timeout-pack" \
     bash "$SYNC_REPO" "$TMPDIR/repoPackTimeout" >/dev/null 2>&1
 check "timed-out transfer temporary pack is removed" "absent" \
     "$([ -e "$pack_timeout_git_dir/objects/pack/tmp_pack_transfer_test" ] && echo present || echo absent)"
-grep_has "TMP-PACK-CLEANUP timeout push-del"
+grep_has "TMP-PACK-CLEANUP timeout force-push"
 
 echo
 echo "=== Scenario 6: divergence with conflict -> REBASE-CONFLICT, no push ==="
@@ -674,6 +672,21 @@ unchanged_queries=$(grep -F -c "refs/heads/${TESTHOST}/*" "$unchanged_trace" 2>/
 unchanged_pushes=$(grep -c ' push ' "$unchanged_trace" 2>/dev/null || true)
 check "unchanged snapshots: one remote discovery" "1" "$unchanged_queries"
 check "unchanged snapshots: zero pushes" "0" "$unchanged_pushes"
+
+# Updating an existing snapshot must keep its remote-tracking ref present.
+# A delete window lets a concurrent jj import abandon the active history.
+echo "changed" >"$TMPDIR/repoMultiWs/snapshot-window.txt"
+window_parent_before=$(cd "$TMPDIR/repoMultiWs" && jj log -r @- --no-graph -T commit_id)
+window_trace="$TMPDIR/window-git-trace"
+GIT_TRACE_FILE="$window_trace" GIT_EXECUTABLE="$TMPDIR/stubs/counting-git" \
+    run_sync "$TMPDIR/repoMultiWs"
+window_deletes=$(grep -c ' --delete ' "$window_trace" 2>/dev/null || true)
+window_force=$(grep -c -- '--force-with-lease=refs/heads/testhost/default:' "$window_trace" 2>/dev/null || true)
+(cd "$TMPDIR/repoMultiWs" && jj git import --ignore-working-copy) >/dev/null 2>&1
+window_parent_after=$(cd "$TMPDIR/repoMultiWs" && jj log -r "$window_parent_before" --no-graph -T commit_id 2>/dev/null)
+check "changed snapshot: one atomic leased update" "1" "$window_force"
+check "changed snapshot: no delete window" "0" "$window_deletes"
+check "changed snapshot: prior history survives jj import" "$window_parent_before" "$window_parent_after"
 
 echo
 echo "=== Scenario 11: malformed sync.remote-bookmark -> ERROR + exit ==="
