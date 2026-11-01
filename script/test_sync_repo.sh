@@ -369,6 +369,26 @@ check "recent temporary pack is preserved" "present" \
     "$([ -e "$no_config_git_dir/objects/pack/tmp_pack_recent" ] && echo present || echo absent)"
 grep_has "TMP-PACK-CLEANUP stale: removed=1"
 
+printf unavailable >"$no_config_git_dir/objects/pack/tmp_pack_no_fuser"
+touch -d '2 hours ago' "$no_config_git_dir/objects/pack/tmp_pack_no_fuser"
+SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES=60 \
+FUSER_EXECUTABLE="$TMPDIR/missing-fuser" \
+    bash "$SYNC_REPO" "$TMPDIR/repoNoConfig" >/dev/null 2>&1
+check "temporary pack is preserved without fuser" "present" \
+    "$([ -e "$no_config_git_dir/objects/pack/tmp_pack_no_fuser" ] && echo present || echo absent)"
+grep_has "TMP-PACK-CLEANUP-SKIP stale: fuser is unavailable"
+
+printf open >"$no_config_git_dir/objects/pack/tmp_pack_open"
+touch -d '2 hours ago' "$no_config_git_dir/objects/pack/tmp_pack_open"
+tail -f "$no_config_git_dir/objects/pack/tmp_pack_open" >/dev/null &
+open_pack_pid=$!
+SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES=60 \
+    bash "$SYNC_REPO" "$TMPDIR/repoNoConfig" >/dev/null 2>&1
+kill "$open_pack_pid"
+wait "$open_pack_pid" 2>/dev/null || true
+check "open temporary pack is preserved" "present" \
+    "$([ -e "$no_config_git_dir/objects/pack/tmp_pack_open" ] && echo present || echo absent)"
+
 echo
 echo "=== Scenario 5b: a timed-out transfer removes its temporary pack ==="
 setup_repo repoPackTimeout "pack.txt" "transfer timeout"
@@ -1078,9 +1098,20 @@ check "post-update sees the pulled file" "one" "$(cat "$TMPDIR/repoHook2/applied
 echo two > "$TMPDIR/repoHook2/other.txt"
 run_sync "$TMPDIR/repoHook2"
 rc=$?
-check "failing hook does not fail the sync" "0" "$rc"
+check "failing post-update hook fails the run" "1" "$rc"
 check "sync continues after a failing hook" "two" "$(git -C "$TMPDIR/hook-remote.git" show master:other.txt 2>/dev/null)"
 grep_has "HOOK-FAIL sync.post-update (rc=3): hook broke"
+
+setup_hook_repo repoHookPreFail
+(cd "$TMPDIR/repoHookPreFail" && jj config set --repo sync.pre-snapshot 'echo pre hook broke >&2; exit 4') >/dev/null 2>&1
+echo blocked >"$TMPDIR/repoHookPreFail/blocked.txt"
+hook_remote_before=$(git -C "$TMPDIR/hook-remote.git" rev-parse master)
+run_sync "$TMPDIR/repoHookPreFail"
+rc=$?
+check "failing pre-snapshot hook fails the run" "1" "$rc"
+check "failing pre-snapshot hook prevents a push" "$hook_remote_before" \
+    "$(git -C "$TMPDIR/hook-remote.git" rev-parse master)"
+grep_has "ABORT: sync.pre-snapshot failed before snapshot creation"
 
 echo
 echo "=== Scenario 18: home-directory path -> pushed only as a template, rendered on pull ==="
@@ -1106,6 +1137,25 @@ check "local file keeps the home path" "dir=$HOME/x" "$(cat "$TMPDIR/repoHome1/a
 run_sync "$TMPDIR/repoHome2"
 check "pulled template is rendered" "dir=$HOME/x" "$(cat "$TMPDIR/repoHome2/app.conf" 2>/dev/null)"
 grep_has "HOME-TEMPLATE capture: converted app.conf to app.conf.home-template"
+
+mkdir -p "$TMPDIR/repoHomeFail"
+(
+    cd "$TMPDIR/repoHomeFail"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/home-remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo sync.home-template-max-new 0
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name 'Test User'
+) >/dev/null 2>&1
+printf 'dir=%s/fail\n' "$HOME" >"$TMPDIR/repoHomeFail/fail.conf"
+home_remote_before=$(git -C "$TMPDIR/home-remote.git" rev-parse master)
+run_sync "$TMPDIR/repoHomeFail"
+rc=$?
+check "failed home-template capture fails the run" "1" "$rc"
+check "failed home-template capture prevents a push" "$home_remote_before" \
+    "$(git -C "$TMPDIR/home-remote.git" rev-parse master)"
+grep_has "ABORT: home-template capture failed before snapshot creation"
 
 # The home path goes away on one machine: the file is tracked again on both.
 printf 'dir=/opt/x\n' > "$TMPDIR/repoHome1/app.conf"
