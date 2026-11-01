@@ -1,0 +1,22 @@
+{
+  "mcpServers" : {
+    "creds-agent" : {
+      "command" : "aim",
+      "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
+      "env" : {
+        "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
+        "AIM_CREDS_AGENT_INJECTION" : "d201fb9c-e08a-46b7-8ced-54f2c897cd85"
+      }
+    }
+  },
+  "tools" : [ "@creds-agent" ],
+  "allowedTools" : [ "@creds-agent" ],
+  "permissions" : {
+    "rules" : [ {
+      "capability" : "mcp",
+      "match" : [ "creds-agent/*" ],
+      "effect" : "allow"
+    } ]
+  },
+  "toolsSettings" : { }
+}
