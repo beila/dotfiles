@@ -3,7 +3,8 @@
 # bare remote, drives sync_repo through:
 #   - local-ahead: bookmark push path
 #   - divergence (non-conflicting edits): merge+push path
-#   - dead remote (fake ssh): timeout-guard exits in bounded time
+#   - dead remote (fake ssh): timeout guards exit in bounded time
+#   - stale and transfer-created Git temporary packs are removed
 #   - no sync config: commits + describes locally, exits cleanly (NO-SYNC-CONFIG)
 #   - sync.enabled=false: exits without snapshotting or logging
 #   - conflict divergence: REBASE-CONFLICT, no push
@@ -240,11 +241,12 @@ setup_repo repoH "h.txt" "from H"
     jj git remote set-url backup "ssh://git@blackhole.invalid/repo.git"
     jj config set --repo sync.snapshot-url "ssh://git@blackhole.invalid/repo.git"
 )
-# Tight bound: with SYNC_REPO_CMD_TIMEOUT=1 and ~6 ssh-bearing calls, the run
+# Tight bound: with both network timeouts at 1 second, the run
 # completes in ~6s. 15s gives generous headroom while still failing loudly if
 # a regression makes the timeout guard ineffective.
 start=$(date +%s)
 SYNC_REPO_CMD_TIMEOUT=1 \
+SYNC_REPO_TRANSFER_TIMEOUT=1 \
 GIT_SSH_COMMAND="bash $TMPDIR/fake-ssh.sh" \
     bash "$SYNC_REPO" "$TMPDIR/repoH" >/dev/null 2>&1
 elapsed=$(( $(date +%s) - start ))
@@ -351,6 +353,57 @@ else
     echo "PASS: no ERROR entries for no-config path"
     pass=$((pass+1))
 fi
+
+echo
+echo "=== Scenario 5a: stale temporary packs are removed ==="
+no_config_git_dir=$(cd "$TMPDIR/repoNoConfig" && jj git root)
+mkdir -p "$no_config_git_dir/objects/pack"
+printf old >"$no_config_git_dir/objects/pack/tmp_pack_old"
+printf recent >"$no_config_git_dir/objects/pack/tmp_pack_recent"
+touch -d '2 hours ago' "$no_config_git_dir/objects/pack/tmp_pack_old"
+SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES=60 \
+    bash "$SYNC_REPO" "$TMPDIR/repoNoConfig" >/dev/null 2>&1
+check "stale temporary pack is removed" "absent" \
+    "$([ -e "$no_config_git_dir/objects/pack/tmp_pack_old" ] && echo present || echo absent)"
+check "recent temporary pack is preserved" "present" \
+    "$([ -e "$no_config_git_dir/objects/pack/tmp_pack_recent" ] && echo present || echo absent)"
+grep_has "TMP-PACK-CLEANUP stale: removed=1"
+
+echo
+echo "=== Scenario 5b: a timed-out transfer removes its temporary pack ==="
+setup_repo repoPackTimeout "pack.txt" "transfer timeout"
+(
+    cd "$TMPDIR/repoPackTimeout"
+    jj config unset --repo sync.remote-bookmark
+    jj config set --repo sync.repo-history false
+) >/dev/null 2>&1
+pack_timeout_git_dir=$(cd "$TMPDIR/repoPackTimeout" && jj git root)
+export SYNC_TEST_REAL_GIT
+SYNC_TEST_REAL_GIT=$(command -v git)
+cat >"$TMPDIR/stubs/git-timeout-pack" <<'STUB'
+#!/bin/bash
+git_dir=
+is_push=0
+for argument in "$@"; do
+    case "$argument" in
+        --git-dir=*) git_dir=${argument#--git-dir=} ;;
+        push) is_push=1 ;;
+    esac
+done
+if [ "$is_push" = "1" ] && [ -n "$git_dir" ]; then
+    mkdir -p "$git_dir/objects/pack"
+    printf abandoned >"$git_dir/objects/pack/tmp_pack_transfer_test"
+    exec sleep 60
+fi
+exec "$SYNC_TEST_REAL_GIT" "$@"
+STUB
+chmod +x "$TMPDIR/stubs/git-timeout-pack"
+SYNC_REPO_TRANSFER_TIMEOUT=1 \
+GIT_EXECUTABLE="$TMPDIR/stubs/git-timeout-pack" \
+    bash "$SYNC_REPO" "$TMPDIR/repoPackTimeout" >/dev/null 2>&1
+check "timed-out transfer temporary pack is removed" "absent" \
+    "$([ -e "$pack_timeout_git_dir/objects/pack/tmp_pack_transfer_test" ] && echo present || echo absent)"
+grep_has "TMP-PACK-CLEANUP timeout push-del"
 
 echo
 echo "=== Scenario 6: divergence with conflict -> REBASE-CONFLICT, no push ==="

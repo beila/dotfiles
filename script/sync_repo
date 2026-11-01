@@ -22,6 +22,10 @@ export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o ConnectTimeout=10 -o ServerAli
 # Outer timeout for each git/jj network call. Catches total process hangs
 # that survive ssh-level timeouts (proxy wrappers, DNS stalls, etc.).
 SYNC_REPO_CMD_TIMEOUT=${SYNC_REPO_CMD_TIMEOUT:-60}
+# Object transfers can exceed the metadata timeout in large repositories.
+SYNC_REPO_TRANSFER_TIMEOUT=${SYNC_REPO_TRANSFER_TIMEOUT:-900}
+# Remove abandoned Git pack files after one day.
+SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES=${SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES:-1440}
 
 cd "$1" || {
     echo "Error: No such directory as $1"; exit
@@ -148,7 +152,7 @@ classify_cmd() {
         if [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
             # timeout(1) exit codes: 124 (SIGTERM expired), 137 (SIGKILL after grace).
             _LAST_CLASSIFICATION=TIMEOUT
-            log WARN "TIMEOUT $tag: exceeded ${SYNC_REPO_CMD_TIMEOUT}s; killed"
+            log WARN "TIMEOUT $tag: exceeded ${SYNC_REPO_ACTIVE_TIMEOUT:-$SYNC_REPO_CMD_TIMEOUT}s; killed"
         elif grep -qE 'remote ref does not exist|unable to delete.*remote ref|does not appear to be a git repository' "$err"; then
             # Benign: deleting a branch that isn't on the remote. Happens on
             # every run for push-del of hostname-prefixed snapshots after their
@@ -204,11 +208,11 @@ classify_cmd() {
 # never in the local jj/git store.
 push_force_replace() {
     local tag=$1 url=$2 commit=$3 branch=$4
-    timeout_cmd "push-del $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" --delete "$branch"
+    transfer_cmd "push-del $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" --delete "$branch"
     local del_class=$_LAST_CLASSIFICATION
     case "$del_class" in
         OK)
-            timeout_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}"
+            transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}"
             ;;
         *)
             log WARN "SKIP-PUSH $tag: delete failed (${del_class:-unknown}); will retry next run"
@@ -223,7 +227,98 @@ push_force_replace() {
 # $SYNC_REPO_CMD_TIMEOUT + 10s.
 timeout_cmd() {
     local tag=$1; shift
-    classify_cmd "$tag" run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" "$@"
+    SYNC_REPO_ACTIVE_TIMEOUT=$SYNC_REPO_CMD_TIMEOUT \
+        classify_cmd "$tag" run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" "$@"
+}
+
+list_tmp_pack_files() {
+    local pack_dir="$GIT_DIR/objects/pack" path
+    local restore_nullglob=1
+    [ -d "$pack_dir" ] || return 0
+    shopt -q nullglob && restore_nullglob=0
+    shopt -s nullglob
+    for path in "$pack_dir"/tmp_pack_*; do
+        [ -f "$path" ] && [ ! -L "$path" ] && printf '%s\n' "$path"
+    done | LC_ALL=C sort
+    [ "$restore_nullglob" = "0" ] || shopt -u nullglob
+}
+
+remove_tmp_pack_files() {
+    local reason=$1 path blocks
+    local pack_dir="$GIT_DIR/objects/pack"
+    local count=0 bytes=0
+    shift
+    for path in "$@"; do
+        [ "${path%/*}" = "$pack_dir" ] || continue
+        case "${path##*/}" in
+            tmp_pack_*) ;;
+            *) continue ;;
+        esac
+        [ -f "$path" ] && [ ! -L "$path" ] || continue
+        fuser -s "$path" 2>/dev/null && continue
+        blocks=$(stat -c %b "$path" 2>/dev/null) || continue
+        if rm -f -- "$path"; then
+            count=$((count + 1))
+            bytes=$((bytes + blocks * 512))
+        fi
+    done
+    if [ "$count" -gt 0 ]; then
+        log INFO "TMP-PACK-CLEANUP $reason: removed=$count reclaimed-bytes=$bytes"
+    fi
+}
+
+cleanup_stale_tmp_packs() {
+    local now cutoff path mtime
+    local -a stale=()
+    case "$SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES" in
+        "" | *[!0-9]*)
+            log ERROR "BAD-CONFIG SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES='$SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES' must be a non-negative integer"
+            return 1
+            ;;
+    esac
+    now=$(date +%s)
+    cutoff=$((now - SYNC_REPO_TMP_PACK_MAX_AGE_MINUTES * 60))
+    while IFS= read -r path; do
+        mtime=$(stat -c %Y "$path" 2>/dev/null) || continue
+        [ "$mtime" -le "$cutoff" ] && stale+=("$path")
+    done < <(list_tmp_pack_files)
+    remove_tmp_pack_files "stale" "${stale[@]}"
+}
+
+# Use a longer timeout for object transfers. Remove only new abandoned packs.
+transfer_cmd() {
+    local tag=$1 before after rc
+    local -a created=()
+    shift
+    case "$SYNC_REPO_TRANSFER_TIMEOUT" in
+        "" | *[!0-9]*)
+            log ERROR "BAD-CONFIG SYNC_REPO_TRANSFER_TIMEOUT='$SYNC_REPO_TRANSFER_TIMEOUT' must be a non-negative integer"
+            _LAST_CLASSIFICATION=OTHER-ERR
+            return 1
+            ;;
+    esac
+    before=$(mktemp "/tmp/sync_repo_packs_before.XXXXXX") || {
+        log ERROR "TMP-PACK-SNAPSHOT-FAIL $tag: cannot create the before file"
+        _LAST_CLASSIFICATION=OTHER-ERR
+        return 1
+    }
+    after=$(mktemp "/tmp/sync_repo_packs_after.XXXXXX") || {
+        log ERROR "TMP-PACK-SNAPSHOT-FAIL $tag: cannot create the after file"
+        rm -f "$before"
+        _LAST_CLASSIFICATION=OTHER-ERR
+        return 1
+    }
+    list_tmp_pack_files >"$before"
+    SYNC_REPO_ACTIVE_TIMEOUT=$SYNC_REPO_TRANSFER_TIMEOUT \
+        classify_cmd "$tag" run_without_lock timeout --kill-after=10 "$SYNC_REPO_TRANSFER_TIMEOUT" "$@"
+    rc=$?
+    if [ "$rc" -ne 0 ] && [ "$_LAST_CLASSIFICATION" = "TIMEOUT" ]; then
+        list_tmp_pack_files >"$after"
+        mapfile -t created < <(comm -13 "$before" "$after")
+        remove_tmp_pack_files "timeout $tag" "${created[@]}"
+    fi
+    rm -f "$before" "$after"
+    return "$rc"
 }
 
 # --- repository hooks ---------------------------------------------------------
@@ -343,7 +438,7 @@ step_describe_local_chain() {
 # is fresh, so transient stale-view failures are rare and self-recover on the
 # next cycle.
 resolve_git_dir() {
-    GIT_DIR=$(jj git root 2>/dev/null)
+    GIT_DIR=$LOCK_PATH
 }
 
 # Find which workspace this run is operating on. Multiple workspaces share
@@ -428,7 +523,7 @@ push_snapshot_ref() {
     fi
 
     if [ -z "$remote_commit" ]; then
-        timeout_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push \
+        transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push \
             "$SNAPSHOT_URL" "${commit}:${branch}" || return 1
     else
         push_force_replace "$tag" "$SNAPSHOT_URL" "$commit" "$branch" || return 1
@@ -593,7 +688,7 @@ repo_history_mkdir() {
 # contains all remote records, so the push does not lose history.
 restore_own_repo_history() {
     local branch=$1 remote_tip=$2 self_tip=$3
-    timeout_cmd "fetch repo-history ${MACHINE_NAME}" \
+    transfer_cmd "fetch repo-history ${MACHINE_NAME}" \
         "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
         --no-auto-maintenance "$SNAPSHOT_URL" "$branch" || return 1
     if ! "$GIT" --git-dir="$GIT_DIR" cat-file -e "${remote_tip}:history" 2>/dev/null; then
@@ -653,7 +748,7 @@ push_repo_history() {
     # A normal push. A non-fast-forward rejection means that another host
     # writes the same ref. Do not use delete+push, because that removes the
     # records of the other host.
-    timeout_cmd "push repo-history ${MACHINE_NAME}" \
+    transfer_cmd "push repo-history ${MACHINE_NAME}" \
         "$GIT" --git-dir="$GIT_DIR" push "$SNAPSHOT_URL" "${commit}:${branch}" || return 0
     "$GIT" --git-dir="$GIT_DIR" update-ref "$REPO_HISTORY_SELF_REF" "$commit"
     SNAPSHOT_REMOTE_COMMITS["$branch"]=$commit
@@ -686,7 +781,7 @@ fetch_repo_history() {
         if [ -f "$cache" ] && [ "$(cat "$tip_file" 2>/dev/null)" = "$tip" ]; then
             continue
         fi
-        timeout_cmd "fetch repo-history ${host}" \
+        transfer_cmd "fetch repo-history ${host}" \
             "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
             --no-auto-maintenance "$SNAPSHOT_URL" "$ref" || continue
         # The ref can move after ls-remote. Each push is a fast-forward, so
@@ -771,7 +866,7 @@ fetch_remote_bookmark_objects() {
         return 0
     fi
     REMOTE_FETCH_OID=$(printf '%s\n' "$output" | awk 'NR == 1 { print $1 }')
-    if [ -n "$REMOTE_FETCH_OID" ] && ! timeout_cmd "fetch ${SYNC_BM}@${SYNC_REMOTE}" \
+    if [ -n "$REMOTE_FETCH_OID" ] && ! transfer_cmd "fetch ${SYNC_BM}@${SYNC_REMOTE}" \
         "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
         --no-auto-maintenance "$REMOTE_FETCH_URL" "refs/heads/${SYNC_BM}"; then
         REMOTE_FETCH_OK=0
@@ -812,7 +907,7 @@ queue_bookmark_push() {
 
 push_prepared_bookmark() {
     [ -n "$BOOKMARK_PUSH_OID" ] || return 0
-    if timeout_cmd "push ${SYNC_BM} (${BOOKMARK_PUSH_KIND})" \
+    if transfer_cmd "push ${SYNC_BM} (${BOOKMARK_PUSH_KIND})" \
         "$GIT" --git-dir="$GIT_DIR" push "$REMOTE_PUSH_URL" \
         "${BOOKMARK_PUSH_OID}:refs/heads/${SYNC_BM}"; then
         BOOKMARK_PUSH_SUCCEEDED=1
@@ -1083,7 +1178,7 @@ fetch_listed_bookmarks() {
             continue
         fi
         LB_FETCH_OID[$i]=$(printf '%s\n' "$output" | awk 'NR == 1 { print $1 }')
-        if [ -n "${LB_FETCH_OID[$i]}" ] && ! timeout_cmd "fetch ${b}@${r}" \
+        if [ -n "${LB_FETCH_OID[$i]}" ] && ! transfer_cmd "fetch ${b}@${r}" \
             "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
             --no-auto-maintenance "${LB_FETCH_URL[$i]}" "refs/heads/${b}"; then
             LB_FETCH_OK[$i]=0
@@ -1277,7 +1372,7 @@ push_listed_bookmarks() {
                 continue
             fi
             push_force_replace "$tag" "${LB_PUSH_URL[$i]}" "${LB_PUSH_OID[$i]}" "$ref" && LB_PUSH_OK[$i]=1
-        elif timeout_cmd "push $tag" \
+        elif transfer_cmd "push $tag" \
             "$GIT" --git-dir="$GIT_DIR" push "${LB_PUSH_URL[$i]}" \
             "${LB_PUSH_OID[$i]}:refs/heads/${LB_NAME[$i]}"; then
             LB_PUSH_OK[$i]=1
@@ -1345,6 +1440,9 @@ SNAPSHOT_URL=$(jj config get sync.snapshot-url 2>/dev/null || true)
 #     "Listed-bookmark sync" above.
 parse_listed_bookmarks "$(jj config get sync.bookmarks 2>/dev/null || true)"
 
+resolve_git_dir
+cleanup_stale_tmp_packs
+
 # --- repo health gate ----------------------------------------------------------
 # The `jj root` gate at the top passes even when the store is corrupted
 # (missing object, unreadable index) — it only resolves the workspace path.
@@ -1403,7 +1501,6 @@ if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ] && [ ${#LB_NAME[@]} -eq 0 ]; then
     exit 0
 fi
 
-resolve_git_dir
 resolve_workspace_name
 
 step_describe_local_chain
