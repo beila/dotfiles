@@ -84,7 +84,11 @@ picom compositor for focused-window glow. xrender backend (no GL/nixGL needed), 
 
 xmonad + contrib via nix 0.18, xfce4-panel + xfconf, and the xfconf DBus
 activation hook. It installs `xss-lock` and an XSecureLock build whose
-`saver_mpv` helper embeds the Nix `mpv` path. See `xwindow/AGENTS.md`.
+`saver_mpv` helper embeds the Nix `mpv` path. The build has an LDAP username
+fallback because Nix glibc cannot resolve the host account. The launcher gets
+the username from the host `/usr/bin/id`. The `xsecurelockHostPam` activation
+builds only `authproto_pam` with `/usr/bin/gcc` and host `libpam.so.0`, so it can
+load the host SSSD modules. See `xwindow/AGENTS.md`.
 
 ## xdg.nix
 

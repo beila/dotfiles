@@ -1,0 +1,24 @@
+diff --git a/env_info.c b/env_info.c
+index 3489be9..239f39a 100644
+--- a/env_info.c
++++ b/env_info.c
+@@ -38,6 +38,19 @@ int GetUserName(char* username_buf, size_t username_buflen) {
+   }
+   getpwuid_r(getuid(), &pwd_storage, pwd_buf, (size_t)pwd_bufsize, &pwd);
+   if (!pwd) {
++    const char* fallback_username = getenv("XSECURELOCK_USERNAME");
++    if (fallback_username != NULL && fallback_username[0] != '\0' &&
++        strlen(fallback_username) < username_buflen) {
++      /*
++       * Nix glibc cannot resolve host LDAP users.
++       * Use the username from the trusted launcher.
++       */
++      strncpy(username_buf, fallback_username, username_buflen);
++      username_buf[username_buflen - 1] = 0;
++      explicit_bzero(pwd_buf, pwd_bufsize);
++      free(pwd_buf);
++      return 1;
++    }
+     LogErrno("getpwuid_r");
+     free(pwd_buf);
+     return 0;

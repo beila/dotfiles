@@ -23,6 +23,8 @@ cat >"$TEST_DIR/locker" <<'EOF'
 set -euo pipefail
 printf 'saver:%s\n' "$XSECURELOCK_SAVER" >> "$XSECURELOCK_RUN_TEST_EVENTS"
 printf 'wallpaper:%s\n' "$XSECURELOCK_LIST_VIDEOS_COMMAND" >> "$XSECURELOCK_RUN_TEST_EVENTS"
+printf 'username:%s\n' "$XSECURELOCK_USERNAME" >> "$XSECURELOCK_RUN_TEST_EVENTS"
+printf 'authproto:%s\n' "$XSECURELOCK_AUTHPROTO" >> "$XSECURELOCK_RUN_TEST_EVENTS"
 while (($#)); do
 	if [[ $1 == -- ]]; then
 		shift
@@ -33,17 +35,21 @@ while (($#)); do
 done
 EOF
 
-chmod +x "$TEST_DIR/xprop" "$TEST_DIR/wallpaper" "$TEST_DIR/locker"
+touch "$TEST_DIR/authproto"
+chmod +x "$TEST_DIR/xprop" "$TEST_DIR/wallpaper" "$TEST_DIR/locker" "$TEST_DIR/authproto"
 
 XSECURELOCK_RUN_XPROP="$TEST_DIR/xprop" \
 	XSECURELOCK_RUN_COMMAND="$TEST_DIR/locker" \
 	XSECURELOCK_RUN_WALLPAPER="$TEST_DIR/wallpaper" \
+	XSECURELOCK_RUN_AUTHPROTO="$TEST_DIR/authproto" \
 	XSECURELOCK_RUN_LOCK_FILE="$TEST_DIR/lock" \
 	XSECURELOCK_RUN_TEST_EVENTS="$EVENT_LOG" \
 	"$UNDER_TEST"
 
 rg -q '^saver:saver_mpv$' "$EVENT_LOG"
 rg -q "^wallpaper:$TEST_DIR/wallpaper$" "$EVENT_LOG"
+rg -q "^username:$(/usr/bin/id -un)$" "$EVENT_LOG"
+rg -q "^authproto:$TEST_DIR/authproto$" "$EVENT_LOG"
 mapfile -t states < <(rg 'xprop:.*-set _XMONAD_SCREEN_LOCKED [01]$' "$EVENT_LOG")
 [[ ${#states[@]} == 2 ]]
 [[ ${states[0]} == *"_XMONAD_SCREEN_LOCKED 1" ]]
@@ -60,6 +66,7 @@ set +e
 XSECURELOCK_RUN_XPROP="$TEST_DIR/xprop" \
 	XSECURELOCK_RUN_COMMAND="$TEST_DIR/locker-fail" \
 	XSECURELOCK_RUN_WALLPAPER="$TEST_DIR/wallpaper" \
+	XSECURELOCK_RUN_AUTHPROTO="$TEST_DIR/authproto" \
 	XSECURELOCK_RUN_LOCK_FILE="$TEST_DIR/lock" \
 	XSECURELOCK_RUN_TEST_EVENTS="$EVENT_LOG" \
 	"$UNDER_TEST"

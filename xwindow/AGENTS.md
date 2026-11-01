@@ -51,6 +51,11 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   monitor and screensaver modules are disabled, so two lockers cannot compete.
   The daemon passes the active login session ID explicitly because graphical
   process IDs on this workstation do not resolve through logind.
+  The Nix XSecureLock build accepts a trusted username fallback for LDAP users.
+  `xsecurelock-run` gets that value from the host `/usr/bin/id`. Home Manager
+  builds `authproto_pam-host` with the host compiler and PAM library, so PAM can
+  load the host SSSD modules. The runner refuses to lock if this helper is
+  unavailable.
   A second unsafe GNOME lock occurred on 2026-10-31 through automatic idle
   activation, not Albert. GNOME reported the session as locked while Ghostty
   was active and XMonad accepted Super+2. This crossed the replacement

@@ -5,6 +5,7 @@ property=_XMONAD_SCREEN_LOCKED
 xprop_cmd=${XSECURELOCK_RUN_XPROP:-xprop}
 locker_cmd=${XSECURELOCK_RUN_COMMAND:-xsecurelock}
 wallpaper_cmd=${XSECURELOCK_RUN_WALLPAPER:-$HOME/.dotfiles/xwindow/bin/lockscreen-wallpaper}
+authproto=${XSECURELOCK_RUN_AUTHPROTO:-$HOME/.local/libexec/xsecurelock/authproto_pam-host}
 lock_file=${XSECURELOCK_RUN_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/xsecurelock-run.lock}
 
 publish_state() {
@@ -23,9 +24,20 @@ fi
 exec 9>"$lock_file"
 flock -n 9 || exit 0
 
+username=$(/usr/bin/id -un) || {
+	printf 'xsecurelock-run: cannot resolve the login username\n' >&2
+	exit 1
+}
+if [[ ! -x $authproto ]]; then
+	printf 'xsecurelock-run: authentication helper is unavailable: %s\n' "$authproto" >&2
+	exit 1
+fi
+
 trap 'publish_state 0' EXIT
 trap 'exit 1' HUP INT TERM
 
+export XSECURELOCK_USERNAME="$username"
+export XSECURELOCK_AUTHPROTO="$authproto"
 export XSECURELOCK_SAVER=saver_mpv
 export XSECURELOCK_LIST_VIDEOS_COMMAND="$wallpaper_cmd"
 export XSECURELOCK_IMAGE_DURATION_SECONDS=86400

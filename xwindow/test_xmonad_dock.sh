@@ -23,7 +23,9 @@ cleanup() {
 trap cleanup EXIT
 
 for candidate in $(seq 90 110); do
-    if ! xdpyinfo -display ":$candidate" >/dev/null 2>&1; then
+    if [[ ! -e /tmp/.X"$candidate"-lock &&
+          ! -S /tmp/.X11-unix/X"$candidate" ]] &&
+        ! xdpyinfo -display ":$candidate" >/dev/null 2>&1; then
         DISPLAY_NUMBER=$candidate
         break
     fi

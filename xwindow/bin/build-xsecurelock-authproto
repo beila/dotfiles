@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if (($# != 3)); then
+	printf 'usage: %s SOURCE_DIR PAM_INCLUDE_DIR OUTPUT\n' "${0##*/}" >&2
+	exit 2
+fi
+
+source_dir=$1
+pam_include_dir=$2
+output=$3
+
+for required_path in \
+	/usr/bin/gcc \
+	/sbin/ldconfig \
+	/etc/pam.d/gnome-screensaver \
+	"$source_dir/env_info.c" \
+	"$pam_include_dir/security/pam_appl.h"; do
+	if [[ ! -e $required_path ]]; then
+		printf 'build-xsecurelock-authproto: required path is unavailable: %s\n' "$required_path" >&2
+		exit 1
+	fi
+done
+
+pam_library=$(
+	/sbin/ldconfig -p |
+		awk '$1 == "libpam.so.0" && !found { print $NF; found = 1 }'
+)
+
+if [[ -z $pam_library ]]; then
+	printf 'build-xsecurelock-authproto: host libpam.so.0 was not found\n' >&2
+	exit 1
+fi
+
+output_dir=$(dirname "$output")
+mkdir -p "$output_dir"
+temporary_output=$(mktemp "$output_dir/.authproto_pam-host.XXXXXX")
+trap 'rm -f "$temporary_output"' EXIT
+
+/usr/bin/gcc \
+	-O2 \
+	-D_GNU_SOURCE \
+	-DPAM_SERVICE_NAME='"gnome-screensaver"' \
+	-DHELPER_PATH='"/unused"' \
+	-I"$source_dir" \
+	-I"$source_dir/helpers" \
+	-I"$pam_include_dir" \
+	"$source_dir/env_info.c" \
+	"$source_dir/env_settings.c" \
+	"$source_dir/logging.c" \
+	"$source_dir/util.c" \
+	"$source_dir/helpers/authproto.c" \
+	"$source_dir/helpers/authproto_pam.c" \
+	"$pam_library" \
+	-o "$temporary_output"
+
+chmod 0755 "$temporary_output"
+mv "$temporary_output" "$output"
+trap - EXIT

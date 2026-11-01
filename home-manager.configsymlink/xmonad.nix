@@ -1,7 +1,15 @@
 { lib, pkgs, ... }:
 
 let
+  xsecurelockPatchedSource = pkgs.applyPatches {
+    name = "xsecurelock-ldap-source";
+    src = pkgs.xsecurelock.src;
+    patches = [
+      ./patches/xsecurelock-ldap-username.patch
+    ];
+  };
   xsecurelockWithMpv = pkgs.xsecurelock.overrideAttrs (old: {
+    src = xsecurelockPatchedSource;
     configureFlags = (old.configureFlags or []) ++ [
       "--with-mpv=${lib.getExe pkgs.mpv}"
     ];
@@ -20,6 +28,14 @@ in
     pkgs.xss-lock
     xsecurelockWithMpv
   ];
+
+  home.activation.xsecurelockHostPam = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    PATH=/usr/bin:/bin:${lib.makeBinPath [ pkgs.bash pkgs.coreutils pkgs.gawk ]} \
+      $HOME/.dotfiles/xwindow/bin/build-xsecurelock-authproto \
+      ${xsecurelockPatchedSource} \
+      ${pkgs.linux-pam}/include \
+      $HOME/.local/libexec/xsecurelock/authproto_pam-host
+  '';
 
   # Register xfconfd with dbus/systemd so xfce4-panel can persist config.
   # Re-runs on every home-manager switch to keep symlinks pointing to the
