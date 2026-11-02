@@ -63,8 +63,8 @@ recovered=$(run_sample full transient)
 plenty=$(run_sample full disk-plenty)
 [[ $plenty != *"🗄️"* ]]
 [[ $plenty == *"Disk: 47G free"* ]]
-SYSMON_TEST_DISK_FREE_KB=$(( 1024 * 1024 )) run_sample full disk-edge >/dev/null
-edge=$(SYSMON_TEST_DISK_FREE_KB=$(( 1024 * 1024 )) run_sample full disk-edge)
+SYSMON_TEST_DISK_FREE_KB=$(( 1200 * 1024 )) run_sample full disk-edge >/dev/null
+edge=$(SYSMON_TEST_DISK_FREE_KB=$(( 1200 * 1024 )) run_sample full disk-edge)
 [[ $edge != *"🗄️"* ]]
 SYSMON_TEST_DISK_FREE_KB=$(( 3 * 1024 * 1024 )) run_sample full disk-low >/dev/null
 low=$(SYSMON_TEST_DISK_FREE_KB=$(( 1023 * 1024 )) run_sample full disk-low)

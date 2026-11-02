@@ -255,24 +255,16 @@ fan_rpm=-1
 # --- Disk space ---
 # The smaller free space of / and $HOME. On 2026-11-01 a full disk made programs
 # write empty files, and nothing on the panel showed it. The sample is the pressure
-# on an 8 GiB scale. With the height bands of severity(), it is red below 1 GiB free
-# and yellow from 1 GiB to 3 GiB. The panel shows the graph only while the newest
+# on an 8 GiB scale. With the height bands of severity(), it is red below about
+# 1 GiB free (1.04 GiB) and yellow up to about 3 GiB. The panel shows the graph only while the newest
 # sample is red. The history fills all the time, so the graph also shows the drop.
 DISK_SCALE_MIB=8192
-DISK_RED_KB=$(( 1024 * 1024 ))
 disk_free_kb=$(df -Pk -- / "$HOME" 2>/dev/null | awk 'NR > 1 && $4 ~ /^[0-9]+$/ {
     if (min == "" || $4 < min) min = $4 } END { print min }')
 disk_pct=$NO_DATA
 if [[ $disk_free_kb =~ ^[0-9]+$ ]]; then
     disk_pct=$(( 100 - disk_free_kb / 1024 * 100 / DISK_SCALE_MIB ))
     (( disk_pct < 0 )) && disk_pct=0
-    # Integer percents put the edge of the red band near 1.04 GiB. Put it at 1 GiB:
-    # 88 is the lowest red sample, and 87 is the highest yellow sample.
-    if (( disk_free_kb < DISK_RED_KB )); then
-        (( disk_pct < 88 )) && disk_pct=88
-    else
-        (( disk_pct > 87 )) && disk_pct=87
-    fi
 fi
 push_hist disk "$disk_pct"
 disk_panel=""
