@@ -481,25 +481,26 @@ step_describe_local_chain() {
             revset="${SYNC_BM}@${SYNC_REMOTE}..@-"
         fi
     fi
-    local change_id msg
-    # Iterate descriptionless, non-empty commits. Template emits one
-    # change_id per line (or nothing for commits we skip).
-    while IFS= read -r change_id; do
-        [ -n "$change_id" ] || continue
-        if ! msg=$(run_without_lock "$DOTFILES_ROOT/bin/commit-msg" "$change_id" 2>/dev/null); then
-            log WARN "DESCRIBE-FAIL $change_id: commit-msg failed; leaving undescribed"
+    local commit_id change_id msg err
+    # Address each commit by its commit ID. A divergent change ID resolves to
+    # more than one commit, so jj rejects it. jj lists children before
+    # parents. Thus a describe changes only commits that the loop already did.
+    while IFS=' ' read -r commit_id change_id; do
+        [ -n "$commit_id" ] || continue
+        if ! msg=$(run_without_lock "$DOTFILES_ROOT/bin/commit-msg" "$commit_id" 2>/dev/null); then
+            log WARN "DESCRIBE-FAIL $change_id ($commit_id): commit-msg failed; leaving undescribed"
             continue
         fi
         # commit-msg always falls back to a file-list, so empty output is
         # an unexpected pipeline break — log and skip to avoid setting an
         # empty description (jj describe -m '' clears the description).
-        [ -n "$msg" ] || { log WARN "DESCRIBE-FAIL $change_id: empty commit-msg output"; continue; }
-        if jj describe "$change_id" -m "$msg" 2>/dev/null; then
+        [ -n "$msg" ] || { log WARN "DESCRIBE-FAIL $change_id ($commit_id): empty commit-msg output"; continue; }
+        if err=$(jj describe "$commit_id" -m "$msg" 2>&1 >/dev/null); then
             log INFO "DESCRIBE-OK $change_id: $msg"
         else
-            log WARN "DESCRIBE-FAIL $change_id: jj describe failed"
+            log WARN "DESCRIBE-FAIL $change_id ($commit_id): jj describe failed: $(printf '%s\n' "$err" | _summarize_stderr /dev/stdin)"
         fi
-    done < <(jj log -r "$revset" --no-graph -T 'if(!description && !empty, change_id ++ "\n")' 2>/dev/null)
+    done < <(jj log -r "$revset" --no-graph -T 'if(!description && !empty, commit_id ++ " " ++ change_id ++ "\n")' 2>/dev/null)
 }
 
 # `jj git root` is authoritative now that the script only handles jj repos.
