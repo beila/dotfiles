@@ -78,11 +78,43 @@ sed -i 's/"@y"/"@l"/' "$L/a.json"
 cp "$T/a.json" "$TMP/a.before"
 "$KAS" extract 2>"$TMP/err"
 rc=$?
-check "a merge conflict fails" '[ $rc -ne 0 ] && grep -q "both changed" "$TMP/err"'
+# sync_repo runs extract before the snapshot. A failure there stops every sync.
+check "a merge conflict is reported, and extract succeeds" '[ $rc -eq 0 ] && grep -q "both changed" "$TMP/err"'
 check "a merge conflict keeps the tracked file" 'cmp -s "$T/a.json" "$TMP/a.before"'
+"$KAS" extract 2>"$TMP/err"
+rc=$?
+check "a later extract reports the unmerged edit and succeeds" '[ $rc -eq 0 ] && grep -q "unmerged live edit" "$TMP/err"'
 "$KAS" apply 2>/dev/null
 rc=$?
 check "apply refuses while a live edit is unmerged" '[ $rc -ne 0 ] && grep -qF "\"@l\"" "$L/a.json"'
+
+# --- resolve ------------------------------------------------------------------
+"$KAS" resolve tracked >/dev/null
+rc=$?
+check "resolve tracked writes the tracked edit to the live file" '[ $rc -eq 0 ] && grep -qF "\"@t\"" "$L/a.json" && ! grep -qF "\"@l\"" "$L/a.json"'
+check "resolve tracked removes the saved live edit" '[ -z "$(ls "$XDG_STATE_HOME"/kiro-agent-split/*/a.json.live 2>/dev/null)" ]'
+"$KAS" apply
+sed -i 's/"@t"/"@t2"/' "$T/a.json"
+sed -i 's/"@t"/"@l2"/' "$L/a.json"
+"$KAS" extract 2>/dev/null
+"$KAS" resolve live >/dev/null
+rc=$?
+check "resolve live makes the live edit the tracked file" '[ $rc -eq 0 ] && grep -qF "\"@l2\"" "$T/a.json" && grep -qF "\"@l2\"" "$L/a.json"'
+check "resolve live keeps the tracked token" 'grep -qF "\"tok-old\"" "$T/a.json"'
+"$KAS" apply
+rc=$?
+check "apply after resolve succeeds" '[ $rc -eq 0 ]'
+
+# --- the tracked file brings another fixed token ------------------------------
+# electra, 2026-11-01: the received tracked file had another token, and the live file
+# had only a new token. That is not a live edit.
+sed -i 's/"@l2"/"@r"/; s/tok-old/tok-other/' "$T/a.json"
+sed -i 's/\("AIM_CREDS_AGENT_INJECTION" : "\)[^"]*"/\1tok-fresh"/' "$L/a.json"
+"$KAS" extract 2>"$TMP/err"
+check "a new token on both sides is not a conflict" '[ -z "$(ls "$XDG_STATE_HOME"/kiro-agent-split/*/a.json.live 2>/dev/null)" ] && [ ! -s "$TMP/err" ]'
+"$KAS" apply
+rc=$?
+check "apply then writes the received edit" '[ $rc -eq 0 ] && grep -qF "\"@r\"" "$L/a.json" && grep -qF tok-fresh "$L/a.json"'
 
 # --- invalid JSON -------------------------------------------------------------
 rm -f "$XDG_STATE_HOME"/kiro-agent-split/*/a.json.live

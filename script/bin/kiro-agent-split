@@ -5,6 +5,8 @@
 #
 #   kiro-agent-split extract   live file edits -> kiro.filesymlink/agents (tracked values stay)
 #   kiro-agent-split apply     kiro.filesymlink/agents -> live files (live values stay)
+#   kiro-agent-split resolve tracked|live
+#                              finish an unmerged live edit with one side, then apply
 #
 # sync_repo runs extract as sync.pre-snapshot and apply as sync.post-update (jj/user.toml in
 # private-dotfiles). script/bootstrap runs apply instead of making links.
@@ -71,7 +73,8 @@ extract_one() {
     local tracked=$1 live=$2 base=$3 next merged
     [ -e "$live" ] || return 0
     if [ -f "$base.live" ]; then
-        echo "kiro-agent-split: $base.live has an unmerged live edit; ${tracked##*/} not changed" >&2
+        echo "kiro-agent-split: $base.live has an unmerged live edit; ${tracked##*/} not changed." \
+            "Run 'kiro-agent-split resolve tracked' (discard the live edit) or 'resolve live'." >&2
         return 1
     fi
     detach "$live"
@@ -80,7 +83,13 @@ extract_one() {
         return 1
     fi
     next=$(mktemp "$tracked.XXXXXX")
-    generalize <"$live" | with_values_of "$tracked" >"$next"
+    # Compare with the values of the state copy. The tracked file can bring other fixed
+    # values: on 2026-11-01 it did, and a live change of only the token became a conflict.
+    if [ -f "$base" ]; then
+        generalize <"$live" | with_values_of "$base" >"$next"
+    else
+        generalize <"$live" | with_values_of "$tracked" >"$next"
+    fi
     if [ -f "$base" ] && cmp -s "$next" "$base"; then
         # Only the ephemeral values changed. A tracked edit waits for apply.
         rm -f "$next"
@@ -94,7 +103,8 @@ extract_one() {
             rm -f "$merged"
             mv -f "$next" "$base.live"
             echo "kiro-agent-split: ${tracked##*/} and $live both changed." \
-                "Merge $base.live into the tracked file, remove $base.live, and run apply." >&2
+                "Run 'kiro-agent-split resolve tracked' or 'resolve live', or merge $base.live" \
+                "into the tracked file, remove $base.live, and run apply." >&2
             return 1
         fi
     else
@@ -121,9 +131,29 @@ apply_one() {
     cp "$tracked" "$base"
 }
 
+# Finish an unmerged live edit. "tracked" keeps the tracked file and discards the live
+# edit. "live" makes the saved live edit the tracked file. Then apply writes the result.
+resolve_one() {
+    local tracked=$1 live=$2 base=$3 side=$4
+    [ -f "$base.live" ] || return 0
+    case "$side" in
+        tracked) cp "$base.live" "$base" ;;
+        live) cp "$base.live" "$tracked" && cp "$tracked" "$base" ;;
+    esac || return 1
+    rm -f "$base.live"
+    echo "kiro-agent-split: ${tracked##*/}: kept the $side side"
+    apply_one "$tracked" "$live" "$base"
+}
+
 case "${1:-}" in
     extract | apply) mode=$1 ;;
-    *) echo "usage: kiro-agent-split extract|apply" >&2; exit 2 ;;
+    resolve)
+        case "${2:-}" in
+            tracked | live) mode=resolve side=$2 ;;
+            *) echo "usage: kiro-agent-split resolve tracked|live" >&2; exit 2 ;;
+        esac
+        ;;
+    *) echo "usage: kiro-agent-split extract|apply|resolve tracked|live" >&2; exit 2 ;;
 esac
 
 mkdir -p "$live_dir" "$state_dir"
@@ -131,6 +161,15 @@ status=0
 for tracked in "$tracked_dir"/*.json; do
     [ -f "$tracked" ] || continue
     name=${tracked##*/}
-    "${mode}_one" "$tracked" "$live_dir/$name" "$state_dir/$name" || status=1
+    if [ "$mode" = resolve ]; then
+        resolve_one "$tracked" "$live_dir/$name" "$state_dir/$name" "$side" || status=1
+    else
+        "${mode}_one" "$tracked" "$live_dir/$name" "$state_dir/$name" || status=1
+    fi
 done
+# sync_repo runs extract before the snapshot, and a failure stops the whole sync. After
+# a failed extract the tracked file stays as it was, so the snapshot is safe. On electra
+# on 2026-11-02, one unmerged live edit stopped every sync of the repository. Thus
+# extract reports the problem and succeeds. apply after the sync still fails.
+[ "$mode" = extract ] && exit 0
 exit "$status"
