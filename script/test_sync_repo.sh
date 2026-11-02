@@ -421,7 +421,7 @@ GIT_EXECUTABLE="$TMPDIR/stubs/git-timeout-pack" \
     bash "$SYNC_REPO" "$TMPDIR/repoPackTimeout" >/dev/null 2>&1
 check "timed-out transfer temporary pack is removed" "absent" \
     "$([ -e "$pack_timeout_git_dir/objects/pack/tmp_pack_transfer_test" ] && echo present || echo absent)"
-grep_has "TMP-PACK-CLEANUP timeout force-push"
+grep_has "TIMEOUT force-push"
 
 echo
 echo "=== Scenario 6: divergence with conflict -> REBASE-CONFLICT, no push ==="

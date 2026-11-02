@@ -157,7 +157,8 @@ push_repo_history() {
     ) || return 0
 
     transfer_cmd "push repo-history ${MACHINE_NAME}" \
-        "$GIT" --git-dir="$GIT_DIR" push "$SNAPSHOT_URL" "${commit}:${branch}" || return 0
+        env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+        "$GIT" --git-dir="$PUSH_GIT_DIR" push "$SNAPSHOT_URL" "${commit}:${branch}" || return 0
     "$GIT" --git-dir="$GIT_DIR" update-ref "$REPO_HISTORY_SELF_REF" "$commit"
     SNAPSHOT_REMOTE_COMMITS["$branch"]=$commit
     log INFO "PUSH-OK repo-history ${MACHINE_NAME}"

@@ -200,8 +200,7 @@ classify_cmd() {
 # Return 2 only when the server rejects force updates.
 try_atomic_force_replace() {
     local tag=$1 url=$2 commit=$3 branch=$4 expected=$5
-    local err before after rc summary
-    local -a created=()
+    local err rc summary
     case "$SYNC_REPO_TRANSFER_TIMEOUT" in
         "" | *[!0-9]*)
             log ERROR "BAD-CONFIG SYNC_REPO_TRANSFER_TIMEOUT='$SYNC_REPO_TRANSFER_TIMEOUT' must be a non-negative integer"
@@ -209,44 +208,33 @@ try_atomic_force_replace() {
             ;;
     esac
     err=$(mktemp "/tmp/sync_repo_err.XXXXXX") || return 1
-    before=$(mktemp "/tmp/sync_repo_packs_before.XXXXXX") || {
-        rm -f "$err"
-        return 1
-    }
-    after=$(mktemp "/tmp/sync_repo_packs_after.XXXXXX") || {
-        rm -f "$err" "$before"
-        return 1
-    }
-    list_tmp_pack_files >"$before"
     run_without_lock timeout --kill-after=10 "$SYNC_REPO_TRANSFER_TIMEOUT" \
-        "$GIT" --git-dir="$GIT_DIR" push \
+        env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+        "$GIT" --git-dir="$PUSH_GIT_DIR" push \
         "--force-with-lease=${branch}:${expected}" "$url" "${commit}:${branch}" \
         2>"$err"
     rc=$?
     if [ "$rc" -eq 0 ]; then
-        rm -f "$err" "$before" "$after"
+        rm -f "$err"
         return 0
     fi
 
     summary=$(_summarize_stderr "$err")
     if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
         log WARN "TIMEOUT force-push $tag: exceeded ${SYNC_REPO_TRANSFER_TIMEOUT}s; killed"
-        list_tmp_pack_files >"$after"
-        mapfile -t created < <(comm -13 "$before" "$after")
-        remove_tmp_pack_files "timeout force-push $tag" "${created[@]}"
     elif grep -qiE 'stale info|cannot lock ref.*expected' "$err"; then
         log INFO "SKIP-PUSH $tag: remote moved after discovery; will retry next run"
     elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing|fine to retry your request' "$err"; then
         log WARN "NETWORK-ERR force-push $tag: $summary"
     elif grep -qiE '(force|forced).*(denied|not allowed|prohibited|disabled|reject)|pre-receive hook declined' "$err"; then
         log DEBUG "ATOMIC-REPLACE-UNAVAILABLE $tag: $summary"
-        rm -f "$err" "$before" "$after"
+        rm -f "$err"
         return 2
     else
         log ERROR "OTHER-ERR force-push $tag (rc=$rc): $summary"
     fi
     cat "$err" >&2
-    rm -f "$err" "$before" "$after"
+    rm -f "$err"
     return 1
 }
 
@@ -265,11 +253,13 @@ push_force_replace() {
         acquire_local_lock
         release_after=1
     fi
-    transfer_cmd "push-del $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" --delete "$branch"
+    transfer_cmd "push-del $tag" env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+        "$GIT" --git-dir="$PUSH_GIT_DIR" push "$url" --delete "$branch"
     del_class=$_LAST_CLASSIFICATION
     case "$del_class" in
         OK)
-            if transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push "$url" "${commit}:${branch}"; then
+            if transfer_cmd "push $tag" env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+                "$GIT" --git-dir="$PUSH_GIT_DIR" push "$url" "${commit}:${branch}"; then
                 fallback_rc=0
             fi
             ;;
@@ -520,6 +510,20 @@ resolve_git_dir() {
     GIT_DIR=$LOCK_PATH
 }
 
+prepare_push_transport() {
+    PUSH_GIT_DIR=$(mktemp -d "/tmp/sync_repo_push_git.XXXXXX") || exit 1
+    "$GIT" init --bare -q "$PUSH_GIT_DIR" || exit 1
+}
+
+cleanup_push_transport() {
+    local rc=$?
+    log_finalize
+    case "${PUSH_GIT_DIR:-}" in
+        /tmp/sync_repo_push_git.*) rm -rf -- "$PUSH_GIT_DIR" ;;
+    esac
+    return "$rc"
+}
+
 # Find which workspace this run is operating on. Multiple workspaces share
 # one `.jj/repo` store + op log (e.g. ~/dev/{pro,pro2}/src/IgnitionX both
 # share ~/brazil-repos/IgnitionX/.jj), so the only signal that distinguishes
@@ -602,7 +606,8 @@ push_snapshot_ref() {
     fi
 
     if [ -z "$remote_commit" ]; then
-        transfer_cmd "push $tag" "$GIT" --git-dir="$GIT_DIR" push \
+        transfer_cmd "push $tag" env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+            "$GIT" --git-dir="$PUSH_GIT_DIR" push \
             "$SNAPSHOT_URL" "${commit}:${branch}" || return 1
     else
         push_force_replace "$tag" "$SNAPSHOT_URL" "$commit" "$branch" "$remote_commit" || return 1
@@ -747,7 +752,8 @@ queue_bookmark_push() {
 push_prepared_bookmark() {
     [ -n "$BOOKMARK_PUSH_OID" ] || return 0
     if transfer_cmd "push ${SYNC_BM} (${BOOKMARK_PUSH_KIND})" \
-        "$GIT" --git-dir="$GIT_DIR" push "$REMOTE_PUSH_URL" \
+        env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+        "$GIT" --git-dir="$PUSH_GIT_DIR" push "$REMOTE_PUSH_URL" \
         "${BOOKMARK_PUSH_OID}:refs/heads/${SYNC_BM}"; then
         BOOKMARK_PUSH_SUCCEEDED=1
     fi
@@ -1213,7 +1219,8 @@ push_listed_bookmarks() {
             push_force_replace "$tag" "${LB_PUSH_URL[$i]}" "${LB_PUSH_OID[$i]}" \
                 "$ref" "${LB_PUSH_EXPECTED[$i]}" && LB_PUSH_OK[$i]=1
         elif transfer_cmd "push $tag" \
-            "$GIT" --git-dir="$GIT_DIR" push "${LB_PUSH_URL[$i]}" \
+            env GIT_ALTERNATE_OBJECT_DIRECTORIES="$GIT_DIR/objects" \
+            "$GIT" --git-dir="$PUSH_GIT_DIR" push "${LB_PUSH_URL[$i]}" \
             "${LB_PUSH_OID[$i]}:refs/heads/${LB_NAME[$i]}"; then
             LB_PUSH_OK[$i]=1
         fi
@@ -1281,6 +1288,8 @@ SNAPSHOT_URL=$(jj config get sync.snapshot-url 2>/dev/null || true)
 parse_listed_bookmarks "$(jj config get sync.bookmarks 2>/dev/null || true)"
 
 resolve_git_dir
+prepare_push_transport
+trap cleanup_push_transport EXIT
 cleanup_stale_tmp_packs
 
 # --- repo health gate ----------------------------------------------------------
