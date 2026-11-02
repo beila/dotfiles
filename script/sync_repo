@@ -747,20 +747,22 @@ apply_fetched_remote() {
 }
 
 queue_bookmark_push() {
-    local range conflicted
+    local range count
     # Do not publish a conflict. On 2026-11-01 a failed rebase was followed by a
     # rebase with conflicts, and the next run pushed that chain to the shared bookmark.
+    # A conflict in an older commit that a later commit resolved stays in history.
+    if [ -n "$(jj log -r "$2 & conflicts()" --no-graph -T '"c"' 2>/dev/null)" ]; then
+        log ERROR "SKIP-PUSH ${SYNC_BM}@${SYNC_REMOTE}: the commit to push has a conflict ($2); resolve it, then the next run pushes"
+        SYNC_CONFLICT=1
+        return 0
+    fi
     if [ -n "$3" ]; then
         range="$3..$2"
     else
         range="::$2 ~ ::remote_bookmarks() ~ root()"
     fi
-    conflicted=$(jj log -r "($range) & conflicts()" --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
-    if [ -n "$conflicted" ]; then
-        log ERROR "SKIP-PUSH ${SYNC_BM}@${SYNC_REMOTE}: commits with conflicts: ${conflicted% }; resolve them, then the next run pushes"
-        SYNC_CONFLICT=1
-        return 0
-    fi
+    count=$(jj log -r "($range) & conflicts()" --no-graph -T '"c\n"' 2>/dev/null | grep -c c)
+    [ "$count" -gt 0 ] && log WARN "PUSH-HISTORY-CONFLICTS ${SYNC_BM}@${SYNC_REMOTE}: $count older commits have conflicts that later commits resolved"
     BOOKMARK_PUSH_KIND=$1
     BOOKMARK_PUSH_OID=$2
     BOOKMARK_PUSH_EXPECTED_OID=$3
@@ -1237,9 +1239,9 @@ reconcile_listed_bookmarks() {
             log ERROR "SKIP-PUSH ${b}@${r}: commits without description: ${undescribed% }"
             continue
         fi
-        with_conflicts=$(jj log -r "($range) & conflicts()" --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
+        with_conflicts=$(jj log -r "$local_rev & conflicts()" --no-graph -T '"c"' 2>/dev/null)
         if [ -n "$with_conflicts" ]; then
-            log ERROR "SKIP-PUSH ${b}@${r}: commits with conflicts: ${with_conflicts% }"
+            log ERROR "SKIP-PUSH ${b}@${r}: the commit to push has a conflict ($local_rev)"
             continue
         fi
         LB_PUSH_OID[$i]=$local_rev

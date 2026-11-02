@@ -1357,7 +1357,7 @@ cf_before=$(git -C "$TMPDIR/cf-remote.git" rev-parse master)
 check "setup: @- has a conflict" "true" "$(cd "$TMPDIR/repoCF" && jj log -r @- --no-graph -T 'conflict' 2>/dev/null)"
 run_sync "$TMPDIR/repoCF"
 check "remote bookmark does not get the conflicted commit" "$cf_before" "$(git -C "$TMPDIR/cf-remote.git" rev-parse master)"
-grep_has "commits with conflicts"
+grep_has "the commit to push has a conflict"
 
 echo
 echo "=== Scenario RH: repository history is shared between hosts ==="
