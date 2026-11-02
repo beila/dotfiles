@@ -1,9 +1,5 @@
 {
-  "name" : "no-mcp",
   "mcpServers" : {
-    "artifactory-mcp" : {
-      "command" : "$HOME/.toolbox/bin/artifactory-mcp"
-    },
     "creds-agent" : {
       "command" : "aim",
       "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
@@ -13,7 +9,14 @@
       }
     }
   },
-  "toolsSettings" : { },
   "tools" : [ "@creds-agent" ],
-  "allowedTools" : [ "@creds-agent" ]
+  "allowedTools" : [ "@creds-agent" ],
+  "permissions" : {
+    "rules" : [ {
+      "capability" : "mcp",
+      "match" : [ "creds-agent/*" ],
+      "effect" : "allow"
+    } ]
+  },
+  "toolsSettings" : { }
 }
