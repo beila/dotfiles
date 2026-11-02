@@ -41,7 +41,9 @@ export XSECURELOCK_AUTHPROTO="$authproto"
 export XSECURELOCK_SAVER=saver_mpv
 export XSECURELOCK_LIST_VIDEOS_COMMAND="$wallpaper_cmd"
 export XSECURELOCK_IMAGE_DURATION_SECONDS=86400
-export XSECURELOCK_VIDEOS_FLAGS=--panscan=1.0
+# Show the full image. With --panscan=1.0, mpv filled the screen and cut the parts of
+# the image outside it: a portrait photo on a landscape screen lost most of its height.
+export XSECURELOCK_VIDEOS_FLAGS="--panscan=0 --keepaspect=yes"
 export XSECURELOCK_SAVER_DELAY_MS=250
 
 "$locker_cmd" -- "$0" --notify

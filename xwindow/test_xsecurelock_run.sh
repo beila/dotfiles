@@ -25,6 +25,7 @@ printf 'saver:%s\n' "$XSECURELOCK_SAVER" >> "$XSECURELOCK_RUN_TEST_EVENTS"
 printf 'wallpaper:%s\n' "$XSECURELOCK_LIST_VIDEOS_COMMAND" >> "$XSECURELOCK_RUN_TEST_EVENTS"
 printf 'username:%s\n' "$XSECURELOCK_USERNAME" >> "$XSECURELOCK_RUN_TEST_EVENTS"
 printf 'authproto:%s\n' "$XSECURELOCK_AUTHPROTO" >> "$XSECURELOCK_RUN_TEST_EVENTS"
+printf 'videoflags:%s\n' "$XSECURELOCK_VIDEOS_FLAGS" >> "$XSECURELOCK_RUN_TEST_EVENTS"
 while (($#)); do
 	if [[ $1 == -- ]]; then
 		shift
@@ -50,6 +51,8 @@ rg -q '^saver:saver_mpv$' "$EVENT_LOG"
 rg -q "^wallpaper:$TEST_DIR/wallpaper$" "$EVENT_LOG"
 rg -q "^username:$(/usr/bin/id -un)$" "$EVENT_LOG"
 rg -q "^authproto:$TEST_DIR/authproto$" "$EVENT_LOG"
+# The lock image must fit the screen, not fill it and lose its edges.
+rg -q '^videoflags:.*--panscan=0( |$)' "$EVENT_LOG"
 mapfile -t states < <(rg 'xprop:.*-set _XMONAD_SCREEN_LOCKED [01]$' "$EVENT_LOG")
 [[ ${#states[@]} == 2 ]]
 [[ ${states[0]} == *"_XMONAD_SCREEN_LOCKED 1" ]]

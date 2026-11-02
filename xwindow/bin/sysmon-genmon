@@ -1,6 +1,7 @@
 #!/bin/bash
 # System monitor genmon script — sparkline graphs with color
-# Shows: CPU, MEM, IO wait, Network in panel with Pango markup
+# Shows: CPU, MEM, IO wait, Network, Temp, Battery in panel with Pango markup,
+# and disk space only while it is low
 #
 # Rendering: braille pairs (U+2800-block). One cell shows 2 samples, each at 5
 # height levels (0-4 dots). Halves panel cell count vs the old 1-sample/cell
@@ -251,11 +252,39 @@ push_hist temp "$temp_pct"
 fan_rpm=-1
 [ -n "$thinkpad_dir" ] && [ -r "$thinkpad_dir/fan1_input" ] && fan_rpm=$(cat "$thinkpad_dir/fan1_input")
 
+# --- Disk space ---
+# The smaller free space of / and $HOME. On 2026-11-01 a full disk made programs
+# write empty files, and nothing on the panel showed it. The sample is the pressure
+# on an 8 GiB scale. With the height bands of severity(), it is red below 1 GiB free
+# and yellow from 1 GiB to 3 GiB. The panel shows the graph only while the newest
+# sample is red. The history fills all the time, so the graph also shows the drop.
+DISK_SCALE_MIB=8192
+DISK_RED_KB=$(( 1024 * 1024 ))
+disk_free_kb=$(df -Pk -- / "$HOME" 2>/dev/null | awk 'NR > 1 && $4 ~ /^[0-9]+$/ {
+    if (min == "" || $4 < min) min = $4 } END { print min }')
+disk_pct=$NO_DATA
+if [[ $disk_free_kb =~ ^[0-9]+$ ]]; then
+    disk_pct=$(( 100 - disk_free_kb / 1024 * 100 / DISK_SCALE_MIB ))
+    (( disk_pct < 0 )) && disk_pct=0
+    # Integer percents put the edge of the red band near 1.04 GiB. Put it at 1 GiB:
+    # 88 is the lowest red sample, and 87 is the highest yellow sample.
+    if (( disk_free_kb < DISK_RED_KB )); then
+        (( disk_pct < 88 )) && disk_pct=88
+    else
+        (( disk_pct > 87 )) && disk_pct=87
+    fi
+fi
+push_hist disk "$disk_pct"
+disk_panel=""
+if (( disk_pct >= 0 )) && (( $(severity "$(height "$disk_pct")") == 2 )); then
+    disk_panel=" 🗄️$(spark disk)"
+fi
+
 # --- Panel ---
 bat_icon="🔋"
 [ "$(cat /sys/class/power_supply/AC/online 2>/dev/null)" = "1" ] && bat_icon="🔌"
 (( bat_pct < 20 )) && [ "$bat_status" != "Charging" ] && bat_icon="🪫"
-echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) 🌡️$(spark temp) ${bat_icon}$(spark bat 1)</txt>"
+echo "<txt>⚡$(spark cpu) 🧊 $(spark mem) 💽 $(spark iow) 🌐 $(spark net) 🌡️$(spark temp) ${bat_icon}$(spark bat 1)${disk_panel}</txt>"
 
 # --- Tooltip ---
 used_mb=$(( (memtotal-memavail)/1024 ))
@@ -307,7 +336,9 @@ cp "$cur_cores" "$prev_cores"
 temp_tip="n/a"; (( temp_c >= 0 )) && temp_tip="${temp_c}°C (pkg)"
 fan_tip="n/a";  (( fan_rpm >= 0 )) && fan_tip="${fan_rpm} RPM"
 
-printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  %s ↓%s/s ↑%s/s\nTemp: %s\nFan:  %s\nSwap: %s/%s MB\nBat:  %s%% (%s)\nUp:   %s" \
+disk_tip="n/a"; [[ $disk_free_kb =~ ^[0-9]+$ ]] && disk_tip="$(hr $(( disk_free_kb * 1024 ))) free (/ and \$HOME)"
+
+printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iowait\nNet:  %s ↓%s/s ↑%s/s\nTemp: %s\nFan:  %s\nSwap: %s/%s MB\nDisk: %s\nBat:  %s%% (%s)\nUp:   %s" \
     "$cpu" "$loadavg" \
     "$cores_tip" \
     "$mem" "$used_mb" "$total_mb" \
@@ -317,6 +348,7 @@ printf -v tip "CPU:  %s%%  (load: %s)\n%s\nMem:  %s%% (%s/%s MB)\nIO:   %s%% iow
     "$temp_tip" \
     "$fan_tip" \
     "$swap_used" "$swap_total" \
+    "$disk_tip" \
     "$bat_pct" "${bat_status:-AC}" \
     "$(uptime -p | sed 's/up //')"
 echo "<tool>$tip</tool>"

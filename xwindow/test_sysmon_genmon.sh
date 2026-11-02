@@ -13,6 +13,15 @@ cat "${SYSMON_TEST_CONNECTIVITY_FILE:?}"
 MOCK
 chmod +x "$TMP/bin/nmcli"
 
+# Free space in KiB for each filesystem that df reports.
+cat > "$TMP/bin/df" <<'MOCK'
+#!/usr/bin/env bash
+printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\n'
+printf '/dev/root 100000000 1 %s 1%% /\n' "${SYSMON_TEST_DISK_FREE_KB:-50000000}"
+printf '/dev/home 100000000 1 50000000 1%% /home\n'
+MOCK
+chmod +x "$TMP/bin/df"
+
 run_sample() {
     local state=$1 sequence=$2
     local state_dir="$TMP/$sequence"
@@ -50,4 +59,20 @@ recovered=$(run_sample full transient)
 [[ $recovered == *"Net:  online"* ]]
 [[ $recovered == *"#ff79c6"* ]]
 
-printf 'sysmon connectivity tests passed\n'
+# Disk space: the graph appears only while free space is below 1 GiB.
+plenty=$(run_sample full disk-plenty)
+[[ $plenty != *"🗄️"* ]]
+[[ $plenty == *"Disk: 47G free"* ]]
+SYSMON_TEST_DISK_FREE_KB=$(( 1024 * 1024 )) run_sample full disk-edge >/dev/null
+edge=$(SYSMON_TEST_DISK_FREE_KB=$(( 1024 * 1024 )) run_sample full disk-edge)
+[[ $edge != *"🗄️"* ]]
+SYSMON_TEST_DISK_FREE_KB=$(( 3 * 1024 * 1024 )) run_sample full disk-low >/dev/null
+low=$(SYSMON_TEST_DISK_FREE_KB=$(( 1023 * 1024 )) run_sample full disk-low)
+[[ $low == *"🗄️"* ]]
+# The newest cell pairs the yellow 3 GiB sample with the red one, and shows red.
+disk_part=${low##*🗄️}
+[[ $disk_part == *"<span color='#ff5555'>"* ]]
+recovered_disk=$(SYSMON_TEST_DISK_FREE_KB=$(( 2 * 1024 * 1024 )) run_sample full disk-low)
+[[ $recovered_disk != *"🗄️"* ]]
+
+printf 'sysmon connectivity and disk tests passed\n'
