@@ -218,6 +218,7 @@ GetFileAttributesExW
 GetFileInformationByHandle
 GetFinalPathNameByHandleW
 PathCchCombine
+gitfarm
 FSCTL
 reparse
 FDCWD
