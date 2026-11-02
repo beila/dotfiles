@@ -95,9 +95,9 @@ generalize_legacy() { sed -E "s/${home_re}([^[:alnum:]_]|\$)/${TOKEN}\\1/g" "$1"
 generalize_live() {
     local s
     s=$(state_file "$1")
-    generalize "$1" >"$2"
+    generalize "$1" >"$2" || return 1
     if [ -f "$s" ] && ! cmp -s "$2" "$s" && generalize_legacy "$1" | cmp -s - "$s"; then
-        cp "$s" "$2"
+        cp "$s" "$2" || return 1
     fi
 }
 localize() { sed "s/${TOKEN}/${home_repl}/g" "$1"; }
@@ -108,7 +108,10 @@ state_file() { printf '%s/%s' "$state_dir" "$(printf '%s' "$root/$1" | sha256sum
 save_state() {
     local s
     s=$(state_file "$1")
-    mkdir -p "$state_dir" && cp "$2" "$s" && printf '%s\n' "$root/$1" >"$s.path"
+    mkdir -p "$state_dir" || return 1
+    # A short state makes the next run see changes that nobody made.
+    replace_file "$s" "$2" || return 1
+    printf '%s\n' "$root/$1" >"$s.path.tmp" && mv -f "$s.path.tmp" "$s.path"
 }
 drop_state() {
     local s
@@ -128,20 +131,39 @@ replace_file() {
     local target=$1 src=$2 mode_ref=${3:-$1} tmp
     cmp -s "$src" "$target" && return 0
     tmp=$(mktemp "$target.XXXXXX") || return 1
-    cat "$src" >"$tmp"
+    # A full disk makes the copy fail. Then keep the old file: a short copy must
+    # not replace it.
+    if ! cat "$src" >"$tmp" || ! cmp -s "$src" "$tmp"; then
+        rm -f "$tmp"
+        return 1
+    fi
     chmod --reference="$mode_ref" "$tmp" 2>/dev/null || chmod 644 "$tmp"
     mv -f "$tmp" "$target"
 }
 
 # Write a live file in place. Programs that keep the file open, and hard links,
-# continue to see the same inode.
+# continue to see the same inode. The in-place write truncates the file first.
+# Thus write a full copy next to it first. If the in-place write fails, the copy
+# replaces the file.
 write_live() {
-    cmp -s "$2" "$1" || cat "$2" >"$1"
+    local copy
+    cmp -s "$2" "$1" && return 0
+    copy=$(mktemp "$1.XXXXXX") || return 1
+    if ! cat "$2" >"$copy" || ! cmp -s "$2" "$copy"; then
+        rm -f "$copy"
+        return 1
+    fi
+    if cat "$copy" >"$1" && cmp -s "$copy" "$1"; then
+        rm -f "$copy"
+        return 0
+    fi
+    chmod --reference="$1" "$copy" 2>/dev/null
+    mv -f "$copy" "$1"
 }
 
 # merge3 OURS BASE THEIRS OUT. Returns non-zero when the merge has conflicts.
 merge3() {
-    cp "$1" "$4"
+    cp "$1" "$4" || return 2
     git merge-file -q "$4" "$2" "$3" 2>/dev/null
 }
 
@@ -184,7 +206,8 @@ forget_tracked() {
 # run them in one jj command at the end of the step.
 untrack=()
 ensure_untracked() {
-    add_ignore "$1"
+    # Without the entry, the next snapshot tracks FILE again.
+    add_ignore "$1" || { warn "could not add $1 to its .gitignore"; return 1; }
     is_tracked @ "$1" && untrack+=("root:$1")
     return 0
 }
@@ -225,9 +248,9 @@ add_ignore() {
     line=/$(printf '%s' "$base" | sed 's/[][*?\\]/\\&/g; s/^[#!]/\\&/; s/ $/\\ /')
     [ -f "$gitignore" ] && grep -qxF -- "$line" "$gitignore" && return 0
     if [ -s "$gitignore" ] && [ -n "$(tail -c1 "$gitignore")" ]; then
-        printf '\n' >>"$gitignore"
+        printf '\n' >>"$gitignore" || return 1
     fi
-    printf '%s\n' "$line" >>"$gitignore"
+    printf '%s\n' "$line" >>"$gitignore" && grep -qxF -- "$line" "$gitignore"
 }
 
 # Remove the entry of add_ignore. Remove a .gitignore that becomes empty.
@@ -239,7 +262,10 @@ remove_ignore() {
     [ "$dir" = . ] && gitignore=.gitignore
     [ -f "$gitignore" ] || return 0
     line=/$(printf '%s' "$base" | sed 's/[][*?\\]/\\&/g; s/^[#!]/\\&/; s/ $/\\ /')
+    # Status 1 means that no line is left. A status above 1 means that the write
+    # failed, and an empty $rest must not delete the .gitignore.
     grep -vxF -- "$line" "$gitignore" >"$rest"
+    [ $? -le 1 ] || return 1
     if [ -s "$rest" ]; then
         replace_file "$gitignore" "$rest"
     else
@@ -275,8 +301,9 @@ migrate() {
             generalize "$base" >"$base.gen" && save_state "$x" "$base.gen"
         fi
         JJ_EDITOR=true jj squash -u --from "$remote..@-" --into @ "root:$x" >/dev/null 2>&1 || true
-        add_ignore "$x"
-        if jj file untrack "root:$x" >/dev/null 2>&1; then
+        if ! add_ignore "$x"; then
+            warn "could not add $x to its .gitignore; $x still tracked"
+        elif jj file untrack "root:$x" >/dev/null 2>&1; then
             note "stopped tracking $x, as $remote did"
         else
             warn "could not untrack $x; check the .gitignore entry"
@@ -319,23 +346,29 @@ capture_one() {
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not captured"; return 0; }
     grep -qF "$TOKEN" "$x" && { warn "$x contains $TOKEN; not captured"; return 0; }
     # Repair a conversion that stopped before the untrack step.
-    ensure_untracked "$x"
-    generalize_live "$x" "$live"
+    ensure_untracked "$x" || return 0
+    # A full disk truncates the output. On 2026-11-01 empty results replaced
+    # all templates of a repository. Thus do not write an empty template for a
+    # FILE that is not empty.
+    if ! generalize_live "$x" "$live" || { [ -s "$x" ] && [ ! -s "$live" ]; }; then
+        warn "could not read $x into a temporary file; $t not changed"
+        return 0
+    fi
     if cmp -s "$live" "$t"; then
         save_state "$x" "$t"
     elif [ ! -f "$s" ]; then
-        replace_file "$t" "$live" && save_state "$x" "$live"
+        replace_file "$t" "$live" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         note "updated $t from $x (no saved state)"
     elif cmp -s "$live" "$s"; then
         : # Only the template changed. The render step writes it to FILE.
     elif cmp -s "$t" "$s"; then
-        replace_file "$t" "$live" && save_state "$x" "$live"
+        replace_file "$t" "$live" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         note "updated $t from $x"
     elif merge3 "$live" "$s" "$t" "$merged"; then
-        replace_file "$t" "$merged" && save_state "$x" "$live"
+        replace_file "$t" "$merged" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         note "merged $x into $t"
     else
-        replace_file "$t" "$live" && save_state "$x" "$live"
+        replace_file "$t" "$live" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         warn "$x and $t both changed with conflicts; kept $x (jj history has the template version)"
     fi
 }
@@ -417,27 +450,36 @@ render_one() {
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not rendered"; return 0; }
     if [ ! -e "$x" ]; then
         # Without the entry, the next snapshot tracks the new file.
-        add_ignore "$x"
-        localize "$t" >"$out"
-        replace_file "$x" "$out" "$t" && save_state "$x" "$t"
+        add_ignore "$x" || { warn "could not add $x to its .gitignore; $x not created"; return 0; }
+        localize "$t" >"$out" && replace_file "$x" "$out" "$t" && save_state "$x" "$t" ||
+            { warn "could not write $x"; return 0; }
         note "created $x from $t"
         return 0
     fi
     [ -f "$x" ] && [ ! -L "$x" ] || return 0
-    generalize_live "$x" "$live"
+    if ! generalize_live "$x" "$live" || { [ -s "$x" ] && [ ! -s "$live" ]; }; then
+        warn "could not read $x into a temporary file; $x not changed"
+        return 0
+    fi
+    # A template is made only from a file that has the home directory. An empty
+    # template comes from a failed write, so it must not empty FILE.
+    if [ ! -s "$t" ] && [ -s "$x" ]; then
+        warn "$t is empty; kept $x (jj history has the earlier template)"
+        return 0
+    fi
     if cmp -s "$live" "$t"; then
-        save_state "$x" "$t"
+        save_state "$x" "$t" || warn "could not save the state of $x"
     elif [ ! -f "$s" ]; then
         warn "$x differs from $t and has no saved state; kept $x"
     elif cmp -s "$live" "$s"; then
-        localize "$t" >"$out"
-        write_live "$x" "$out" && save_state "$x" "$t"
+        localize "$t" >"$out" && write_live "$x" "$out" && save_state "$x" "$t" ||
+            { warn "could not write $x"; return 0; }
         note "updated $x from $t"
     elif cmp -s "$t" "$s"; then
         : # Only FILE changed. The next capture step copies it to the template.
     elif merge3 "$live" "$s" "$t" "$merged"; then
-        localize "$merged" >"$out"
-        write_live "$x" "$out" && save_state "$x" "$t"
+        localize "$merged" >"$out" && write_live "$x" "$out" && save_state "$x" "$t" ||
+            { warn "could not write $x"; return 0; }
         note "merged $t into $x"
     else
         warn "$x and $t both changed with conflicts; kept $x"
@@ -451,10 +493,12 @@ retrack_one() {
     [ -f "$t" ] && [ -f "$x" ] && [ ! -L "$x" ] || return 0
     is_excluded "$x" && return 0
     [ -n "${conflicted[$t]:-}" ] && return 0
+    # An empty template has no token, but it comes from a failed write.
+    [ -s "$t" ] || return 0
     grep -qF "$TOKEN" "$t" && return 0
     # Without the token, the rendered FILE is a copy of the template.
     cmp -s "$x" "$t" || return 0
-    remove_ignore "$x"
+    remove_ignore "$x" || { warn "could not remove $x from its .gitignore"; return 0; }
     rm -f "$t"
     if jj file track --include-ignored "root:$x" >/dev/null 2>&1; then
         drop_state "$x"
@@ -484,17 +528,19 @@ receive_retracks() {
         jj --ignore-working-copy file show -r 'latest(parents(@))' "root:$x" >"$received" 2>/dev/null ||
             continue
         if [ ! -f "$x" ] || cmp -s "$received" "$x"; then
-            [ -f "$x" ] || cp "$received" "$x"
+            [ -f "$x" ] || replace_file "$x" "$received" || { warn "could not write $x"; continue; }
         else
-            generalize_live "$x" "$live"
-            generalize "$received" >"$gen_received"
+            if ! generalize_live "$x" "$live" || ! generalize "$received" >"$gen_received"; then
+                warn "could not read $x into a temporary file; state kept"
+                continue
+            fi
             if cmp -s "$live" "$s"; then
-                write_live "$x" "$received"
+                write_live "$x" "$received" || { warn "could not write $x"; continue; }
             elif cmp -s "$gen_received" "$s"; then
                 : # Only local edits. The next snapshot records them.
             elif merge3 "$live" "$s" "$gen_received" "$merged"; then
-                localize "$merged" >"$out"
-                write_live "$x" "$out"
+                localize "$merged" >"$out" && write_live "$x" "$out" ||
+                    { warn "could not write $x"; continue; }
             else
                 warn "$x has local edits that conflict with the received $x; kept the local copy"
             fi

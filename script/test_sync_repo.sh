@@ -1283,6 +1283,52 @@ check "each change appears once below the bookmark" "" \
 grep_has "REWRITTEN feat/x@backup"
 
 echo
+echo "=== Scenario 20: imported snapshot refs and a divergent undescribed commit ==="
+# hjdocs, 2026-11-01: the remote "origin" had the URL of sync.snapshot-url. Thus
+# refs/remotes/origin/<host>/default existed, and jj imported it as an untracked
+# remote bookmark. That made the whole local chain immutable. Also, an undescribed
+# commit had a divergent change ID, and `jj describe <change-id>` failed on it.
+setup_repo repoSR "sr.txt" "from SR"
+run_sync "$TMPDIR/repoSR"
+(
+    cd "$TMPDIR/repoSR"
+    git fetch -q backup "+refs/heads/*:refs/remotes/backup/*"
+    jj git import
+    echo "undescribed" > und.txt
+    jj commit -m ""
+    old=$(jj log -r @- --no-graph -T commit_id)
+    jj describe -r @- -m "tmp"
+    jj describe -r @- -m ""
+    # Keep the earlier commit of the same change visible: the change ID is divergent.
+    jj bookmark create side -r "$old"
+) >/dev/null 2>&1
+check "setup: imported snapshot ref exists" "1" \
+    "$(git -C "$TMPDIR/repoSR" for-each-ref "refs/remotes/backup/$TESTHOST/" | wc -l | tr -d ' ' | sed 's/^[1-9][0-9]*$/1/')"
+check "setup: undescribed commit is divergent" "true" \
+    "$(cd "$TMPDIR/repoSR" && jj log -r @- --no-graph -T 'divergent' 2>/dev/null)"
+run_sync "$TMPDIR/repoSR"
+check "imported snapshot refs are removed" "0" \
+    "$(git -C "$TMPDIR/repoSR" for-each-ref "refs/remotes/backup/$TESTHOST/" | wc -l | tr -d ' ')"
+check "jj has no host-prefixed remote bookmarks" "0" \
+    "$(cd "$TMPDIR/repoSR" && jj bookmark list --all-remotes -T 'name ++ "@" ++ remote ++ "\n"' 2>/dev/null | grep -c "^${TESTHOST}/")"
+check "the snapshot on the server stays" "1" \
+    "$(git -C "$TMPDIR/remote.git" for-each-ref "refs/heads/$TESTHOST/default" | wc -l | tr -d ' ')"
+check "the divergent undescribed commit is described" "" \
+    "$(cd "$TMPDIR/repoSR" && jj log -r 'master@backup..@- & ~empty() & ~description(glob:"?*")' --no-graph -T 'commit_id ++ "\n"' 2>/dev/null)"
+grep_has "SNAPSHOT-REF-CLEANUP removed"
+
+echo
+echo "=== Scenario 21: low free space -> LOW-DISK, no snapshot ==="
+setup_repo repoLD "ld.txt" "from LD"
+before_ld=$(cd "$TMPDIR/repoLD" && jj --ignore-working-copy log -r @ --no-graph -T commit_id)
+SYNC_REPO_MIN_FREE_MB=999999999 bash "$SYNC_REPO" "$TMPDIR/repoLD" >/dev/null 2>&1
+rc=$?
+check "low free space exits 1" "1" "$rc"
+check "low free space takes no snapshot" "$before_ld" \
+    "$(cd "$TMPDIR/repoLD" && jj --ignore-working-copy log -r @ --no-graph -T commit_id)"
+grep_has "LOW-DISK"
+
+echo
 echo "=== Scenario RH: repository history is shared between hosts ==="
 git -C "$TMPDIR" init --bare -q -b master rh-remote.git
 RH_STATE="$XDG_STATE_HOME/zsh/repo-history"

@@ -6,7 +6,7 @@
 set -u
 
 DOTFILES_ROOT=$(cd "$(dirname "$0")/.." && pwd)
-HT="$DOTFILES_ROOT/script/bin/home-template"
+HT="${HT:-$DOTFILES_ROOT/script/bin/home-template}"
 
 TMP=$(mktemp -d /tmp/home_template_test.XXXXXX)
 trap 'rm -rf "$TMP"' EXIT
@@ -245,6 +245,50 @@ jj status >/dev/null 2>&1
 printf 'p=@HOME@/half\n' >half.conf.home-template
 "$HT" capture >"$TMP/out" 2>"$TMP/err"
 check "capture untracks a FILE that has a template" '! tracked half.conf && has_line .gitignore /half.conf'
+
+# --- full disk ------------------------------------------------------------------
+# On 2026-11-01 a full disk made each write fail. Empty templates replaced all the
+# templates, render wrote the empty templates to the live files, and the empty files
+# were tracked again. A file size limit makes the large writes fail in the same way.
+# SIGXFSZ is ignored, so a write gets EFBIG and the process continues.
+R="$TMP/repo-full"
+mkdir -p "$R"
+cd "$R" || exit 1
+jj git init >/dev/null 2>&1
+{
+    printf 'home=%s/big\n' "$H"
+    seq 1 4000
+} >big.conf
+"$HT" capture >/dev/null 2>&1
+jj commit -m base >/dev/null 2>&1
+limited() { bash -c 'trap "" XFSZ; ulimit -f 8; exec "$0" "$@"' "$HT" "$@"; }
+printf 'more=%s/m\n' "$H" >>big.conf
+cp big.conf.home-template "$TMP/template.before"
+cp big.conf "$TMP/live.before"
+limited capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "full disk: capture fails" '[ $rc -ne 0 ]'
+check "full disk: capture keeps the template" 'cmp -s big.conf.home-template "$TMP/template.before"'
+check "full disk: capture keeps the live file" 'cmp -s big.conf "$TMP/live.before"'
+
+cp "$TMP/live.before" big.conf
+"$HT" capture >/dev/null 2>&1
+printf 'remote=@HOME@/r\n' >>big.conf.home-template
+cp big.conf "$TMP/live.before"
+limited render >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "full disk: render fails" '[ $rc -ne 0 ]'
+check "full disk: render keeps the live file" 'cmp -s big.conf "$TMP/live.before"'
+check "full disk: render leaves no temporary file" '[ -z "$(find . -maxdepth 1 -name "big.conf.??????")" ]'
+"$HT" render >/dev/null 2>&1
+check "full disk: a later render writes the change" '[ "$(tail -n 1 big.conf)" = "remote=$H/r" ]'
+
+: >big.conf.home-template
+cp big.conf "$TMP/live.before"
+"$HT" render >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "empty template: render fails and keeps the live file" '[ $rc -ne 0 ] && cmp -s big.conf "$TMP/live.before"'
+check "empty template: the file is not tracked again" '! tracked big.conf && [ -e big.conf.home-template ] && has_line .gitignore /big.conf'
 
 # --- home directory is a symbolic link ----------------------------------------
 # On electra, $HOME is a link like /home/alice -> /local/home/alice. Programs that resolve
