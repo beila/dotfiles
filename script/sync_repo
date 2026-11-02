@@ -145,6 +145,13 @@ _summarize_stderr() {
 # proceeds with the push if the preceding delete was successful or benign).
 # Network-pattern heuristics based on git/ssh/curl error strings.
 _LAST_CLASSIFICATION=""
+# Transient failures: the next run retries, so they log at WARN without a notification.
+# 'Another user is currently pushing' is gitfarm's message when the repo is locked by a
+# concurrent git-receive-pack. 'fine to retry your request' ends gitfarm's internal-error
+# banner. GitHub answers a server failure with an HTTP 5xx reason phrase and a request ID
+# (electra, 2026-11-02: "Internal Server Error | Request ID …"). Permanent rejections
+# (no-description, GuardRails, protected branch) use different wording and stay OTHER-ERR.
+TRANSIENT_ERR_RE='Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing|fine to retry your request|Internal Server Error|Bad Gateway|Service Unavailable|Gateway Time-?out'
 classify_cmd() {
     local tag=$1; shift
     local err rc
@@ -164,15 +171,7 @@ classify_cmd() {
             # DEBUG so we keep a trace without paging anyone.
             _LAST_CLASSIFICATION=BENIGN-DEL
             log DEBUG "BENIGN-DEL $tag: $(head -1 "$err")"
-        elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing|fine to retry your request' "$err"; then
-            # 'Another user is currently pushing' is gitfarm's message when the
-            # repo is locked by a concurrent git-receive-pack. Transient — the
-            # next sync_repo run will retry.
-            # 'fine to retry your request' is gitfarm's own transient marker: its
-            # internal-error banner ("We're sorry, we failed to handle your
-            # request!") ends with "In most cases, it's fine to retry your
-            # request." Permanent rejections (no-description, GuardRails) use
-            # different wording and still classify as OTHER-ERR.
+        elif grep -qE "$TRANSIENT_ERR_RE" "$err"; then
             _LAST_CLASSIFICATION=NETWORK-ERR
             log WARN "NETWORK-ERR $tag: $(_summarize_stderr "$err")"
         else
@@ -227,7 +226,7 @@ try_atomic_force_replace() {
         log WARN "TIMEOUT force-push $tag: exceeded ${SYNC_REPO_TRANSFER_TIMEOUT}s; killed"
     elif grep -qiE 'stale info|cannot lock ref.*expected' "$err"; then
         log INFO "SKIP-PUSH $tag: remote moved after discovery; will retry next run"
-    elif grep -qE 'Could not resolve hostname|Could not read from remote repository|Connection (refused|timed out|reset)|Network is unreachable|No route to host|Temporary failure in name resolution|kex_exchange_identification|Operation timed out|Failed to connect to|SSL_ERROR|remote end hung up|RPC failed|Another user is currently pushing|fine to retry your request' "$err"; then
+    elif grep -qE "$TRANSIENT_ERR_RE" "$err"; then
         log WARN "NETWORK-ERR force-push $tag: $summary"
     elif grep -qiE '(force|forced).*(denied|not allowed|prohibited|disabled|reject)|pre-receive hook declined' "$err"; then
         log DEBUG "ATOMIC-REPLACE-UNAVAILABLE $tag: $summary"

@@ -1360,6 +1360,30 @@ check "remote bookmark does not get the conflicted commit" "$cf_before" "$(git -
 grep_has "the commit to push has a conflict"
 
 echo
+echo "=== Scenario 23: a GitHub 5xx on push is transient (NETWORK-ERR, not OTHER-ERR) ==="
+# electra, 2026-11-02: "Internal Server Error | Request ID …" was logged as OTHER-ERR and
+# notified, although the next run pushed the same ref.
+cat >"$TMPDIR/stubs/git-5xx" <<'STUB'
+#!/bin/bash
+for a in "$@"; do
+    if [ "$a" = push ]; then
+        printf 'Internal Server Error\nRequest ID 7A3C:159B:9A6F9:EBC3B:6AE8B748\nTo github.com:beila/x.git\n' >&2
+        exit 1
+    fi
+done
+exec git "$@"
+STUB
+chmod +x "$TMPDIR/stubs/git-5xx"
+setup_repo repoGH "gh.txt" "from GH"
+run_sync "$TMPDIR/repoGH"
+echo "changed" >"$TMPDIR/repoGH/gh.txt"
+GIT_EXECUTABLE="$TMPDIR/stubs/git-5xx" bash "$SYNC_REPO" "$TMPDIR/repoGH" >/dev/null 2>&1
+check "a 5xx is logged as NETWORK-ERR" "1" \
+    "$(grep -rh 'Internal Server Error' "$LOG_ROOT" 2>/dev/null | grep -c '\[WARN\].*NETWORK-ERR' | sed 's/^[1-9][0-9]*$/1/')"
+check "a 5xx is not logged as OTHER-ERR" "0" \
+    "$(grep -rh 'Internal Server Error' "$LOG_ROOT" 2>/dev/null | grep -c 'OTHER-ERR')"
+
+echo
 echo "=== Scenario RH: repository history is shared between hosts ==="
 git -C "$TMPDIR" init --bare -q -b master rh-remote.git
 RH_STATE="$XDG_STATE_HOME/zsh/repo-history"
