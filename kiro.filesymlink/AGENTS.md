@@ -41,7 +41,11 @@ Shared-skill symlinks: each entry points repo-relatively at `../../../.agents/sk
 
 ## Global Codex instructions
 
-`~/.codex` is a symlink to `private-dotfiles/codex.symlink/` (same pattern as `~/.claude` → `private-dotfiles/claude.symlink/`). Inside it, `AGENTS.md` — Codex's global instruction file, auto-loaded every session — is a repo-relative symlink to `kiro.filesymlink/steering/instructions.md`, so Kiro, Claude, and Codex all load the same canonical instruction set. `hooks.json` connects Codex's `PreToolUse(Bash)` event to the same `~/.claude/hooks/bash-gate.py` used by Claude, including git-to-jj steering, and runs the shared prose checker after writes. Codex has no `say_ko` MCP or Stop-hook TTS; the rule-4 fallback (`요약:` paragraph) still applies but is text-only there. See `private-dotfiles/AGENTS.md` for what is tracked vs gitignored in `codex.symlink/`.
+`~/.codex` is a symlink to `private-dotfiles/codex.symlink/`, like the `~/.claude` link. Its `AGENTS.md` links to `kiro.filesymlink/steering/instructions.md`, so all three agents load the canonical instructions.
+
+`hooks.json` calls `~/.claude/hooks/bash-gate.py` with its Codex output mode. `PreToolUse` retains steering, and `PermissionRequest` emits safe Codex approvals. The shared prose checker still runs after writes.
+
+Codex has no `say_ko` MCP or Stop-hook TTS. The rule-4 fallback (`요약:` paragraph) still applies but is text-only there. See `private-dotfiles/AGENTS.md` for tracked and ignored files in `codex.symlink/`.
 
 ## TTS bin
 
