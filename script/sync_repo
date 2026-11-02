@@ -747,6 +747,20 @@ apply_fetched_remote() {
 }
 
 queue_bookmark_push() {
+    local range conflicted
+    # Do not publish a conflict. On 2026-11-01 a failed rebase was followed by a
+    # rebase with conflicts, and the next run pushed that chain to the shared bookmark.
+    if [ -n "$3" ]; then
+        range="$3..$2"
+    else
+        range="::$2 ~ ::remote_bookmarks() ~ root()"
+    fi
+    conflicted=$(jj log -r "($range) & conflicts()" --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
+    if [ -n "$conflicted" ]; then
+        log ERROR "SKIP-PUSH ${SYNC_BM}@${SYNC_REMOTE}: commits with conflicts: ${conflicted% }; resolve them, then the next run pushes"
+        SYNC_CONFLICT=1
+        return 0
+    fi
     BOOKMARK_PUSH_KIND=$1
     BOOKMARK_PUSH_OID=$2
     BOOKMARK_PUSH_EXPECTED_OID=$3
@@ -860,12 +874,23 @@ handle_diverged() {
     if ! jj rebase -s 'roots(::'"$local_rev"' ~ ::'"$remote_rev"')' -d "$remote_rev" 2>/dev/null; then
         log CRITICAL "REBASE-FAIL ${SYNC_BM} local=$local_rev remote=$remote_rev"
         echo "WARNING: jj rebase failed for $SYNC_BM; skipping push" >&2
+        # Without the flag, step_rebase_local_chain rebases the mutable part of
+        # the same chain, and jj records the conflicts in the commits.
+        SYNC_CONFLICT=1
         return 0
     fi
     # If the rebase produced first-class conflicts at @- (it will when probe
     # was driver-resolved, since rebase doesn't re-apply driver merges),
     # try resolve-by-attrs once more on @-. If anything remains, rewind to
     # the pre-rebase op so the working copy doesn't carry conflict markers.
+    # A commit below @- can have a conflict that a later commit removes. Do not
+    # push such history either.
+    if [ -n "$(jj log -r "(${remote_rev}..@--) & conflicts()" --no-graph -T '"c"' 2>/dev/null)" ]; then
+        log ERROR "REBASE-CONFLICT ${SYNC_BM} local=$local_rev remote=$remote_rev (rebased commits below @- conflicted)"
+        [ -n "$pre_rebase_op" ] && jj op restore "$pre_rebase_op" 2>/dev/null || true
+        SYNC_CONFLICT=1
+        return 0
+    fi
     if jj log -r '@-' --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
         if [ -n "$resolver" ] && [ -n "$pre_rebase_op" ]; then
             local post_change post_remaining
@@ -949,7 +974,17 @@ step_rebase_local_chain() {
     [ "$SYNC_REMOTE_AVAILABLE" = "1" ] || return 0
     [ "$REMOTE_FETCH_OK" = "1" ] || return 0
     [ "${SYNC_CONFLICT:-0}" = "1" ] && return 0
-    jj rebase -s "roots(mutable() & ::@ ~ ::${SYNC_BM}@${SYNC_REMOTE})" -d "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
+    local op before after
+    op=$(jj op log --no-graph --limit 1 -T 'id.short()' 2>/dev/null)
+    before=$(jj log -r "::@ & conflicts()" --no-graph -T 'change_id ++ "\n"' 2>/dev/null | sort)
+    jj rebase -s "roots(mutable() & ::@ ~ ::${SYNC_BM}@${SYNC_REMOTE})" -d "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || return 0
+    # jj completes a rebase with conflicts and stores them in the commits. Rewind
+    # a rebase that adds a conflict, so that the next run does not push it.
+    after=$(jj log -r "::@ & conflicts()" --no-graph -T 'change_id ++ "\n"' 2>/dev/null | sort)
+    if [ -n "$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | grep -v '^$')" ]; then
+        log ERROR "REBASE-CONFLICT ${SYNC_BM} (local chain onto ${SYNC_BM}@${SYNC_REMOTE}); rebase rewound"
+        [ -n "$op" ] && jj op restore "$op" 2>/dev/null || true
+    fi
 }
 
 # --- Listed-bookmark sync -----------------------------------------------------
@@ -1138,7 +1173,7 @@ lb_supersedes() {
 }
 
 reconcile_listed_bookmarks() {
-    local i b r rr state kind local_rev remote_rev c range undescribed conflicted
+    local i b r rr state kind local_rev remote_rev c range undescribed conflicted with_conflicts
     for i in "${!LB_NAME[@]}"; do
         [ "${LB_FETCH_OK[$i]:-0}" = "1" ] || continue
         b=${LB_NAME[$i]} r=${LB_REMOTE[$i]} rr=$(lb_remote_rev "$b" "$r")
@@ -1200,6 +1235,11 @@ reconcile_listed_bookmarks() {
         undescribed=$(jj log -r "$range" --no-graph -T 'if(!description, change_id.short() ++ " ")' 2>/dev/null)
         if [ -n "$undescribed" ]; then
             log ERROR "SKIP-PUSH ${b}@${r}: commits without description: ${undescribed% }"
+            continue
+        fi
+        with_conflicts=$(jj log -r "($range) & conflicts()" --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
+        if [ -n "$with_conflicts" ]; then
+            log ERROR "SKIP-PUSH ${b}@${r}: commits with conflicts: ${with_conflicts% }"
             continue
         fi
         LB_PUSH_OID[$i]=$local_rev

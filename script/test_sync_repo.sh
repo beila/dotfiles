@@ -1296,6 +1296,7 @@ run_sync "$TMPDIR/repoSR"
     jj git import
     echo "undescribed" > und.txt
     jj commit -m ""
+    jj log -r @- --no-graph -T change_id >"$TMPDIR/sr.change"
     old=$(jj log -r @- --no-graph -T commit_id)
     jj describe -r @- -m "tmp"
     jj describe -r @- -m ""
@@ -1313,8 +1314,8 @@ check "jj has no host-prefixed remote bookmarks" "0" \
     "$(cd "$TMPDIR/repoSR" && jj bookmark list --all-remotes -T 'name ++ "@" ++ remote ++ "\n"' 2>/dev/null | grep -c "^${TESTHOST}/")"
 check "the snapshot on the server stays" "1" \
     "$(git -C "$TMPDIR/remote.git" for-each-ref "refs/heads/$TESTHOST/default" | wc -l | tr -d ' ')"
-check "the divergent undescribed commit is described" "" \
-    "$(cd "$TMPDIR/repoSR" && jj log -r 'master@backup..@- & ~empty() & ~description(glob:"?*")' --no-graph -T 'commit_id ++ "\n"' 2>/dev/null)"
+check "the divergent undescribed commit is described" "true" \
+    "$(cd "$TMPDIR/repoSR" && jj log -r "change_id($(cat "$TMPDIR/sr.change")) & ::@" --no-graph -T 'description != ""' 2>/dev/null)"
 grep_has "SNAPSHOT-REF-CLEANUP removed"
 
 echo
@@ -1327,6 +1328,36 @@ check "low free space exits 1" "1" "$rc"
 check "low free space takes no snapshot" "$before_ld" \
     "$(cd "$TMPDIR/repoLD" && jj --ignore-working-copy log -r @ --no-graph -T commit_id)"
 grep_has "LOW-DISK"
+
+echo
+echo "=== Scenario 22: a conflicted commit above the remote bookmark is not pushed ==="
+# private-dotfiles, 2026-11-01: a rebase left conflicted commits, and the next run
+# pushed them because they descended from the remote bookmark.
+git -C "$TMPDIR" init --bare -q -b master cf-remote.git
+mkdir -p "$TMPDIR/repoCF"
+(
+    cd "$TMPDIR/repoCF"
+    jj git init --colocate
+    jj git remote add backup "$TMPDIR/cf-remote.git"
+    jj config set --repo sync.remote-bookmark 'master@backup'
+    jj config set --repo user.email 'test@example.com'
+    jj config set --repo user.name 'Test User'
+    echo base > f.txt
+    jj commit -m base
+    jj bookmark create master -r @-
+    jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
+    echo left > f.txt
+    jj commit -m left
+    jj new master -m right
+    echo right > f.txt
+    jj new 'description(exact:"left\n")' 'description(exact:"right\n")' -m merge
+    jj new
+) >/dev/null 2>&1
+cf_before=$(git -C "$TMPDIR/cf-remote.git" rev-parse master)
+check "setup: @- has a conflict" "true" "$(cd "$TMPDIR/repoCF" && jj log -r @- --no-graph -T 'conflict' 2>/dev/null)"
+run_sync "$TMPDIR/repoCF"
+check "remote bookmark does not get the conflicted commit" "$cf_before" "$(git -C "$TMPDIR/cf-remote.git" rev-parse master)"
+grep_has "commits with conflicts"
 
 echo
 echo "=== Scenario RH: repository history is shared between hosts ==="

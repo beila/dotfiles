@@ -18,3 +18,4 @@ work-dotfiles
 /result-*
 /nvim.log
 *.pyc
+/screenrc.symlink

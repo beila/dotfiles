@@ -1,22 +1,19 @@
 {
+  "name" : "no-mcp",
   "mcpServers" : {
+    "artifactory-mcp" : {
+      "command" : "$HOME/.toolbox/bin/artifactory-mcp"
+    },
     "creds-agent" : {
       "command" : "aim",
       "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
       "env" : {
         "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
-        "AIM_CREDS_AGENT_INJECTION" : "48dd30e9-c896-4cf4-b9d3-c0975fcc19e4"
+        "AIM_CREDS_AGENT_INJECTION" : "f61e82ea-e2c1-406d-a7d5-4dc0e5f5d161"
       }
     }
   },
+  "toolsSettings" : { },
   "tools" : [ "@creds-agent" ],
-  "allowedTools" : [ "@creds-agent" ],
-  "permissions" : {
-    "rules" : [ {
-      "capability" : "mcp",
-      "match" : [ "creds-agent/*" ],
-      "effect" : "allow"
-    } ]
-  },
-  "toolsSettings" : { }
+  "allowedTools" : [ "@creds-agent" ]
 }
