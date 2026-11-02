@@ -1,32 +1,72 @@
 {
-  "name" : "default",
-  "mcpServers" : {
-    "tts" : {
-      "command" : "~/.dotfiles/bin/mcp-tts"
+  "name": "default",
+  "mcpServers": {
+    "tts": {
+      "command": "~/.dotfiles/bin/mcp-tts"
     },
-    "artifactory-mcp" : {
-      "command" : "$HOME/.toolbox/bin/artifactory-mcp"
+    "artifactory-mcp": {
+      "command": "$HOME/.toolbox/bin/artifactory-mcp"
     },
-    "creds-agent" : {
-      "command" : "aim",
-      "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
-      "env" : {
-        "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
-        "AIM_CREDS_AGENT_INJECTION" : "93d1458a-0dc8-4a46-a48b-ac4526263c63"
+    "creds-agent": {
+      "command": "aim",
+      "args": [
+        "mcp",
+        "start-server",
+        "local-creds-agent-mcp"
+      ],
+      "env": {
+        "AIM_CREDS_AGENT_URL_KIRO": "${AIM_CREDS_AGENT_URL}",
+        "AIM_CREDS_AGENT_INJECTION": "93d1458a-0dc8-4a46-a48b-ac4526263c63"
       }
     }
   },
-  "toolsSettings" : {
-    "execute_bash" : {
-      "autoAllowReadonly" : true
+  "toolsSettings": {
+    "execute_bash": {
+      "autoAllowReadonly": true
     }
   },
-  "tools" : [ "@creds-agent" ],
-  "allowedTools" : [ "@creds-agent" ],
-  "hooks" : {
-    "preToolUse" : [ {
-      "matcher" : "execute_bash",
-      "command" : "f=\"$HOME/.dotfiles/work-dotfiles/agent-hooks/autosde-cr-gate\"; [ ! -x \"$f\" ] || exec \"$f\""
-    } ]
+  "tools": [
+    "@creds-agent"
+  ],
+  "allowedTools": [
+    "@creds-agent"
+  ],
+  "hooks": [
+    {
+      "name": "preToolUse-0",
+      "trigger": "preToolUse",
+      "matcher": "execute_bash",
+      "action": {
+        "type": "command",
+        "command": "f=\"$HOME/.dotfiles/work-dotfiles/agent-hooks/autosde-cr-gate\"; [ ! -x \"$f\" ] || exec \"$f\""
+      },
+      "timeout": 10
+    }
+  ],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "mcp",
+        "match": [
+          "creds-agent/*"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_read",
+        "match": [
+          "./**"
+        ],
+        "effect": "allow"
+      }
+    ],
+    "policies": [
+      "read-only-shell"
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:c31ee3eb1b96a9ebd2f11ba57001a36914bb9d5654cbcfd5375b64120fc8b54f",
+    "source": "sha256:774d5998ce32ac859903d51a9ac4088dfcfabd2d2dd98d13cdb736445a786eca"
   }
 }

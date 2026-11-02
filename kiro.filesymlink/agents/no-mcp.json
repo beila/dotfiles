@@ -1,26 +1,50 @@
 {
-  "name" : "no-mcp",
-  "mcpServers" : {
-    "artifactory-mcp" : {
-      "command" : "$HOME/.toolbox/bin/artifactory-mcp"
+  "name": "no-mcp",
+  "mcpServers": {
+    "artifactory-mcp": {
+      "command": "$HOME/.toolbox/bin/artifactory-mcp"
     },
-    "creds-agent" : {
-      "command" : "aim",
-      "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
-      "env" : {
-        "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
-        "AIM_CREDS_AGENT_INJECTION" : "f61e82ea-e2c1-406d-a7d5-4dc0e5f5d161"
+    "creds-agent": {
+      "command": "aim",
+      "args": [
+        "mcp",
+        "start-server",
+        "local-creds-agent-mcp"
+      ],
+      "env": {
+        "AIM_CREDS_AGENT_URL_KIRO": "${AIM_CREDS_AGENT_URL}",
+        "AIM_CREDS_AGENT_INJECTION": "f61e82ea-e2c1-406d-a7d5-4dc0e5f5d161"
       }
     }
   },
-  "toolsSettings" : { },
-  "tools" : [ "@creds-agent" ],
-  "allowedTools" : [ "@creds-agent" ],
-  "permissions" : {
-    "rules" : [ {
-      "capability" : "mcp",
-      "match" : [ "creds-agent/*" ],
-      "effect" : "allow"
-    } ]
+  "toolsSettings": {},
+  "tools": [
+    "@creds-agent"
+  ],
+  "allowedTools": [
+    "@creds-agent"
+  ],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "mcp",
+        "match": [
+          "creds-agent/*"
+        ],
+        "effect": "allow"
+      },
+      {
+        "capability": "fs_read",
+        "match": [
+          "./**"
+        ],
+        "effect": "allow"
+      }
+    ]
+  },
+  "kiroUpgrade": {
+    "revision": 2,
+    "fingerprint": "sha256:a6ba7d61893e580e340e5132cc5a4f569f339d909bbd98d70d2d366d63ed975b",
+    "source": "sha256:ff7ff9ab3b9085e3a99a8f146a00d509dca40d1c4d279c6db89b343584724799"
   }
 }
