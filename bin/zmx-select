@@ -235,14 +235,45 @@ renamed_session() {
     printf '%s' "$name"
 }
 
+resolve_attach_process() {
+    local pid=$1 child="" child_comm="" hops=0
+    local -a children=()
+    resolved_session_pid=""
+    resolved_attach_client=false
+
+    while ((hops++ < 4)); do
+        children=()
+        if [[ -r "$proc_root/$pid/task/$pid/children" ]]; then
+            read -r -a children < "$proc_root/$pid/task/$pid/children" || true
+        fi
+        child=""
+        for child in "${children[@]}"; do
+            [[ "$child" =~ ^[0-9]+$ && -d "$proc_root/$child" ]] && break
+            child=""
+        done
+        [[ -n "$child" ]] || return 0
+
+        child_comm=""
+        IFS= read -r child_comm < "$proc_root/$child/comm" || true
+        if [[ "$child_comm" == zmx ]]; then
+            # A new client can own the server process. Follow it to the shell.
+            resolved_attach_client=true
+            pid=$child
+            continue
+        fi
+
+        resolved_session_pid=$child
+        return 0
+    done
+}
+
 load_running() {
     running=()
     attached=()
     local -a argv=()
-    local -a children=()
     local -a comm_files=()
     local -a zmx_comm_files=()
-    local name pid candidate child comm_file
+    local name candidate comm_file
 
     while IFS= read -r name; do
         [[ -n "$name" ]] && running["$name"]=0
@@ -271,20 +302,11 @@ load_running() {
         [[ -n "${running[$name]:-}" ]] || name=$(renamed_session "$name")
         [[ -n "${running[$name]:-}" ]] || continue
 
-        children=()
-        if [[ -r "$proc_root/$candidate/task/$candidate/children" ]]; then
-            read -r -a children < "$proc_root/$candidate/task/$candidate/children" || true
+        resolve_attach_process "$candidate"
+        if [[ -n "$resolved_session_pid" ]]; then
+            running["$name"]="$resolved_session_pid"
         fi
-        pid=""
-        for child in "${children[@]}"; do
-            if [[ "$child" =~ ^[0-9]+$ && -d "$proc_root/$child" ]]; then
-                pid=$child
-                break
-            fi
-        done
-        if [[ -n "$pid" ]]; then
-            running["$name"]="$pid"
-        else
+        if [[ "$resolved_attach_client" == true || -z "$resolved_session_pid" ]]; then
             attached["$name"]=1
         fi
     done

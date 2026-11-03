@@ -13,6 +13,7 @@ HISTORY_DIR="$TMP/history"
 RUNTIME_DIR="$TMP/runtime"
 STUBS="$TMP/stubs"
 SAVED_CWD="$TMP/saved cwd"
+REAL_RG=$(command -v rg)
 DAEMON_PID=""
 PASS=0
 FAIL=0
@@ -287,6 +288,16 @@ printf '%s\n' "$*" >> "$FAKE_ROOT/pgrep.calls"
 exit 99
 EOF
 chmod +x "$STUBS/pgrep"
+cat > "$STUBS/rg" <<'EOF'
+#!/usr/bin/env bash
+if [[ -n "${ZMX_TEST_COMM_ORDER_FILE:-}" && "$*" == *"^zmx$"* ]]; then
+    cat "$ZMX_TEST_COMM_ORDER_FILE"
+    exit 0
+fi
+exec "$REAL_RG" "$@"
+EOF
+chmod +x "$STUBS/rg"
+export REAL_RG
 export XPROP_CALLS="$TMP/xprop-calls"
 : > "$XPROP_CALLS"
 export FZF_ARGS="$TMP/fzf-args"
@@ -297,34 +308,46 @@ export FZF_CALL_COUNT="$TMP/fzf-call-count"
 : > "$FZF_OUTPUT_FILE"
 
 FAKE_PROC="$TMP/proc"
-mkdir -p "$FAKE_PROC"/{101,111,121,131,201,202,203,211,212,221,231,999}
+PHYSICAL_HOME="$TMP/physical-home"
+LOGICAL_HOME="$TMP/logical-home"
+mkdir -p "$PHYSICAL_HOME/project"
+ln -s "$PHYSICAL_HOME" "$LOGICAL_HOME"
+mkdir -p "$FAKE_PROC"/{101,111,121,131,161,201,202,203,204,211,212,221,231,261,999}
 mkdir -p \
     "$FAKE_PROC/201/task/201" \
+    "$FAKE_PROC/204/task/204" \
     "$FAKE_PROC/211/task/211" \
     "$FAKE_PROC/221/task/221" \
-    "$FAKE_PROC/231/task/231"
+    "$FAKE_PROC/231/task/231" \
+    "$FAKE_PROC/261/task/261"
 ln -s "$HOOK_CWD" "$FAKE_PROC/101/cwd"
 ln -s "$HOOK_CWD" "$FAKE_PROC/121/cwd"
+ln -s "$PHYSICAL_HOME/project" "$FAKE_PROC/161/cwd"
 printf 'Name:\tzsh\nPPid:\t201\n' > "$FAKE_PROC/101/status"
 printf 'Name:\tzsh\nPPid:\t211\n' > "$FAKE_PROC/111/status"
 printf '101 (zsh) S 201 101 101 34816 101 0\n' > "$FAKE_PROC/101/stat"
 printf '111 (zsh) S 211 111 111 34816 311 0\n' > "$FAKE_PROC/111/stat"
 printf '121 (zsh) S 221 121 121 34816 121 0\n' > "$FAKE_PROC/121/stat"
+printf '161 (zsh) S 261 161 161 34816 161 0\n' > "$FAKE_PROC/161/stat"
 printf '999 (zsh) S 299 999 999 34816 999 0\n' > "$FAKE_PROC/999/stat"
 printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/201/cmdline"
 printf 'zmx\0tail\0attached\0' > "$FAKE_PROC/202/cmdline"
 printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/203/cmdline"
+printf 'zmx\0attach\0attached\0zsh\0-l\0' > "$FAKE_PROC/204/cmdline"
 printf 'zmx\0attach\0preview-only\0zsh\0-l\0' > "$FAKE_PROC/211/cmdline"
 printf 'zmx\0tail\0preview-only\0' > "$FAKE_PROC/212/cmdline"
 printf 'zmx\0attach\0shelp2\0zsh\0-l\0' > "$FAKE_PROC/221/cmdline"
 printf 'zmx\0attach\0unknown\0zsh\0-l\0' > "$FAKE_PROC/231/cmdline"
-for pid in 201 202 203 211 212 221 231; do
+printf 'zmx\0attach\0home-link\0zsh\0-l\0' > "$FAKE_PROC/261/cmdline"
+for pid in 201 202 203 204 211 212 221 231 261; do
     printf 'zmx\n' > "$FAKE_PROC/$pid/comm"
 done
 printf '101\n' > "$FAKE_PROC/201/task/201/children"
+printf '201\n' > "$FAKE_PROC/204/task/204/children"
 printf '111\n' > "$FAKE_PROC/211/task/211/children"
 printf '121\n' > "$FAKE_PROC/221/task/221/children"
 printf '131\n' > "$FAKE_PROC/231/task/231/children"
+printf '161\n' > "$FAKE_PROC/261/task/261/children"
 # remote1 and remote2 wait on ssh (foreground group 341). Live helper 999
 # connects remote1 to host c. The helper of remote2 has ended.
 mkdir -p "$FAKE_PROC"/{141,151,241,251} "$FAKE_PROC/241/task/241" "$FAKE_PROC/251/task/251"
@@ -344,7 +367,7 @@ printf 'c\tremote1\t999\n' > "$ZMX_REMOTE_DIR/remote1"
 printf 'prompt\t~/remote-dir\n' > "$ZMX_REMOTE_DIR/remote1.state"
 printf 'c\tremote2\t998\n' > "$ZMX_REMOTE_DIR/remote2"
 printf 'prompt\t~/stale-dir\n' > "$ZMX_REMOTE_DIR/remote2.state"
-printf 'attached\npreview-only\nremote1\nremote2\nshelp2\nunknown\n' > "$FAKE_ROOT/sessions"
+printf 'attached\nhome-link\npreview-only\nremote1\nremote2\nshelp2\nunknown\n' > "$FAKE_ROOT/sessions"
 export ZMX_PROC_ROOT="$FAKE_PROC"
 : > "$FAKE_ROOT/list.calls"
 : > "$FAKE_ROOT/pgrep.calls"
@@ -370,6 +393,16 @@ check "picker ignores remote state after the helper ends" "yes" \
 stream_line=$(PATH="$STUBS:$PATH" timeout 2 "$SELECT_UNDER_TEST" --stream-state shelp2 \
     2>/dev/null | head -n 1)
 check "stream mode prints the session state and cwd" "prompt"$'\t'"$HOOK_CWD" "$stream_line"
+comm_order="$FAKE_ROOT/comm-order"
+printf '%s\n' "$FAKE_PROC/201/comm" "$FAKE_PROC/204/comm" > "$comm_order"
+nested_stream_line=$(ZMX_TEST_COMM_ORDER_FILE="$comm_order" PATH="$STUBS:$PATH" timeout 2 \
+    "$SELECT_UNDER_TEST" --stream-state attached 2>/dev/null | head -n 1)
+check "stream mode follows an attach client to the session shell" \
+    "prompt"$'\t'"$HOOK_CWD" "$nested_stream_line"
+home_stream_line=$(HOME="$LOGICAL_HOME" PATH="$STUBS:$PATH" timeout 2 \
+    "$SELECT_UNDER_TEST" --stream-state home-link 2>/dev/null | head -n 1)
+check "stream mode abbreviates the physical home path" \
+    $'prompt\t~/project' "$home_stream_line"
 check "picker leaves unavailable activity unmarked" "yes" \
     "$(rg -q '^unknown[[:space:]]*$' "$FZF_INPUT" && printf yes || printf no)"
 active_marker=$'\033[1;38;5;214m●\033[22;39m'
