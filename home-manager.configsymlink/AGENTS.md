@@ -88,7 +88,10 @@ activation hook. It installs `xss-lock` and an XSecureLock build whose
 fallback because Nix glibc cannot resolve the host account. The launcher gets
 the username from the host `/usr/bin/id`. The `xsecurelockHostPam` activation
 builds only `authproto_pam` with `/usr/bin/gcc` and host `libpam.so.0`, so it can
-load the host SSSD modules. See `xwindow/AGENTS.md`.
+load the host SSSD modules. `screen-locker.service` starts with the graphical
+session and restarts the idle-lock daemon after an exit. It supplies explicit
+Nix tool paths and retains the 15-minute idle timeout. XMonad starts this
+service instead of creating an unsupervised daemon. See `xwindow/AGENTS.md`.
 
 ## xdg.nix
 

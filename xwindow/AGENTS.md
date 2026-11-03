@@ -46,7 +46,12 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
 - **Lock-screen OSD stacking**: During initialization, XMonad adds `PropertyChangeMask` to its existing root event mask so `_XMONAD_SCREEN_LOCKED` updates reach the event hooks. When that property becomes active, and after any window maps while locked, `raiseOsdOnLockHook` re-raises every window whose resource class is `osd`. This covers Hangul, Midway, Zoom, battery, volume, brightness, and audio-device OSDs regardless of whether the lock state, lock window, or OSD maps first. OSD input regions remain empty, so the overlays do not intercept lock-screen input.
 - **Fail-safe X11 locker**: `screen-locker-daemon` configures a 15-minute X
   screensaver timeout and runs `xss-lock -l`, which coordinates idle locks and
-  suspend inhibition. Its locker is `xsecurelock-run`, backed by XSecureLock's
+  suspend inhibition. Home Manager runs it as `screen-locker.service`, starts
+  it with the graphical session, and restarts it five seconds after an exit.
+  XMonad starts the same service instead of an unsupervised process.
+  The service uses explicit Nix tool paths and selects the active login
+  session when `XDG_SESSION_ID` is absent from the service environment.
+  Its locker is `xsecurelock-run`, backed by XSecureLock's
   separate grab, authentication, and saver processes. GNOME Flashback's idle
   monitor and screensaver modules are disabled, so two lockers cannot compete.
   The daemon passes the active login session ID explicitly because graphical

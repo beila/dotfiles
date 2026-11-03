@@ -29,6 +29,33 @@ in
     xsecurelockWithMpv
   ];
 
+  systemd.user.services.screen-locker = {
+    Unit = {
+      Description = "X11 idle and suspend screen locker";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+      StartLimitIntervalSec = 0;
+    };
+    Service = {
+      ExecStart = "${pkgs.bash}/bin/bash ${../xwindow/bin/screen-locker-daemon}";
+      Environment = [
+        "PATH=${lib.makeBinPath [
+          pkgs.bash
+          pkgs.coreutils
+          pkgs.gawk
+          pkgs.util-linux
+          pkgs.systemd
+          pkgs.xset
+          pkgs.xss-lock
+          xsecurelockWithMpv
+        ]}:/usr/bin:/bin"
+      ];
+      Restart = "always";
+      RestartSec = 5;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   home.activation.xsecurelockHostPam = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     PATH=/usr/bin:/bin:${lib.makeBinPath [ pkgs.bash pkgs.coreutils pkgs.gawk ]} \
       $HOME/.dotfiles/xwindow/bin/build-xsecurelock-authproto \
