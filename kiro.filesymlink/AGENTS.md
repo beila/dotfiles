@@ -31,6 +31,9 @@ Shared-skill symlinks: each entry points repo-relatively at `../../../.agents/sk
 `~/.kiro/steering/` symlinks pull from two roots (bootstrap walks every `*.filesymlink/` it finds at `-maxdepth 3`):
 
 - `kiro.filesymlink/steering/instructions.md` — canonical, always-loaded instruction set (Korean-TTS rule, no-sudo, fast-tools rule). Root AGENTS.md's "Agent Instructions" section just points here.
+  At session start, these instructions also direct all three clients to read
+  `~/.dotfiles/work-dotfiles/agent-instructions.md` when it exists. Workplace
+  guidance stays in the companion repository.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-builder-context-do-not-delete.md` — Amazon-internal SDE context (Brazil/CRUX/Apollo/…); kept in work-dotfiles so the public repo stays employer-agnostic.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-production-safety-do-not-delete.md` — AWS production-safety rules; same rationale.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-autosde-before-cr.md` — the AutoSDE pre-CR review loop. Claude also includes it from `~/.claude/CLAUDE.md`. Codex cannot include it (its `AGENTS.md` is the public `instructions.md`), so Codex learns the loop from the block message of `work-dotfiles/agent-hooks/autosde-cr-gate`, which runs as a `PreToolUse`/`preToolUse` Bash hook in Claude, Codex, and the Kiro `builder` and `default` agents.
@@ -42,6 +45,8 @@ Shared-skill symlinks: each entry points repo-relatively at `../../../.agents/sk
 ## Global Codex instructions
 
 `~/.codex` is a symlink to `private-dotfiles/codex.symlink/`, like the `~/.claude` link. Its `AGENTS.md` links to `kiro.filesymlink/steering/instructions.md`, so all three agents load the canonical instructions.
+The canonical instructions also load the optional workplace instructions
+described above.
 
 `hooks.json` calls `~/.claude/hooks/bash-gate.py` with its Codex output mode. `PreToolUse` retains steering, and `PermissionRequest` emits safe Codex approvals. The shared prose checker still runs after writes.
 

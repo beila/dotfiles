@@ -30,7 +30,8 @@ watch_remote() {
         while IFS= read -r line; do
             delay=2
             printf '%s\n' "$line" > "$state.tmp" && mv -f -- "$state.tmp" "$state"
-        done < <(ssh -o BatchMode=yes -o ServerAliveInterval=15 "$host" \
+        done < <(ssh -o BatchMode=yes -o ConnectTimeout=10 \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "$host" \
             "exec ~/.dotfiles/bin/zmx-select --stream-state $remote_q" \
             < /dev/null 2> /dev/null)
         rm -f -- "$state"
@@ -48,10 +49,14 @@ set +m
 
 cleanup() {
     kill -- "-$watcher" 2> /dev/null
+    wait "$watcher" 2> /dev/null || true
     rm -f -- "$meta" "$state" "$state.tmp"
 }
 trap cleanup EXIT
+trap 'exit 130' INT
 trap 'exit 129' HUP
 trap 'exit 143' TERM
 
-ssh -t "$host" "exec zmx attach $remote_q zsh -l"
+ssh -t -o BatchMode=yes -o ConnectTimeout=10 \
+    -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+    "$host" "exec zmx attach $remote_q zsh -l"

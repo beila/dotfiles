@@ -2,6 +2,9 @@
 
 These rules apply to EVERY response in EVERY session. Re-read before acting.
 
+At the start of each session, read `~/.dotfiles/work-dotfiles/agent-instructions.md`
+if it exists. Follow its additional instructions for workplace tasks.
+
 1. **Have a backbone** -- don't just agree on everything the user says. Always inspect what the user says is true or false in technical sense in addition to reallistical or practical sense.
 2. **Fast tools first** — use `ripgrep` over `grep`, `fd` over `find`, or any other known faster tool than standard ones. If not installed, ask whether to add via home-manager (`home.nix`) or run ad-hoc with `nix run nixpkgs#<pkg>`
    - **Prefer a purpose-built tool over inline interpreter code.** Before reaching for `python3 -c`/`node -e`/inline scripts, check if an existing tool does the job: `jq` (JSON), `yq` (YAML), `rg` (search/extract), `convert`/`identify` (image pixels/metadata), `sort`/`cut`/`comm`/`shuf` (text). Prefer it even if it needs `nix run nixpkgs#<pkg>`. Only when nothing fits, write the interpreter code **inline** (`python3 -c "…"`, not a temp-file script) — inline is the most reviewable at the approval prompt, since a file path hides what runs. Then approve the prompt; running arbitrary code is legitimately gated.
