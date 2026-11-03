@@ -314,6 +314,120 @@ rc=$?
 check "symlinked home: capture after render changes nothing" \
     '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && [ ! -s "$TMP/err" ]'
 
+# --- TOML keys with a symlinked home --------------------------------------------
+# Codex finds project keys with the real path and hook keys with the link. The live
+# file must have each key in both forms, and the template must have it one time.
+htl() { HOME="$TMP/link-home" XDG_STATE_HOME="$TMP/state-link" "$HT" "$@"; }
+toml_valid() { python3 -I -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$1"; }
+L="$TMP/link-home"
+RL="$TMP/local/link-home"
+cat >cfg.toml <<EOF
+model = "m"
+
+[hooks.state."$L/.codex/hooks.json:a:0:0"]
+trusted_hash = "h1"
+
+[projects."$RL/p"]
+trust_level = "trusted"
+EOF
+htl capture >/dev/null 2>"$TMP/err"
+check "toml: capture converts both forms to one token" \
+    'grep -qxF "[projects.\"@HOME@/p\"]" cfg.toml.home-template && grep -qxF "[hooks.state.\"@HOME@/.codex/hooks.json:a:0:0\"]" cfg.toml.home-template'
+rm cfg.toml
+htl render >/dev/null 2>"$TMP/err"
+check "toml: render writes each key in both home forms" \
+    'grep -qxF "[projects.\"$L/p\"]" cfg.toml && grep -qxF "[projects.\"$RL/p\"]" cfg.toml &&
+     grep -qxF "[hooks.state.\"$L/.codex/hooks.json:a:0:0\"]" cfg.toml &&
+     grep -qxF "[hooks.state.\"$RL/.codex/hooks.json:a:0:0\"]" cfg.toml'
+check "toml: the rendered file is valid TOML" 'toml_valid cfg.toml'
+cp cfg.toml.home-template "$TMP/cfg.template"
+htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml: capture after render changes nothing" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && cmp -s cfg.toml.home-template "$TMP/cfg.template"'
+
+sed -i "\|^\[hooks.state.\"$L/|,+1 s|h1|h2|" cfg.toml
+htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml: capture takes the changed link copy" \
+    '[ $rc -eq 0 ] && grep -qxF "trusted_hash = \"h2\"" cfg.toml.home-template && [ "$(grep -c "^\[hooks" cfg.toml.home-template)" -eq 1 ]'
+check "toml: capture writes the merged value to both copies" \
+    '[ "$(grep -cxF "trusted_hash = \"h2\"" cfg.toml)" -eq 2 ] && ! grep -qF h1 cfg.toml && toml_valid cfg.toml'
+htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml: the next capture keeps the merged value" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && grep -qxF "trusted_hash = \"h2\"" cfg.toml.home-template'
+
+sed -i "\|^\[projects.\"$RL/p\"\]|,+1 s|\"trusted\"|\"untrusted\"|" cfg.toml
+htl capture >/dev/null 2>"$TMP/err"
+check "toml: capture takes the changed real-path copy" \
+    'grep -qxF "trust_level = \"untrusted\"" cfg.toml.home-template && [ "$(grep -cxF "trust_level = \"untrusted\"" cfg.toml)" -eq 2 ]'
+
+sed -i "\|^\[projects.\"$L/p\"\]|,+1d" cfg.toml
+htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml: a missing copy is not a deletion" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && grep -qxF "[projects.\"@HOME@/p\"]" cfg.toml.home-template'
+
+printf '\n[projects."%s/new"]\ntrust_level = "trusted"\n' "$RL" >>cfg.toml
+htl capture >/dev/null 2>"$TMP/err"
+check "toml: a new real-path key becomes one key" '[ "$(grep -cxF "[projects.\"@HOME@/new\"]" cfg.toml.home-template)" -eq 1 ]'
+
+printf '\n[projects."@HOME@/remote"]\ntrust_level = "trusted"\n' >>cfg.toml.home-template
+htl render >/dev/null 2>"$TMP/err"
+check "toml: render of a remote change writes copies of all keys" \
+    'grep -qxF "[projects.\"$L/remote\"]" cfg.toml && grep -qxF "[projects.\"$RL/remote\"]" cfg.toml &&
+     grep -qxF "[projects.\"$L/p\"]" cfg.toml && toml_valid cfg.toml'
+
+sed -i "\|^\[projects.\"$L/remote\"\]|,+1 s|\"trusted\"|\"untrusted\"|; \|^\[projects.\"$RL/remote\"\]|,+1 s|\"trusted\"|\"other\"|" cfg.toml
+cp cfg.toml.home-template "$TMP/cfg.template"
+htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml: different changes in both copies stop the capture" \
+    '[ $rc -eq 1 ] && cmp -s cfg.toml.home-template "$TMP/cfg.template" && grep -q "both home forms" "$TMP/err"'
+sed -i 's|"other"|"untrusted"|' cfg.toml
+htl capture >/dev/null 2>"$TMP/err"
+rc=$?
+check "toml: equal copies let the capture continue" '[ $rc -eq 0 ] && [ "$(grep -c "untrusted" cfg.toml.home-template)" -eq 2 ]'
+
+# Without tomllib, the line rules apply. The key guard then stops the copies from
+# becoming one key two times.
+mkdir -p "$TMP/nopython"
+printf '#!/bin/sh\nexit 1\n' >"$TMP/nopython/python3"
+chmod +x "$TMP/nopython/python3"
+cp cfg.toml.home-template "$TMP/cfg.template"
+PATH="$TMP/nopython:$PATH" htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml without python: the key guard stops the capture" \
+    '[ $rc -eq 1 ] && cmp -s cfg.toml.home-template "$TMP/cfg.template" && grep -q "become one key" "$TMP/err"'
+
+printf '{\n  "%s/x": 1,\n  "%s/x": 2\n}\n' "$L" "$RL" >keys.json
+htl capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "json: two home forms of a key stop the conversion" \
+    '[ $rc -eq 1 ] && [ ! -e keys.json.home-template ] && grep -q "become one key" "$TMP/err"'
+rm keys.json
+printf '[\n  "%s/x",\n  "%s/x"\n]\n' "$L" "$RL" >values.json
+htl capture >/dev/null 2>"$TMP/err"
+rc=$?
+check "json: equal values in an array are permitted" '[ $rc -eq 0 ] && [ -f values.json.home-template ]'
+printf 'a:\n  %s/x: 1\nb:\n  %s/x: 2\n' "$L" "$L" >same.yaml
+htl capture >/dev/null 2>"$TMP/err"
+rc=$?
+check "yaml: one key below two parents is permitted" '[ $rc -eq 0 ] && [ -f same.yaml.home-template ]'
+
+# Without a symbolic link, both forms are the same. Render writes no copies.
+R="$TMP/repo-plain"
+mkdir -p "$R"
+cd "$R" || exit 1
+jj git init >/dev/null 2>&1
+printf '[projects."%s/p"]\ntrust_level = "trusted"\n' "$H" >plain.toml
+"$HT" capture >/dev/null 2>"$TMP/err"
+rm plain.toml
+"$HT" render >/dev/null 2>"$TMP/err"
+check "toml without a symlinked home: render writes one key" \
+    '[ "$(cat plain.toml)" = "$(printf "[projects.\"%s/p\"]\ntrust_level = \"trusted\"" "$H")" ]'
+
 echo
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]

@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+# home-template-toml: keep TOML keys with the home directory usable in both home
+# forms. script/bin/home-template calls it for files whose names end in ".toml".
+#
+# When $HOME is a symbolic link, the home directory has two forms: the link and the
+# real path. A program finds a key only in the form that it uses. Codex uses the real
+# path for project keys and the link for hook keys.
+#
+#   expand TOKEN COPY           Read a template. After each table and key whose name
+#                               contains TOKEN, write a copy with COPY in the name.
+#                               home-template writes TOKEN as $HOME and COPY as the
+#                               real path.
+#   collapse TOKEN NAME [BASE]  Read a generalized file. In it, both forms are TOKEN,
+#                               so each copy has the same name as its original. Merge
+#                               them into one. BASE is the last agreed template. It
+#                               shows which copy changed. NAME is for messages.
+#   check                       Read a file. Fail when it is not valid TOML.
+#
+# The commands work on the text, so formatting and comments stay. They print only on
+# success. Exit status: 0 on success. 3 when the input is not TOML: the caller then
+# uses its line rules. 4 when the two copies of a key changed in different ways, or
+# when the result is not valid TOML. 5 after collapse when the copies were different:
+# the caller then writes the merged value to both copies.
+import os
+import subprocess
+import sys
+import tempfile
+import tomllib
+
+NOT_TOML, CONFLICT, MERGED = 3, 4, 5
+
+
+class NotToml(Exception):
+    pass
+
+
+class Conflict(Exception):
+    pass
+
+
+class Stmt:
+    """One header, key/value pair, or line without data ("trivia")."""
+
+    __slots__ = ("kind", "path", "text")
+
+    def __init__(self, kind, path, text):
+        self.kind, self.path, self.text = kind, path, text
+
+
+def find_unquoted(text, chars):
+    """Return the index of the first of CHARS outside a quoted key, or -1."""
+    i, quote = 0, None
+    while i < len(text):
+        c = text[i]
+        if quote:
+            if c == "\\" and quote == '"':
+                i += 1
+            elif c == quote:
+                quote = None
+        elif c in "\"'":
+            quote = c
+        elif c in chars:
+            return i
+        i += 1
+    return -1
+
+
+def key_path(doc):
+    path, node = [], doc
+    while isinstance(node, dict) and len(node) == 1:
+        ((key, node),) = node.items()
+        path.append(key)
+        if isinstance(node, list):
+            node = node[-1] if node else None
+    return tuple(path)
+
+
+def parse(text):
+    """Split TEXT into statements. Joined again, they give TEXT exactly."""
+    lines = text.split("\n")
+    lines = [line + "\n" for line in lines[:-1]] + ([lines[-1]] if lines[-1] else [])
+    stmts, buf = [], ""
+    # A statement can continue on the next lines, for example a multi-line array.
+    # It is complete when it is valid TOML by itself.
+    for line in lines:
+        buf += line
+        try:
+            doc = tomllib.loads(buf)
+        except tomllib.TOMLDecodeError:
+            continue
+        stmts.append(classify(buf, doc))
+        buf = ""
+    if buf:
+        raise NotToml
+    return stmts
+
+
+def classify(text, doc):
+    if not doc:
+        return Stmt("trivia", (), text)
+    head = text.lstrip()
+    if head.startswith("[["):
+        return Stmt("array", key_path(doc), text)
+    if head.startswith("["):
+        return Stmt("table", key_path(doc), text)
+    end = find_unquoted(text, "=")
+    if end < 0:
+        raise NotToml
+    # The value can be an inline table, so read the path from the key alone.
+    return Stmt("key", key_path(tomllib.loads(text[:end] + "= 0\n")), text)
+
+
+def blocks(stmts):
+    """Group statements: the root block, then one block for each header."""
+    out = [[]]
+    for st in stmts:
+        if st.kind in ("table", "array"):
+            out.append([])
+        out[-1].append(st)
+    return out
+
+
+def scopes(bl):
+    """Give each block an identity. Each element of an array of tables is different."""
+    count = {}
+    for block in bl:
+        head = block[0] if block else None
+        if head is None or head.kind not in ("table", "array"):
+            yield ("root",)
+        elif head.kind == "table":
+            yield ("table", head.path)
+        else:
+            n = count.get(head.path, 0)
+            count[head.path] = n + 1
+            yield ("array", head.path, n)
+
+
+def text_of(stmts):
+    return "".join(st.text for st in stmts)
+
+
+def core_tail(block):
+    """Split the trivia at the end of a block from the rest."""
+    n = len(block)
+    while n > 1 and block[n - 1].kind == "trivia":
+        n -= 1
+    return block[:n], block[n:]
+
+
+def has_token(path, token):
+    return any(token in part for part in path)
+
+
+def rename(st, token, copy):
+    """Replace TOKEN with COPY in the name of a header or key, not in its value."""
+    end = find_unquoted(st.text, "=" if st.kind == "key" else "#")
+    if end < 0:
+        end = len(st.text)
+    return st.text[:end].replace(token, copy) + st.text[end:]
+
+
+def expand(text, token, copy):
+    # A copy after the last line needs a line break, and the template has none.
+    if text and not text.endswith("\n"):
+        raise NotToml
+    out = []
+    for block in blocks(parse(text)):
+        lines = []
+        for st in block:
+            lines.append(st.text)
+            if st.kind == "key" and has_token(st.path, token):
+                lines.append(rename(st, token, copy))
+        out += lines
+        # Arrays of tables get no copy: a copy would add an element.
+        if block and block[0].kind == "table" and has_token(block[0].path, token):
+            out.append(rename(block[0], token, copy))
+            out += lines[1:]
+    return "".join(out)
+
+
+def merge_file(ours, base, theirs):
+    with tempfile.TemporaryDirectory() as d:
+        paths = []
+        for name, text in (("ours", ours), ("base", base), ("theirs", theirs)):
+            path = os.path.join(d, name)
+            with open(path, "w", encoding="utf-8", newline="") as f:
+                f.write(text)
+            paths.append(path)
+        r = subprocess.run(["git", "merge-file", "-p", "-q", *paths], capture_output=True)
+    return r.stdout.decode("utf-8") if r.returncode == 0 else None
+
+
+class Collapse:
+    def __init__(self, token, base_text):
+        self.token = token
+        self.differed = False
+        self.base_tables, self.base_keys = {}, {}
+        if base_text is None:
+            return
+        try:
+            bl = blocks(parse(base_text))
+        except NotToml:
+            return
+        for scope, block in zip(list(scopes(bl)), bl):
+            if scope[0] == "table":
+                self.base_tables[scope] = text_of(core_tail(block)[0][1:])
+            for st in block:
+                if st.kind == "key":
+                    self.base_keys[(scope, st.path)] = st.text
+
+    def merge(self, a, b, base, what):
+        """Merge two copies. Usually the program changed only the copy that it uses."""
+        if a == b:
+            return a
+        self.differed = True
+        if base is not None:
+            if a == base:
+                return b
+            if b == base:
+                return a
+            merged = merge_file(a, base, b)
+            if merged is not None:
+                return merged
+        raise Conflict(what)
+
+    def tables(self, text):
+        bl = blocks(parse(text))
+        out, first = [], {}
+        for scope, block in zip(list(scopes(bl)), bl):
+            if scope[0] != "table" or not has_token(scope[1], self.token):
+                out.append(block)
+                continue
+            if scope not in first:
+                first[scope] = len(out)
+                out.append(block)
+                continue
+            # Merge the bodies into the first copy. Drop the other copy, with its
+            # trivia at the end: the expand step wrote that trivia with the copy.
+            core_a, tail_a = core_tail(out[first[scope]])
+            core_b = core_tail(block)[0]
+            a, b = text_of(core_a[1:]), text_of(core_b[1:])
+            body = self.merge(a, b, self.base_tables.get(scope), core_a[0].text.strip())
+            out[first[scope]] = [core_a[0], Stmt("raw", (), body), *tail_a]
+        return "".join(text_of(block) for block in out)
+
+    def keys(self, text):
+        bl = blocks(parse(text))
+        out = []
+        for scope, block in zip(list(scopes(bl)), bl):
+            kept, first = [], {}
+            for st in block:
+                if st.kind != "key" or not has_token(st.path, self.token):
+                    kept.append(st)
+                    continue
+                if st.path not in first:
+                    first[st.path] = len(kept)
+                    kept.append(st)
+                    continue
+                prev = kept[first[st.path]]
+                merged = self.merge(prev.text, st.text, self.base_keys.get((scope, st.path)), prev.text.strip())
+                kept[first[st.path]] = Stmt("key", st.path, merged)
+            out.append(text_of(kept))
+        return "".join(out)
+
+    def run(self, text):
+        result = self.keys(self.tables(text))
+        tomllib.loads(result)
+        return result
+
+
+def read_text(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def main(argv):
+    cmd = argv[1] if len(argv) > 1 else ""
+    if not (
+        (cmd == "expand" and len(argv) == 4)
+        or (cmd == "collapse" and len(argv) in (4, 5))
+        or (cmd == "check" and len(argv) == 2)
+    ):
+        print("usage: home-template-toml expand TOKEN COPY | collapse TOKEN NAME [BASE] | check", file=sys.stderr)
+        return 2
+    try:
+        text = sys.stdin.buffer.read().decode("utf-8")
+    except UnicodeDecodeError:
+        return NOT_TOML
+    if cmd == "check":
+        try:
+            tomllib.loads(text)
+        except tomllib.TOMLDecodeError:
+            return NOT_TOML
+        return 0
+    status = 0
+    try:
+        if cmd == "expand":
+            result = expand(text, argv[2], argv[3])
+        else:
+            base = read_text(argv[4]) if len(argv) == 5 and argv[4] else None
+            collapse = Collapse(argv[2], base)
+            try:
+                result = collapse.run(text)
+            except tomllib.TOMLDecodeError as e:
+                print(f"home-template: {argv[3]}: the merged file is not valid TOML: {e}", file=sys.stderr)
+                return CONFLICT
+            status = MERGED if collapse.differed else 0
+    except NotToml:
+        return NOT_TOML
+    except Conflict as e:
+        print(
+            f"home-template: {argv[3]}: both home forms of {e} changed in different ways;"
+            " make the two copies the same",
+            file=sys.stderr,
+        )
+        return CONFLICT
+    sys.stdout.buffer.write(result.encode("utf-8"))
+    return status
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
