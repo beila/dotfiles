@@ -124,6 +124,14 @@ Enter attaches. For a stopped saved session, it stages the persisted output, pri
 
 **Remote sessions.** `zmx-remote-attach HOST [REMOTE_NAME]` attaches to the zmx session of the same name on HOST (`ssh -t HOST "exec zmx attach NAME zsh -l"`); the work `just c` recipe calls it. While ssh runs, it writes `host<TAB>remote name<TAB>helper pid` to `$XDG_RUNTIME_DIR/zmx-select/remote/NAME` and runs a watcher with a second ssh connection to `zmx-select --stream-state NAME` on HOST. The stream prints `state<TAB>cwd` when either changes (it checks every 0.5 s) and repeats the line every 10 s, so the remote process ends soon after the connection closes. The watcher writes each line to `NAME.state`, reconnects with backoff (2 s to 30 s), and is stopped with its process group on exit. The picker reads only those files and never queries a remote host, so it opens without delay; the remote state is at most about 0.5 s old.
 
+Both SSH connections use batch authentication, a 10-second connection timeout,
+and 15-second keepalives with three missed replies allowed. These options
+override longer host defaults so a silent connection loss becomes detectable
+in about 45 seconds. The helper preserves the main SSH exit status and removes
+the watcher and metadata on exit. The work `jc` supervisor retries exit 255
+after network and credential checks; the generic helper itself runs one
+attachment. Test: `bash bin/test_zmx_remote_attach.sh`.
+
 A newly started remote connection can put the zmx server below the terminal client. Process discovery follows this chain to the session shell. Therefore, scan order cannot replace the live cwd with the server's start directory.
 
 A remote host can expose a physical cwd that differs from its logical `$HOME`. The picker shortens both home paths to `~`.
