@@ -49,8 +49,10 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   suspend inhibition. Home Manager runs it as `screen-locker.service`, starts
   it with the graphical session, and restarts it five seconds after an exit.
   XMonad starts the same service instead of an unsupervised process.
-  The service uses explicit Nix tool paths and selects the active login
-  session when `XDG_SESSION_ID` is absent from the service environment.
+  The service uses explicit Nix tool paths. When `XDG_SESSION_ID` is absent,
+  the daemon reads the user's `Display` property with `/usr/bin/loginctl`.
+  This avoids unstable session-table columns and uses the host login tool,
+  which can query the host login manager.
   Its locker is `xsecurelock-run`, backed by XSecureLock's
   separate grab, authentication, and saver processes. GNOME Flashback's idle
   monitor and screensaver modules are disabled, so two lockers cannot compete.

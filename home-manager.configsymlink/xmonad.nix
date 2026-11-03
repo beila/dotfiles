@@ -10,7 +10,7 @@ let
   };
   xsecurelockWithMpv = pkgs.xsecurelock.overrideAttrs (old: {
     src = xsecurelockPatchedSource;
-    configureFlags = (old.configureFlags or []) ++ [
+    configureFlags = (old.configureFlags or [ ]) ++ [
       "--with-mpv=${lib.getExe pkgs.mpv}"
     ];
   });
@@ -19,7 +19,7 @@ in
   xsession.windowManager.xmonad = {
     enable = true;
     enableContribAndExtras = true;
-    extraPackages = hp: [];
+    extraPackages = hp: [ ];
   };
 
   home.packages = [
@@ -39,16 +39,16 @@ in
     Service = {
       ExecStart = "${pkgs.bash}/bin/bash ${../xwindow/bin/screen-locker-daemon}";
       Environment = [
-        "PATH=${lib.makeBinPath [
-          pkgs.bash
-          pkgs.coreutils
-          pkgs.gawk
-          pkgs.util-linux
-          pkgs.systemd
-          pkgs.xset
-          pkgs.xss-lock
-          xsecurelockWithMpv
-        ]}:/usr/bin:/bin"
+        "PATH=${
+          lib.makeBinPath [
+            pkgs.bash
+            pkgs.coreutils
+            pkgs.util-linux
+            pkgs.xset
+            pkgs.xss-lock
+            xsecurelockWithMpv
+          ]
+        }:/usr/bin:/bin"
       ];
       Restart = "always";
       RestartSec = 5;
@@ -57,7 +57,13 @@ in
   };
 
   home.activation.xsecurelockHostPam = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    PATH=/usr/bin:/bin:${lib.makeBinPath [ pkgs.bash pkgs.coreutils pkgs.gawk ]} \
+    PATH=/usr/bin:/bin:${
+      lib.makeBinPath [
+        pkgs.bash
+        pkgs.coreutils
+        pkgs.gawk
+      ]
+    } \
       $HOME/.dotfiles/xwindow/bin/build-xsecurelock-authproto \
       ${xsecurelockPatchedSource} \
       ${pkgs.linux-pam}/include \

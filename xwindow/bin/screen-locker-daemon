@@ -4,7 +4,7 @@ set -u
 xset_cmd=${SCREEN_LOCKER_XSET:-xset}
 xss_lock_cmd=${SCREEN_LOCKER_XSS_LOCK:-xss-lock}
 locker_cmd=${SCREEN_LOCKER_COMMAND:-$HOME/.dotfiles/xwindow/bin/xsecurelock-run}
-loginctl_cmd=${SCREEN_LOCKER_LOGINCTL:-loginctl}
+loginctl_cmd=${SCREEN_LOCKER_LOGINCTL:-/usr/bin/loginctl}
 lock_file=${SCREEN_LOCKER_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/screen-locker-daemon.lock}
 timeout=${SCREEN_LOCKER_TIMEOUT:-900}
 cycle=${SCREEN_LOCKER_CYCLE:-5}
@@ -14,10 +14,7 @@ exec 9>"$lock_file"
 flock -n 9 || exit 0
 
 if [[ -z $session_id ]]; then
-	session_id=$(
-		"$loginctl_cmd" list-sessions --no-legend |
-			awk -v uid="$(id -u)" '$2 == uid && $6 == "active" { print $1; exit }'
-	)
+	session_id=$("$loginctl_cmd" show-user "$UID" --property=Display --value)
 fi
 
 "$xset_cmd" s "$timeout" "$cycle" || exit 1
