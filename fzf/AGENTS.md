@@ -8,7 +8,7 @@ Env vars, sources `fzf --zsh` dynamically. **Overrides the generated `__fzfcmd`*
 
 `zsh/repo-history/10-fzf.zsh` replaces the generated `fzf-history-widget` after this file defines `__fzf_defaults` and `__fzfcmd`. Global scope reads normal Zsh history, including commands from every repository. Repository scope reads the shared `.jj/repo` metadata history and adapts old absolute workspace roots.
 
-Ctrl-R toggles scope, Alt-S inherits the old sort toggle, and Alt-R remains the raw-display toggle. Both scopes retain multiline records, exact deduplication, the initial `LBUFFER` query, history ranking, preview, multi-select, vi-mode bindings, and fzf-zellij routing. Scope reloads use temporary inputs because the zellij child cannot access the parent shell's history array.
+Ctrl-R toggles scope. The widget has no Alt-S sort or Alt-R raw-display bindings; they had no visible effect and were removed. Both scopes retain multiline records, exact deduplication, the initial `LBUFFER` query, history ranking, preview, multi-select, vi-mode bindings, and fzf-zellij routing. Scope reloads use temporary inputs because the zellij child cannot access the parent shell's history array.
 
 `FZF_CTRL_T_COMMAND` / `FZF_ALT_C_COMMAND` emit raw paths (one per line) — earlier versions piped each path through `xargs ls --color=always -d` to render `ls -l`-style rows, which clipped names to invisibility inside the narrow floating-pane list column.
 

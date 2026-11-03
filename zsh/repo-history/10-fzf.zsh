@@ -193,13 +193,13 @@ fzf-history-widget() {
 
     if [[ "$scope" == repo ]]; then
       input_file="$repo_file"
-      header='repo scope · Ctrl-R global · Alt-S sort · Alt-R raw'
+      header='repo scope · Ctrl-R global'
     else
       input_file="$global_file"
       if (( in_repo )); then
-        header='global scope · Ctrl-R repo · Alt-S sort · Alt-R raw'
+        header='global scope · Ctrl-R repo'
       else
-        header='global scope · Alt-S sort · Alt-R raw'
+        header='global scope'
       fi
     fi
 
@@ -208,8 +208,7 @@ fzf-history-widget() {
     ctrl_r_opts="${ctrl_r_opts//\{\}/\{2..\}}"
 
     local -a binding_args
-    binding_args=(--bind 'alt-s:toggle-sort,alt-r:toggle-raw')
-    [[ -n "$toggle_binding" ]] && binding_args+=(--bind "$toggle_binding")
+    [[ -n "$toggle_binding" ]] && binding_args=(--bind "$toggle_binding")
 
     FZF_DEFAULT_OPTS=$(__fzf_defaults "" "$ctrl_r_opts") \
       FZF_DEFAULT_OPTS_FILE='' \

@@ -25,7 +25,7 @@ See `kiro.filesymlink/steering/instructions.md` for the canonical, always-loaded
   - 양쪽에서 어떤 단축키를 뭐에 쓰는지 먼저 정리해봐야겠다
 - [x] add jj per-repository Zsh history — implemented in `zsh/repo-history/`.
   - Linked workspaces resolve to the same canonical `.jj/repo` and share one append-only metadata history. Native `.zhistory` remains global.
-  - Ctrl-R remembers the last scope used in the shell, starting with repository scope. Ctrl-R toggles scope, Alt-S toggles sorting, and Alt-R toggles raw display.
+  - Ctrl-R remembers the last scope used in the shell, starting with repository scope. Ctrl-R toggles scope; there are no Alt-S/Alt-R bindings.
   - Multiline commands, exact deduplication, preview, multi-select, vi mode, and zellij routing remain supported.
   - Old absolute workspace roots are adapted before display and insertion.
   - Sourcing performs no repository search or external command. Resolution starts with the first accepted command or Ctrl-R and remains cached inside the workspace.
