@@ -7,12 +7,20 @@ If a mapping stops applying mid-session (e.g. the Logitech left-handed swap reve
 ## Logitech USB Optical Mouse — left-handed.json
 Swap left/right buttons (BTN_LEFT ↔ BTN_RIGHT).
 
-## ExpertBT5.0 Mouse (Kensington Expert Trackball BT) — remap.json
-Left-hand button remap:
+## Kensington Expert Trackball — remap.json
+
+Bluetooth (`ExpertBT5.0 Mouse`, `047d:8019`) and the USB receiver
+(`Kensington Expert Wireless TB Mouse`, `047d:8018`) have separate presets
+and autoload entries in `input-remapper-2.configsymlink/`. Both use the same
+left-hand button remap:
+
 - BTN_LEFT(272), physical lower-left → universal copy (same output as Super+C)
 - BTN_MIDDLE(274) → BTN_RIGHT(273)
 - BTN_RIGHT(273) → BTN_LEFT(272)
 - BTN_SIDE(275), physical upper-right → universal paste (same output as Super+V)
+
+Keep both presets equivalent except for each device's `origin_hash`.
+The existing input-remapper udev rule loads the matching preset on connection.
 
 ## Keyboard remapping
 

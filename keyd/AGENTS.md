@@ -1,6 +1,6 @@
 # keyd / Key Remapping Stack — Context for AI Agent
 
-`keyd` is the system-daemon key remapper (running as root, before X11/Wayland). `input-remapper` handles per-device mouse remaps (running as systemd user). See `keyd/README.md` for the full key remapping documentation.
+`keyd` is the system-daemon key remapper (running as root, before X11/Wayland). `input-remapper` handles per-device mouse remaps through the system `input-remapper-daemon` service. See `keyd/README.md` for the full key remapping documentation.
 
 ## keyd (`~/.dotfiles/keyd/`, four files)
 
@@ -84,10 +84,10 @@ So a config that fully works exists — but only **without** `common`'s `leftmet
 
 ## input-remapper (`~/.dotfiles/input-remapper-2.configsymlink/`, mice only)
 
-Symlinked to `~/.config/input-remapper-2/`. Per-device, runs as systemd user daemon.
+Symlinked to `~/.config/input-remapper-2/`. Per-device presets are loaded by the system daemon.
 
 - Logitech USB Optical Mouse: left-handed.
-- ExpertBT5.0 Mouse (Kensington): left-handed + physical lower-left `BTN_LEFT` → universal copy + physical upper-right `BTN_SIDE` → universal paste. Input-remapper emits the same `copy`/F24/F19 and `paste`/F20 sequences as keyd's Super+C/V macros, without relying on keyd to reprocess its virtual keyboard.
+- Kensington Expert: Bluetooth (`ExpertBT5.0 Mouse`, `047d:8019`) and USB receiver (`Kensington Expert Wireless TB Mouse`, `047d:8018`) have separate `remap` presets and autoload entries with identical outputs: left-handed + physical lower-left `BTN_LEFT` → universal copy + physical upper-right `BTN_SIDE` → universal paste. Input-remapper emits the same `copy`/F24/F19 and `paste`/F20 sequences as keyd's Super+C/V macros, without relying on keyd to reprocess its virtual keyboard. Keep the two presets equivalent except for each device's `origin_hash`.
 
 ## Known issues
 

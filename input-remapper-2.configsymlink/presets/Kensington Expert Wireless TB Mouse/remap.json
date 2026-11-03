@@ -1,0 +1,48 @@
+[
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 272,
+                "origin_hash": "Kensington Expert Wireless TB Mouse"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "key(KEY_COPY).key(KEY_F24).key(KEY_F19)"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 274,
+                "origin_hash": "Kensington Expert Wireless TB Mouse"
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 273
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 273,
+                "origin_hash": "Kensington Expert Wireless TB Mouse"
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 272
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 275,
+                "origin_hash": "Kensington Expert Wireless TB Mouse"
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "key(KEY_PASTE).key(KEY_F20)"
+    }
+]
