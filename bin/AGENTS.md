@@ -126,6 +126,8 @@ Enter attaches. For a stopped saved session, it stages the persisted output, pri
 
 A newly started remote connection can put the zmx server below the terminal client. Process discovery follows this chain to the session shell. Therefore, scan order cannot replace the live cwd with the server's start directory.
 
+A remote host can expose a physical cwd that differs from its logical `$HOME`. The picker shortens both home paths to `~`.
+
 A session whose helper pid is alive shows `HOST:cwd` and a cyan `❯` when the remote shell is at a prompt (`●` for a remote job). When ssh ends, the helper removes the files, and the session shows the local green `❯` and local cwd again. A dead helper pid has the same effect if the files remain. The remote host needs the same `zmx-select` at `~/.dotfiles/bin`. Test: `bin/test_zmx_history.sh`.
 
 The preview shows the session's last 500 `scrollback` lines and then streams live output (`zmx history … | tail`, then `exec zmx tail`). Stopped sessions fall back to the last `zmx-history` snapshot when one exists. The picker passes `--no-mouse` so ordinary dragging selects preview text and Ghostty's default `copy-on-select` copies it. This intentionally disables fzf clicks and wheel scrolling; keyboard navigation and `Shift-Up`/`Shift-Down` preview scrolling remain available.

@@ -87,6 +87,8 @@ fi'
 # without connecting: `zmx list` can keep consuming output forever when a
 # session continuously repaints its terminal.
 proc_root=${ZMX_PROC_ROOT:-/proc}
+physical_home=$(readlink -f -- "$HOME" 2>/dev/null || true)
+shortened_cwd=""
 declare -A running=()
 declare -A running_cwd=()
 declare -A running_cwd_pid=()
@@ -129,12 +131,29 @@ session_is_running() {
     fi
 }
 
+shorten_home_path() {
+    local path=$1 home_marker='~'
+    shortened_cwd=$path
+    # /proc can expose the physical path when HOME is a symbolic link.
+    if [[ "$path" == "$HOME" ]]; then
+        shortened_cwd=$home_marker
+    elif [[ "$path" == "$HOME/"* ]]; then
+        printf -v shortened_cwd '%s/%s' "$home_marker" "${path#"$HOME"/}"
+    elif [[ -n "$physical_home" && "$path" == "$physical_home" ]]; then
+        shortened_cwd=$home_marker
+    elif [[ -n "$physical_home" && "$path" == "$physical_home/"* ]]; then
+        printf -v shortened_cwd '%s/%s' "$home_marker" \
+            "${path#"$physical_home"/}"
+    fi
+}
+
 refresh_session_cwd() {
     local name=$1 pid cwd
     [[ -n "${running[$name]:-}" ]] || return 0
     pid=${running[$name]}
     if cwd=$(readlink "$proc_root/$pid/cwd" 2>/dev/null); then
-        running_cwd["$name"]="${cwd/#$HOME/'~'}"
+        shorten_home_path "$cwd"
+        running_cwd["$name"]=$shortened_cwd
         running_cwd_pid["$name"]="$pid"
     else
         unset 'running_cwd[$name]' 'running_cwd_pid[$name]'
@@ -162,7 +181,8 @@ refresh_changed_session_cwds() {
             name=${names[$i]}
             pid=${running[$name]}
             cwd=${cwds[$i]}
-            running_cwd["$name"]="${cwd/#$HOME/'~'}"
+            shorten_home_path "$cwd"
+            running_cwd["$name"]=$shortened_cwd
             running_cwd_pid["$name"]="$pid"
         done
         return 0
@@ -332,11 +352,9 @@ load_saved() {
     done < <("$ZMX_HISTORY_HELPER" list --with-cwd 2>/dev/null)
 }
 
-# name -> the session shell's live cwd, $HOME-shortened, empty if unknown.
-# The server's start directory never moves, so read /proc instead. Blank when
-# /proc can't answer — a stale directory would be worse than none. Quote the
-# tilde: bash tilde-expands the replacement, so a bare ~ substitutes $HOME back
-# in and no-ops.
+# Print the session shell's live cwd. Shorten logical and physical home paths.
+# The server's start directory never moves, so read /proc instead. Leave the
+# value blank when /proc cannot answer because stale data is misleading.
 session_cwd() {
     local name=$1 host
     host=${remote_host[$name]:-}
