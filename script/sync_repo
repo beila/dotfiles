@@ -137,6 +137,25 @@ _summarize_stderr() {
         | sed -E 's/\|$//; s/\|/ | /g'
 }
 
+rebase_with_diagnostics() {
+    local bookmark=$1 local_rev=$2 remote_rev=$3 sources=$4 err rc line
+    shift 4
+    err=$(mktemp "/tmp/sync_repo_err.XXXXXX") || return 1
+    jj rebase -s "$sources" -d "$remote_rev" "$@" 2>"$err"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        log CRITICAL "REBASE-FAIL $bookmark local=$local_rev remote=$remote_rev: $(_summarize_stderr "$err")"
+        log DEBUG "STDERR-BEGIN rebase $bookmark"
+        while IFS= read -r line; do
+            log DEBUG "  $line"
+        done < "$err"
+        log DEBUG "STDERR-END rebase $bookmark"
+        cat "$err" >&2
+    fi
+    rm -f "$err"
+    return "$rc"
+}
+
 # classify_cmd <tag> <cmd...>
 # Run <cmd...>, capture stderr, classify failure as NETWORK (usually transient
 # -> WARN) or OTHER (-> ERROR). Returns the original exit code.
@@ -869,8 +888,8 @@ handle_diverged() {
     # to clean up manually.
     local pre_rebase_op
     pre_rebase_op=$(jj op log --no-graph --limit 1 -T 'id.short()' 2>/dev/null)
-    if ! jj rebase -s 'roots(::'"$local_rev"' ~ ::'"$remote_rev"')' -d "$remote_rev" 2>/dev/null; then
-        log CRITICAL "REBASE-FAIL ${SYNC_BM} local=$local_rev remote=$remote_rev"
+    if ! rebase_with_diagnostics "$SYNC_BM" "$local_rev" "$remote_rev" \
+        'roots(::'"$local_rev"' ~ ::'"$remote_rev"')'; then
         echo "WARNING: jj rebase failed for $SYNC_BM; skipping push" >&2
         # Without the flag, step_rebase_local_chain rebases the mutable part of
         # the same chain, and jj records the conflicts in the commits.
@@ -1101,7 +1120,9 @@ lb_tip_above() {
 # it is. resolve-by-attrs clears conflicts that .gitattributes drivers can merge. A
 # rebase that still produces conflicted commits is rewound.
 lb_rebase() {
-    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new probe c
+    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new probe c protected mutable_roots
+    local sources="roots(${remote_rev}..${local_rev})"
+    local -a retained_parents=()
     local resolver="$SCRIPT_DIR/bin/resolve-by-attrs"
     [ -x "$resolver" ] || resolver=""
     if jj new --no-edit "$local_rev" "$remote_rev" -m "rebase-probe" >/dev/null 2>&1; then
@@ -1119,8 +1140,19 @@ lb_rebase() {
     fi
     pre_op=$(jj op log --no-graph --limit 1 -T 'id.short()' 2>/dev/null)
     change=$(jj log -r "$local_rev" --no-graph -T 'change_id' 2>/dev/null)
-    if ! jj rebase -s "roots(${remote_rev}..${local_rev})" -d "$remote_rev" >/dev/null 2>&1; then
-        log CRITICAL "REBASE-FAIL ${b} local=$local_rev remote=$remote_rev"
+    protected=$(jj log -r "heads((${remote_rev}..${local_rev}) & immutable())" \
+        --no-graph -T 'commit_id ++ " "' 2>/dev/null)
+    if [ -n "$protected" ]; then
+        mutable_roots=$(jj log -r "roots((${remote_rev}..${local_rev}) & mutable())" \
+            --no-graph -T 'commit_id ++ "|"' 2>/dev/null)
+        if [ -n "$mutable_roots" ]; then
+            # Retain upstream history as merge parents instead of rewriting it.
+            sources=${mutable_roots%|}
+            for c in $protected; do retained_parents+=(-d "$c"); done
+        fi
+    fi
+    if ! rebase_with_diagnostics "$b" "$local_rev" "$remote_rev" \
+        "$sources" "${retained_parents[@]}" >/dev/null; then
         return 1
     fi
     new=$(lb_tip_above "$change" "$remote_rev")

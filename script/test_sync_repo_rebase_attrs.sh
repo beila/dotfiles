@@ -118,6 +118,83 @@ check "an unresolved intermediate conflict restores local history" "$local_befor
 check "a failed rebase leaves the working copy without conflicts" "" \
     "$(cd "$test_root/conflict-local" && jj log -r '@ & conflicts()' --no-graph -T change_id)"
 
+for mode in remote-bookmark bookmarks; do
+    seed="$test_root/immutable-seed-$mode"
+    checkout="$test_root/immutable-local-$mode"
+    remote="$test_root/immutable-remote-$mode.git"
+    git init --bare -q -b main "$remote"
+    jj git init --colocate "$seed" >/dev/null 2>&1
+    (
+        cd "$seed"
+        jj config set --repo user.name "Test User"
+        jj config set --repo user.email test@example.com
+        printf 'base\n' > base.txt
+        jj describe -m base >/dev/null 2>&1
+        jj bookmark create main -r @ >/dev/null 2>&1
+        jj git remote add origin "$remote"
+        jj git push --remote origin --bookmark main >/dev/null
+    )
+    jj git clone --colocate "$remote" "$checkout" >/dev/null 2>&1
+    (
+        cd "$checkout"
+        jj config set --repo user.name "Test User"
+        jj config set --repo user.email test@example.com
+        jj config set --repo "sync.$mode" main@origin
+        printf 'upstream\n' > upstream.txt
+        jj describe -m upstream >/dev/null 2>&1
+        jj bookmark set main -r @ >/dev/null 2>&1
+        jj bookmark create upstream -r @ >/dev/null 2>&1
+        jj new >/dev/null 2>&1
+        jj config set --repo 'revset-aliases."immutable_heads()"' 'bookmarks(exact:"upstream")'
+    )
+    (
+        cd "$seed"
+        jj new main >/dev/null 2>&1
+        printf 'remote\n' > remote.txt
+        jj describe -m remote >/dev/null 2>&1
+        jj bookmark set main -r @ >/dev/null 2>&1
+        jj git push --remote origin --bookmark main >/dev/null
+    )
+    immutable_before=$(jj --repository "$checkout" log -r upstream --no-graph -T commit_id)
+    remote_before=$(git --git-dir="$remote" rev-parse main)
+    bash "$dotfiles_root/script/sync_repo" "$checkout" > "$test_root/immutable-$mode.out" 2>&1
+    check "$mode: an immutable rebase does not change the remote" "$remote_before" \
+        "$(git --git-dir="$remote" rev-parse main)"
+    check "$mode: an immutable commit is preserved" "$immutable_before" \
+        "$(jj --repository "$checkout" log -r upstream --no-graph -T commit_id)"
+    diagnostics=$(rg -l "REBASE-FAIL main .*Commit ${immutable_before:0:12} is immutable" "$LOG_ROOT" || true)
+    check "$mode: the failure log names the immutable commit" true \
+        "$([ -n "$diagnostics" ] && printf true)"
+    check "$mode: the log retains the complete stderr" true \
+        "$([ -n "$diagnostics" ] && rg -q 'This operation would rewrite 1 immutable commits' "$diagnostics" && printf true)"
+
+    if [ "$mode" = bookmarks ]; then
+        integration_description="DO NOT ABANDON: placeholder for merging mainline and ready branches"
+        jj --repository "$checkout" describe -r @ -m "$integration_description" >/dev/null 2>&1
+        jj --repository "$checkout" bookmark set main -r @ >/dev/null 2>&1
+        integration_change=$(jj --repository "$checkout" log -r @ --no-graph -T change_id)
+        jj --repository "$checkout" new >/dev/null 2>&1
+        bash "$dotfiles_root/script/sync_repo" "$checkout" > "$test_root/integration.out" 2>&1
+        integration_tip=$(jj --repository "$checkout" log -r main --no-graph -T commit_id)
+        check "the integration commit reaches the remote" "$integration_tip" \
+            "$(git --git-dir="$remote" rev-parse main)"
+        check "the integration change ID is preserved" "$integration_change" \
+            "$(jj --repository "$checkout" log -r main --no-graph -T change_id)"
+        check "the integration commit has two parents" 2 \
+            "$(jj --repository "$checkout" log -r main --no-graph -T 'parents.len()')"
+        check "the integration commit remains empty" true \
+            "$(jj --repository "$checkout" log -r main --no-graph -T empty)"
+        check "the upstream parent is not rewritten" "$immutable_before" \
+            "$(jj --repository "$checkout" log -r 'upstream & main-' --no-graph -T commit_id)"
+        check "the merge preserves the upstream file" upstream \
+            "$(git --git-dir="$remote" show main:upstream.txt)"
+        check "the merge preserves the remote file" remote \
+            "$(git --git-dir="$remote" show main:remote.txt)"
+        check "the empty merge keeps its description" "$integration_description" \
+            "$(jj --repository "$checkout" log -r main --no-graph -T 'description.first_line()')"
+    fi
+done
+
 if [ "$fail" -ne 0 ]; then
     cat "$test_root/sync.out"
     cat "$test_root/conflict-sync.out"
