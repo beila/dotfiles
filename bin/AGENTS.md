@@ -54,6 +54,12 @@ Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env 
 
 `midway-status` is the shared non-interactive validity check used by the XFCE Midway genmon, the persistent Midway OSD, and work-dotfiles' `just mwinit` guard. It reads both the `session`/`__Host-session` expiry and the `amazon_enterprise_access` cookie expiry from `~/.midway/cookie`, validates AEA posture through `mcscli is-valid posture` when available, then sends the cookie read-only to Midway's `/api/session-status`; it never passes the real jar as a curl cookie-jar output. The cookie and posture checks remain separate because a live device posture does not renew the AEA cookie consumed by CR. AEA invalidity is a definite `invalid` result (`reason=aea-cookie`, `aea-posture`, or `aea-missing`) even while the longer Midway session remains valid. The TSV keeps its original first four fields and appends the AEA cookie expiry as field five. Results are cached for 60 seconds in `$XDG_RUNTIME_DIR` (or a fallback in `/tmp` scoped to the UID) and keyed by the whole cookie file's SHA-256 fingerprint, so `mwinit` immediately invalidates an old result. Cached valid results are not accepted past the AEA cookie expiry. Statuses are `valid`, `invalid`, `expired`, `missing`, and `unknown`; `unknown` distinguishes network/API failure from authentication rejection. `--refresh` bypasses the cache, `--invalidate` removes it, and `--quiet` exposes only the tri-state exit code (0 valid, 1 invalid, 2 unknown). `MIDWAY_STATUS_MCSCLI` overrides the posture checker for tests or nonstandard installations. Test: `bash bin/test_midway_status.sh`.
 
+`--session-only` checks the Midway session expiry and server authentication without
+requiring an AEA cookie or checking device posture. The `jc` SSH supervisor uses
+this mode because SSH needs the Midway session and SSH certificate. Its cache
+uses a separate `.session` suffix, so a session-only result cannot satisfy the
+default AEA checks. `--invalidate` removes both caches.
+
 ## Commit message generator
 
 `commit-msg` — provider chain: claude (`--print --tools "" --no-session-persistence`, skipped when `$CLAUDECODE` is set so a `claude` session never spawns a child claude) → kiro-cli (`--agent no-mcp`, stdin piping) → ollama + qwen2.5-coder:3b fallback (5s health check, started on demand) → capped file-list final fallback (first 3 files + `and N more`, 200-char hard cap; includes deleted files). jj-first / git-fallback. `VERBOSE=1` enables detailed output.

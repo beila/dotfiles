@@ -87,6 +87,29 @@ set -e
 [[ $status == 1 ]]
 rg -q $'^invalid\t10000\t1000\taea-cookie\t999$' "$TMP/out"
 
+posture_calls=$(wc -c < "$TMP/mcs-calls")
+MIDWAY_TEST_RESPONSE='{"authenticated":true}' \
+    run_status --session-only --refresh > "$TMP/out"
+rg -q $'^valid\t10000\t1000\tserver\t999$' "$TMP/out"
+[[ $(wc -c < "$TMP/mcs-calls") == "$posture_calls" ]]
+
+set +e
+run_status > "$TMP/out"
+status=$?
+set -e
+[[ $status == 1 ]]
+rg -q $'^invalid\t10000\t1000\taea-cookie\t999$' "$TMP/out"
+run_status --session-only > "$TMP/out"
+rg -q $'^valid\t10000\t1000\tserver\t999$' "$TMP/out"
+
+set +e
+MIDWAY_TEST_RESPONSE='{"authenticated":false}' \
+    run_status --session-only --refresh > "$TMP/out"
+status=$?
+set -e
+[[ $status == 1 ]]
+rg -q $'^invalid\t10000\t1000\tserver\t999$' "$TMP/out"
+
 write_cookie "$TMP/cookie" 10000 0
 set +e
 MIDWAY_TEST_AEA_VALID=true MIDWAY_TEST_POSTURE_EXPIRY=9000 \
@@ -96,9 +119,35 @@ set -e
 [[ $status == 1 ]]
 rg -q $'^invalid\t10000\t1000\taea-missing\t0$' "$TMP/out"
 
+MIDWAY_TEST_AEA_VALID=false MIDWAY_TEST_RESPONSE='{"authenticated":true}' \
+    run_status --session-only --refresh > "$TMP/out"
+rg -q $'^valid\t10000\t1000\tserver\t0$' "$TMP/out"
+
+write_cookie "$TMP/cookie" 10000 1010
+MIDWAY_TEST_RESPONSE='{"authenticated":true}' \
+    run_status --session-only --refresh > "$TMP/out"
+MIDWAY_TEST_RESPONSE='{"authenticated":true}' run_status --refresh > "$TMP/out"
+server_calls=$(wc -c < "$TMP/calls")
+MIDWAY_NOW=1020 run_status --session-only > "$TMP/out"
+rg -q $'^valid\t10000\t1000\tserver\t1010$' "$TMP/out"
+[[ $(wc -c < "$TMP/calls") == "$server_calls" ]]
+set +e
+MIDWAY_NOW=1020 run_status > "$TMP/out"
+status=$?
+set -e
+[[ $status == 1 ]]
+rg -q $'^invalid\t10000\t1020\taea-cookie\t1010$' "$TMP/out"
+
 write_cookie "$TMP/cookie" 999
 set +e
 MIDWAY_TEST_RESPONSE='{"authenticated":true}' run_status --refresh > "$TMP/out"
+status=$?
+set -e
+[[ $status == 1 ]]
+rg -q $'^expired\t999\t0\tlocal\t9000$' "$TMP/out"
+
+set +e
+run_status --session-only --refresh > "$TMP/out"
 status=$?
 set -e
 [[ $status == 1 ]]
@@ -114,5 +163,6 @@ rg -q $'^missing\t0\t0\tlocal\t9000$' "$TMP/out"
 
 run_status --invalidate
 [[ ! -e $TMP/cache ]]
+[[ ! -e $TMP/cache.session ]]
 
 printf 'midway status tests passed\n'

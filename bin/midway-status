@@ -11,9 +11,11 @@ mcscli_command=${MIDWAY_STATUS_MCSCLI:-mcscli}
 now=${MIDWAY_NOW:-$(date +%s)}
 refresh=0
 quiet=0
+session_only=0
+invalidate=0
 
 usage() {
-    printf 'Usage: midway-status [--quiet] [--refresh|--invalidate]\n' >&2
+    printf 'Usage: midway-status [--quiet] [--session-only] [--refresh|--invalidate]\n' >&2
     exit 64
 }
 
@@ -27,11 +29,9 @@ esac
 while (($#)); do
     case $1 in
         --quiet) quiet=1 ;;
+        --session-only) session_only=1 ;;
         --refresh) refresh=1 ;;
-        --invalidate)
-            rm -f -- "$cache_file"
-            exit 0
-            ;;
+        --invalidate) invalidate=1 ;;
         -h|--help)
             usage
             ;;
@@ -41,6 +41,14 @@ while (($#)); do
     esac
     shift
 done
+
+if ((invalidate)); then
+    rm -f -- "$cache_file" "${cache_file}.session"
+    exit 0
+fi
+if ((session_only)); then
+    cache_file="${cache_file}.session"
+fi
 
 emit() {
     local status=$1 expiry=$2 checked_at=$3 reason=$4 aea_expiry=${5:-0} exit_code
@@ -119,7 +127,7 @@ if [[ $refresh == 0 && -r $cache_file ]]; then
         [[ ${cached_fingerprint-} == "$fingerprint" ]] &&
         [[ ${cached_expiry-} == "$expiry" ]] &&
         [[ ${cached_aea_expiry-} == "$aea_expiry" ]] &&
-        { [[ ${cached_status-} != valid ]] || ((aea_expiry > now)); }; then
+        { ((session_only)) || [[ ${cached_status-} != valid ]] || ((aea_expiry > now)); }; then
         emit "${cached_status:-unknown}" "$expiry" "$cached_at" \
             "${cached_reason:-cache}" "$aea_expiry"
     fi
@@ -137,7 +145,7 @@ elif command -v "$mcscli_command" >/dev/null 2>&1; then
     mcscli_available=1
 fi
 
-if ((mcscli_available == 1)); then
+if ((session_only == 0 && mcscli_available == 1)); then
     aea_response=$("$mcscli_command" is-valid posture --output json 2>/dev/null)
     if [[ $aea_response =~ \"is_valid\"[[:space:]]*:[[:space:]]*(true|false) ]]; then
         aea_posture_valid=${BASH_REMATCH[1]}
@@ -152,13 +160,13 @@ if [[ $aea_posture_valid == true ]] &&
     aea_posture_valid=false
 fi
 
-if ((aea_expiry == 0)); then
+if ((session_only == 0 && aea_expiry == 0)); then
     status=invalid
     reason=aea-missing
-elif ((aea_expiry <= now)); then
+elif ((session_only == 0 && aea_expiry <= now)); then
     status=invalid
     reason=aea-cookie
-elif [[ $aea_posture_valid == false ]]; then
+elif ((session_only == 0)) && [[ $aea_posture_valid == false ]]; then
     status=invalid
     reason=aea-posture
 else
