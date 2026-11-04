@@ -21,3 +21,14 @@ go.sum              merge=ours
 # union keeps the entries of both and still applies a removal from one side.
 # mergiraf has no grammar for .gitignore. resolve-by-attrs applies this in sync_repo.
 .gitignore          merge=union-dedupe
+
+# private-dotfiles runtime files. Each machine rewrites them at each launch, so
+# both sides change them between two syncs. resolve-by-attrs reads the
+# .gitattributes of the working copy, and a rule in that repository arrives only
+# with the rebase that needs it. sync_all syncs ~/.dotfiles first, so this file
+# has the rules before the private-dotfiles rebase.
+claude.symlink/plugins/store/*.json                      merge=ours
+claude.symlink/plugins/installed_plugins.json.home-template   merge=ours
+claude.symlink/plugins/known_marketplaces.json.home-template  merge=ours
+# Codex only appends to this index. Keep the lines of both machines.
+codex.symlink/session_index.jsonl                        merge=union-dedupe
