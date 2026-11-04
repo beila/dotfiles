@@ -436,16 +436,36 @@ mkdir -p "$TMPDIR/conflict-base"
     jj config set --repo sync.snapshot-url "$TMPDIR/conflict.git"
     jj config set --repo user.email 'test@example.com'
     jj config set --repo user.name  'Test User'
+    printf 'shared.txt merge=text\n' > .gitattributes
     echo "base content" > shared.txt
     jj commit -m "base"
     jj bookmark create master -r @-
     jj git push --remote backup --bookmark master $JJ_PUSH_NEW_FLAG
 ) >/dev/null 2>&1
-# Two repos sharing the same base commit_id, with conflicting working-copy edits.
-cp -r "$TMPDIR/conflict-base" "$TMPDIR/repoX"
-cp -r "$TMPDIR/conflict-base" "$TMPDIR/repoY"
+# Create independent workspaces for the conflicting changes.
+for conflict_repo in repoX repoY; do
+    git clone -q -o backup "$TMPDIR/conflict.git" "$TMPDIR/$conflict_repo"
+    (
+        cd "$TMPDIR/$conflict_repo"
+        jj git init --colocate
+        jj config set --repo sync.remote-bookmark 'master@backup'
+        jj config set --repo sync.snapshot-url "$TMPDIR/conflict.git"
+        jj config set --repo user.email 'test@example.com'
+        jj config set --repo user.name 'Test User'
+    ) >/dev/null 2>&1
+done
 echo "X content"           > "$TMPDIR/repoX/shared.txt"
 echo "DIFFERENT Y content" > "$TMPDIR/repoY/shared.txt"
+(
+    cd "$TMPDIR/repoX"
+    jj describe -m "X content"
+    jj new
+) >/dev/null 2>&1
+(
+    cd "$TMPDIR/repoY"
+    jj describe -m "Y content"
+    jj new
+) >/dev/null 2>&1
 
 # repoX syncs first -> remote advances to repoX's commit
 run_sync "$TMPDIR/repoX"

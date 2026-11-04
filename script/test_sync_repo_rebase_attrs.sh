@@ -82,7 +82,7 @@ check "the rebased history has no conflicts" "" \
 
 (
     cd "$test_root/seed"
-    git pull -q --ff-only
+    git pull -q --ff-only origin main
     printf 'events.txt merge=text\n' > .gitattributes
     git commit -qam "require manual text resolution"
     git push -q origin main
