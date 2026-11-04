@@ -812,10 +812,8 @@ ancestry_class() {
     fi
 }
 
-# Probe a 3-way merge of L and R before mutating bookmarks. The probe shares
-# conflict semantics with the actual rebase (both reduce to a 3-way merge of
-# common-ancestor / L / R), so a clean probe guarantees a clean rebase — and
-# we leave a clear retry surface on conflict.
+# Test a merge of both tips before changing bookmarks.
+# A clean merge can still hide conflicts in intermediate commits.
 handle_diverged() {
     local local_rev=$1 remote_rev=$2
     local probe_change conflict_files
@@ -861,9 +859,8 @@ handle_diverged() {
             return 0
         fi
         log INFO "RESOLVED-BY-ATTRS ${SYNC_BM} files=${conflict_files} (cleared by .gitattributes drivers)"
-        # Probe is now clean — fall through to the linear-rebase path below.
-        # The real rebase will re-create the conflict, so we must run the
-        # resolver again on the rebased tip before push.
+        # The rebase can create conflicts in intermediate commits.
+        # Apply the merge drivers again after the rebase.
     fi
     jj abandon "$probe_change" 2>/dev/null || true
     # Save op id so we can rewind if the rebase ends up in a state we can't
@@ -880,38 +877,21 @@ handle_diverged() {
         SYNC_CONFLICT=1
         return 0
     fi
-    # If the rebase produced first-class conflicts at @- (it will when probe
-    # was driver-resolved, since rebase doesn't re-apply driver merges),
-    # try resolve-by-attrs once more on @-. If anything remains, rewind to
-    # the pre-rebase op so the working copy doesn't carry conflict markers.
-    # A commit below @- can have a conflict that a later commit removes. Do not
-    # push such history either.
-    if [ -n "$(jj log -r "(${remote_rev}..@--) & conflicts()" --no-graph -T '"c"' 2>/dev/null)" ]; then
-        log ERROR "REBASE-CONFLICT ${SYNC_BM} local=$local_rev remote=$remote_rev (rebased commits below @- conflicted)"
+    # The rebase does not apply merge drivers. Resolve the oldest commits first.
+    # Each resolution can change the conflicts in its descendants.
+    local post_change post_remaining
+    if [ -n "$resolver" ] && [ -n "$pre_rebase_op" ]; then
+        for post_change in $(jj log -r "(${remote_rev}..@-) & conflicts()" --reversed --no-graph -T 'change_id ++ " "' 2>/dev/null); do
+            "$resolver" -r "change_id(${post_change}) & (${remote_rev}..@-)" >/dev/null 2>&1 || true
+        done
+    fi
+    post_remaining=$(jj log -r "(${remote_rev}..@-) & conflicts()" --no-graph -T 'change_id.short() ++ " "' 2>/dev/null)
+    if [ -n "$post_remaining" ]; then
+        log ERROR "REBASE-CONFLICT ${SYNC_BM} changes=${post_remaining% } local=$local_rev remote=$remote_rev (after rebase auto-resolve attempt)"
+        echo "WARNING: rebase has conflicts; rewinding and skipping push for $SYNC_BM" >&2
         [ -n "$pre_rebase_op" ] && jj op restore "$pre_rebase_op" 2>/dev/null || true
         SYNC_CONFLICT=1
         return 0
-    fi
-    if jj log -r '@-' --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
-        if [ -n "$resolver" ] && [ -n "$pre_rebase_op" ]; then
-            local post_change post_remaining
-            post_change=$(jj log -r '@-' --no-graph -T 'change_id' 2>/dev/null)
-            "$resolver" -r "$post_change" >/dev/null 2>&1 || true
-            post_remaining=$(jj resolve --list -r "$post_change" 2>/dev/null | awk 'NF {print $1}' | paste -sd, -)
-            if [ -n "$post_remaining" ]; then
-                log ERROR "REBASE-CONFLICT ${SYNC_BM} files=${post_remaining} local=$local_rev remote=$remote_rev (after rebase auto-resolve attempt)"
-                echo "WARNING: rebase has conflicts in ${post_remaining}; rewinding and skipping push for $SYNC_BM" >&2
-                jj op restore "$pre_rebase_op" 2>/dev/null || true
-                SYNC_CONFLICT=1
-                return 0
-            fi
-        else
-            # No resolver available; rewind so we don't push conflict markers.
-            log ERROR "REBASE-CONFLICT ${SYNC_BM} (rebased commit conflicted; no resolver available)"
-            [ -n "$pre_rebase_op" ] && jj op restore "$pre_rebase_op" 2>/dev/null || true
-            SYNC_CONFLICT=1
-            return 0
-        fi
     fi
     # Queue the rebased local tip for the unlocked raw-Git push phase.
     jj bookmark create "$SYNC_BM" -r "@-" 2>/dev/null \
