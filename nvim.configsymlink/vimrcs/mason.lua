@@ -4,16 +4,7 @@
 require('mason').setup({})
 
 require('mason-lspconfig').setup({
-    ensure_installed = {
-    },
-    handlers = {
-        function(server_name)
-            -- Skip servers with custom config in my-*.lua
-            if server_name == 'lua_ls' then return end
-            vim.lsp.config[server_name] = {}
-            vim.lsp.enable(server_name)
-        end,
-    },
+    automatic_enable = false,
 })
 
 require("mason-tool-installer").setup({

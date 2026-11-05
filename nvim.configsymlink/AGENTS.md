@@ -35,6 +35,7 @@ All plugins installed via home-manager `programs.neovim.plugins` (see `home-mana
 ## Per-language setup (`vimrcs/my-<lang>.lua`)
 
 LSP via `vim.lsp.config.NAME = { ... }` + `vim.lsp.enable('NAME')`, DAP, filetype-specific config.
+Mason installs DAP tools. `mason-lspconfig` has `automatic_enable = false`; only the language configurations enable LSP servers. This prevents old Mason installations from activating additional servers alongside the Nix-managed ones.
 
 Languages: my-awk, my-bash (bash/sh only — no zsh LSP), my-cmake, my-cpp, my-css, my-docker, my-glsl, my-haskell, my-html, my-java, my-jinja, my-js (js/ts), my-json, my-just, my-kotlin, my-lua, my-markdown, my-nim, my-nix, my-python, my-rust (rustaceanvim, not vim.lsp.config), my-sql, my-text, my-toml, my-vim, my-xml, my-yaml.
 
