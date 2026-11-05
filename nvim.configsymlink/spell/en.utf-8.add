@@ -332,3 +332,4 @@ portingplatforms
 assembleX86
 libprime
 libunwind
+libatomic
