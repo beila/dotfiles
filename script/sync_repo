@@ -836,25 +836,43 @@ ancestry_class() {
     fi
 }
 
+# Restore the full view because a probe can expose abandoned ancestors.
+restore_merge_probe() {
+    if ! jj --ignore-working-copy op restore "$2" >/dev/null 2>&1; then
+        log CRITICAL "REBASE-PROBE-RESTORE-FAIL $1 operation=$2; skipping push"
+        return 1
+    fi
+}
+
 # Test a merge of both tips before changing bookmarks.
 # A clean merge can still hide conflicts in intermediate commits.
 handle_diverged() {
     local local_rev=$1 remote_rev=$2
-    local probe_change conflict_files
+    local probe_change conflict_files pre_probe_op
     # resolve-by-attrs is the .gitattributes-driven auto-resolver. Looked up
     # once here so both the probe-resolution path and the post-rebase path
     # can use it. Empty if not installed — both paths check.
     local resolver="$SCRIPT_DIR/bin/resolve-by-attrs"
     [ -x "$resolver" ] || resolver=""
+    pre_probe_op=$(jj op log --no-graph --limit 1 -T 'id' 2>/dev/null)
+    if [ -z "$pre_probe_op" ]; then
+        log CRITICAL "REBASE-PROBE-FAIL ${SYNC_BM}: could not save the operation before the probe"
+        SYNC_CONFLICT=1
+        return 0
+    fi
     if ! jj new --no-edit "$local_rev" "$remote_rev" -m "rebase-probe" 2>/dev/null; then
+        restore_merge_probe "$SYNC_BM" "$pre_probe_op" || true
         log CRITICAL "REBASE-PROBE-FAIL ${SYNC_BM} local=$local_rev remote=$remote_rev; skipping push"
         echo "WARNING: failed to create rebase probe for $SYNC_BM; skipping push" >&2
+        SYNC_CONFLICT=1
         return 0
     fi
     probe_change=$(jj log -r 'latest("'"$local_rev"'"+ & "'"$remote_rev"'"+, 1)' --no-graph -T 'change_id' 2>/dev/null | head -1)
     if [ -z "$probe_change" ]; then
+        restore_merge_probe "$SYNC_BM" "$pre_probe_op" || true
         log CRITICAL "REBASE-PROBE-FAIL ${SYNC_BM}: could not locate probe commit"
         echo "WARNING: could not locate rebase probe for $SYNC_BM; skipping push" >&2
+        SYNC_CONFLICT=1
         return 0
     fi
     if jj log -r "$probe_change" --no-graph -T 'if(conflict, "conflict")' 2>/dev/null | grep -q conflict; then
@@ -874,7 +892,7 @@ handle_diverged() {
         if [ -n "$remaining" ]; then
             log ERROR "REBASE-CONFLICT ${SYNC_BM} files=${remaining} local=$local_rev remote=$remote_rev"
             echo "WARNING: rebase has conflicts in ${remaining}; skipping push for $SYNC_BM" >&2
-            jj abandon "$probe_change" 2>/dev/null || true
+            restore_merge_probe "$SYNC_BM" "$pre_probe_op" || true
             # Mark that the bookmark sync hit a conflict so step_rebase_local_chain
             # doesn't follow up by rebasing the working copy onto the remote tip
             # (that would re-introduce the conflict markers into @- and silently
@@ -886,7 +904,10 @@ handle_diverged() {
         # The rebase can create conflicts in intermediate commits.
         # Apply the merge drivers again after the rebase.
     fi
-    jj abandon "$probe_change" 2>/dev/null || true
+    if ! restore_merge_probe "$SYNC_BM" "$pre_probe_op"; then
+        SYNC_CONFLICT=1
+        return 0
+    fi
     # Save op id so we can rewind if the rebase ends up in a state we can't
     # auto-resolve. Without this, a partial driver resolution would litter
     # the working copy with first-class conflict commits that the user has
@@ -1125,23 +1146,37 @@ lb_tip_above() {
 # it is. resolve-by-attrs clears conflicts that .gitattributes drivers can merge. A
 # rebase that still produces conflicted commits is rewound.
 lb_rebase() {
-    local b=$1 local_rev=$2 remote_rev=$3 pre_op change new probe c protected mutable_roots
+    local b=$1 local_rev=$2 remote_rev=$3 pre_op pre_probe_op change new probe c protected mutable_roots
     local sources="roots(${remote_rev}..${local_rev})"
     local -a retained_parents=()
     local resolver="$SCRIPT_DIR/bin/resolve-by-attrs"
     [ -x "$resolver" ] || resolver=""
+    pre_probe_op=$(jj op log --no-graph --limit 1 -T 'id' 2>/dev/null)
+    if [ -z "$pre_probe_op" ]; then
+        log CRITICAL "REBASE-PROBE-FAIL ${b}: could not save the operation before the probe"
+        return 1
+    fi
     if jj new --no-edit "$local_rev" "$remote_rev" -m "rebase-probe" >/dev/null 2>&1; then
         probe=$(jj log -r "latest(${local_rev}+ & ${remote_rev}+, 1)" --no-graph -T 'change_id ++ "|" ++ if(conflict, "c")' 2>/dev/null)
+        if [ -z "${probe%%|*}" ]; then
+            restore_merge_probe "$b" "$pre_probe_op" || true
+            log CRITICAL "REBASE-PROBE-FAIL ${b}: could not locate probe commit"
+            return 1
+        fi
         if [ "${probe#*|}" = "c" ] && [ -n "$resolver" ]; then
             "$resolver" -r "${probe%%|*}" >/dev/null 2>&1 || true
             [ -z "$(jj resolve --list -r "${probe%%|*}" 2>/dev/null)" ] && probe="${probe%%|*}|"
         fi
-        jj abandon "${probe%%|*}" >/dev/null 2>&1
+        restore_merge_probe "$b" "$pre_probe_op" || return 1
         if [ "${probe#*|}" = "c" ]; then
             log ERROR "REBASE-CONFLICT ${b} local=$local_rev remote=$remote_rev; push skipped"
             jj bookmark set "$b" -r "$local_rev" --allow-backwards >/dev/null 2>&1
             return 1
         fi
+    else
+        restore_merge_probe "$b" "$pre_probe_op" || true
+        log CRITICAL "REBASE-PROBE-FAIL ${b} local=$local_rev remote=$remote_rev; skipping push"
+        return 1
     fi
     pre_op=$(jj op log --no-graph --limit 1 -T 'id.short()' 2>/dev/null)
     change=$(jj log -r "$local_rev" --no-graph -T 'change_id' 2>/dev/null)

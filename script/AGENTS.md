@@ -79,6 +79,14 @@ import behavior. `script/test_sync_repo_rebase_attrs.sh` verifies that fetching
 or publishing a rewritten ancestor preserves both local and remote dependent
 branches and the visible history.
 
+Merge probes restore their starting operation after checking the merge, including
+attribute-based resolution. Abandoning only the temporary probe leaves previously
+abandoned remote ancestors visible again. On 2026-11-05, that behavior recreated
+IgnitionX's divergent history after a manual cleanup. Both bookmark modes now
+restore the full view, and a failed probe or restore prevents a rebase and push.
+`script/test_sync_repo_hidden_history.sh` checks two consecutive failed syncs in
+each mode and verifies the visible history, bookmarks, working copy, and remote.
+
 **With no key set** the repo still gets the local half of the work: health gate, `jj workspace update-stale`, refused-snapshot check, `snapshot_at_to_push_rev` (`jj new` + `commit-msg` describe) and `step_describe_local_chain`, then `NO-SYNC-CONFIG` at INFO and exit 0. Committing WIP under a real description is useful without any remote, so the config gate sits _after_ those steps rather than before them. Everything past the gate serves a push and stays gated. The `home-template capture` step runs before the gate (it must precede the first snapshot) but checks the same two keys, because it untracks files and edits `.gitignore` — not something to inflict on repos that aren't being pushed. Since `sync_all` feeds every jj repo under `$HOME` to `sync_repo`, this means the timer now finalizes and describes work in _all_ of them, one `bin/commit-msg` (LLM) call per dirty repo per run.
 
 **Snapshot-first ordering**: `prepare_snapshot_refs` captures the workspace and local-bookmark commit IDs under the local lock; `push_prepared_snapshots` pushes them after releasing it and always before fetched refs are imported or reconciliation starts. Thus the captured `@-` lands before any rebase / merge probe / bookmark advance can disturb it. On `REBASE-CONFLICT`, `handle_diverged` sets `SYNC_CONFLICT=1` and `step_rebase_local_chain` skips its own rebase — otherwise the working copy would silently re-acquire conflict markers and `@-` would diverge from the snapshot.
