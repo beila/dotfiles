@@ -328,3 +328,6 @@ inodes
 inode
 yot
 armhf
+portingplatforms
+assembleX86
+libprime
