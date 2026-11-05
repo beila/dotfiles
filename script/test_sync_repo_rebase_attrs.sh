@@ -195,6 +195,48 @@ for mode in remote-bookmark bookmarks; do
     fi
 done
 
+for mode in remote-bookmark bookmarks; do
+    checkout="$test_root/import-local-$mode"
+    remote="$test_root/import-remote-$mode.git"
+    git init --bare -q -b main "$remote"
+    jj git init --colocate "$checkout" >/dev/null 2>&1
+    (
+        cd "$checkout"
+        jj config set --repo user.name "Test User"
+        jj config set --repo user.email test@example.com
+        jj config set --repo 'revset-aliases."immutable_heads()"' 'root()'
+        jj config set --repo git.abandon-unreachable-commits true
+        jj config set --repo "sync.$mode" main@origin
+        printf 'base\n' > base.txt
+        jj describe -m base >/dev/null 2>&1
+        jj new -m "main placeholder" >/dev/null 2>&1
+        jj bookmark create main -r @ >/dev/null 2>&1
+        jj new -m "dependent build change" >/dev/null 2>&1
+        printf 'build\n' > build.txt
+        jj bookmark create build -r @ >/dev/null 2>&1
+        jj git remote add origin "$remote"
+        jj git push --remote origin --bookmark main --bookmark build >/dev/null 2>&1
+        jj new main >/dev/null 2>&1
+        jj describe -r main -m "rewritten main placeholder" >/dev/null 2>&1
+    )
+    if [ "$mode" = remote-bookmark ]; then
+        git --git-dir="$remote" fetch -q --no-tags --no-write-fetch-head --force "$checkout" main:main
+    fi
+    visible_before=$(jj --repository "$checkout" log -r 'all()' --no-graph -T 'commit_id ++ "\n"' | sort)
+    build_before=$(jj --repository "$checkout" log -r build --no-graph -T commit_id)
+    remote_build_before=$(git --git-dir="$remote" rev-parse build)
+    bash "$dotfiles_root/script/sync_repo" "$checkout" > "$test_root/import-$mode.out" 2>&1
+    check "$mode: the rewritten main reaches the remote" \
+        "$(jj --repository "$checkout" log -r main --no-graph -T commit_id)" \
+        "$(git --git-dir="$remote" rev-parse main)"
+    check "$mode: importing the updated ref preserves visible history" "$visible_before" \
+        "$(jj --repository "$checkout" log -r 'all()' --no-graph -T 'commit_id ++ "\n"' | sort)"
+    check "$mode: importing main preserves the local dependent branch" "$build_before" \
+        "$(jj --repository "$checkout" log -r build --no-graph -T commit_id)"
+    check "$mode: importing main preserves the remote dependent branch" "$remote_build_before" \
+        "$(jj --repository "$checkout" log -r build@origin --no-graph -T commit_id)"
+done
+
 if [ "$fail" -ne 0 ]; then
     cat "$test_root/sync.out"
     cat "$test_root/conflict-sync.out"

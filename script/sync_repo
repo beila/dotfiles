@@ -740,6 +740,11 @@ fetch_remote_bookmark_objects() {
     fi
 }
 
+# Keep remote reference updates from abandoning commits and rebasing their descendants.
+import_tracking_refs() {
+    jj --config git.abandon-unreachable-commits=false git import --ignore-working-copy
+}
+
 # Publish the fetched tip to the normal Git remote-tracking ref and import it
 # into jj. Preserve a ref changed by another Git process while the lock was
 # released; the next ancestry check must use the actual imported tip.
@@ -756,7 +761,7 @@ apply_fetched_remote() {
             $GIT --git-dir="$GIT_DIR" update-ref -d "$REMOTE_TRACKING_REF" "$current" 2>/dev/null || true
         fi
     fi
-    jj git import --ignore-working-copy >/dev/null 2>&1 || {
+    import_tracking_refs >/dev/null 2>&1 || {
         log ERROR "REMOTE-IMPORT-FAIL ${SYNC_BM}@${SYNC_REMOTE}: jj git import failed; skipping bookmark sync"
         REMOTE_FETCH_OK=0
         return 0
@@ -812,7 +817,7 @@ finalize_bookmark_push() {
     elif [ "$current" != "$BOOKMARK_PUSH_OID" ]; then
         log WARN "TRACKING-REF-RACE ${SYNC_BM}@${SYNC_REMOTE}: preserving local ref ${current:-missing} after push"
     fi
-    jj git import --ignore-working-copy >/dev/null 2>&1 || \
+    import_tracking_refs >/dev/null 2>&1 || \
         log ERROR "REMOTE-IMPORT-FAIL ${SYNC_BM}@${SYNC_REMOTE}: post-push jj git import failed"
     jj bookmark track "${SYNC_BM}@${SYNC_REMOTE}" 2>/dev/null || true
     log INFO "PUSH-OK ${SYNC_BM}@${SYNC_REMOTE} rev=${BOOKMARK_PUSH_OID} ${BOOKMARK_PUSH_LOG_SUFFIX}"
@@ -1089,7 +1094,7 @@ apply_fetched_listed() {
         any=1
     done
     [ "$any" = "1" ] || return 0
-    if ! jj git import --ignore-working-copy >/dev/null 2>&1; then
+    if ! import_tracking_refs >/dev/null 2>&1; then
         log ERROR "REMOTE-IMPORT-FAIL sync.bookmarks: jj git import failed; skipping listed bookmarks"
         for i in "${!LB_NAME[@]}"; do LB_FETCH_OK[$i]=0; done
         return 0
@@ -1299,7 +1304,7 @@ finalize_listed_bookmarks() {
         any=1
     done
     [ "$any" = "1" ] || return 0
-    jj git import --ignore-working-copy >/dev/null 2>&1 ||
+    import_tracking_refs >/dev/null 2>&1 ||
         log ERROR "REMOTE-IMPORT-FAIL sync.bookmarks: post-push jj git import failed"
     for i in "${!LB_NAME[@]}"; do
         [ "${LB_PUSH_OK[$i]:-0}" = "1" ] || continue
