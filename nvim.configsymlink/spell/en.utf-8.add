@@ -331,3 +331,4 @@ armhf
 portingplatforms
 assembleX86
 libprime
+libunwind
