@@ -527,17 +527,17 @@ check "toml order: capture writes only the changed value" \
 
 # Templates and states from before the canonical order have the order of the program.
 # A table that only moved must not change them.
-printf '[projects."@HOME@/q"]\nv = 1\n\n[a]\nv = 2\n' >old.toml.home-template
+printf '[projects."@HOME@/q"]\nv = 1\n\n[a]\nv = 2\n\n[b]\nv = 3\n' >old.toml.home-template
 printf '/old.toml\n' >>.gitignore
 add_state old.toml old.toml.home-template
 cp old.toml.home-template "$TMP/old.template"
-printf '[a]\nv = 2\n\n[projects."%s/q"]\nv = 1\n' "$H" >old.toml
+printf '[a]\nv = 2\n\n[projects."%s/q"]\nv = 1\n\n[b]\nv = 3\n' "$H" >old.toml
 cp old.toml "$TMP/old.live"
 "$HT" capture >"$TMP/out" 2>"$TMP/err"
 rc=$?
 check "toml order: capture keeps an old template in another order" \
     '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && cmp -s old.toml.home-template "$TMP/old.template"'
-printf '[a]\nv = 2\n\n[projects."@HOME@/q"]\nv = 1\n' >old.toml.home-template
+printf '[b]\nv = 3\n\n[a]\nv = 2\n\n[projects."@HOME@/q"]\nv = 1\n' >old.toml.home-template
 "$HT" render >"$TMP/out" 2>"$TMP/err"
 rc=$?
 check "toml order: render ignores a template in which a table only moved" \
