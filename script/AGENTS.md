@@ -87,6 +87,20 @@ restore the full view, and a failed probe or restore prevents a rebase and push.
 `script/test_sync_repo_hidden_history.sh` checks two consecutive failed syncs in
 each mode and verifies the visible history, bookmarks, working copy, and remote.
 
+Rewrite detection excludes empty intermediate merge commits from its predecessor
+check. A refactor can remove such a merge without creating a successor for it.
+The remote tip still requires a local successor, including when it is an empty
+merge. Nonempty merges and ordinary commits also require successors. On
+2026-11-06, an obsolete empty ARM integration merge prevented detection of
+IgnitionX's rewritten `bitt` history and caused repeated `REBASE-CONFLICT` errors.
+`script/test_sync_repo_rewrites.sh` covers the removed merge and verifies that
+remote tips and merges with content remain protected. Moving changes out of a
+listed bookmark into separate branches still requires a reviewed, coordinated
+bookmark update; the detector does not infer that update from unrelated branches.
+The same repair published the reorganized `build` bookmark after checking its
+previous changes in `bitt`'s rewrite history. Both local and remote tips were saved
+under `electra/sync-recovery-20261106/` before either shared bookmark changed.
+
 **With no key set** the repo still gets the local half of the work: health gate, `jj workspace update-stale`, refused-snapshot check, `snapshot_at_to_push_rev` (`jj new` + `commit-msg` describe) and `step_describe_local_chain`, then `NO-SYNC-CONFIG` at INFO and exit 0. Committing WIP under a real description is useful without any remote, so the config gate sits _after_ those steps rather than before them. Everything past the gate serves a push and stays gated. The `home-template capture` step runs before the gate (it must precede the first snapshot) but checks the same two keys, because it untracks files and edits `.gitignore` — not something to inflict on repos that aren't being pushed. Since `sync_all` feeds every jj repo under `$HOME` to `sync_repo`, this means the timer now finalizes and describes work in _all_ of them, one `bin/commit-msg` (LLM) call per dirty repo per run.
 
 **Snapshot-first ordering**: `prepare_snapshot_refs` captures the workspace and local-bookmark commit IDs under the local lock; `push_prepared_snapshots` pushes them after releasing it and always before fetched refs are imported or reconciliation starts. Thus the captured `@-` lands before any rebase / merge probe / bookmark advance can disturb it. On `REBASE-CONFLICT`, `handle_diverged` sets `SYNC_CONFLICT=1` and `step_rebase_local_chain` skips its own rebase — otherwise the working copy would silently re-acquire conflict markers and `@-` would diverge from the snapshot.

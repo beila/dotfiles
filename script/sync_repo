@@ -1214,12 +1214,12 @@ lb_rebase() {
     printf '%s' "$new"
 }
 
-# Succeed when every remote-only commit is a predecessor of a local commit. Then this
-# machine rewrote the remote version (jj rebase, jj split, jj describe), and the local
-# tip replaces it. A commit from another machine is never a local predecessor.
+# Require rewrite history for each remote-only commit except empty intermediate merges.
+# Keep the remote tip in this check, even when it is an empty merge.
 lb_supersedes() {
     local local_rev=$1 remote_rev=$2 remote_only predecessors
-    remote_only=$(jj log -r "${local_rev}..${remote_rev}" --no-graph -T 'commit_id ++ "\n"' 2>/dev/null) || return 1
+    remote_only=$(jj log -r "(${local_rev}..${remote_rev}) ~ ((merges() & empty()) ~ ${remote_rev})" \
+        --no-graph -T 'commit_id ++ "\n"' 2>/dev/null) || return 1
     [ -n "$remote_only" ] || return 1
     predecessors=$(jj evolog -r "${remote_rev}..${local_rev}" --no-graph -T 'commit.commit_id() ++ "\n"' 2>/dev/null) || return 1
     [ -z "$(comm -23 <(printf '%s\n' "$remote_only" | sort -u) <(printf '%s\n' "$predecessors" | sort -u))" ]
