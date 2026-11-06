@@ -13,8 +13,14 @@
 #   collapse TOKEN NAME [BASE]  Read a generalized file. In it, both forms are TOKEN,
 #                               so each copy has the same name as its original. Merge
 #                               them into one. BASE is the last agreed template. It
-#                               shows which copy changed. NAME is for messages.
+#                               shows which copy changed. NAME is for messages. The
+#                               result is in canonical form.
+#   canonical                   Read a file. Write it in canonical form.
 #   check                       Read a file. Fail when it is not valid TOML.
+#
+# A program can write the same data with the tables in a different order. Codex moves
+# a table to the end when it writes the table again. In canonical form, the tables are
+# in the order of their names, so the order that the program used has no effect.
 #
 # The commands work on the text, so formatting and comments stay. They print only on
 # success. Exit status: 0 on success. 3 when the input is not TOML: the caller then
@@ -268,6 +274,62 @@ class Collapse:
         return result
 
 
+def is_blank(st):
+    return st.kind == "trivia" and not st.text.strip()
+
+
+def is_comment(st):
+    return st.kind == "trivia" and bool(st.text.strip())
+
+
+def header_of(block):
+    return next(st for st in block if st.kind in ("table", "array"))
+
+
+def canonical(text):
+    """Sort the tables by name. Keep the root block first, and keep the key order.
+
+    Comment lines directly above a header move with the header. One blank line
+    separates two blocks. Return TEXT when the sorted text gives different data.
+    """
+    try:
+        data = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return text
+    bl = blocks(parse(text))
+    for i in range(len(bl) - 1, 0, -1):
+        prev = bl[i - 1]
+        n = len(prev)
+        while n > 0 and is_comment(prev[n - 1]):
+            n -= 1
+        bl[i], bl[i - 1] = prev[n:] + bl[i], prev[:n]
+    # A table below an element of an array of tables belongs to that element. It must
+    # stay after the element, so it moves with it. Each element is a separate group,
+    # and the stable sort keeps the order of the elements.
+    groups = []
+    for block in bl[1:]:
+        path = header_of(block).path
+        if groups and groups[-1][1] and path[: len(groups[-1][0])] == groups[-1][0] and path != groups[-1][0]:
+            groups[-1][2].append(block)
+        else:
+            groups.append((path, header_of(block).kind == "array", [block]))
+    groups.sort(key=lambda g: g[0])
+    parts = []
+    for block in [bl[0]] + [block for g in groups for block in g[2]]:
+        n = len(block)
+        while n > 0 and is_blank(block[n - 1]):
+            n -= 1
+        part = text_of(block[:n])
+        if part:
+            parts.append(part if part.endswith("\n") else part + "\n")
+    result = "\n".join(parts)
+    try:
+        same = bool(result) and tomllib.loads(result) == data
+    except tomllib.TOMLDecodeError:
+        same = False
+    return result if same else text
+
+
 def read_text(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -281,9 +343,12 @@ def main(argv):
     if not (
         (cmd == "expand" and len(argv) == 4)
         or (cmd == "collapse" and len(argv) in (4, 5))
-        or (cmd == "check" and len(argv) == 2)
+        or (cmd in ("canonical", "check") and len(argv) == 2)
     ):
-        print("usage: home-template-toml expand TOKEN COPY | collapse TOKEN NAME [BASE] | check", file=sys.stderr)
+        print(
+            "usage: home-template-toml expand TOKEN COPY | collapse TOKEN NAME [BASE] | canonical | check",
+            file=sys.stderr,
+        )
         return 2
     try:
         text = sys.stdin.buffer.read().decode("utf-8")
@@ -299,11 +364,13 @@ def main(argv):
     try:
         if cmd == "expand":
             result = expand(text, argv[2], argv[3])
+        elif cmd == "canonical":
+            result = canonical(text)
         else:
             base = read_text(argv[4]) if len(argv) == 5 and argv[4] else None
             collapse = Collapse(argv[2], base)
             try:
-                result = collapse.run(text)
+                result = canonical(collapse.run(text))
             except tomllib.TOMLDecodeError as e:
                 print(f"home-template: {argv[3]}: the merged file is not valid TOML: {e}", file=sys.stderr)
                 return CONFLICT

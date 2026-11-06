@@ -41,6 +41,10 @@
 # a key, that gives the key two times. For a TOML file, home-template-toml writes a
 # key with the token in both forms, and merges the two copies again. For other
 # formats, a key that occurs two times stops the update of the template.
+#
+# Both steps compare and merge TOML files in canonical form (home-template-toml
+# canonical): the tables are in the order of their names. Thus a program that writes
+# the tables in a different order does not change the template or FILE.
 set -uo pipefail
 
 SUFFIX=.home-template
@@ -96,6 +100,16 @@ toml_ready() {
     [ "$toml_ok" = 1 ]
 }
 
+# canonicalize FILE NAME OUT: write FILE to OUT in canonical form. NAME gives the
+# format. Only TOML has a canonical form. A template or a state from an earlier run
+# can have a different order, so canonicalize them before each comparison.
+canonicalize() {
+    if is_toml "$2" && toml_ready && python3 -I "$toml_helper" canonical <"$1" >"$3"; then
+        return 0
+    fi
+    cp "$1" "$3"
+}
+
 # Print a pattern for the key at the start of a line, for the format of the file
 # name $1.
 key_pattern() {
@@ -142,8 +156,8 @@ generalize_text() {
 }
 # generalize FILE [NAME [BASE]]: print FILE with the token for the home directory.
 # NAME gives the format, and BASE is the last agreed template. In a TOML file, the
-# copies of a key in the two home forms become one key. When the copies were
-# different, set copies_merged.
+# copies of a key in the two home forms become one key, and the result is in
+# canonical form. When the copies were different, set copies_merged.
 generalize() {
     local name=${2:-$1} base=${3:-} gen=$tmp_dir/generalized rc
     generalize_text "$1" >"$gen" || return 1
@@ -438,6 +452,7 @@ follow_retrack() {
 # Copy the local changes of FILE into its template.
 capture_one() {
     local t=$1 x=${1%"$SUFFIX"} s live=$tmp_dir/live merged=$tmp_dir/merged
+    local tv=$tmp_dir/template sv=$tmp_dir/state
     s=$(state_file "$x")
     [ -f "$t" ] || return 0
     is_excluded "$x" && return 0
@@ -453,17 +468,21 @@ capture_one() {
         warn "could not generalize $x; $t not changed"
         return 0
     fi
-    if cmp -s "$live" "$t"; then
-        save_state "$x" "$t"
+    if ! canonicalize "$t" "$x" "$tv" || { [ -f "$s" ] && ! canonicalize "$s" "$x" "$sv"; }; then
+        warn "could not read $t or its state; $t not changed"
+        return 0
+    fi
+    if cmp -s "$live" "$tv"; then
+        save_state "$x" "$tv"
     elif [ ! -f "$s" ]; then
         replace_file "$t" "$live" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         note "updated $t from $x (no saved state)"
-    elif cmp -s "$live" "$s"; then
+    elif cmp -s "$live" "$sv"; then
         : # Only the template changed. The render step writes it to FILE.
-    elif cmp -s "$t" "$s"; then
+    elif cmp -s "$tv" "$sv"; then
         replace_file "$t" "$live" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         note "updated $t from $x"
-    elif merge3 "$live" "$s" "$t" "$merged"; then
+    elif merge3 "$live" "$sv" "$tv" "$merged"; then
         replace_file "$t" "$merged" && save_state "$x" "$live" || { warn "could not write $t"; return 0; }
         note "merged $x into $t"
     else
@@ -543,14 +562,16 @@ convert_new() {
 # Write the template changes to FILE.
 render_one() {
     local t=$1 x=${1%"$SUFFIX"} s live=$tmp_dir/live merged=$tmp_dir/merged out=$tmp_dir/out
+    local tv=$tmp_dir/template sv=$tmp_dir/state
     s=$(state_file "$x")
     [ -f "$t" ] || return 0
     is_excluded "$x" && return 0
     [ -n "${conflicted[$t]:-}" ] && { warn "$t has a conflict; $x not rendered"; return 0; }
+    canonicalize "$t" "$x" "$tv" || { warn "could not read $t; $x not rendered"; return 0; }
     if [ ! -e "$x" ]; then
         # Without the entry, the next snapshot tracks the new file.
         add_ignore "$x" || { warn "could not add $x to its .gitignore; $x not created"; return 0; }
-        localize "$t" "$x" >"$out" && replace_file "$x" "$out" "$t" && save_state "$x" "$t" ||
+        localize "$tv" "$x" >"$out" && replace_file "$x" "$out" "$t" && save_state "$x" "$tv" ||
             { warn "could not write $x"; return 0; }
         note "created $x from $t"
         return 0
@@ -566,18 +587,22 @@ render_one() {
         warn "$t is empty; kept $x (jj history has the earlier template)"
         return 0
     fi
-    if cmp -s "$live" "$t"; then
-        save_state "$x" "$t" || warn "could not save the state of $x"
+    if [ -f "$s" ] && ! canonicalize "$s" "$x" "$sv"; then
+        warn "could not read the state of $x; $x not changed"
+        return 0
+    fi
+    if cmp -s "$live" "$tv"; then
+        save_state "$x" "$tv" || warn "could not save the state of $x"
     elif [ ! -f "$s" ]; then
         warn "$x differs from $t and has no saved state; kept $x"
-    elif cmp -s "$live" "$s"; then
-        localize "$t" "$x" >"$out" && write_live "$x" "$out" && save_state "$x" "$t" ||
+    elif cmp -s "$live" "$sv"; then
+        localize "$tv" "$x" >"$out" && write_live "$x" "$out" && save_state "$x" "$tv" ||
             { warn "could not write $x"; return 0; }
         note "updated $x from $t"
-    elif cmp -s "$t" "$s"; then
+    elif cmp -s "$tv" "$sv"; then
         : # Only FILE changed. The next capture step copies it to the template.
-    elif merge3 "$live" "$s" "$t" "$merged"; then
-        localize "$merged" "$x" >"$out" && write_live "$x" "$out" && save_state "$x" "$t" ||
+    elif merge3 "$live" "$sv" "$tv" "$merged"; then
+        localize "$merged" "$x" >"$out" && write_live "$x" "$out" && save_state "$x" "$tv" ||
             { warn "could not write $x"; return 0; }
         note "merged $t into $x"
     else
@@ -588,15 +613,20 @@ render_one() {
 # Track FILE again when neither FILE nor its template has the home directory.
 # Run after render_one, so FILE already has the remote changes of the template.
 retrack_one() {
-    local t=$1 x=${1%"$SUFFIX"}
+    local t=$1 x=${1%"$SUFFIX"} xv=$tmp_dir/live tv=$tmp_dir/template
     [ -f "$t" ] && [ -f "$x" ] && [ ! -L "$x" ] || return 0
     is_excluded "$x" && return 0
     [ -n "${conflicted[$t]:-}" ] && return 0
     # An empty template has no token, but it comes from a failed write.
     [ -s "$t" ] || return 0
     grep -qF "$TOKEN" "$t" && return 0
-    # Without the token, the rendered FILE is a copy of the template.
-    cmp -s "$x" "$t" || return 0
+    # Without the token, the rendered FILE is a copy of the template. Only the order
+    # of the TOML tables can be different. Then write the template to FILE, so that
+    # each machine tracks the same content.
+    if ! cmp -s "$x" "$t"; then
+        canonicalize "$x" "$x" "$xv" && canonicalize "$t" "$x" "$tv" && cmp -s "$xv" "$tv" || return 0
+        write_live "$x" "$t" || { warn "could not write $x"; return 0; }
+    fi
     remove_ignore "$x" || { warn "could not remove $x from its .gitignore"; return 0; }
     rm -f "$t"
     if jj file track --include-ignored "root:$x" >/dev/null 2>&1; then
@@ -612,7 +642,7 @@ retrack_one() {
 # when the copy has no local edits. Otherwise, merge the local edits into it.
 receive_retracks() {
     local p abs x s received=$tmp_dir/received gen_received=$tmp_dir/gen_received
-    local live=$tmp_dir/live merged=$tmp_dir/merged out=$tmp_dir/out
+    local live=$tmp_dir/live merged=$tmp_dir/merged out=$tmp_dir/out sv=$tmp_dir/state
     for p in "$state_dir"/*.path; do
         [ -f "$p" ] || continue
         abs=$(cat "$p")
@@ -629,15 +659,17 @@ receive_retracks() {
         if [ ! -f "$x" ] || cmp -s "$received" "$x"; then
             [ -f "$x" ] || replace_file "$x" "$received" || { warn "could not write $x"; continue; }
         else
-            if ! generalize_live "$x" "$live" || ! generalize "$received" "$x" >"$gen_received"; then
+            rm -f "$sv"
+            if ! generalize_live "$x" "$live" || ! generalize "$received" "$x" >"$gen_received" ||
+                { [ -f "$s" ] && ! canonicalize "$s" "$x" "$sv"; }; then
                 warn "could not generalize $x; state kept"
                 continue
             fi
-            if cmp -s "$live" "$s"; then
+            if cmp -s "$live" "$sv"; then
                 write_live "$x" "$received" || { warn "could not write $x"; continue; }
-            elif cmp -s "$gen_received" "$s"; then
+            elif cmp -s "$gen_received" "$sv"; then
                 : # Only local edits. The next snapshot records them.
-            elif merge3 "$live" "$s" "$gen_received" "$merged"; then
+            elif merge3 "$live" "$sv" "$gen_received" "$merged"; then
                 localize "$merged" "$x" >"$out" && write_live "$x" "$out" ||
                     { warn "could not write $x"; continue; }
             else

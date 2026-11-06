@@ -428,6 +428,132 @@ rm plain.toml
 check "toml without a symlinked home: render writes one key" \
     '[ "$(cat plain.toml)" = "$(printf "[projects.\"%s/p\"]\ntrust_level = \"trusted\"" "$H")" ]'
 
+# --- TOML canonical order --------------------------------------------------------
+# Codex moves a table to the end when it writes the table again. The data does not
+# change, so the template and the live file must not change.
+HTT="$(dirname "$HT")/home-template-toml"
+cat >"$TMP/order.toml" <<'EOF'
+top = 1
+
+# about b
+[b]
+x = 1
+
+[a]
+y = 2
+# end of a
+
+[[arr]]
+n = 1
+
+[arr.sub]
+k = 1
+
+[[arr]]
+n = 2
+EOF
+cat >"$TMP/order.expected" <<'EOF'
+top = 1
+
+[a]
+y = 2
+# end of a
+
+[[arr]]
+n = 1
+
+[arr.sub]
+k = 1
+
+[[arr]]
+n = 2
+
+# about b
+[b]
+x = 1
+EOF
+python3 -I "$HTT" canonical <"$TMP/order.toml" >"$TMP/order.out"
+check "canonical: tables sorted, comments above a header move with it, array elements keep order" \
+    'cmp -s "$TMP/order.out" "$TMP/order.expected"'
+python3 -I "$HTT" canonical <"$TMP/order.out" >"$TMP/order.again"
+check "canonical: a second pass changes nothing" 'cmp -s "$TMP/order.again" "$TMP/order.out"'
+# Sorted, [a.c] would go below the second element of the array.
+printf '[[a]]\nx = 1\n\n[b]\n\n[a.c]\ny = 1\n\n[[a]]\nx = 2\n' >"$TMP/moved.toml"
+python3 -I "$HTT" canonical <"$TMP/moved.toml" >"$TMP/moved.out"
+check "canonical: an order that changes the data stays as it is" 'cmp -s "$TMP/moved.out" "$TMP/moved.toml"'
+
+cat >order.toml <<EOF
+model = "m"
+
+[projects."$H/p"]
+trust_level = "trusted"
+
+[marketplaces.aim]
+source = "$H/.aim"
+
+[plugins."a@aim"]
+enabled = true
+EOF
+"$HT" capture >/dev/null 2>"$TMP/err"
+check "toml order: the template has the tables in canonical order" \
+    '[ "$(grep "^\[" order.toml.home-template | tr "\n" " ")" = "[marketplaces.aim] [plugins.\"a@aim\"] [projects.\"@HOME@/p\"] " ]'
+cp order.toml.home-template "$TMP/order.template"
+cat >order.toml <<EOF
+model = "m"
+
+[projects."$H/p"]
+trust_level = "trusted"
+
+[plugins."a@aim"]
+enabled = true
+
+[marketplaces.aim]
+source = "$H/.aim"
+EOF
+cp order.toml "$TMP/order.live"
+"$HT" capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml order: capture ignores a moved table" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && cmp -s order.toml.home-template "$TMP/order.template"'
+"$HT" render >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml order: render ignores a moved table" '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && cmp -s order.toml "$TMP/order.live"'
+
+sed -i 's/enabled = true/enabled = false/' order.toml
+"$HT" capture >/dev/null 2>"$TMP/err"
+check "toml order: capture writes only the changed value" \
+    '[ "$(diff "$TMP/order.template" order.toml.home-template | grep -c "^[<>]")" -eq 2 ] &&
+     grep -qxF "enabled = false" order.toml.home-template'
+
+# Templates and states from before the canonical order have the order of the program.
+# A table that only moved must not change them.
+printf '[projects."@HOME@/q"]\nv = 1\n\n[a]\nv = 2\n' >old.toml.home-template
+printf '/old.toml\n' >>.gitignore
+add_state old.toml old.toml.home-template
+cp old.toml.home-template "$TMP/old.template"
+printf '[a]\nv = 2\n\n[projects."%s/q"]\nv = 1\n' "$H" >old.toml
+cp old.toml "$TMP/old.live"
+"$HT" capture >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml order: capture keeps an old template in another order" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && cmp -s old.toml.home-template "$TMP/old.template"'
+printf '[a]\nv = 2\n\n[projects."@HOME@/q"]\nv = 1\n' >old.toml.home-template
+"$HT" render >"$TMP/out" 2>"$TMP/err"
+rc=$?
+check "toml order: render ignores a template in which a table only moved" \
+    '[ $rc -eq 0 ] && [ ! -s "$TMP/out" ] && cmp -s old.toml "$TMP/old.live"'
+
+# Each machine must track the same content, so a re-track writes the template order.
+printf '[b]\nv = 1\n\n[a]\nv = 2\n' >rt.toml.home-template
+cp rt.toml.home-template "$TMP/rt.template"
+printf '/rt.toml\n' >>.gitignore
+add_state rt.toml rt.toml.home-template
+printf '[a]\nv = 2\n\n[b]\nv = 1\n' >rt.toml
+"$HT" render >/dev/null 2>"$TMP/err"
+rc=$?
+check "toml order: a re-track writes the content of the template" \
+    '[ $rc -eq 0 ] && cmp -s rt.toml "$TMP/rt.template" && [ ! -e rt.toml.home-template ] && tracked rt.toml'
+
 echo
 echo "passed: $pass, failed: $fail"
 [ "$fail" -eq 0 ]
