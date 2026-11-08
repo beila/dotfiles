@@ -72,6 +72,23 @@ if [ "$1" = "build" ]; then
     case "$mode" in
         ok)        ln -sf /tmp /tmp/result_link 2>/dev/null; touch "$FLAKE_UPDATE_FLAKE_DIR/result"; exit 0 ;;
         fail)      echo "error: option 'foo' has been removed" >&2; echo "warning: see release notes" >&2; exit 1 ;;
+        cargo-fail)
+            cat >&2 <<'ERROR'
+error: Cannot build '/nix/store/example-neovide-vendor-staging.drv'.
+       Reason: builder failed with exit code 1.
+       Last log lines:
+       > Running phase: buildPhase
+       > Traceback (most recent call last):
+       >   File "fetch-cargo-vendor-util", line 24, in load_toml
+       >     with open(path, "rb") as f:
+       > FileNotFoundError: [Errno 2] No such file or directory: 'Cargo.lock'
+error: Cannot build '/nix/store/example-neovide.drv'.
+       Reason: 1 dependency failed.
+error: Cannot build '/nix/store/example-home-manager-generation.drv'.
+       Reason: 1 dependency failed.
+ERROR
+            exit 1
+            ;;
     esac
 fi
 if [ "$1" = "news" ]; then
@@ -230,10 +247,11 @@ check_nogrep "no build line"   'home-manager build OK' "$(log_file)"
 echo
 echo "=== Test 10: FLAKE_UPDATE_DRY_RUN=1 — skips nix call but runs build ==="
 reset_fixtures; set_hm ok
-# DRY_RUN means flake.lock won't move; expect "unchanged" fast path
+set_nix other
 rc=$(FLAKE_UPDATE_DRY_RUN=1 PATH="$STUB_BIN:/usr/bin:/bin" bash "$UNDER_TEST" >/dev/null 2>&1; echo $?)
 check "exit 0" "0" "$rc"
 check_grep "DRY-RUN logged" 'DRY-RUN: skipping' "$(log_file)"
+check_grep "dry run validates unchanged inputs" 'home-manager build OK' "$(log_file)"
 
 echo
 echo "=== Test 11: stripped scheduler PATH finds Nix profile tools ==="
@@ -246,6 +264,20 @@ rc=$(env -u CLAUDECODE HOME="$FAKE_HOME" PATH="/usr/bin:/bin" \
     bash "$UNDER_TEST" >/dev/null 2>&1; echo $?)
 check "exit 0 with profile fallback" "0" "$rc"
 check_grep "profile fallback completed build" '\[INFO\] home-manager build OK' "$(log_file)"
+
+echo
+echo "=== Test 12: dependency failure sends one alert with the underlying error ==="
+reset_fixtures; set_nix ok; set_hm cargo-fail
+NOTIFY_MOCK_FILE="$TMPDIR/build-notifications.log"
+: > "$NOTIFY_MOCK_FILE"
+rc=$(LOG_NOTIFY_MODE=always NOTIFY_BACKEND=mock NOTIFY_MOCK_FILE="$NOTIFY_MOCK_FILE" run_under_test)
+sleep 0.3
+check "dependency failure exits 1" "1" "$rc"
+check "one build notification" "1" "$(wc -l < "$NOTIFY_MOCK_FILE")"
+check "one ERROR log entry" "1" "$(grep -c '\[ERROR\]' "$(log_file)")"
+check_grep "alert includes missing lockfile" 'Reason: FileNotFoundError:.*Cargo.lock' "$NOTIFY_MOCK_FILE"
+check_grep "dependency chain remains in log" '\[INFO\].*example-home-manager-generation.drv' "$(log_file)"
+check_grep "traceback remains in log" '\[INFO\].*Traceback' "$(log_file)"
 
 pass=$(cat "$PASS_FILE")
 fail=$(cat "$FAIL_FILE")

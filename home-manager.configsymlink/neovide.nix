@@ -1,7 +1,26 @@
 { config, pkgs, ... }:
+let
+  # Apply upstream fix 2cc8df2292378410e3026c1bb4df5f56144a5425 until nixos-unstable includes it.
+  neovide =
+    if
+      pkgs.neovide.version == "0.17.1"
+      && pkgs.neovide.src.outputHash == "sha256-ahqSduR4sCkcEmoo++PpxfcH0SZH4o6k/n8ZZmB1aA0="
+    then
+      pkgs.neovide.overrideAttrs {
+        src = pkgs.fetchFromGitHub {
+          owner = "neovide";
+          repo = "neovide";
+          tag = "0.17.1";
+          hash = "sha256-trl/YctM/E9vIXeJfwBEZLfNK7LS5fEaWthTbeg7Ba0=";
+        };
+        cargoHash = "sha256-WS44afUizU6qhXQY77TayNRvlUoS6GrBZ/uaXk+gjU0=";
+      }
+    else
+      pkgs.neovide;
+in
 {
   home.packages = [
-    (config.lib.nixGL.wrap pkgs.neovide)
+    (config.lib.nixGL.wrap neovide)
     pkgs.jetbrains-mono
     pkgs.source-code-pro
   ];
@@ -20,7 +39,10 @@
     exec = ''bash -lc "neovide %F"'';
     icon = "neovide";
     type = "Application";
-    categories = [ "Utility" "TextEditor" ];
+    categories = [
+      "Utility"
+      "TextEditor"
+    ];
   };
 
   # Copy nix-installed fonts to ~/.local/share/fonts so neovide's skia

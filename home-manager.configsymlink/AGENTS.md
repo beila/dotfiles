@@ -70,6 +70,8 @@ Activation helper for the cron backend. Reads existing crontab, strips any prior
 
 nixGL-wrapped neovide (GPU access on non-NixOS), font-copying activation (JetBrains Mono + Nerd Font + Source Code Pro for neovide's default fallback).
 
+Neovide 0.17.1 has a conditional source/vendor hash correction from upstream nixpkgs commit `2cc8df2292378410e3026c1bb4df5f56144a5425`. The broken package reused Skia's hash for both the Neovide source and Cargo dependencies, so Nix supplied Skia as the source and failed to find `Cargo.lock`. The correction applies only while version 0.17.1 has that incorrect source hash; fixed upstream packages pass through unchanged.
+
 ## nvim.nix
 
 neovim (default editor, vi/vim aliases). hm-generated.lua approach: the module's `nvim/init.lua` output is disabled (`mkForce false`) and the nix-computed `programs.neovim.initLua` (lua paths, provider flags, sibling-module appends like `work-dotfiles/nvim-amazon.nix`) is written to `nvim/lua/hm-generated.lua` (gitignored) instead; the git-tracked `nvim.configsymlink/init.lua` loads it via `pcall(require, 'hm-generated')` at the top. Dev tool packages (LSPs, linters, formatters, DAP deps), rustaceanvim. See `nvim.configsymlink/AGENTS.md`.

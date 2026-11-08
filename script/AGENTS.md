@@ -159,15 +159,15 @@ Before preflight, the script appends the standard user, Nix daemon, and NixOS pr
 
 **Why**: nixos-unstable + home-manager unstable produce occasional breaking changes; running `home-manager switch` blind on update day means breakage shows up at the wrong moment. The watchdog finds it on a Sunday morning instead.
 
-Failures: ERROR (paged via Telegram) for build failures and non-network `nix flake update` errors; WARN (silent) for transient network errors. Build-failure log captures the **last 40 lines + first 10 lines** of stderr — nix's verbose error trace puts the actionable line near the bottom (e.g. `error: Refusing to evaluate package 'X' because it has an unfree license`), so the older "first 20 lines" cap missed it. The Telegram body summary is extracted via `tac | grep -m1 '^error: '` so the actionable reason lands in the preview before the user clicks the log link.
+Failures: ERROR (paged via Telegram) for build failures and non-network `nix flake update` errors; WARN (silent) for transient network errors. A build failure emits one ERROR summary. The summary prefers a specific error, including exceptions inside Nix's `>`-prefixed build output, over cascading dependency failures. The **last 40 lines + first 10 lines** of standard error are retained at INFO in the same failure log without sending separate alerts.
 
 **Home-manager news handling**: after a successful build, runs `home-manager news --flake . --impure` (the `--impure` is required because `bare-aliases.nix` uses impure builtins to read `/etc/hostname`) and pipes any unread items to `claude --print --tools "" --no-session-persistence` with a one-line classifier prompt (`BREAKING: <summary>` vs `OK`). 90s timeout (the previous 30s consistently hit `timeout(1)` exit 124 when invoked from a non-tty subshell). Only `BREAKING` escalates to ERROR notify; `OK` and unrecognised classifier output stay silent — pure-news flooding would defeat the whole "low-noise alert" goal. claude unavailable / `CLAUDECODE` set / Bedrock auth failure (`bedrock:InvokeModelWithResponseStream not authorized`) → silent INFO (news still goes to the persisted log file for grep).
 
-Env: `FLAKE_UPDATE_DRY_RUN=1` skips the actual update (still runs build + news), `FLAKE_UPDATE_FLAKE_DIR` overrides the flake path.
+Env: `FLAKE_UPDATE_DRY_RUN=1` skips the actual update and the unchanged-lock fast path, so it still runs build + news against the current inputs. `FLAKE_UPDATE_FLAKE_DIR` overrides the flake path.
 
 The watchdog has caught real upstream breakage in production (e.g. nixpkgs reclassifying nvim plugins as unfree); when that happens, fix = add to `home.nix`'s `allowUnfreePredicate` allowlist.
 
-Test harness: `script/test_flake-update.sh` (36 assertions; stubbed `nix`, `home-manager`, `claude` via `PATH`). The harness removes `CLAUDECODE` so it works from Claude Code, and verifies recovery from a stripped scheduler `PATH` through a fake Nix profile.
+Test harness: `script/test_flake-update.sh` (43 assertions; stubbed `nix`, `home-manager`, `claude` via `PATH`). The harness removes `CLAUDECODE` so it works from Claude Code, and verifies recovery from a stripped scheduler `PATH` through a fake Nix profile. It also checks unchanged-input dry runs and uses the mock notification backend to verify one alert with the underlying build error.
 
 ## Battery notify
 

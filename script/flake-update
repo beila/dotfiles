@@ -100,7 +100,7 @@ else
 fi
 
 # Did anything actually change?
-if cmp -s "$LOCK_BEFORE" flake.lock; then
+if [ "${FLAKE_UPDATE_DRY_RUN:-}" != "1" ] && cmp -s "$LOCK_BEFORE" flake.lock; then
     log INFO "flake.lock unchanged — all inputs already at HEAD; skipping build + news"
     exit 0
 fi
@@ -108,16 +108,32 @@ fi
 # --- Step 2: home-manager build (dry build, no activation) --------------------
 err=$(mktemp /tmp/flake-update.err.XXXXXX)
 if ! home-manager build --impure --flake . 2>"$err"; then
-    # Build failure = the next `home-manager switch` will fail too. Page user.
-    # Nix error traces are noisy — the actionable line is usually the LAST
-    # `error:` block, not the first. Show both ends so the Telegram preview
-    # carries the actionable summary even before the user clicks the log link.
-    summary=$(tac "$err" | grep -m1 -E "^[[:space:]]*error: " | sed 's/^[[:space:]]*//; s/^error: //')
+    # Prefer the underlying error over a dependency failure.
+    summary=$(awk '
+        {
+            line = $0
+            sub(/^[[:space:]]*>[[:space:]]*/, "", line)
+            sub(/^[[:space:]]*/, "", line)
+            if (line ~ /^([[:alnum:]_.]*(Error|Exception)|fatal error|error(\[[^]]+\])?): /) {
+                if (line ~ /^error: (Cannot build |builder for |[0-9]+ dependencies |[0-9]+ dependency )/) {
+                    fallback = line
+                } else if (reason == "") {
+                    reason = line
+                }
+            }
+        }
+        END {
+            line = reason != "" ? reason : fallback
+            sub(/^error: /, "", line)
+            print line
+        }
+    ' "$err")
     log ERROR "home-manager build FAILED after flake update — switch will break. Reason: ${summary:-see log}"
-    log ERROR "--- last 40 lines of build stderr (root cause usually here) ---"
-    tail -40 "$err" | while IFS= read -r line; do log ERROR "  $line"; done
-    log ERROR "--- first 10 lines of build stderr (chain start) ---"
-    head -10 "$err" | while IFS= read -r line; do log ERROR "  $line"; done
+    # Keep diagnostics in the failure log without sending more alerts.
+    log INFO "--- last 40 lines of build stderr ---"
+    tail -40 "$err" | while IFS= read -r line; do log INFO "  $line"; done
+    log INFO "--- first 10 lines of build stderr ---"
+    head -10 "$err" | while IFS= read -r line; do log INFO "  $line"; done
     rm -f "$err"
     exit 1
 fi
