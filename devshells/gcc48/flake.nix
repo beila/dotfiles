@@ -1,7 +1,7 @@
 {
   description = "GCC 4.8 shell for the IgnitionX Linux gcc-4.8 CI configuration";
 
-  # nixos-24.05 is the last release that has gcc48 in the binary cache.
+  # nixos-24.05 has gcc48 in the binary cache.
   # Its glibc 2.39 and GStreamer 1.24 also match the Ubuntu 24.04 CI image.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
 
@@ -49,7 +49,8 @@
           versionedNames
         ];
 
-        # Without zlib here, pkg-config finds the host /usr/lib64/libz.so.
+        # zlib supplies the headers. The pkg-config prefix rewrite below still makes CMake
+        # link the host /usr/lib64/libz.so.
         buildInputs = with pkgs; [
           zlib
           SDL2
