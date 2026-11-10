@@ -734,7 +734,7 @@ fetch_remote_bookmark_objects() {
     fi
     REMOTE_FETCH_OID=$(printf '%s\n' "$output" | awk 'NR == 1 { print $1 }')
     if [ -n "$REMOTE_FETCH_OID" ] && ! transfer_cmd "fetch ${SYNC_BM}@${SYNC_REMOTE}" \
-        "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
+        "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-recurse-submodules --no-write-fetch-head \
         --no-auto-maintenance "$REMOTE_FETCH_URL" "refs/heads/${SYNC_BM}"; then
         REMOTE_FETCH_OK=0
         log INFO "SKIP-PUSH ${SYNC_BM}: fetch failed; will retry next run"
@@ -1090,7 +1090,7 @@ fetch_listed_bookmarks() {
         fi
         LB_FETCH_OID[$i]=$(printf '%s\n' "$output" | awk 'NR == 1 { print $1 }')
         if [ -n "${LB_FETCH_OID[$i]}" ] && ! transfer_cmd "fetch ${b}@${r}" \
-            "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
+            "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-recurse-submodules --no-write-fetch-head \
             --no-auto-maintenance "${LB_FETCH_URL[$i]}" "refs/heads/${b}"; then
             LB_FETCH_OK[$i]=0
             log INFO "SKIP-PUSH ${b}: fetch failed; will retry next run"

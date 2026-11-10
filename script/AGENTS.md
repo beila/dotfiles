@@ -62,6 +62,15 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
 
 - `sync.bookmarks = "BOOKMARK@REMOTE ..."` (e.g. `"main@backup build@backup"`, processed in that order) — listed-bookmark path: each bookmark is synced as it is and never moved to `@-`. Transport matches the bookmark-sync path (raw Git fetch by URL unlocked; tracking-ref update + `jj git import` + `jj bookmark track` locked). Reconcile per bookmark: missing locally → created from the remote; remote ahead → `FAST-FORWARD`; local ahead → push; diverged and every remote-only commit (`L..R`) is a predecessor of a local commit in `jj evolog -r R..L` → `REWRITTEN`: this machine rewrote the pushed commits (`jj rebase -B`, `jj split`, `jj describe`), so L replaces R. It is a delete+push because gitfarm rejects force pushes, with a fresh `ls-remote` lease check just before. A rebase here would stack the new commits on their old versions and duplicate every change; commits from another machine are never local predecessors, so they still go to the rebase. Other divergence → a merge probe (`jj new --no-edit L R`) and, when clean, `jj rebase -s roots(R..L) -d R`, which also moves descendants such as `@`. `resolve-by-attrs` runs on a conflicted probe and on each conflicted rebased commit (oldest first). A probe conflict that remains logs `REBASE-CONFLICT` and leaves the bookmark at the local commit. A rebase that still leaves conflicted commits is rewound with `jj op restore`. The rebased tip is found as `change_id(L) & R+::`, because R can hold an older commit of the same change. A bookmark that jj import left conflicted keeps its non-remote side. Before a push, remaining commits without a description in `R..L` (for a new bookmark: `::L ~ ::remote_bookmarks()`) skip that bookmark with `SKIP-PUSH … commits without description` at ERROR. Listed reconciliation runs before `prepare_bookmark_sync`, because a rebase can rewrite `@-`. An entry equal to `sync.remote-bookmark`, a duplicate, or one without `@` is `BAD-CONFIG`. The `@` working-copy commit is still made, as with the other keys.
 
+All bookmark and repository-history fetches pass `--no-recurse-submodules`.
+Sync transfers the parent repository and its recorded submodule commit IDs;
+submodule repositories are managed separately. This option applies only to
+these fetches and overrides configured recursion. Without it, a missing local
+submodule repository can fail an otherwise valid parent fetch, as happened for
+IgnitionX's `tests/integration-tests/webassembly` on 2026-11-10.
+`bash script/test_sync_repo_submodules.sh` reproduces that error and covers both
+bookmark modes with default and explicitly enabled recursion.
+
 When the divergent local history includes immutable commits and mutable
 descendants, listed reconciliation rebases only the mutable roots. It retains
 the local immutable heads as additional parents alongside the remote tip.

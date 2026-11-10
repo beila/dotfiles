@@ -102,7 +102,7 @@ repo_history_mkdir() {
 restore_own_repo_history() {
     local branch=$1 remote_tip=$2 self_tip=$3
     transfer_cmd "fetch repo-history ${MACHINE_NAME}" \
-        "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
+        "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-recurse-submodules --no-write-fetch-head \
         --no-auto-maintenance "$SNAPSHOT_URL" "$branch" || return 1
     if ! "$GIT" --git-dir="$GIT_DIR" cat-file -e "${remote_tip}:history" 2>/dev/null; then
         log ERROR "REPO-HISTORY-RESTORE-FAIL: ${remote_tip} has no history blob; push skipped"
@@ -187,7 +187,7 @@ fetch_repo_history() {
             continue
         fi
         transfer_cmd "fetch repo-history ${host}" \
-            "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-write-fetch-head \
+            "$GIT" --git-dir="$GIT_DIR" fetch --no-tags --no-recurse-submodules --no-write-fetch-head \
             --no-auto-maintenance "$SNAPSHOT_URL" "$ref" || continue
         if ! "$GIT" --git-dir="$GIT_DIR" cat-file -e "${tip}:history" 2>/dev/null; then
             log WARN "SKIP repo-history ${host}: ${tip} has no history blob"
