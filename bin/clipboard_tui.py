@@ -32,6 +32,8 @@ from clipboard_bridge import (
 
 BRACKET_START = b"\x1b[200~"
 BRACKET_END = b"\x1b[201~"
+COPY_KEY = b"\x1b[99;6u"
+COPY_SHORTCUTS = (b"\x1b[24;2~", b"\x1b[57387u", b"\x1b[57387;1u")
 
 
 def write_all(fd, data):
@@ -44,9 +46,12 @@ class Input:
         self.paste = paste
         self.pending = b""
         self.bracketed = False
-        self.shortcuts = [b"\x16", b"\x1b[118;5u", b"\x1b[118;6u", b"\x1b[86;6u"]
+        self.shortcuts = [
+            b"\x16", b"\x1b[118;5u", b"\x1b[118;6u", b"\x1b[86;6u",
+            b"\x1b[27;5;118~", b"\x1b[27;6;118~",
+        ]
         if alt_v:
-            self.shortcuts.extend([b"\x1bv", b"\x1b[118;3u"])
+            self.shortcuts.extend([b"\x1bv", b"\x1b[118;3u", b"\x1b[27;3;118~"])
 
     def feed(self, data, flush=False):
         data = self.pending + data
@@ -54,9 +59,16 @@ class Input:
         output = bytearray()
         index = 0
         while index < len(data):
+            special = (27,) if self.bracketed else (22, 27)
+            if data[index] not in special:
+                ends = [position for byte in special if (position := data.find(bytes([byte]), index)) >= 0]
+                end = min(ends, default=len(data))
+                output.extend(data[index:end])
+                index = end
+                continue
             marker = BRACKET_END if self.bracketed else BRACKET_START
             tail = data[index:index + 16]
-            tokens = [marker] if self.bracketed else [marker, *self.shortcuts]
+            tokens = [marker] if self.bracketed else [marker, *self.shortcuts, *COPY_SHORTCUTS]
             if not flush and any(token.startswith(tail) and token != tail for token in tokens):
                 self.pending = tail
                 break
@@ -64,6 +76,11 @@ class Input:
                 self.bracketed = not self.bracketed
                 output.extend(marker)
                 index += len(marker)
+            elif not self.bracketed and (shortcut := next(
+                (token for token in COPY_SHORTCUTS if tail.startswith(token)), None
+            )):
+                output.extend(COPY_KEY)
+                index += len(shortcut)
             elif not self.bracketed and (shortcut := next(
                 (token for token in self.shortcuts if tail.startswith(token)), None
             )):
@@ -155,6 +172,8 @@ def run_tui(argv):
         tty.setraw(0)
         while True:
             ready, _, _ = select.select([0, master, listener], [], [], 0.03)
+            if child_status is not None and master not in ready:
+                break
             if master in ready:
                 try:
                     data = os.read(master, 65536)
@@ -191,9 +210,16 @@ def run_tui(argv):
                         except OSError:
                             pass
             if child_status is None:
-                reaped, status = os.waitpid(child, os.WNOHANG)
+                reaped, status = os.waitpid(child, os.WNOHANG | os.WUNTRACED)
                 if reaped:
-                    child_status = status
+                    if os.WIFSTOPPED(status):
+                        termios.tcsetattr(0, termios.TCSADRAIN, previous)
+                        os.kill(os.getpid(), signal.SIGTSTP)
+                        tty.setraw(0)
+                        resize()
+                        os.kill(child, signal.SIGCONT)
+                    else:
+                        child_status = status
     finally:
         termios.tcsetattr(0, termios.TCSADRAIN, previous)
         for signum, handler in old_handlers.items():

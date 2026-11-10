@@ -1,4 +1,5 @@
 #!env zsh
+setopt localoptions pipefail
 if [[ -n "${ZMX_SESSION-}" && ( -n "${SSH_CONNECTION-}" || -n "${SSH_TTY-}" ) ]]; then
   "${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/clipboard-bridge" copy "$@"
   return

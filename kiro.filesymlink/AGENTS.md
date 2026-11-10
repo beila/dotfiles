@@ -34,6 +34,10 @@ Shared-skill symlinks: each entry points repo-relatively at `../../../.agents/sk
   At session start, these instructions also direct all three clients to read
   `~/.dotfiles/work-dotfiles/agent-instructions.md` when it exists. Workplace
   guidance stays in the companion repository.
+  All agents use `~/.dotfiles/bin/clipboard-bridge` for clipboard requests,
+  including the command copied for manual `sudo` execution. The same command
+  reaches the workstation clipboard in a `jc` session. Instructions prohibit
+  alternative clipboard tools and require reporting bridge failures.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-builder-context-do-not-delete.md` — Amazon-internal SDE context (Brazil/CRUX/Apollo/…); kept in work-dotfiles so the public repo stays employer-agnostic.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-production-safety-do-not-delete.md` — AWS production-safety rules; same rationale.
 - `work-dotfiles/kiro.filesymlink/steering/amazon-autosde-before-cr.md` — the AutoSDE pre-CR review loop. Claude also includes it from `~/.claude/CLAUDE.md`. Codex cannot include it (its `AGENTS.md` is the public `instructions.md`), so Codex learns the loop from the block message of `work-dotfiles/agent-hooks/autosde-cr-gate`, which runs as a `PreToolUse`/`preToolUse` Bash hook in Claude, Codex, and the Kiro `builder` and `default` agents.

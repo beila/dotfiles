@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise clipboard transport with an isolated native clipboard."""
 
+import hashlib
 import os
 import pty
 import select
@@ -19,7 +20,7 @@ BRIDGE = ROOT / "bin/clipboard-bridge"
 sys.path.insert(0, str(ROOT / "bin"))
 
 from clipboard_bridge import forward_route, request_operation, tui_socket
-from clipboard_tui import BRACKET_END, BRACKET_START, Input
+from clipboard_tui import BRACKET_END, BRACKET_START, COPY_KEY, COPY_SHORTCUTS, Input
 
 PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
@@ -179,6 +180,9 @@ class ClipboardBridgeTest(unittest.TestCase):
             output = b"".join(parser.feed(bytes([byte])) for byte in shortcut)
             self.assertEqual(output, b"IMAGE")
         self.assertEqual(len(calls), 3)
+        for shortcut in COPY_SHORTCUTS:
+            output = b"".join(parser.feed(bytes([byte])) for byte in shortcut)
+            self.assertEqual(output, COPY_KEY)
 
     def test_remote_tui_pty_image_and_window_route(self):
         self.serve()
@@ -331,6 +335,81 @@ class ClipboardBridgeTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr.decode())
         self.assertEqual(result.stdout, text)
         self.assertEqual(self.clipboard.read_bytes(), b"nvim live probe")
+
+        self.clipboard.write_bytes(PNG)
+        subprocess.run(
+            [*ssh, host, f"{helper} prepare {shlex.quote(self.session)}"],
+            check=True, capture_output=True, timeout=30,
+        )
+        local_tui = self.directory / "ssh-tui.sock"
+        remote_tui = str(Path(remote_path).with_suffix(".tui.sock"))
+        child_code = (
+            "import os, tty\n"
+            "tty.setraw(0)\n"
+            "os.write(1,b'READY')\n"
+            "while True:\n"
+            " data=os.read(0,65536)\n"
+            " if data==b'EXIT': raise SystemExit(23)\n"
+            " os.write(1,data)\n"
+        )
+        command = (
+            f"export ZMX_SESSION={shlex.quote(self.session)}; "
+            f"exec {helper} tui -- python3 -u -c {shlex.quote(child_code)}"
+        )
+        process = subprocess.Popen(
+            [*ssh, "-tt", "-o", "ExitOnForwardFailure=yes",
+             "-R", f"{remote_path}:{self.path}",
+             "-L", f"{local_tui}:{remote_tui}", host, command],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        received = bytearray()
+        images = []
+
+        def read_until(marker):
+            deadline = time.monotonic() + 20
+            while marker not in received:
+                ready, _, _ = select.select([process.stdout], [], [], max(0, deadline - time.monotonic()))
+                if not ready:
+                    self.fail(f"SSH TUI output timed out: {received!r}")
+                data = os.read(process.stdout.fileno(), 65536)
+                if not data:
+                    self.fail(process.stderr.read().decode())
+                received.extend(data)
+            end = received.index(marker) + len(marker)
+            data = bytes(received[:end])
+            del received[:end]
+            return data
+
+        def verify_image():
+            data = read_until(BRACKET_END)
+            image = shlex.split(data.split(BRACKET_START)[-1].removesuffix(BRACKET_END).decode())[0]
+            images.append(image)
+            digest = subprocess.check_output(
+                [*ssh, host, f"sha256sum -- {shlex.quote(image)}"], timeout=30,
+            ).decode().split()[0]
+            self.assertEqual(digest, hashlib.sha256(PNG).hexdigest())
+
+        try:
+            read_until(b"READY")
+            process.stdin.write(b"\x16")
+            process.stdin.flush()
+            verify_image()
+            request_operation(local_tui, b"I", b"image/png\0" + PNG)
+            verify_image()
+            process.stdin.write(b"EXIT")
+            process.stdin.flush()
+            self.assertEqual(process.wait(timeout=10), 23)
+        finally:
+            if process.poll() is None:
+                process.terminate()
+            process.communicate(timeout=10)
+            if images:
+                paths = " ".join(shlex.quote(path) for path in images)
+                directory = shlex.quote(str(Path(images[0]).parent))
+                subprocess.run(
+                    [*ssh, host, f"rm -f -- {paths}; rmdir -- {directory}"],
+                    capture_output=True, timeout=30, check=False,
+                )
 
 
 if __name__ == "__main__":

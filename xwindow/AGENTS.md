@@ -139,6 +139,9 @@ These application-specific rules live in `xmonad.symlink/lib/XMonadConfig/Window
 - Super+S → `scrot -s` selection screenshot to clipboard (image/png via xclip)
 - Super+C / Super+V → universal copy/paste via `macro(copy f24 f19)` / `macro(paste f20)`.
   - XMonad consumes F19 and sends targeted Control+C only to Telegram Web in Firefox.
+  - XMonad consumes F20 for image paste into wrapped Codex/Claude sessions in
+    Ghostty. It forwards F20 to Neovide so its existing mapping still works.
+    Normal text paste remains Ghostty's XF86Paste action. See `bin/AGENTS.md`.
   - See `keyd/AGENTS.md`.
 - Super+Shift+V → `copyq toggle` (clipboard history)
 

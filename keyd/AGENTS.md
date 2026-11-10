@@ -30,6 +30,9 @@ v = macro(paste f20)
 
 - The bare `copy`/`paste` keysym (XF86Copy / XF86Paste, evdev `KEY_COPY` / `KEY_PASTE`) handles ghostty / firefox / GTK / Qt.
 - The `f24` / `f20` second token is for **neovide**, whose winit `get_special_key` table drops bare `XF86Copy`/`XF86Paste` but explicitly handles `NamedKey::F1`–`F35`.
+- Wrapped Codex/Claude sessions also translate F24 to their native
+  Ctrl+Shift+C selection-copy action. The preceding XF86Copy retains
+  Ghostty's terminal-selection copy behavior.
 - The copy-only `f19` token is a reserved XMonad fallback.
   - XMonad consumes it globally.
   - It sends targeted `Control+C` only when the Firefox title contains `Telegram Web`.
@@ -44,7 +47,7 @@ v = macro(paste f20)
 - **Super+Shift+V** opens the copyq history picker via a `[meta+shift]` composite layer that prevents the explicit `v` binding from swallowing the shifted variant.
 - **nvim mappings** (`nvim.configsymlink/vimrcs/my-clipboard.lua`, identical for both `<F24>`/`<F20>` and `<XF86Copy>`/`<XF86Paste>`): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`.
 - **Terminal nvim inside ghostty** still needs explicit `"+y`/`"+p` for normal/visual mode (ghostty intercepts XF86Paste before zellij/nvim see it; insert-mode pastes via bracketed paste).
-- **F20 in terminals**: ghostty has `keybind = f20=ignore` because the F20 token corrupts zellij's input stream. Don't drop it — neovide depends on F20 and bypasses ghostty.
+- **F20 in terminals**: XMonad consumes the existing F20 token. For Ghostty, it sends clipboard images to the active Codex/Claude wrapper through `clipboard-bridge paste-image-window`. The preceding XF86Paste still handles text. For Neovide, it sends F20 to that window so the existing Neovim mapping works. Ghostty retains `keybind = f20=ignore` as a fallback to prevent input corruption when XMonad does not handle the event.
 
 ## Copilot key — SHELVED, not fixable in keyd (do not retry without new info)
 

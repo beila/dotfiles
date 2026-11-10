@@ -162,6 +162,43 @@ a real SSH forward. The host must already have the helper installed.
 The test uses an isolated clipboard file and leaves the desktop clipboard
 untouched.
 
+`clipboard_bridge.py` implements the transport; `clipboard-bridge` is its CLI.
+`paste --image` reads PNG, JPEG, WebP, or GIF bytes from X11 or Wayland. Image
+requests use the same private SSH socket and size limit as text requests.
+
+The `codex` and `claude` Zsh functions run interactive sessions through
+`clipboard-bridge tui -- COMMAND`. `clipboard_tui.py` preserves the application's
+PTY, window size, output, and exit status. It handles Ctrl+V and its extended
+terminal encodings; Claude also accepts Alt+V. Existing bracketed text pastes
+pass through unchanged, including control characters inside the pasted text.
+The existing F24 event from Super+C and the trackball becomes Ctrl+Shift+C
+inside these two clients, so their own selection-copy actions also work.
+Images become mode-0600 files inside a private session directory. Their paths
+are inserted as bracketed pastes, which both clients recognize as attachments.
+Files remain available after exit; later launches remove image directories
+older than seven days.
+
+Only the wrapped process and its descendants get `bin/clipboard-tools` in PATH.
+These adapters send `xclip`, `wl-copy`, and `wl-paste` text operations through
+the bridge, including Claude's application copy actions. Native providers use
+the saved PATH to avoid recursion. Codex's own remote copy uses OSC 52.
+Terminal selection and normal text paste continue to use Ghostty.
+
+Each wrapped TUI also listens on a private session `.tui.sock`. SSH attachment
+forwards a local socket to this endpoint and publishes its location through a
+`.forward` symlink. XMonad handles the existing F20 event from Super+V and the
+trackball, then calls `paste-image-window` for Ghostty. This adds image paste
+without injecting a second copy of text. `_ZMX_SESSION` selects the destination;
+standalone windows use their WINDOWID. Forwarding ends with the attachment,
+and cleanup cannot remove a newer attachment's route. Neovide receives F20
+through a targeted event and keeps its existing paste mapping.
+
+Tests also cover image bytes, scoped adapters, real PTY input, private image
+files, window routing, exit status, and split bracketed paste sequences.
+`CLIPBOARD_TEST_SSH_HOST` also exercises image paste through both SSH forwards.
+`bash bin/test_clipboard_neovide.sh` checks the targeted F20 event on an isolated
+virtual display. Set `XVFB` when the Xvfb executable is outside PATH.
+
 A newly started remote connection can put the zmx server below the terminal client. Process discovery follows this chain to the session shell. Therefore, scan order cannot replace the live cwd with the server's start directory.
 
 A remote host can expose a physical cwd that differs from its logical `$HOME`. The picker shortens both home paths to `~`.
