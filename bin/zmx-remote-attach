@@ -22,6 +22,7 @@ ssh_options=(-o BatchMode=yes -o ConnectTimeout=10
     -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 clipboard_dir=
 clipboard_pid=
+clipboard_route=
 clipboard_options=()
 
 remote_dir=${ZMX_REMOTE_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/remote"}
@@ -62,6 +63,10 @@ cleanup() {
         kill "$clipboard_pid" 2> /dev/null
         wait "$clipboard_pid" 2> /dev/null || true
     fi
+    if [[ -n $clipboard_route && -L $clipboard_route ]] \
+        && [[ $(readlink -- "$clipboard_route") == "$clipboard_dir/tui" ]]; then
+        rm -f -- "$clipboard_route"
+    fi
     [[ -z $clipboard_dir ]] || rm -rf -- "$clipboard_dir"
     rm -f -- "$meta" "$state" "$state.tmp"
 }
@@ -81,7 +86,9 @@ start_clipboard() {
     for _ in {1..100}; do
         if [[ -S $clipboard_dir/socket ]]; then
             clipboard_options=(-o ExitOnForwardFailure=yes -o StreamLocalBindMask=0177
-                -R "$remote_socket:$clipboard_dir/socket")
+                -R "$remote_socket:$clipboard_dir/socket"
+                -L "$clipboard_dir/tui:${remote_socket%.sock}.tui.sock")
+            clipboard_route=$("$script_dir/clipboard-bridge" forward-route "$local_name" "$clipboard_dir/tui") || return
             return 0
         fi
         kill -0 "$clipboard_pid" 2>/dev/null || return 1

@@ -1,0 +1,6 @@
+#!env zsh
+if [[ -t 0 && -t 1 && "${1-}" != (exec|e|--help|-h|--version|-V|login|logout|app-server|mcp-server|completion) ]]; then
+  "${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/clipboard-bridge" tui -- "${commands[codex]}" "$@"
+else
+  command codex "$@"
+fi

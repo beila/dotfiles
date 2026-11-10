@@ -2,10 +2,13 @@
 """Exercise clipboard transport with an isolated native clipboard."""
 
 import os
+import pty
+import select
 import shlex
 import socket
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -13,6 +16,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BRIDGE = ROOT / "bin/clipboard-bridge"
+sys.path.insert(0, str(ROOT / "bin"))
+
+from clipboard_bridge import forward_route, request_operation, tui_socket
+from clipboard_tui import BRACKET_END, BRACKET_START, Input
+
+PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
+    b"\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89"
+    b"\x00\x00\x00\x0bIDATx\x9cc`\x00\x02\x00\x00\x05\x00\x01\xa5\xf6E@"
+    b"\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 
 class ClipboardBridgeTest(unittest.TestCase):
@@ -139,6 +153,102 @@ class ClipboardBridgeTest(unittest.TestCase):
         failure = self.run_bridge("paste", env=self.remote_env, check=False)
         self.assertNotEqual(failure.returncode, 0)
         self.assertIn(b"exit status 7", failure.stderr)
+
+    def test_image_transport_and_scoped_providers(self):
+        self.clipboard.write_bytes(PNG)
+        self.assertEqual(self.run_bridge("paste", "--image").stdout, PNG)
+        self.serve()
+        self.assertEqual(self.run_bridge("paste", "--image", env=self.remote_env).stdout, PNG)
+        self.assertEqual(
+            self.run_bridge("provider", "xclip", "-o", "-t", "image/png", env=self.remote_env).stdout,
+            PNG,
+        )
+        self.run_bridge("provider", "xclip", "-selection", "clipboard",
+                        data=b"copied from a TUI", env=self.remote_env)
+        self.assertEqual(self.clipboard.read_bytes(), b"copied from a TUI")
+        self.assertNotEqual(self.run_bridge("paste", "--image", check=False).returncode, 0)
+
+    def test_paste_parser_preserves_split_bracketed_text(self):
+        calls = []
+        parser = Input(lambda: calls.append(True) or b"IMAGE", alt_v=True)
+        packet = BRACKET_START + b"literal \x16 and \x1bv" + BRACKET_END
+        output = b"".join(parser.feed(bytes([byte])) for byte in packet)
+        self.assertEqual(output, packet)
+        self.assertEqual(calls, [])
+        for shortcut in (b"\x16", b"\x1bv", b"\x1b[118;5u"):
+            output = b"".join(parser.feed(bytes([byte])) for byte in shortcut)
+            self.assertEqual(output, b"IMAGE")
+        self.assertEqual(len(calls), 3)
+
+    def test_remote_tui_pty_image_and_window_route(self):
+        self.serve()
+        self.clipboard.write_bytes(PNG)
+        master, slave = pty.openpty()
+        child_code = (
+            "import os, tty\n"
+            "tty.setraw(0)\n"
+            "os.write(1, b'READY')\n"
+            "while True:\n"
+            " data = os.read(0, 65536)\n"
+            " if data == b'EXIT': raise SystemExit(23)\n"
+            " os.write(1, data)\n"
+        )
+        process = subprocess.Popen(
+            [str(BRIDGE), "tui", "--", sys.executable, "-u", "-c", child_code],
+            stdin=slave, stdout=slave, stderr=slave,
+            env={**self.remote_env, "DOTFILES_ROOT": str(ROOT)},
+            start_new_session=True,
+        )
+        os.close(slave)
+        received = bytearray()
+
+        def read_until(marker):
+            deadline = time.monotonic() + 10
+            while marker not in received:
+                ready, _, _ = select.select([master], [], [], max(0, deadline - time.monotonic()))
+                if not ready:
+                    self.fail(f"TUI output timed out: {received!r}")
+                received.extend(os.read(master, 65536))
+            end = received.index(marker) + len(marker)
+            data = bytes(received[:end])
+            del received[:end]
+            return data
+
+        def verify_image(packet):
+            path = shlex.split(packet.split(BRACKET_START)[-1].removesuffix(BRACKET_END).decode())[0]
+            self.assertEqual(Path(path).read_bytes(), PNG)
+            self.assertEqual(stat.S_IMODE(Path(path).stat().st_mode), 0o600)
+
+        endpoint = tui_socket(self.session)
+        route = forward_route(self.session)
+        try:
+            read_until(b"READY")
+            os.write(master, b"\x16")
+            verify_image(read_until(BRACKET_END))
+            packet = b"image/png\0" + PNG
+            self.assertEqual(request_operation(endpoint, b"I", packet), b"")
+            verify_image(read_until(BRACKET_END))
+
+            xprop = self.directory / "bin/xprop"
+            xprop.write_text(f'#!/bin/sh\nprintf \'_ZMX_SESSION(UTF8_STRING) = "{self.session}"\\n\'\n')
+            xprop.chmod(0o755)
+            forward_route(self.session, str(endpoint))
+            self.run_bridge("paste-image-window", "123")
+            verify_image(read_until(BRACKET_END))
+
+            text = BRACKET_START + b"text containing \x16" + BRACKET_END
+            os.write(master, text)
+            self.assertEqual(read_until(BRACKET_END), text)
+            os.write(master, b"EXIT")
+            self.assertEqual(process.wait(timeout=5), 23)
+            self.assertFalse(endpoint.exists())
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            route.unlink(missing_ok=True)
+            endpoint.unlink(missing_ok=True)
+            os.close(master)
 
     def test_rejects_unsafe_path_and_protocol(self):
         self.path.symlink_to(self.clipboard)

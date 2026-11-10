@@ -1,2 +1,15 @@
 #!env zsh
-"${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/clipboard-bridge" paste "$@"
+if [[ -n "${ZMX_SESSION-}" && ( -n "${SSH_CONNECTION-}" || -n "${SSH_TTY-}" ) ]]; then
+  "${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/clipboard-bridge" paste "$@"
+elif [[ -n "${WAYLAND_DISPLAY-}" ]] && (( ${+commands[wl-paste]} )); then
+  wl-paste --no-newline
+elif [[ -n "${DISPLAY-}" ]] && (( ${+commands[xclip]} )); then
+  xclip -selection clipboard -out
+elif (( ${+commands[pbpaste]} )); then
+  pbpaste
+elif (( ${+commands[powershell.exe]} )); then
+  powershell.exe -NoProfile -Command 'Get-Clipboard -Raw'
+else
+  print -u2 -- 'p: no local clipboard provider is available'
+  return 1
+fi

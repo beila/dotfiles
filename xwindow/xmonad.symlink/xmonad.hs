@@ -115,6 +115,15 @@ telegramCopyFallback =
                     ++ show window
                     ++ " ctrl+c"
 
+clipboardImagePaste :: X ()
+clipboardImagePaste =
+    withFocused $ \window -> do
+        appClass <- runQuery className window
+        if appClass == C.ghosttyClass
+            then spawn $ "$HOME/.dotfiles/bin/clipboard-bridge paste-image-window " ++ show window
+            else when (appClass == "neovide" || appClass == "Neovide") $
+                spawn $ "xdotool key --clearmodifiers --window " ++ show window ++ " F20"
+
 resetStrutsOnStartup :: X ()
 resetStrutsOnStartup =
     broadcastMessage (SetStruts [minBound .. maxBound] []) >> refresh
@@ -372,6 +381,7 @@ myKeys =
     , -- F19 follows XF86Copy and F24 in the keyd Super+C macro.
       -- Telegram Web needs the conventional Ctrl+C event for message copies.
       ((0, xK_F19), telegramCopyFallback)
+    , ((0, xK_F20), clipboardImagePaste)
     , -- Super+C / Super+V use the keyd universal copy and paste macros.
       ((mod4Mask .|. shiftMask, xK_v), spawn "copyq toggle") -- clipboard history picker
     , ((0, xF86XK_TouchpadToggle), spawn "$HOME/.dotfiles/xwindow/bin/albert-toggle") -- Super tap via keyd (prog1 = f21)

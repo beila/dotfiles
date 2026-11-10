@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "${DOTFILES_ROOT:-$HOME/.dotfiles}/bin/clipboard-bridge" provider wl-copy "$@"
