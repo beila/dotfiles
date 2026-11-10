@@ -436,7 +436,7 @@ local function picker_header(state)
 	end
 
 	return string.format(
-		"[%s] %s (ctrl-h)  [%s] files (ctrl-s)  insert after (ctrl-o)  copy commit-id (ctrl-x)",
+		"[%s] %s (ctrl-h)  [%s] files (ctrl-s)  insert after (ctrl-o)  copy commit-id (ctrl-y/ctrl-x)",
 		history_checked and "x" or " ",
 		history_label,
 		state.files and "x" or " "
@@ -506,6 +506,11 @@ open_picker = function(state)
 				reload = true,
 			},
 			["ctrl-x"] = {
+				fn = copy_commit_ids,
+				exec_silent = true,
+				header = false,
+			},
+			["ctrl-y"] = {
 				fn = copy_commit_ids,
 				exec_silent = true,
 				header = false,

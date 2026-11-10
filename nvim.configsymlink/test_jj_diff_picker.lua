@@ -158,6 +158,11 @@ for _, register in ipairs({ '"', "0" }) do
 		fail("ctrl-x did not copy the selected commit ID to register " .. register)
 	end
 end
+vim.fn.setreg("+", "")
+captured.opts.actions["ctrl-y"].fn({ target_row })
+if test_clipboard["+"] ~= expected_commit then
+	fail("ctrl-y did not copy the selected commit ID to the system clipboard")
+end
 
 captured.opts.actions["ctrl-h"].fn({ target_row, "1" }, { last_query = "" })
 assert_contains(captured.opts.prompt, "file revisions", "unfiltered prompt")

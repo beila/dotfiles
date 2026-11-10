@@ -138,6 +138,26 @@ the watcher and metadata on exit. The work `jc` supervisor retries exit 255
 after network and credential checks; the generic helper itself runs one
 attachment. Test: `bash bin/test_zmx_remote_attach.sh`.
 
+Each attachment also starts `clipboard-bridge serve` in a private temporary
+directory and forwards a Unix socket from the remote host over its main SSH
+connection. The remote socket lives in `/tmp/dotfiles-clipboard-<uid>/`,
+which must belong to that user and have mode `0700`. Its filename is a hash
+of the remote zmx session name. The preparatory SSH command removes only an
+existing socket owned by that user. A reconnect therefore replaces the
+endpoint without changing the persistent shell's environment. The latest
+attachment to a remote session supplies its clipboard.
+
+`clipboard-bridge copy [FILE...]` and `paste` choose the session socket in
+SSH zmx shells and the native desktop provider elsewhere. The server always
+uses its own native provider. This supports both directions without OSC 52
+or clipboard reads through the terminal. Missing remote support produces a
+warning while preserving SSH access. A forwarding failure aborts that
+connection so `jc` can retry. The local server and temporary directory are
+removed on detach, disconnect, and termination. Test:
+`python3 bin/test_clipboard_bridge.py` covers native and forwarded bytes,
+shell functions, reconnection, invalid requests, provider failures, and
+Neovim's provider and nvim-tree `Y`.
+
 A newly started remote connection can put the zmx server below the terminal client. Process discovery follows this chain to the session shell. Therefore, scan order cannot replace the live cwd with the server's start directory.
 
 A remote host can expose a physical cwd that differs from its logical `$HOME`. The picker shortens both home paths to `~`.

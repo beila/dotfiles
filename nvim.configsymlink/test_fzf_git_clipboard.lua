@@ -37,6 +37,10 @@ dofile(config_root .. "/vimrcs/fzf.lua")
 if not setup or not setup.git then
 	fail("fzf-lua Git configuration was not captured")
 end
+if not setup.actions.files["ctrl-y"].exec_silent
+	or setup.actions.files["ctrl-y"].fn ~= require("picker-clipboard").copy_files then
+	fail("file pickers do not define the Ctrl-Y clipboard action")
+end
 
 for _, provider in ipairs({ "commits", "bcommits", "blame", "reflog" }) do
 	local action = setup.git[provider].actions["ctrl-y"]

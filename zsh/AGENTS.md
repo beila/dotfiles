@@ -40,8 +40,14 @@
 
 ## Functions (`zsh/functions/`)
 
-- `c` — copy (Wayland/X11 aware)
-- `p` — paste (Wayland/X11 aware)
+- `c` — copy standard input or files through `bin/clipboard-bridge`.
+- `p` — print clipboard contents through the same helper.
+- Both commands use the desktop clipboard locally. In an SSH zmx session,
+  they use the session's private forwarded socket to reach the client clipboard.
+  Reattaching with `jc` replaces that socket, so existing shells follow the
+  new connection. A disconnected session reports an error instead of using
+  the remote desktop clipboard. Local providers support Wayland, X11,
+  macOS, and WSL. Test: `python3 bin/test_clipboard_bridge.py`.
 - `o` — open (Wayland/X11 aware)
 - `say_done` — TTS notification when commands >10s finish; only on desktop machines; runs in a background subshell with stdio discarded, so backend notices (e.g. the Edge→Piper fallback) never print over the next prompt. Calls `bin/say` (see `bin/AGENTS.md`).
 - `ju` — jj unique

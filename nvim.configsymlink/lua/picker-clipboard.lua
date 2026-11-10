@@ -34,4 +34,17 @@ function M.copy_git_commit(selected, opts)
 	return commit_hash
 end
 
+function M.copy_files(selected, opts)
+	opts = opts or {}
+	local path = require("fzf-lua.path")
+	local paths = {}
+	for _, line in ipairs(selected or {}) do
+		local filename = path.entry_to_file(line, opts).path
+		if filename and filename ~= "" then
+			table.insert(paths, path.relative_to(filename, opts.cwd or opts._cwd or vim.fn.getcwd()))
+		end
+	end
+	return M.copy(table.concat(paths, "\n"))
+end
+
 return M

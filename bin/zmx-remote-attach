@@ -8,12 +8,21 @@
 # state and cwd of the remote session into a runtime file. zmx-select reads
 # that file, so the picker opens without a remote query.
 
+# SSH evaluates the quoted command on the remote host.
+# shellcheck disable=SC2029,SC2088
+
 set -uo pipefail
 
 host=${1:?usage: zmx-remote-attach HOST [REMOTE_NAME]}
 local_name=${ZMX_SESSION:?zmx-remote-attach must run inside a local zmx session}
 remote_name=${2:-$local_name}
 printf -v remote_q '%q' "$remote_name"
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+ssh_options=(-o BatchMode=yes -o ConnectTimeout=10
+    -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
+clipboard_dir=
+clipboard_pid=
+clipboard_options=()
 
 remote_dir=${ZMX_REMOTE_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/remote"}
 mkdir -p "$remote_dir"
@@ -30,8 +39,7 @@ watch_remote() {
         while IFS= read -r line; do
             delay=2
             printf '%s\n' "$line" > "$state.tmp" && mv -f -- "$state.tmp" "$state"
-        done < <(ssh -o BatchMode=yes -o ConnectTimeout=10 \
-            -o ServerAliveInterval=15 -o ServerAliveCountMax=3 "$host" \
+        done < <(ssh "${ssh_options[@]}" "$host" \
             "exec ~/.dotfiles/bin/zmx-select --stream-state $remote_q" \
             < /dev/null 2> /dev/null)
         rm -f -- "$state"
@@ -50,6 +58,11 @@ set +m
 cleanup() {
     kill -- "-$watcher" 2> /dev/null
     wait "$watcher" 2> /dev/null || true
+    if [[ -n $clipboard_pid ]]; then
+        kill "$clipboard_pid" 2> /dev/null
+        wait "$clipboard_pid" 2> /dev/null || true
+    fi
+    [[ -z $clipboard_dir ]] || rm -rf -- "$clipboard_dir"
     rm -f -- "$meta" "$state" "$state.tmp"
 }
 trap cleanup EXIT
@@ -57,6 +70,29 @@ trap 'exit 130' INT
 trap 'exit 129' HUP
 trap 'exit 143' TERM
 
-ssh -t -o BatchMode=yes -o ConnectTimeout=10 \
-    -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+start_clipboard() {
+    local remote_socket
+    remote_socket=$(ssh "${ssh_options[@]}" "$host" \
+        "~/.dotfiles/bin/clipboard-bridge prepare $remote_q" < /dev/null) || return
+    [[ $remote_socket =~ ^/tmp/dotfiles-clipboard-[0-9]+/[0-9a-f]+\.sock$ ]] || return 1
+    clipboard_dir=$(mktemp -d /tmp/clipboard-bridge.XXXXXXXX) || return
+    "$script_dir/clipboard-bridge" serve "$clipboard_dir/socket" &
+    clipboard_pid=$!
+    for _ in {1..100}; do
+        if [[ -S $clipboard_dir/socket ]]; then
+            clipboard_options=(-o ExitOnForwardFailure=yes -o StreamLocalBindMask=0177
+                -R "$remote_socket:$clipboard_dir/socket")
+            return 0
+        fi
+        kill -0 "$clipboard_pid" 2>/dev/null || return 1
+        sleep 0.02
+    done
+    return 1
+}
+
+if ! start_clipboard; then
+    printf 'zmx-remote-attach: clipboard unavailable; update dotfiles on both hosts\n' >&2
+fi
+
+ssh -t "${ssh_options[@]}" "${clipboard_options[@]}" \
     "$host" "exec zmx attach $remote_q zsh -l"

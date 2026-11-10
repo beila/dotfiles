@@ -3,6 +3,10 @@ local jj_diff_picker = require("jj-diff-picker")
 local jj_workspace_picker = require("jj-workspace-picker")
 local picker_clipboard = require("picker-clipboard")
 
+local file_actions = vim.tbl_extend("force", fzf_lua.defaults.actions.files, {
+    ["ctrl-y"] = { fn = picker_clipboard.copy_files, exec_silent = true, header = "copy path" },
+})
+
 fzf_lua.setup_fzfvim_cmds()
 
 local script_dir = vim.fn.fnamemodify(debug.getinfo(1, 'S').source:sub(2), ':h')
@@ -34,7 +38,7 @@ vim.keymap.set({ "n", "v", "i" }, "<leader>f",
                     preview = 'bat --style=numbers --color=always -- {1} 2>/dev/null || ls -1A --color=always {1}',
                     fzf_opts = { ['--header'] = header() },
                 }
-                opts.actions = vim.tbl_extend('force', fzf_lua.defaults.actions.files, {
+                opts.actions = vim.tbl_extend('force', file_actions, {
                     ['ctrl-g'] = { fn = function(_, opts)
                         show_sub = not show_sub
                         fzf_lua.fzf_exec(cur_cmd(), make_opts(opts.last_query))
@@ -72,7 +76,7 @@ vim.keymap.set({ "n", "v", "i" }, "<C-g><C-f>",
                 cwd = vim.trim(root.stdout),
                 previewer = false,
                 preview = 'jj --quiet diff --color=always -- {1}',
-                actions = fzf_lua.defaults.actions.files,
+                actions = file_actions,
             })
         else
             fzf_lua.git_status()
@@ -275,6 +279,7 @@ fzf_lua.setup({
         ['--no-mouse'] = true,
     },
     defaults = { file_icons = false },
+    actions = { files = file_actions },
     git = {
         commits = { actions = { ["ctrl-y"] = git_copy_action() } },
         bcommits = { actions = { ["ctrl-y"] = git_copy_action() } },

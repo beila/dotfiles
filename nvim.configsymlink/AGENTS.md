@@ -113,7 +113,7 @@ also covers Gradle processes launched directly from the flake shell.
   `#s-1` entries. ATX and Setext headings remain visible. The F8 mapping
   snapshots source lines before the asynchronous LSP request starts. Regression
   coverage: `test_fzf_lsp_symbols.lua`.
-  Git commit, buffer-commit, blame, and reflog pickers override `Ctrl-Y` with the shared `picker-clipboard` action. It copies the selected commit ID to the system `+` clipboard plus the unnamed and yank registers without enabling `clipboard=unnamedplus`, so normal `yy`/`p` remain isolated. Regression coverage: `test_fzf_git_clipboard.lua`.
+  Git commit, buffer-commit, blame, and reflog pickers override `Ctrl-Y` with the shared `picker-clipboard` action. It copies the selected commit ID to the system `+` clipboard plus the unnamed and yank registers without enabling `clipboard=unnamedplus`, so normal `yy`/`p` remain isolated. File pickers, including `<C-g><C-f>` for changed files, use `Ctrl-Y` to copy selected paths relative to the picker directory. Paths retain spaces and omit display colours and icons. The JJ revision picker accepts both `Ctrl-Y` and `Ctrl-X` for commit IDs. Regression coverage: `test_fzf_git_clipboard.lua` and `test_jj_diff_picker.lua`.
 
   **Grep dialog toggles** appear in a stacked header. `Ctrl-R` runs `actions.toggle_ignore`, `Ctrl-G` runs `actions.grep_lgrep`, `Ctrl-W` toggles `--word-regexp`, and `Ctrl-S` toggles `--case-sensitive`. The two flag toggles use a local `toggle_rg_flag` helper instead of `actions.toggle_flag`. It inserts the flag immediately before the trailing `-e`, keeping the user's query as the ripgrep pattern. It also positions the flag after `--smart-case`, so ripgrep's last case flag takes effect. `Ctrl-S` shadows the inherited `file_split` action only within grep.
 
@@ -131,6 +131,16 @@ Prefer nix (`home-manager.configsymlink/nvim.nix`) over Mason. Mason is only for
 A sibling-repo home-manager module appends a snippet to `programs.neovim.initLua` (`lib.mkAfter`) that prepends an extra path to `&runtimepath` for site-specific plugins. Auto-loaded by the main flake's sibling-repo resolution (see `home-manager.configsymlink/AGENTS.md`). Guarded on `vim.fn.isdirectory` so machines without that path are unaffected.
 
 ## Universal copy/paste
+
+`lua/remote-clipboard.lua` runs before the vimrc chain. In an SSH zmx session,
+it installs `bin/clipboard-bridge` as the provider for both `+` and `*`.
+Explicit clipboard yanks, picker actions, and nvim-tree `Y` therefore reach
+the local client through the socket established by `jc`. Each operation
+resolves the session socket again, so an existing Neovim process follows
+reconnections. Reads fetch the current local clipboard with no provider
+cache. Ordinary `yy` and `p` retain their own registers. Local Neovim keeps
+its default native provider. End-to-end coverage:
+`python3 bin/test_clipboard_bridge.py`.
 
 `vimrcs/my-clipboard.lua` maps `<F24>`/`<F20>` AND `<XF86Copy>`/`<XF86Paste>` (sent by keyd's Super+C / Super+V macro): copy yanks visual selection / `<cword>` / cmdline (mode-aware) to `+`; paste uses `"+P` / `"_d"+P` / `<C-r>+` / `<C-\><C-n>"+pi`. Default `yy`/`p` registers stay independent — only Super+C/V crosses to `+`. See `keyd/AGENTS.md`.
 

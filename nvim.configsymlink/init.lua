@@ -4,6 +4,8 @@
 -- pcall so nvim still boots (plugin-less) before the first home-manager switch.
 pcall(require, 'hm-generated')
 
+require('remote-clipboard').setup()
+
 -- https://www.reddit.com/r/neovim/comments/zfimqo/comment/izc156m
 local vimrc = vim.fn.stdpath('config') .. '/vimrc.symlink'
 vim.cmd.source(vimrc)
