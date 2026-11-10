@@ -72,9 +72,13 @@
         # ignition_find_package calls pkg-config with --define-variable=prefix=//usr.
         # On Ubuntu this has no effect. Nix .pc files that use ${libdir} in Cflags then point
         # into the host /usr/lib, so add those include directories directly.
+        # Ubuntu also puts all GStreamer headers in one /usr/include/gstreamer-1.0 directory.
+        # The MPB targets use only the gstreamer-1.0 include directory, so add the plugin headers.
         NIX_CFLAGS_COMPILE = toString [
           "-isystem ${pkgs.glib.out}/lib/glib-2.0/include"
           "-isystem ${gst.gst-plugins-base.out}/lib/gstreamer-1.0/include"
+          "-isystem ${gst.gst-plugins-base.dev}/include/gstreamer-1.0"
+          "-isystem ${gst.gst-plugins-bad.dev}/include/gstreamer-1.0"
         ];
 
         IGNX_GCC48_TOOLCHAIN_FILE = toolchainFile;
