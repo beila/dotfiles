@@ -130,7 +130,7 @@ Enter attaches. For a stopped saved session, it stages the persisted output, pri
 
 **Remote sessions.** `zmx-remote-attach HOST [REMOTE_NAME]` attaches to the zmx session of the same name on HOST (`ssh -t HOST "exec zmx attach NAME zsh -l"`); the work `just c` recipe calls it. While ssh runs, it writes `host<TAB>remote name<TAB>helper pid` to `$XDG_RUNTIME_DIR/zmx-select/remote/NAME` and runs a watcher with a second ssh connection to `zmx-select --stream-state NAME` on HOST. The stream prints `state<TAB>cwd` when either changes (it checks every 0.5 s) and repeats the line every 10 s, so the remote process ends soon after the connection closes. The watcher writes each line to `NAME.state`, reconnects with backoff (2 s to 30 s), and is stopped with its process group on exit. The picker reads only those files and never queries a remote host, so it opens without delay; the remote state is at most about 0.5 s old.
 
-Both SSH connections use batch authentication, a 10-second connection timeout,
+All three SSH connections use batch authentication, a 10-second connection timeout,
 and 15-second keepalives with three missed replies allowed. These options
 override longer host defaults so a silent connection loss becomes detectable
 in about 45 seconds. The helper preserves the main SSH exit status and removes
@@ -157,6 +157,10 @@ removed on detach, disconnect, and termination. Test:
 `python3 bin/test_clipboard_bridge.py` covers native and forwarded bytes,
 shell functions, reconnection, invalid requests, provider failures, and
 Neovim's provider and nvim-tree `Y`.
+Set `CLIPBOARD_TEST_SSH_HOST` to test remote `c`, `p`, and Neovim through
+a real SSH forward. The host must already have the helper installed.
+The test uses an isolated clipboard file and leaves the desktop clipboard
+untouched.
 
 A newly started remote connection can put the zmx server below the terminal client. Process discovery follows this chain to the session shell. Therefore, scan order cannot replace the live cwd with the server's start directory.
 

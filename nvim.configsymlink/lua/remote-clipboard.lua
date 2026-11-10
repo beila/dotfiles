@@ -18,12 +18,18 @@ function M.setup()
 		end
 		return result.stdout
 	end
-	local function copy(lines)
-		run("copy", table.concat(lines, "\n"))
+	local copied
+	local function copy(lines, regtype)
+		local text = table.concat(lines, "\n")
+		if run("copy", text) ~= nil then
+			copied = { text = text, regtype = regtype }
+		end
 	end
 	local function paste()
 		local text = run("paste") or ""
-		return { vim.split(text, "\n", { plain = true }), "v" }
+		local regtype = copied and text == copied.text and copied.regtype
+			or (text:sub(-1) == "\n" and "V" or "v")
+		return { vim.split(text, "\n", { plain = true }), regtype }
 	end
 	vim.g.clipboard = {
 		name = "local clipboard over SSH",
