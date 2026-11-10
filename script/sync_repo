@@ -91,8 +91,6 @@ release_local_lock() {
     LOCAL_LOCK_HELD=0
 }
 
-acquire_local_lock
-
 # Run a command with both descriptors closed so a daemonizing child cannot
 # inherit either lock. The parent retains whichever locks it currently owns.
 run_without_lock() {
@@ -539,6 +537,9 @@ prepare_push_transport() {
 
 cleanup_push_transport() {
     local rc=$?
+    if [ -n "${SYNC_SIGNAL:-}" ]; then
+        log ERROR "INTERRUPTED signal=$SYNC_SIGNAL phase=$SYNC_PHASE rc=$rc"
+    fi
     log_finalize
     case "${PUSH_GIT_DIR:-}" in
         /tmp/sync_repo_push_git.*) rm -rf -- "$PUSH_GIT_DIR" ;;
@@ -1349,7 +1350,16 @@ finalize_listed_bookmarks() {
 }
 
 # --- main ---------------------------------------------------------------------
+SYNC_SIGNAL=
+SYNC_PHASE=startup
 log INFO "START"
+trap cleanup_push_transport EXIT
+trap 'SYNC_SIGNAL=HUP; exit 129' HUP
+trap 'SYNC_SIGNAL=INT; exit 130' INT
+trap 'SYNC_SIGNAL=TERM; exit 143' TERM
+
+SYNC_PHASE=local-lock
+acquire_local_lock
 
 # Read sync configuration. Both keys are independently optional:
 #   sync.remote-bookmark = "BOOKMARK@REMOTE"   (e.g. "main@backup")
@@ -1359,6 +1369,7 @@ log INFO "START"
 #     Drives the per-host snapshot flow: raw git push to URL with no jj
 #     remote tracking. Snapshots happen FIRST so they always land before
 #     the bookmark-sync flow makes any local changes.
+SYNC_PHASE=configuration
 SYNC_BM=""
 SYNC_REMOTE=""
 remote_bookmark=$(jj config get sync.remote-bookmark 2>/dev/null || true)
@@ -1386,7 +1397,6 @@ parse_listed_bookmarks "$(jj config get sync.bookmarks 2>/dev/null || true)"
 
 resolve_git_dir
 prepare_push_transport
-trap cleanup_push_transport EXIT
 cleanup_stale_tmp_packs
 
 # --- repo health gate ----------------------------------------------------------
@@ -1418,6 +1428,7 @@ step_check_repo_health() {
     fi
     rm -f "$err"
 }
+SYNC_PHASE=repo-health
 step_check_repo_health
 
 # --- free-space gate ------------------------------------------------------------
@@ -1436,6 +1447,7 @@ step_check_free_space() {
         fi
     done
 }
+SYNC_PHASE=free-space
 step_check_free_space
 
 # --- imported snapshot refs ------------------------------------------------------
@@ -1482,10 +1494,13 @@ step_forget_snapshot_tracking_refs() {
     fi
     rm -f "$list"
 }
+SYNC_PHASE=snapshot-ref-cleanup
 step_forget_snapshot_tracking_refs
 
+SYNC_PHASE=workspace-update
 jj workspace update-stale 2>/dev/null || true
 
+SYNC_PHASE=pre-snapshot
 if ! run_sync_hook pre-snapshot; then
     log ERROR "ABORT: sync.pre-snapshot failed before snapshot creation"
     exit 1
@@ -1493,6 +1508,7 @@ fi
 
 # Only repositories that push need portable content. The capture step must come
 # before the first snapshot, so that the home directory never enters a commit.
+SYNC_PHASE=home-template-capture
 if [ -n "$SYNC_BM" ] || [ -n "$SNAPSHOT_URL" ] || [ ${#LB_NAME[@]} -gt 0 ]; then
     if ! run_home_template capture; then
         log ERROR "ABORT: home-template capture failed before snapshot creation"
@@ -1503,6 +1519,7 @@ fi
 # Surface files that jj refuses to snapshot (size limit). Those files
 # silently bypass the whole sync — flag them as ERROR so the user can
 # either delete or raise snapshot.max-new-file-size per repo.
+SYNC_PHASE=snapshot
 check_refused_snapshots
 
 snapshot_at_to_push_rev
@@ -1511,6 +1528,7 @@ snapshot_at_to_push_rev
 # WIP and giving it a description is worth doing on its own — it's what makes
 # `jj log` readable and the repo push-ready — and needs no remote. Everything
 # past this point exists to serve a push, so it stays behind the gate.
+SYNC_PHASE=describe
 if [ -z "$SYNC_BM" ] && [ -z "$SNAPSHOT_URL" ] && [ ${#LB_NAME[@]} -eq 0 ]; then
     step_describe_local_chain
     log INFO "NO-SYNC-CONFIG: committed and described locally; none of sync.remote-bookmark, sync.snapshot-url, sync.bookmarks set"
@@ -1520,6 +1538,7 @@ fi
 resolve_workspace_name
 
 step_describe_local_chain
+SYNC_PHASE=prepare-transports
 prepare_snapshot_refs
 prepare_repo_history
 prepare_remote_transport
@@ -1531,16 +1550,21 @@ release_local_lock
 
 # CRITICAL ORDER: snapshot push FIRST. Whatever the user had when the immutable
 # commit IDs were captured is backed up before reconciliation can rewrite it.
+SYNC_PHASE=snapshot-push
 load_snapshot_remote_refs || true
 push_prepared_snapshots
+SYNC_PHASE=repo-history-push
 push_repo_history
+SYNC_PHASE=repo-history-fetch
 fetch_repo_history
+SYNC_PHASE='bookmark-fetch'
 fetch_remote_bookmark_objects
 fetch_listed_bookmarks
 
 # Import the fetched Git ref and perform all jj reconciliation under the short
 # local-state lock. Any push is represented by an immutable commit ID before
 # the lock is released again.
+SYNC_PHASE=reconcile
 acquire_local_lock
 apply_fetched_remote
 apply_fetched_listed
@@ -1549,17 +1573,22 @@ reconcile_listed_bookmarks
 prepare_bookmark_sync
 
 if [ -n "$BOOKMARK_PUSH_OID" ] || [ "$LB_HAS_PUSH" = "1" ]; then
+    SYNC_PHASE='bookmark-push'
     release_local_lock
     push_prepared_bookmark
     push_listed_bookmarks
+    SYNC_PHASE=finalize-bookmarks
     acquire_local_lock
     finalize_bookmark_push
     finalize_listed_bookmarks
 fi
 
 final_rc=0
+SYNC_PHASE=rebase
 step_rebase_local_chain
+SYNC_PHASE=home-template-render
 run_home_template render || final_rc=1
+SYNC_PHASE=post-update
 run_sync_hook post-update || final_rc=1
 release_local_lock
 exit "$final_rc"
