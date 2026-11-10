@@ -215,6 +215,17 @@ classify_cmd() {
     return $rc
 }
 
+# A server can store the ref before the client reports failure.
+push_destination_matches() {
+    local url=$1 branch=$2 commit=$3 output actual
+    if ! output=$(run_without_lock timeout --kill-after=10 "$SYNC_REPO_CMD_TIMEOUT" \
+        "$GIT" --git-dir="$PUSH_GIT_DIR" ls-remote --heads "$url" "$branch" 2>/dev/null); then
+        return 1
+    fi
+    actual=$(printf '%s\n' "$output" | awk -v ref="$branch" '$2 == ref { print $1 }')
+    [ "$actual" = "$commit" ]
+}
+
 # try_atomic_force_replace <tag> <url> <commit> <branch> <expected>
 # Return 2 only when the server rejects force updates.
 try_atomic_force_replace() {
@@ -234,6 +245,12 @@ try_atomic_force_replace() {
         2>"$err"
     rc=$?
     if [ "$rc" -eq 0 ]; then
+        rm -f "$err"
+        return 0
+    fi
+    if push_destination_matches "$url" "$branch" "$commit"; then
+        log INFO "PUSH-VERIFIED $tag rev=$commit after git exited $rc"
+        log DEBUG "PUSH-RESPONSE $tag: $(_summarize_stderr "$err")"
         rm -f "$err"
         return 0
     fi
