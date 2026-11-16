@@ -138,6 +138,14 @@ the watcher and metadata on exit. The work `jc` supervisor retries exit 255
 after network and credential checks; the generic helper itself runs one
 attachment. Test: `bash bin/test_zmx_remote_attach.sh`.
 
+On exit, the helper restores the saved terminal settings and disables remote
+keyboard, mouse, focus, and bracketed-paste modes. It also leaves the alternate
+screen and restores the cursor. An interrupted remote application can leave
+these modes active after SSH ends; cleanup prevents control keys and mouse
+movement from appearing as escape sequences during a reconnect wait. The helper
+preserves the SSH exit status and does not write terminal controls for
+noninteractive calls.
+
 Each attachment also starts `clipboard-bridge serve` in a private temporary
 directory and forwards a Unix socket from the remote host over its main SSH
 connection. The remote socket lives in `/tmp/dotfiles-clipboard-<uid>/`,

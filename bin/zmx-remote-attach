@@ -24,6 +24,10 @@ clipboard_dir=
 clipboard_pid=
 clipboard_route=
 clipboard_options=()
+terminal_state=
+if [[ -t 0 ]]; then
+    terminal_state=$(stty -g 2>/dev/null) || terminal_state=
+fi
 
 remote_dir=${ZMX_REMOTE_DIR:-"${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/zmx-select/remote"}
 mkdir -p "$remote_dir"
@@ -57,6 +61,7 @@ watcher=$!
 set +m
 
 cleanup() {
+    local status=$?
     kill -- "-$watcher" 2> /dev/null
     wait "$watcher" 2> /dev/null || true
     if [[ -n $clipboard_pid ]]; then
@@ -69,6 +74,17 @@ cleanup() {
     fi
     [[ -z $clipboard_dir ]] || rm -rf -- "$clipboard_dir"
     rm -f -- "$meta" "$state" "$state.tmp"
+    if [[ -n $terminal_state ]]; then
+        stty "$terminal_state" 2>/dev/null || true
+        # A disconnected remote application cannot restore the local terminal modes.
+        {
+            printf '\033[<u\033[=0u\033[>4;0m'
+            printf '\033[?9l\033[?1000l\033[?1002l\033[?1003l'
+            printf '\033[?1004l\033[?1005l\033[?1006l\033[?1015l\033[?1016l'
+            printf '\033[?2004l\033[?1049l\033[0m\033[?25h'
+        } > /dev/tty 2>/dev/null || true
+    fi
+    return "$status"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
