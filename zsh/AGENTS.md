@@ -34,7 +34,7 @@
 - `autosuggestions.zsh` — `zsh-autosuggestions` (nix).
 - `git.zsh` — git aliases, no git-flow.
 - `gnu-utility.zsh` — g-prefixed GNU utils on macOS, no-op on Linux.
-- `p10k.zsh` — powerlevel10k (nix) + user config.
+- `p10k.zsh` — powerlevel10k (nix) + user configuration. Caches `hostnamectl --pretty` once per shell, with the short `$HOST` as a fallback. The existing context segment uses this name and keeps its visibility rules. Remote interactive shells print a yellow `REMOTE user@host` banner before the first prompt, with the zmx session name when present. The banner appears once per shell; local shells and `zsh -ic` commands print no banner. Test: `python3 zsh/test_p10k.py` uses the installed theme in a pseudo-terminal.
 - `print_actual_command.zsh` — defines `print_actual_command` (echoes pre-alias-expansion command line). Dormant: the `add-zsh-hook` registration is commented out, so the function is dead code unless re-enabled.
 - `zz-logrun-auto.zsh` — `accept-line` widget that auto-wraps interactive prompt commands in `logrun --auto`. Loaded last (the `zz-` prefix wins the alphabetical glob sort) so the widget sits OUTSIDE `zsh-syntax-highlighting`'s and `zsh-autosuggestions`' own `accept-line` wrappers. See "logrun-auto widget" below.
 
