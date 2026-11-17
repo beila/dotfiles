@@ -272,9 +272,11 @@ run_agent() {
             rc=$?
             ;;
         claude:full)
+            # Keep the session. A task can resume one of its subagents, and
+            # the resume needs the saved transcript.
             timeout --kill-after=10 "$timeout_seconds" "$executable" \
                 -p --permission-mode auto --effort high \
-                --no-session-persistence "$prompt" \
+                "$prompt" \
                 >"$output" 2>"$stderr_file"
             rc=$?
             ;;
