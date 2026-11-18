@@ -1,46 +1,31 @@
 {
-  "mcpServers": {
-    "creds-agent": {
-      "command": "aim",
-      "args": [
-        "mcp",
-        "start-server",
-        "local-creds-agent-mcp"
-      ],
-      "env": {
-        "AIM_CREDS_AGENT_URL_KIRO": "${AIM_CREDS_AGENT_URL}",
-        "AIM_CREDS_AGENT_INJECTION": "1c110e7b-daa4-4eed-8f41-ac8512631e78"
+  "mcpServers" : {
+    "creds-agent" : {
+      "command" : "aim",
+      "args" : [ "mcp", "start-server", "local-creds-agent-mcp" ],
+      "env" : {
+        "AIM_CREDS_AGENT_URL_KIRO" : "${AIM_CREDS_AGENT_URL}",
+        "AIM_CREDS_AGENT_INJECTION" : "1c110e7b-daa4-4eed-8f41-ac8512631e78"
       }
     }
   },
-  "tools": [
-    "@creds-agent"
-  ],
-  "allowedTools": [
-    "@creds-agent"
-  ],
-  "permissions": {
-    "rules": [
-      {
-        "capability": "mcp",
-        "match": [
-          "creds-agent/*"
-        ],
-        "effect": "allow"
-      },
-      {
-        "capability": "fs_read",
-        "match": [
-          "./**"
-        ],
-        "effect": "allow"
-      }
-    ]
+  "tools" : [ "@creds-agent" ],
+  "allowedTools" : [ "@creds-agent" ],
+  "permissions" : {
+    "rules" : [ {
+      "capability" : "mcp",
+      "match" : [ "creds-agent/*" ],
+      "effect" : "allow"
+    }, {
+      "capability" : "fs_read",
+      "match" : [ "./**" ],
+      "effect" : "allow"
+    } ]
   },
-  "toolsSettings": {},
-  "kiroUpgrade": {
-    "revision": 3,
-    "fingerprint": "sha256:a6ba7d61893e580e340e5132cc5a4f569f339d909bbd98d70d2d366d63ed975b",
-    "source": "sha256:703a2c982144a23d3307dc79245f5deb6cc778a86c1a1f302f1912b14aa19872"
+  "toolsSettings" : { },
+  "kiroUpgrade" : {
+    "revision" : 3,
+    "fingerprint" : "sha256:a6ba7d61893e580e340e5132cc5a4f569f339d909bbd98d70d2d366d63ed975b",
+    "source" : "sha256:703a2c982144a23d3307dc79245f5deb6cc778a86c1a1f302f1912b14aa19872"
   }
 }
