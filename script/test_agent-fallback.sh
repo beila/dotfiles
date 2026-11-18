@@ -75,6 +75,17 @@ selected=$(run_fallback)
 [ "$selected" = codex ] || exit 1
 [ "$(cat "$tmp/calls")" = codex ] || exit 1
 ! rg -q -- '-s workspace-write' "$tmp/codex-args" || exit 1
+! rg -q -- '--skip-git-repo-check' "$tmp/codex-args" || exit 1
+
+mkdir -p "$tmp/work/.jj"
+selected=$(run_fallback)
+[ "$selected" = codex ] || exit 1
+rg -q -- '--skip-git-repo-check' "$tmp/codex-args" || exit 1
+selected=$(run_fallback --mode text)
+[ "$selected" = codex ] || exit 1
+rg -q -- '--skip-git-repo-check' "$tmp/codex-args" || exit 1
+rg -q -- '-s read-only' "$tmp/codex-args" || exit 1
+rmdir "$tmp/work/.jj"
 
 : > "$tmp/calls"
 make_agent codex 'printf "%5000s\nrate limit documentation\n" ""; exit 0'

@@ -253,20 +253,24 @@ final_failure() {
 
 run_agent() {
     local agent=$1 executable=$2 output=$3 stderr_file=$4 console_file=$5 rc
+    local codex_repo_args=()
+    if [ -e "$cwd/.jj" ] && [ ! -e "$cwd/.git" ]; then
+        codex_repo_args=(--skip-git-repo-check)
+    fi
     : > "$output"
     : > "$stderr_file"
     : > "$console_file"
     case "$agent:$mode" in
         codex:full)
             timeout --kill-after=10 "$timeout_seconds" "$executable" \
-                exec --ephemeral --approve-for-me \
+                exec --ephemeral "${codex_repo_args[@]}" --approve-for-me \
                 -C "$cwd" -o "$output" "$prompt" \
                 >"$console_file" 2>"$stderr_file"
             rc=$?
             ;;
         codex:text)
             timeout --kill-after=10 "$timeout_seconds" "$executable" \
-                exec --ephemeral -s read-only \
+                exec --ephemeral "${codex_repo_args[@]}" -s read-only \
                 -C "$cwd" -o "$output" "$prompt" \
                 >"$console_file" 2>"$stderr_file"
             rc=$?
