@@ -2,14 +2,16 @@
 
 let
   xsecurelockPatchedSource = pkgs.applyPatches {
-    name = "xsecurelock-ldap-source";
+    name = "xsecurelock-custom-source";
     src = pkgs.xsecurelock.src;
     patches = [
       ./patches/xsecurelock-ldap-username.patch
+      ./patches/xsecurelock-auth-appearance.patch
     ];
   };
   xsecurelockWithMpv = pkgs.xsecurelock.overrideAttrs (old: {
     src = xsecurelockPatchedSource;
+    buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.imlib2 ];
     configureFlags = (old.configureFlags or [ ]) ++ [
       "--with-mpv=${lib.getExe pkgs.mpv}"
     ];

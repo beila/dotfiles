@@ -86,7 +86,12 @@ picom compositor for focused-window glow. xrender backend (no GL/nixGL needed), 
 
 xmonad + contrib via nix 0.18, xfce4-panel + xfconf, and the xfconf DBus
 activation hook. It installs `xss-lock` and an XSecureLock build whose
-`saver_mpv` helper embeds the Nix `mpv` path. The build has an LDAP username
+`saver_mpv` helper embeds the Nix `mpv` path. An appearance patch adds monitor
+placement percentages and a wallpaper blend for the password dialog. Imlib2
+draws the wallpaper portion directly, so text stays opaque and compositor
+opacity rules are unnecessary. The runner places the dialog near the bottom
+centre with an 80% background colour; an unavailable image leaves it opaque.
+The build has an LDAP username
 fallback because Nix glibc cannot resolve the host account. The launcher gets
 the username from the host `/usr/bin/id`. The `xsecurelockHostPam` activation
 builds only `authproto_pam` with `/usr/bin/gcc` and host `libpam.so.0`, so it can

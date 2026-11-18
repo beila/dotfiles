@@ -85,6 +85,14 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   fits the whole image with black bars. The former `--panscan=1.0` filled the
   screen and cut the edges: a portrait photo on the landscape panel lost most of
   its height.
+- **Lock password dialog**: The XSecureLock appearance patch places the dialog
+  near the bottom centre of each monitor (`AUTH_X_PERCENT=50`,
+  `AUTH_Y_PERCENT=80`). Its background uses 80% of the solid colour and 20%
+  of the selected lock wallpaper, with fully opaque text. Imlib2 draws the
+  matching portion of the fitted wallpaper into the dialog's background
+  pixmap. This works above the compositor without making the desktop visible.
+  A missing or unreadable image leaves the dialog opaque. The runner selects
+  the wallpaper at lock startup; the next lock uses any updated image.
 
 ## Window title tag (`windowTags`)
 

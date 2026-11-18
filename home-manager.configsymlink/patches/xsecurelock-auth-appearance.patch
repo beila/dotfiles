@@ -1,0 +1,200 @@
+--- a/helpers/auth_x11.c
++++ b/helpers/auth_x11.c
+@@ -16,6 +16,7 @@
+ 
+ #include <X11/X.h>     // for Success, None, Atom, KBBellPitch
+ #include <X11/Xlib.h>  // for DefaultScreen, Screen, XFree, True
++#include <Imlib2.h>
+ #include <locale.h>    // for NULL, setlocale, LC_CTYPE, LC_TIME
+ #include <stdio.h>
+ #include <stdlib.h>      // for free, rand, mblen, size_t, EXIT_...
+@@ -248,6 +249,11 @@
+ //! Whether we only want a single auth window.
+ static int single_auth_window = 0;
+ 
++static int auth_x_percent = 50;
++static int auth_y_percent = 50;
++static int auth_background_opacity = 100;
++static Imlib_Image auth_background_image;
++
+ //! If set, we need to re-query monitor data and adjust windows.
+ int per_monitor_windows_dirty = 1;
+ 
+@@ -563,14 +569,77 @@
+   }
+ }
+ 
++static void SetWallpaperBackground(Window window, const Monitor *monitor,
++                                   int x, int y, int w, int h) {
++  if (auth_background_image == NULL || w <= 0 || h <= 0) {
++    return;
++  }
++
++  imlib_context_set_image(auth_background_image);
++  int image_w = imlib_image_get_width();
++  int image_h = imlib_image_get_height();
++  double scale_x = (double)monitor->width / image_w;
++  double scale_y = (double)monitor->height / image_h;
++  double scale = scale_x < scale_y ? scale_x : scale_y;
++  int fit_w = (int)(image_w * scale);
++  int fit_h = (int)(image_h * scale);
++  if (fit_w < 1 || fit_h < 1) {
++    return;
++  }
++  int image_x = monitor->x + (monitor->width - fit_w) / 2;
++  int image_y = monitor->y + (monitor->height - fit_h) / 2;
++  int left = x > image_x ? x : image_x;
++  int top = y > image_y ? y : image_y;
++  int right = x + w < image_x + fit_w ? x + w : image_x + fit_w;
++  int bottom = y + h < image_y + fit_h ? y + h : image_y + fit_h;
++
++  Pixmap background = XCreatePixmap(display, window, w, h,
++                                    DefaultDepth(display, DefaultScreen(display)));
++  XGCValues values = {0};
++  values.foreground = xcolor_background.pixel;
++  GC gc = XCreateGC(display, background, GCForeground, &values);
++  XFillRectangle(display, background, gc, 0, 0, w, h);
++  XFreeGC(display, gc);
++
++  if (left < right && top < bottom) {
++    unsigned char red[256], green[256], blue[256];
++    for (int c = 0; c < 256; ++c) {
++      red[c] = (c * (100 - auth_background_opacity) +
++                (xcolor_background.red / 257) * auth_background_opacity) / 100;
++      green[c] = (c * (100 - auth_background_opacity) +
++                  (xcolor_background.green / 257) * auth_background_opacity) / 100;
++      blue[c] = (c * (100 - auth_background_opacity) +
++                 (xcolor_background.blue / 257) * auth_background_opacity) / 100;
++    }
++    imlib_context_set_display(display);
++    imlib_context_set_visual(DefaultVisual(display, DefaultScreen(display)));
++    imlib_context_set_colormap(DefaultColormap(display, DefaultScreen(display)));
++    imlib_context_set_drawable(background);
++    imlib_context_set_color_modifier(imlib_create_color_modifier());
++    imlib_set_color_modifier_tables(red, green, blue, NULL);
++    imlib_render_image_part_on_drawable_at_size(
++        (left - image_x) * image_w / fit_w,
++        (top - image_y) * image_h / fit_h,
++        ((right - left) * image_w + fit_w - 1) / fit_w,
++        ((bottom - top) * image_h + fit_h - 1) / fit_h,
++        left - x, top - y, right - left, bottom - top);
++    imlib_free_color_modifier();
++    imlib_context_set_color_modifier(NULL);
++  }
++
++  // Use the wallpaper pixels so the desktop stays covered.
++  XSetWindowBackgroundPixmap(display, window, background);
++  XFreePixmap(display, background);
++}
++
+ void CreateOrUpdatePerMonitorWindow(size_t i, const Monitor *monitor,
+                                     int region_w, int region_h, int x_offset,
+                                     int y_offset) {
+   // Desired box.
+   int w = region_w;
+   int h = region_h;
+-  int x = monitor->x + (monitor->width - w) / 2 + x_offset;
+-  int y = monitor->y + (monitor->height - h) / 2 + y_offset;
++  int x = monitor->x + (monitor->width - w) * auth_x_percent / 100 + x_offset;
++  int y = monitor->y + (monitor->height - h) * auth_y_percent / 100 + y_offset;
+   // Clip to monitor.
+   if (x < 0) {
+     w += x;
+@@ -590,6 +659,7 @@
+   if (i < num_windows) {
+     // Move the existing window.
+     XMoveResizeWindow(display, windows[i], x, y, w, h);
++    SetWallpaperBackground(windows[i], monitor, x, y, w, h);
+     return;
+   }
+ 
+@@ -625,6 +695,8 @@
+     XRestackWindows(display, stacking_order, 2);
+   }
+ 
++  SetWallpaperBackground(windows[i], monitor, x, y, w, h);
++
+   // Create its data structures.
+   XGCValues gcattrs;
+   gcattrs.function = GXcopy;
+@@ -1614,6 +1686,27 @@
+   auth_sounds = GetIntSetting("XSECURELOCK_AUTH_SOUNDS", 0);
+   single_auth_window = GetIntSetting("XSECURELOCK_SINGLE_AUTH_WINDOW", 0);
+   auth_cursor_blink = GetIntSetting("XSECURELOCK_AUTH_CURSOR_BLINK", 1);
++  auth_x_percent = GetIntSetting("XSECURELOCK_AUTH_X_PERCENT", 50);
++  auth_y_percent = GetIntSetting("XSECURELOCK_AUTH_Y_PERCENT", 50);
++  if (auth_x_percent < 0 || auth_x_percent > 100) {
++    auth_x_percent = 50;
++  }
++  if (auth_y_percent < 0 || auth_y_percent > 100) {
++    auth_y_percent = 50;
++  }
++  auth_background_opacity =
++      GetIntSetting("XSECURELOCK_AUTH_BACKGROUND_OPACITY", 100);
++  if (auth_background_opacity < 0 || auth_background_opacity > 100) {
++    auth_background_opacity = 100;
++  }
++  const char *background_image =
++      GetStringSetting("XSECURELOCK_AUTH_BACKGROUND_IMAGE", "");
++  if (auth_background_opacity < 100 && background_image[0] != '\0') {
++    auth_background_image = imlib_load_image(background_image);
++    if (auth_background_image == NULL) {
++      Log("Could not load the auth wallpaper; using an opaque background");
++    }
++  }
+ #ifdef HAVE_XKB_EXT
+   show_keyboard_layout =
+       GetIntSetting("XSECURELOCK_SHOW_KEYBOARD_LAYOUT", 1);
+@@ -1743,6 +1836,10 @@
+ 
+   // Clear any possible processing message by closing our windows.
+   DestroyPerMonitorWindows(0);
++  if (auth_background_image != NULL) {
++    imlib_context_set_image(auth_background_image);
++    imlib_free_image();
++  }
+ 
+ #ifdef HAVE_XFT_EXT
+   if (xft_font != NULL) {
+--- a/configure.ac
++++ b/configure.ac
+@@ -156,6 +156,8 @@
+                 [HAVE_XFT_EXT], [xft], [$check_if_fontconfig_else_no],
+                 [Use the Xft extension for nicer fonts (requires Xrender and fontconfig too)])
+ 
++PKG_CHECK_MODULES(IMLIB2, [imlib2])
++
+ # Querying the keyboard LEDs (and layout name) makes auth_x11 more user
+ # friendly.
+ RP_SEARCH_LIBS(XkbGetIndicatorState, X11,
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -156,8 +156,8 @@
+ 	wait_pgrp.c wait_pgrp.h \
+ 	wm_properties.c wm_properties.h \
+ 	xscreensaver_api.c xscreensaver_api.h
+-auth_x11_CPPFLAGS = $(macros) $(FONTCONFIG_CFLAGS) $(XFT_CFLAGS) $(LIBBSD_CFLAGS)
+-auth_x11_LDADD = $(FONTCONFIG_LIBS) $(XFT_LIBS) $(LIBBSD_LIBS)
++auth_x11_CPPFLAGS = $(macros) $(FONTCONFIG_CFLAGS) $(XFT_CFLAGS) $(LIBBSD_CFLAGS) $(IMLIB2_CFLAGS)
++auth_x11_LDADD = $(FONTCONFIG_LIBS) $(XFT_LIBS) $(LIBBSD_LIBS) $(IMLIB2_LIBS)
+ 
+ if HAVE_PAM
+ helpers_PROGRAMS += \
+--- a/README.md
++++ b/README.md
+@@ -238,6 +238,15 @@
+     module (the part that talks to the system).
+ *   `XSECURELOCK_AUTH_BACKGROUND_COLOR`: specifies the X11 color (see manpage of
+     XParseColor) for the background of the auth dialog.
++*   `XSECURELOCK_AUTH_BACKGROUND_IMAGE`: wallpaper file used to draw the auth
++    background. The image fits each monitor with black bars.
++*   `XSECURELOCK_AUTH_BACKGROUND_OPACITY`: background color percentage, from 0
++    to 100 (default). The remaining percentage shows the wallpaper image.
++    Text stays opaque. An unavailable image leaves the background opaque.
++*   `XSECURELOCK_AUTH_X_PERCENT`: horizontal placement in the available monitor
++    space, from 0 (left) to 100 (right). Defaults to 50.
++*   `XSECURELOCK_AUTH_Y_PERCENT`: vertical placement in the available monitor
++    space, from 0 (top) to 100 (bottom). Defaults to 50.
+ *   `XSECURELOCK_AUTH_CURSOR_BLINK`: if set, the cursor will blink in the auth
+     dialog. Enabled by default, can be set to 0 to disable.
+ *   `XSECURELOCK_AUTH_SOUNDS`: specifies whether to play sounds during
