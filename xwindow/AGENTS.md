@@ -94,7 +94,7 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   its height.
 - **Lock password dialog**: The XSecureLock appearance patch places the dialog
   near the bottom centre of each monitor (`AUTH_X_PERCENT=50`,
-  `AUTH_Y_PERCENT=80`). Its background uses 80% of the solid colour and 20%
+  `AUTH_Y_PERCENT=80`). Its background uses 65% of the solid colour and 35%
   of the selected lock wallpaper, with fully opaque text. Imlib2 draws the
   matching portion of the fitted wallpaper into the dialog's background
   pixmap. This works above the compositor without making the desktop visible.

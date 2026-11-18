@@ -47,7 +47,7 @@ export XSECURELOCK_LIST_VIDEOS_COMMAND="$wallpaper_cmd"
 # Limit the wallpaper lookup so a stalled settings service cannot delay locking.
 auth_background_image=$(timeout 1 "$wallpaper_cmd") || auth_background_image=
 export XSECURELOCK_AUTH_BACKGROUND_IMAGE="$auth_background_image"
-export XSECURELOCK_AUTH_BACKGROUND_OPACITY=80
+export XSECURELOCK_AUTH_BACKGROUND_OPACITY=65
 export XSECURELOCK_AUTH_X_PERCENT=50
 export XSECURELOCK_AUTH_Y_PERCENT=80
 export XSECURELOCK_IMAGE_DURATION_SECONDS=86400

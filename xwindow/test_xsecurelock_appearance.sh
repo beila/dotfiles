@@ -51,7 +51,7 @@ export XSECURELOCK_AUTHPROTO="$test_dir/authproto"
 export XSECURELOCK_SAVER=saver_blank
 export XSECURELOCK_NO_COMPOSITE=1
 export XSECURELOCK_BURNIN_MITIGATION=0
-export XSECURELOCK_AUTH_BACKGROUND_OPACITY=80
+export XSECURELOCK_AUTH_BACKGROUND_OPACITY=65
 export XSECURELOCK_AUTH_X_PERCENT=50
 export XSECURELOCK_AUTH_Y_PERCENT=80
 export XSECURELOCK_AUTH_BACKGROUND_COLOR=black
@@ -101,15 +101,22 @@ width=$(sed -n 's/^WIDTH=//p' <<<"$geometry")
 height=$(sed -n 's/^HEIGHT=//p' <<<"$geometry")
 [[ $x == $(((1000 - width) / 2)) ]]
 [[ $y == $(((700 - height) * 80 / 100)) ]]
-assert_pixel 2 2 'srgb(51,51,51)'
+assert_pixel 2 2 'srgb(89,89,89)'
 [[ $(convert "$test_dir/dialog.png" -format '%[fx:maxima]' info:) == 1 ]]
 
 xdotool type --clearmodifiers wrong
 xdotool key Return
-sleep 0.3
+for _ in $(seq 1 50); do
+	xdotool search --onlyvisible --name '^auth$' >/dev/null 2>&1 || break
+	sleep 0.1
+done
+if xdotool search --onlyvisible --name '^auth$' >/dev/null 2>&1; then
+	cat "$test_dir/locker.log" >&2
+	printf 'failed password dialog did not close\n' >&2
+	exit 1
+fi
 kill -0 "$locker_pid"
-xdotool key Escape
-sleep 0.3
+sleep 0.1
 xdotool key Return
 timeout 5 xdotool search --sync --onlyvisible --name '^auth$' >/dev/null
 xdotool type --clearmodifiers test-password
@@ -132,7 +139,7 @@ stop_locker
 
 start_locker "$test_dir/portrait.png"
 assert_pixel 2 2 'srgb(0,0,0)'
-assert_pixel "$((width / 2))" 2 'srgb(51,0,0)'
+assert_pixel "$((width / 2))" 2 'srgb(89,0,0)'
 stop_locker
 
 printf 'xsecurelock appearance and authentication tests passed\n'
