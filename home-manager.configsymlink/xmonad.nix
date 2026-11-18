@@ -70,6 +70,7 @@ in
       ${xsecurelockPatchedSource} \
       ${pkgs.linux-pam}/include \
       $HOME/.local/libexec/xsecurelock/authproto_pam-host
+    ln -sfn ${xsecurelockWithMpv} $HOME/.local/libexec/xsecurelock/package
   '';
 
   # Register xfconfd with dbus/systemd so xfce4-panel can persist config.

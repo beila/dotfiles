@@ -59,14 +59,19 @@ export XSECURELOCK_AUTH_FOREGROUND_COLOR=white
 
 start_locker() {
 	export XSECURELOCK_AUTH_BACKGROUND_IMAGE=$1
-	"$locker" >"$test_dir/locker.log" 2>&1 &
+	rm -f "$test_dir/locked"
+	"$locker" -- touch "$test_dir/locked" >"$test_dir/locker.log" 2>&1 &
 	locker_pid=$!
 	for _ in $(seq 1 50); do
-		if xdotool search --name '^background$' >/dev/null 2>&1; then
+		if [[ -f $test_dir/locked ]]; then
 			break
 		fi
 		sleep 0.1
 	done
+	[[ -f $test_dir/locked ]] || {
+		cat "$test_dir/locker.log" >&2
+		return 1
+	}
 	xdotool key Return
 	auth_window=$(timeout 5 xdotool search --sync --onlyvisible --name '^auth$' | head -n 1)
 	sleep 0.2

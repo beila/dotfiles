@@ -98,7 +98,11 @@ builds only `authproto_pam` with `/usr/bin/gcc` and host `libpam.so.0`, so it ca
 load the host SSSD modules. `screen-locker.service` starts with the graphical
 session and restarts the idle-lock daemon after an exit. It supplies explicit
 Nix tool paths and retains the 15-minute idle timeout. XMonad starts this
-service instead of creating an unsupervised daemon. See `xwindow/AGENTS.md`.
+service instead of creating an unsupervised daemon. The activation also sets
+`~/.local/libexec/xsecurelock/package` to this XSecureLock build. The runner
+prefers that link when it exists. A scoped `nix build --out-link` can update
+the locker without activating unrelated Home Manager changes.
+See `xwindow/AGENTS.md`.
 
 ## xdg.nix
 

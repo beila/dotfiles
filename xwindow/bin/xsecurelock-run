@@ -4,6 +4,10 @@ set -u
 property=_XMONAD_SCREEN_LOCKED
 xprop_cmd=${XSECURELOCK_RUN_XPROP:-xprop}
 locker_cmd=${XSECURELOCK_RUN_COMMAND:-xsecurelock}
+installed_locker=$HOME/.local/libexec/xsecurelock/package/bin/xsecurelock
+if [[ -z ${XSECURELOCK_RUN_COMMAND:-} && -x $installed_locker ]]; then
+	locker_cmd=$installed_locker
+fi
 wallpaper_cmd=${XSECURELOCK_RUN_WALLPAPER:-$HOME/.dotfiles/xwindow/bin/lockscreen-wallpaper}
 authproto=${XSECURELOCK_RUN_AUTHPROTO:-$HOME/.local/libexec/xsecurelock/authproto_pam-host}
 lock_file=${XSECURELOCK_RUN_LOCK_FILE:-${XDG_RUNTIME_DIR:-/tmp}/xsecurelock-run.lock}
@@ -40,7 +44,9 @@ export XSECURELOCK_USERNAME="$username"
 export XSECURELOCK_AUTHPROTO="$authproto"
 export XSECURELOCK_SAVER=saver_mpv
 export XSECURELOCK_LIST_VIDEOS_COMMAND="$wallpaper_cmd"
-export XSECURELOCK_AUTH_BACKGROUND_IMAGE="$("$wallpaper_cmd")"
+# Limit the wallpaper lookup so a stalled settings service cannot delay locking.
+auth_background_image=$(timeout 1 "$wallpaper_cmd") || auth_background_image=
+export XSECURELOCK_AUTH_BACKGROUND_IMAGE="$auth_background_image"
 export XSECURELOCK_AUTH_BACKGROUND_OPACITY=80
 export XSECURELOCK_AUTH_X_PERCENT=50
 export XSECURELOCK_AUTH_Y_PERCENT=80

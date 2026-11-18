@@ -15,6 +15,9 @@ xmonad is the window manager. `xwindow/xmonad.symlink/xmonad.hs` is symlinked to
 `bash xwindow/test_lock_screen.sh`, `bash xwindow/test_xsecurelock_run.sh`,
 and `bash xwindow/test_screen_locker_daemon.sh` cover manual lock routing,
 post-grab state publication, fail-open behavior, and idle-lock coordination.
+`bash xwindow/test_xsecurelock_appearance.sh /path/to/xsecurelock` verifies
+dialog placement, wallpaper blending, opaque text, image fallback, and
+password handling in a separate Xephyr display.
 
 Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in `xmonad.symlink/lib/XMonadConfig/Constants.hs`. Scratchpads use the typed `ScratchpadSlot` instead of passing `"ghostty1"`/`"ghostty2"` strings through toggle logic.
 
@@ -63,6 +66,10 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   builds `authproto_pam-host` with the host compiler and PAM library, so PAM can
   load the host SSSD modules. The runner refuses to lock if this helper is
   unavailable.
+  The runner prefers `~/.local/libexec/xsecurelock/package/bin/xsecurelock`
+  when it exists, then falls back to `xsecurelock` from PATH. Home Manager
+  maintains the package link during activation. A scoped Nix build can update
+  this link without a full Home Manager activation.
   A second unsafe GNOME lock occurred on 2026-10-31 through automatic idle
   activation, not Albert. GNOME reported the session as locked while Ghostty
   was active and XMonad accepted Super+2. This crossed the replacement
@@ -93,6 +100,8 @@ Shared workspace, scratchpad, Ghostty-class, and focus-color identifiers live in
   pixmap. This works above the compositor without making the desktop visible.
   A missing or unreadable image leaves the dialog opaque. The runner selects
   the wallpaper at lock startup; the next lock uses any updated image.
+  Wallpaper lookup has a one-second timeout, so a stalled settings service
+  cannot block the lock.
 
 ## Window title tag (`windowTags`)
 
