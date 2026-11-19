@@ -51,7 +51,7 @@ export XSECURELOCK_AUTHPROTO="$test_dir/authproto"
 export XSECURELOCK_SAVER=saver_blank
 export XSECURELOCK_NO_COMPOSITE=1
 export XSECURELOCK_BURNIN_MITIGATION=0
-export XSECURELOCK_AUTH_BACKGROUND_OPACITY=65
+export XSECURELOCK_AUTH_BACKGROUND_OPACITY=50
 export XSECURELOCK_AUTH_X_PERCENT=50
 export XSECURELOCK_AUTH_Y_PERCENT=80
 export XSECURELOCK_AUTH_BACKGROUND_COLOR=black
@@ -101,7 +101,7 @@ width=$(sed -n 's/^WIDTH=//p' <<<"$geometry")
 height=$(sed -n 's/^HEIGHT=//p' <<<"$geometry")
 [[ $x == $(((1000 - width) / 2)) ]]
 [[ $y == $(((700 - height) * 80 / 100)) ]]
-assert_pixel 2 2 'srgb(89,89,89)'
+assert_pixel 2 2 'srgb(127,127,127)'
 [[ $(convert "$test_dir/dialog.png" -format '%[fx:maxima]' info:) == 1 ]]
 
 xdotool type --clearmodifiers wrong
@@ -139,7 +139,7 @@ stop_locker
 
 start_locker "$test_dir/portrait.png"
 assert_pixel 2 2 'srgb(0,0,0)'
-assert_pixel "$((width / 2))" 2 'srgb(89,0,0)'
+assert_pixel "$((width / 2))" 2 'srgb(127,0,0)'
 stop_locker
 
 printf 'xsecurelock appearance and authentication tests passed\n'
