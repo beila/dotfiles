@@ -7,6 +7,10 @@ LOCKFILE="/tmp/audio-in-osd-lock"
 STATEFILE="/tmp/audio-in-osd-showing"
 OSD_FG="#D3359D" # LEGO Bright Purple
 
+audio_command() {
+    timeout --kill-after=1 2 "$@"
+}
+
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
@@ -18,30 +22,32 @@ start_dzen() {
     osd-click-through "audio-in-osd" || true
 }
 
+status=$(audio_command wpctl status) || exit 1
 if [ -f "$STATEFILE" ] && [ -p "$FIFO" ]; then
-    sources=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep '│.*[0-9]\.' | grep -v 'Camera\|V4L2\|Video')
+    sources=$(printf '%s\n' "$status" | sed -n '/Sources:/,/Source endpoints/p' | rg '│.*[0-9]\.' | rg -v 'Camera|V4L2|Video')
     mapfile -t ids < <(echo "$sources" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
-    current=$(echo "$sources" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+    current=$(echo "$sources" | rg '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
 
     total=${#ids[@]}
     for i in "${!ids[@]}"; do
         if [ "${ids[$i]}" = "$current" ]; then
             for ((j=1; j<total; j++)); do
                 next_i=$(( (i + j) % total ))
-                wpctl set-default "${ids[$next_i]}" 2>/dev/null
+                audio_command wpctl set-default "${ids[$next_i]}" 2>/dev/null || continue
                 sleep 0.2
-                new=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
+                status=$(audio_command wpctl status) || exit 1
+                new=$(printf '%s\n' "$status" | sed -n '/Sources:/,/Source endpoints/p' | rg -v 'Camera|V4L2|Video' | rg '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
                 [ "$new" != "$current" ] && break
             done
             break
         fi
     done
-else
-    [ -p "$FIFO" ] || start_dzen
 fi
 
+name=$(printf '%s\n' "$status" | sed -n '/Sources:/,/Source endpoints/p' | rg -v 'Camera|V4L2|Video' | rg '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+[[ -n $name ]] || exit 1
+[ -p "$FIFO" ] || start_dzen
 touch "$STATEFILE"
-name=$(wpctl status | sed -n '/Sources:/,/Source endpoints/p' | grep -v 'Camera\|V4L2\|Video' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 echo "  󰍬  $name" > "$FIFO"
 
 echo $$ > "$LOCKFILE"

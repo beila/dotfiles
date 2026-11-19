@@ -6,6 +6,10 @@ FIFO="/tmp/volume-osd-fifo"
 LOCKFILE="/tmp/volume-osd-lock"
 OSD_FG="#58AB41" # LEGO Bright Green
 
+audio_command() {
+    timeout --kill-after=1 2 "$@"
+}
+
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
@@ -17,17 +21,17 @@ start_dzen() {
     osd-click-through "vol-osd" || true
 }
 
-[ -p "$FIFO" ] || start_dzen
-
 case "$1" in
-    up)     amixer -q set Master 5%+ ;;
-    down)   amixer -q set Master 5%- ;;
-    toggle) amixer -q set Master toggle ;;
+    up)     audio_command amixer -q set Master 5%+ || exit 1 ;;
+    down)   audio_command amixer -q set Master 5%- || exit 1 ;;
+    toggle) audio_command amixer -q set Master toggle || exit 1 ;;
 esac
 
-vol=$(amixer get Master | grep -oP '\d+%' | head -1)
-mute=$(amixer get Master | grep -oP '\[o[fn]+\]' | head -1)
+mixer=$(audio_command amixer get Master) || exit 1
+vol=$(rg -o '\d+%' <<<"$mixer" | head -1)
+mute=$(rg -o '\[o[fn]+\]' <<<"$mixer" | head -1)
 pct=${vol%\%}
+[[ $pct =~ ^[0-9]+$ ]] || exit 1
 
 if [ "$mute" = "[off]" ]; then
     text="  󰝟  MUTED"
@@ -40,6 +44,7 @@ else
     text="  󰕾  $bar  $vol"
 fi
 
+[ -p "$FIFO" ] || start_dzen
 echo "$text" > "$FIFO"
 
 echo $$ > "$LOCKFILE"

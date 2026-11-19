@@ -199,7 +199,16 @@ Three independent dzen2 popups using FIFOs (no flicker on rapid presses):
 
 Each popup runs `osd-click-through` after starting dzen2. The helper waits for the popup's exact `WM_NAME`, assigns resource class `osd`, raises it immediately, and assigns an empty XShape `Input` region. The class makes XMonad keep dzen OSDs above the lock screen alongside the shared-library overlays. Dimensions are recalculated from the current `Xft.dpi` whenever a popup is created (base: x=100, w=1240, h=100 at 96 DPI), so the next keypress after a monitor change uses the current display configuration. Font: JetBrainsMono Nerd Font, size 36 bold. Auto-hide after 2–3 seconds.
 
-Regression test: `python3 xwindow/test_osd_click_through.py`.
+Audio controls and status queries have a two-second limit, followed by forced
+termination after one more second if necessary. The audio scripts create or
+update a popup only after the audio command succeeds. Volume reads both the
+level and mute state from one mixer query; device selectors reuse each status
+snapshot. A stalled audio command therefore cannot create a persistent popup
+before its hide timer starts.
+
+Regression tests: `python3 xwindow/test_osd_click_through.py` and
+`bash xwindow/test_audio_osd.sh`. The shell test reproduces stalled mixer and
+device queries with isolated FIFOs and checks that no overlay remains.
 
 ## Battery OSD
 

@@ -6,6 +6,10 @@ LOCKFILE="/tmp/audio-out-osd-lock"
 STATEFILE="/tmp/audio-out-osd-showing"
 OSD_FG="#069D9F" # LEGO Bright Bluish Green
 
+audio_command() {
+    timeout --kill-after=1 2 "$@"
+}
+
 start_dzen() {
     rm -f "$FIFO"
     mkfifo "$FIFO"
@@ -18,30 +22,32 @@ start_dzen() {
 }
 
 # If popup is already showing, cycle to next
+status=$(audio_command wpctl status) || exit 1
 if [ -f "$STATEFILE" ] && [ -p "$FIFO" ]; then
-    sinks=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '│.*[0-9]\.')
+    sinks=$(printf '%s\n' "$status" | sed -n '/Sinks:/,/Sink endpoints/p' | rg '│.*[0-9]\.')
     mapfile -t ids < <(echo "$sinks" | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
-    current=$(echo "$sinks" | grep '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
+    current=$(echo "$sinks" | rg '\*' | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+\.$/) print substr($i,1,length($i)-1)}')
 
     total=${#ids[@]}
     for i in "${!ids[@]}"; do
         if [ "${ids[$i]}" = "$current" ]; then
             for ((j=1; j<total; j++)); do
                 next_i=$(( (i + j) % total ))
-                wpctl set-default "${ids[$next_i]}" 2>/dev/null
+                audio_command wpctl set-default "${ids[$next_i]}" 2>/dev/null || continue
                 sleep 0.2
-                new=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
+                status=$(audio_command wpctl status) || exit 1
+                new=$(printf '%s\n' "$status" | sed -n '/Sinks:/,/Sink endpoints/p' | rg '\*' | awk '{for(k=1;k<=NF;k++) if($k ~ /^[0-9]+\.$/) print substr($k,1,length($k)-1)}')
                 [ "$new" != "$current" ] && break
             done
             break
         fi
     done
-else
-    [ -p "$FIFO" ] || start_dzen
 fi
 
+name=$(printf '%s\n' "$status" | sed -n '/Sinks:/,/Sink endpoints/p' | rg '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
+[[ -n $name ]] || exit 1
+[ -p "$FIFO" ] || start_dzen
 touch "$STATEFILE"
-name=$(wpctl status | sed -n '/Sinks:/,/Sink endpoints/p' | grep '\*' | sed 's/.*\*\s*[0-9]*\.\s*//' | sed 's/\[vol:.*//' | xargs)
 echo "  󰓃  $name" > "$FIFO"
 
 echo $$ > "$LOCKFILE"
