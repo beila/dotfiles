@@ -18,6 +18,7 @@ fi
 # runs these commands, so a long sync must not block a new shell.
 prev=
 for arg in "$@"; do
+    [[ $arg != -- ]] || break
     case "$prev $arg" in
         *" -h"|*" --help"|*" --version"|" help"|" version"|"util completion"|"util config-schema"|"util markdown-help"|"util install-man-pages")
             exec "$REAL_JJ" "$@" ;;
@@ -25,22 +26,41 @@ for arg in "$@"; do
     prev=$arg
 done
 
-# Honor jj's global repository selector when the command runs outside the
-# target checkout. Relative paths are resolved from the caller's directory.
 repo_dir=$PWD
-expect_repo_path=0
-for arg in "$@"; do
-    if [ "$expect_repo_path" = "1" ]; then
-        repo_dir=$arg
-        expect_repo_path=0
-        continue
-    fi
-    case "$arg" in
-        -R|--repository) expect_repo_path=1 ;;
-        --repository=*) repo_dir=${arg#*=} ;;
-        -R?*) repo_dir=${arg#-R} ;;
-    esac
-done
+snapshot_options=()
+command_args=()
+view_args=()
+may_page=1
+parse_args() {
+    local arg value
+    while (( $# )); do
+        arg=$1
+        shift
+        case "$arg" in
+            --) view_args+=(-- "$@"); break ;;
+            -R|--repository|--config|--config-file|--at-op|--at-operation|--color)
+                if (( $# == 0 )); then may_page=0; break; fi
+                value=$1
+                shift
+                case $arg in
+                    -R|--repository) repo_dir=$value ;;
+                    --at-op|--at-operation) snapshot_options+=("$arg" "$value"); continue ;;
+                esac
+                [[ $arg == --color ]] || snapshot_options+=("$arg" "$value")
+                view_args+=("$arg" "$value")
+                continue ;;
+            --repository=*|-R=*) repo_dir=${arg#*=}; snapshot_options+=("$arg") ;;
+            -R?*) repo_dir=${arg#-R}; snapshot_options+=("$arg") ;;
+            --config=*|--config-file=*|--ignore-working-copy|--quiet) snapshot_options+=("$arg") ;;
+            --at-op=*|--at-operation=*) snapshot_options+=("$arg"); continue ;;
+            --no-pager|--no-integrate-operation) may_page=0 ;;
+            --color=*|--debug|--ignore-immutable) ;;
+            *) command_args+=("$arg") ;;
+        esac
+        view_args+=("$arg")
+    done
+}
+parse_args "$@"
 case "$repo_dir" in
     /*) ;;
     *) repo_dir="$PWD/$repo_dir" ;;
@@ -54,6 +74,29 @@ fi
 
 lock_key=$(printf '%s' "$git_root" | "$TR" / _)
 lockfile="/tmp/sync_repo_${lock_key}.lock"
+
+if [[ -t 1 && $may_page == 1 ]]; then
+    command=${command_args[0]:-}
+    case $command in
+        ''|-r|-r?*|--revision|--revision=*)
+            # jj resolves its default command from the launch directory before it applies CLI overrides.
+            if default=$("$REAL_JJ" --no-pager config list -T value ui.default-command 2>/dev/null); then
+                case $default in
+                    ''|'"log"') command=log; view_args=(log "${view_args[@]}") ;;
+                esac
+            fi ;;
+    esac
+    case "$command ${command_args[1]:-}" in
+        "log "*|"diff "*|"show "*|"status "*|"interdiff "*|"evolog "*|"evolution-log "*|\
+        "operation log"|"operation show"|"operation diff"|"op log"|"op show"|"op diff"|\
+        "file annotate"|"file list"|"file show"|"file search"|"bookmark list"|"tag list")
+            # A view at a specific operation can use its pager after the snapshot lock is released.
+            operation=$("$FLOCK" --exclusive --close "$lockfile" "$REAL_JJ" \
+                "${snapshot_options[@]}" --no-pager --color=never operation log \
+                --limit 1 --no-graph -T 'self.id()') || exit $?
+            exec "$REAL_JJ" --at-operation "$operation" "${view_args[@]}" ;;
+    esac
+fi
 
 # flock remains the lock owner while jj runs, but --close keeps the descriptor
 # out of jj and any long-lived child processes it may spawn.
