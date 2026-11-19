@@ -48,6 +48,13 @@ export STUB_HM_MODE_FILE="$TMPDIR/hm-mode"
 export STUB_CLAUDE_MODE_FILE="$TMPDIR/claude-mode"
 export STUB_HM_NEWS_FILE="$TMPDIR/hm-news"
 export STUB_CLAUDE_OUT_FILE="$TMPDIR/claude-out"
+export STUB_DAEMON_ERR="$TMPDIR/daemon-error"
+export NIX_DAEMON_SOCKET_PATH=/nix/var/nix/daemon-socket/socket
+cat > "$STUB_DAEMON_ERR" <<'EOF'
+Stack size hard limit is 10485760.
+warning: Git tree is dirty
+error: cannot connect to socket at '/nix/var/nix/daemon-socket/socket': Connection refused
+EOF
 
 cat > "$STUB_BIN/nix" <<'EOF'
 #!/usr/bin/env bash
@@ -57,6 +64,7 @@ if [ "$1" = "flake" ] && [ "$2" = "update" ]; then
         ok)         cp "$FLAKE_UPDATE_FLAKE_DIR/flake.lock.after" "$FLAKE_UPDATE_FLAKE_DIR/flake.lock"; exit 0 ;;
         nochange)   cp "$FLAKE_UPDATE_FLAKE_DIR/flake.lock.before" "$FLAKE_UPDATE_FLAKE_DIR/flake.lock"; exit 0 ;;
         network)    echo "error: unable to download 'github:nixos/nixpkgs': Could not resolve hostname" >&2; exit 1 ;;
+        daemon)     cat "$STUB_DAEMON_ERR" >&2; exit 1 ;;
         other)      echo "error: something else broke" >&2; exit 1 ;;
         *)          exit 1 ;;
     esac
@@ -72,6 +80,7 @@ if [ "$1" = "build" ]; then
     case "$mode" in
         ok)        ln -sf /tmp /tmp/result_link 2>/dev/null; touch "$FLAKE_UPDATE_FLAKE_DIR/result"; exit 0 ;;
         fail)      echo "error: option 'foo' has been removed" >&2; echo "warning: see release notes" >&2; exit 1 ;;
+        daemon)    cat "$STUB_DAEMON_ERR" >&2; exit 1 ;;
         cargo-fail)
             cat >&2 <<'ERROR'
 error: Cannot build '/nix/store/example-neovide-vendor-staging.drv'.
@@ -278,6 +287,23 @@ check "one ERROR log entry" "1" "$(grep -c '\[ERROR\]' "$(log_file)")"
 check_grep "alert includes missing lockfile" 'Reason: FileNotFoundError:.*Cargo.lock' "$NOTIFY_MOCK_FILE"
 check_grep "dependency chain remains in log" '\[INFO\].*example-home-manager-generation.drv' "$(log_file)"
 check_grep "traceback remains in log" '\[INFO\].*Traceback' "$(log_file)"
+
+echo
+echo "=== Test 13: daemon socket refused during update ==="
+reset_fixtures; set_nix daemon; set_hm ok
+rc=$(run_under_test)
+check "update exits 1" "1" "$rc"
+check_grep "alert names the daemon and socket error" '\[ERROR\] nix flake update could not reach the Nix daemon.*Connection refused' "$(log_file)"
+check_nogrep "local outage is not a network warning" 'NETWORK-ERR' "$(log_file)"
+
+echo
+echo "=== Test 14: daemon socket refused during build ==="
+reset_fixtures; set_nix ok; set_hm daemon
+rc=$(run_under_test)
+check "build exits 1" "1" "$rc"
+check_grep "alert reports incomplete validation" '\[ERROR\] home-manager build could not reach the Nix daemon.*configuration is unverified.*Connection refused' "$(log_file)"
+check "one outage alert" "1" "$(grep -c '\[ERROR\]' "$(log_file)")"
+check_nogrep "no switch prediction" 'switch will break' "$(log_file)"
 
 pass=$(cat "$PASS_FILE")
 fail=$(cat "$FAIL_FILE")

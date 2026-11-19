@@ -21,9 +21,7 @@
 #   4. flake.lock diff summary → INFO log (silent unless paired with an
 #      ERROR earlier in the same run).
 #
-# `home-manager switch` is intentionally NOT run. The user controls when
-# their machine actually changes; this script only signals that the next
-# switch is going to break (or has news worth reading).
+# Only the user activates a generation. This job reports failed checks and breaking news.
 #
 # Env knobs:
 #   FLAKE_UPDATE_DRY_RUN=1     skip the actual `nix flake update` call
@@ -75,12 +73,27 @@ LOCK_BEFORE=$(mktemp /tmp/flake-update.lock.XXXXXX)
 cp flake.lock "$LOCK_BEFORE" 2>/dev/null || true
 trap '_rc=$?; rm -f "$LOCK_BEFORE"; log_finalize 2>/dev/null || true; exit $_rc' EXIT
 
+daemon_error() {
+    # Nix can print warnings before the socket error.
+    local socket=${NIX_DAEMON_SOCKET_PATH:-${NIX_STATE_DIR:-/nix/var/nix}/daemon-socket/socket}
+    awk -v prefix="error: cannot connect to socket at '$socket': " '
+        { sub(/^[[:space:]]+/, "") }
+        index($0, prefix) == 1 { sub(/^error: /, ""); print; exit }
+    ' "$1"
+}
+
 # --- Step 1: nix flake update -------------------------------------------------
 if [ "${FLAKE_UPDATE_DRY_RUN:-}" = "1" ]; then
     log INFO "DRY-RUN: skipping nix flake update"
 else
     err=$(mktemp /tmp/flake-update.err.XXXXXX)
     if ! nix flake update 2>"$err"; then
+        reason=$(daemon_error "$err")
+        if [ -n "$reason" ]; then
+            log ERROR "nix flake update could not reach the Nix daemon. Reason: $reason"
+            rm -f "$err"
+            exit 1
+        fi
         first=$(head -2 "$err" | tr '\n' ' ')
         case "$first" in
             *"unable to download"*|*"Could not resolve"*|*"Connection"*|*"Network is unreachable"*|*"Temporary failure"*|*"timed out"*|*"timeout"*)
@@ -128,7 +141,12 @@ if ! home-manager build --impure --flake . 2>"$err"; then
             print line
         }
     ' "$err")
-    log ERROR "home-manager build FAILED after flake update — switch will break. Reason: ${summary:-see log}"
+    reason=$(daemon_error "$err")
+    if [ -n "$reason" ]; then
+        log ERROR "home-manager build could not reach the Nix daemon. The configuration is unverified. Reason: $reason"
+    else
+        log ERROR "home-manager build FAILED. Reason: ${summary:-see log}"
+    fi
     # Keep diagnostics in the failure log without sending more alerts.
     log INFO "--- last 40 lines of build stderr ---"
     tail -40 "$err" | while IFS= read -r line; do log INFO "  $line"; done
