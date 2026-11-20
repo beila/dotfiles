@@ -13,7 +13,7 @@ BUILD_DIR=$(mktemp -d /tmp/xmonad-dock-test.XXXXXX)
 DISPLAY_NUMBER=
 
 cleanup() {
-    for pid in "${LOCK_SCREEN_PID:-}" "${OSD_PID:-}" "${ZOOM_JOIN_PID:-}" "${ZOOM_REMINDER_PID:-}" "${ZOOM_ANCHOR_PID:-}" "${FIREFOX_PID:-}" "${NORMAL_PID:-}" "${CLIENT_PID:-}" "${DOCK_PID:-}" "${XMONAD_PID:-}" "${XEPHYR_PID:-}"; do
+    for pid in "${GHOSTTY_PID:-}" "${LOCK_SCREEN_PID:-}" "${OSD_PID:-}" "${ZOOM_JOIN_PID:-}" "${ZOOM_REMINDER_PID:-}" "${ZOOM_ANCHOR_PID:-}" "${FIREFOX_PID:-}" "${NORMAL_PID:-}" "${CLIENT_PID:-}" "${DOCK_PID:-}" "${XMONAD_PID:-}" "${XEPHYR_PID:-}"; do
         if [[ -n "$pid" ]]; then
             kill "$pid" 2>/dev/null || true
         fi
@@ -139,6 +139,31 @@ XMONAD_PID=$!
 sleep 0.5
 assert_avoids_panel "after restart"
 
+"$BUILD_DIR/xmonad-test-client" com.mitchellh.ghostty "[cvim] ~/src/nvim" &
+GHOSTTY_PID=$!
+GHOSTTY_WINDOW=$(timeout 10 xdotool search --sync --class '^com\.mitchellh\.ghostty$' | head -1)
+tag_search=(xdotool search --onlyvisible --classname)
+tag_name='^xmonad-window-tag$'
+set_ghostty_title() {
+    xprop -id "$GHOSTTY_WINDOW" -f _NET_WM_NAME 8u -set _NET_WM_NAME "$1"
+    xprop -id "$GHOSTTY_WINDOW" -f WM_NAME 8s -set WM_NAME "$1"
+}
+timeout 5 "${tag_search[@]}" --sync "$tag_name" >/dev/null
+set_ghostty_title "[cvim] ~ · nvim"
+for _ in $(seq 1 50); do
+    "${tag_search[@]}" "$tag_name" >/dev/null || break
+    sleep 0.05
+done
+if "${tag_search[@]}" "$tag_name" >/dev/null; then
+    echo "FAIL: the Ghostty tag covers the Neovim tab line"
+    exit 1
+fi
+set_ghostty_title "[cvim] ~/src/nvim"
+timeout 5 "${tag_search[@]}" --sync "$tag_name" >/dev/null
+kill "$GHOSTTY_PID"
+wait "$GHOSTTY_PID" 2>/dev/null || true
+GHOSTTY_PID=
+
 "$BUILD_DIR/xmonad-test-client" normal xmonad-normal-test >/dev/null 2>&1 &
 NORMAL_PID=$!
 "$BUILD_DIR/xmonad-test-client" firefox xmonad-firefox-test >/dev/null 2>&1 &
@@ -250,4 +275,4 @@ xdotool windowmap --sync "$LOCK_SCREEN_WINDOW"
 sleep 0.2
 assert_above "$OSD_WINDOW" "$LOCK_SCREEN_WINDOW" "locked MapNotify generic OSD raise"
 
-echo "PASS: dock, focus restacking, Zoom focus, and lock-screen OSD rules"
+echo "PASS: dock, Ghostty title tags, focus restacking, Zoom focus, and lock-screen OSD rules"

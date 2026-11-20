@@ -9,8 +9,9 @@ module XMonadConfig.WindowTags (
     withSessionPrefix,
 ) where
 
-import Control.Monad (filterM, forM, forM_, unless, when)
+import Control.Monad (filterM, forM, forM_, when)
 import qualified Data.ByteString as BS
+import Data.Char (toLower)
 import qualified Data.List as L
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
@@ -172,6 +173,12 @@ screenLocked = do
     withDisplay $ \display ->
         lockPropertyActive <$> io (getWindowProperty32 display atom root)
 
+isNeovimTitle :: String -> Bool
+isNeovimTitle titleName =
+    name == "nvim" || " · nvim" `L.isSuffixOf` name || " - nvim" `L.isSuffixOf` name
+  where
+    name = map toLower titleName
+
 clearWindowTags :: X ()
 clearWindowTags = do
     WindowTags cache <- XS.get
@@ -188,12 +195,14 @@ renderWindowTags = withWindowSet $ \stackSet -> do
     TagMetricsState metrics <- XS.get
     let visible = concatMap (W.integrate' . W.stack . W.workspace) (W.current stackSet : W.visible stackSet)
         focused = W.peek stackSet
-    candidates <- filterM (runQuery (className =? C.ghosttyClass)) visible
+    terminals <- filterM (runQuery (className =? C.ghosttyClass)) visible
+    titles <- forM terminals $ \client -> do
+        titleName <- runQuery title client
+        return (client, titleName)
     WindowTags cache <- XS.get
     font <- tagFont metrics
-    kept <- forM candidates $ \client -> do
+    kept <- forM (filter (not . isNeovimTitle . snd) titles) $ \(client, titleName) -> do
         attributes <- withDisplay $ \display -> io $ getWindowAttributes display client
-        titleName <- runQuery title client
         session <- windowPropertyUtf8 "_ZMX_SESSION" client
         let name = withSessionPrefix session titleName
             height = tagHeight metrics
@@ -230,9 +239,9 @@ renderWindowTags = withWindowSet $ \stackSet -> do
                 , tagMetrics = metrics
                 }
             )
-    forM_ (M.toList cache) $ \(client, entry) ->
-        unless (client `elem` candidates) $ deleteWindow (tagWindow entry)
-    XS.put (WindowTags (M.fromList kept))
+    let updated = M.fromList kept
+    forM_ (cache `M.difference` updated) $ deleteWindow . tagWindow
+    XS.put (WindowTags updated)
 
 paintTag :: Window -> XMonadFont -> Dimension -> Dimension -> String -> Bool -> X ()
 paintTag overlay font width height name active =
