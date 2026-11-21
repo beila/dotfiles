@@ -53,14 +53,14 @@ make_agent claude 'echo "compiler failed" >&2; exit 2'
 make_agent kiro 'echo "generated"; exit 0'
 selected=$(run_fallback)
 [ "$selected" = kiro ] || { echo "expected kiro, got $selected" >&2; exit 1; }
-[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro " ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex claude kiro " ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'printf "%5000s\n" ""; echo "warning: Midway session expired but stdin is not a terminal" >&2; exit 0'
 make_agent kiro 'echo "generated"; exit 0'
 selected=$(run_fallback)
 [ "$selected" = kiro ] || { echo "expected kiro after Codex auth warning, got $selected" >&2; exit 1; }
-[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro " ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex claude kiro " ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'echo "Investigated authentication error handling" >&2; printf "%5000s\n" ""; exit 0'
@@ -85,7 +85,17 @@ selected=$(run_fallback --mode text)
 [ "$selected" = codex ] || exit 1
 rg -q -- '--skip-git-repo-check' "$tmp/codex-args" || exit 1
 rg -q -- '-s read-only' "$tmp/codex-args" || exit 1
-rmdir "$tmp/work/.jj"
+# A sandbox mount point leaves an empty .git directory in a jj workspace.
+mkdir -p "$tmp/work/.git"
+selected=$(run_fallback)
+[ "$selected" = codex ] || exit 1
+rg -q -- '--skip-git-repo-check' "$tmp/codex-args" || exit 1
+: > "$tmp/work/.git/HEAD"
+selected=$(run_fallback)
+[ "$selected" = codex ] || exit 1
+! rg -q -- '--skip-git-repo-check' "$tmp/codex-args" || exit 1
+rm "$tmp/work/.git/HEAD"
+rmdir "$tmp/work/.git" "$tmp/work/.jj"
 
 : > "$tmp/calls"
 make_agent codex 'printf "%5000s\nrate limit documentation\n" ""; exit 0'
@@ -99,16 +109,16 @@ make_agent claude 'echo "API Error: Request rejected (429) - Too many tokens" >&
 make_agent kiro 'echo "temporarily unavailable" >&2; exit 1'
 run_fallback >/dev/null 2>"$tmp/error"
 [ "$?" -eq 75 ] || exit 1
-[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex kiro claude " ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "codex claude kiro " ] || exit 1
 [ ! -s "$tmp/error" ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'echo "must not run" >&2; exit 2'
-make_agent claude 'echo "generated"; exit 0'
-make_agent kiro 'echo "unavailable" >&2; exit 2'
+make_agent claude 'echo "unavailable" >&2; exit 2'
+make_agent kiro 'echo "generated"; exit 0'
 selected=$(run_fallback --skip codex)
-[ "$selected" = claude ] || exit 1
-[ "$(tr '\n' ' ' < "$tmp/calls")" = "kiro claude " ] || exit 1
+[ "$selected" = kiro ] || exit 1
+[ "$(tr '\n' ' ' < "$tmp/calls")" = "claude kiro " ] || exit 1
 
 : > "$tmp/calls"
 make_agent codex 'echo "must not run" >&2; exit 2'

@@ -254,7 +254,9 @@ final_failure() {
 run_agent() {
     local agent=$1 executable=$2 output=$3 stderr_file=$4 console_file=$5 rc
     local codex_repo_args=()
-    if [ -e "$cwd/.jj" ] && [ ! -e "$cwd/.git" ]; then
+    # An agent sandbox can leave an empty .git mount point in a jj workspace.
+    # Only a .git file or a .git directory with HEAD is a Git repository.
+    if [ -e "$cwd/.jj" ] && [ ! -f "$cwd/.git" ] && [ ! -e "$cwd/.git/HEAD" ]; then
         codex_repo_args=(--skip-git-repo-check)
     fi
     : > "$output"
@@ -306,7 +308,7 @@ run_agent() {
     return "$rc"
 }
 
-for agent in codex kiro claude; do
+for agent in codex claude kiro; do
     case "$skipped" in
         *" $agent "*) continue ;;
     esac
