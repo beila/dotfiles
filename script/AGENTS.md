@@ -14,9 +14,11 @@ Most jobs are scheduled via `dotfiles.schedule` (see `home-manager.configsymlink
   the repository working directory, prompt file, output directory, task name,
   final failure message, stable log context, skipped agents, and prior
   validation errors. The runner resolves current Toolbox registrations, then
-  tries Codex → Kiro → Claude until one process succeeds.
+  tries Codex → Claude → Kiro until one process succeeds.
   Codex receives `--skip-git-repo-check` when the supplied working directory
-  has `.jj` and no `.git`, so detached Jujutsu repair workspaces can run.
+  has `.jj` and no Git repository, so detached Jujutsu repair workspaces can
+  run. An agent sandbox can leave an empty `.git` mount point there. Only a
+  `.git` file or a `.git` directory with `HEAD` counts as a Git repository.
   Both execution modes retain their existing approval and sandbox settings.
   It writes each
   agent's result, console output, and standard error into the supplied output directory
