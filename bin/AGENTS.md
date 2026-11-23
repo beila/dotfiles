@@ -192,6 +192,15 @@ the bridge, including Claude's application copy actions. Native providers use
 the saved PATH to avoid recursion. Codex's own remote copy uses OSC 52.
 Terminal selection and normal text paste continue to use Ghostty.
 
+Interactive Codex in a forwarded zmx session uses `workstation-browser` when
+`BROWSER` is unset or empty. This adapter sends one URL through the same
+session socket. The workstation accepts absolute HTTP and HTTPS links and runs
+`gio open` with the URL as one argument. The desktop's configured Firefox
+container handler selects the tab's container. The latest attachment supplies
+the browser. After updating both hosts, reconnect with `jc` to reload the
+workstation server and relaunch Codex on the host. `codex resume --last`
+continues the previous conversation from the same directory.
+
 Each wrapped TUI also listens on a private session `.tui.sock`. SSH attachment
 forwards a local socket to this endpoint and publishes its location through a
 `.forward` symlink. XMonad handles the existing F20 event from Super+V and the
@@ -203,7 +212,8 @@ through a targeted event and keeps its existing paste mapping.
 
 Tests also cover image bytes, scoped adapters, real PTY input, private image
 files, window routing, exit status, and split bracketed paste sequences.
-`CLIPBOARD_TEST_SSH_HOST` also exercises image paste through both SSH forwards.
+`CLIPBOARD_TEST_SSH_HOST` also exercises image paste through both SSH forwards
+and checks the forwarded URL against an isolated workstation handler.
 `bash bin/test_clipboard_neovide.sh` checks the targeted F20 event on an isolated
 virtual display. Set `XVFB` when the Xvfb executable is outside PATH.
 

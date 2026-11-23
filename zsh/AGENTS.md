@@ -53,7 +53,9 @@
   Version/help, known noninteractive subcommands, piped calls, and Claude's
   print mode bypass the wrapper. New shells load the functions automatically.
   The wrapper handles local and SSH image paste, and scopes clipboard command
-  adapters to the TUI process. See `bin/AGENTS.md`.
+  adapters to the TUI process. In a `jc` session, Codex also opens web links
+  in the workstation's Firefox container when `BROWSER` is unset or empty.
+  See `bin/AGENTS.md`.
 - `o` — open (Wayland/X11 aware)
 - `say_done` — TTS notification when commands >10s finish; only on desktop machines; runs in a background subshell with stdio discarded, so backend notices (e.g. the Edge→Piper fallback) never print over the next prompt. Calls `bin/say` (see `bin/AGENTS.md`).
 - `ju` — jj unique

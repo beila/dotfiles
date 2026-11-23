@@ -1,4 +1,4 @@
-"""Share clipboard data through an SSH Unix socket."""
+"""Share the workstation clipboard and URL handler through an SSH Unix socket."""
 
 import argparse
 import hashlib
@@ -11,6 +11,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 MAX_BYTES = 64 * 1024 * 1024
 TIMEOUT = 10
@@ -120,6 +121,21 @@ def clipboard_image():
     return request_operation(path, b"I") if path else native_image()
 
 
+def open_web_url(data):
+    url = data.decode("utf-8")
+    parts = urlsplit(url)
+    if (
+        parts.scheme not in ("http", "https")
+        or not parts.hostname
+        or re.search(r"[\x00-\x20\x7f]", url)
+    ):
+        raise ValueError("expected an absolute HTTP or HTTPS URL")
+    subprocess.run(
+        ["gio", "open", url], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL, timeout=TIMEOUT, check=True,
+    )
+
+
 def tui_socket(session):
     return session_socket(session).with_suffix(".tui.sock")
 
@@ -184,7 +200,7 @@ def request_operation(path, operation, data=b""):
         try:
             stream.connect(str(path))
         except OSError as error:
-            raise RuntimeError("local clipboard is disconnected; reconnect with jc") from error
+            raise RuntimeError("workstation bridge is disconnected; reconnect with jc") from error
         stream.sendall(operation + data)
         stream.shutdown(socket.SHUT_WR)
         response = receive(stream)
@@ -200,14 +216,20 @@ class ClipboardRequest(socketserver.BaseRequestHandler):
         self.request.settimeout(TIMEOUT)
         try:
             operation = self.request.recv(1)
-            if operation not in (b"C", b"P", b"I"):
+            if operation not in (b"C", b"P", b"I", b"O"):
                 raise RuntimeError("invalid clipboard operation")
             data = receive(self.request)
             if operation in (b"P", b"I") and data:
                 raise RuntimeError("paste requests cannot contain data")
-            result = native_image() if operation == b"I" else native_clipboard(operation == b"C", data)
+            if operation == b"O":
+                open_web_url(data)
+                result = b""
+            elif operation == b"I":
+                result = native_image()
+            else:
+                result = native_clipboard(operation == b"C", data)
             self.request.sendall(b"\0" + result)
-        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
             try:
                 self.request.sendall(b"\1" + str(error).encode())
             except OSError:
@@ -221,6 +243,8 @@ def main():
     copy.add_argument("files", nargs="*")
     paste = commands.add_parser("paste", help="write clipboard contents to standard output")
     paste.add_argument("--image", action="store_true")
+    opener = commands.add_parser("open-url", help="open a web link on the attached workstation")
+    opener.add_argument("url")
     prepare = commands.add_parser("prepare", help="prepare a private remote session socket")
     prepare.add_argument("session")
     serve = commands.add_parser("serve", help="serve the native clipboard on a Unix socket")
@@ -264,6 +288,11 @@ def main():
     path = remote_socket()
     if args.command == "active":
         return 0 if path else 1
+    if args.command == "open-url":
+        if not path:
+            raise RuntimeError("opening a workstation link requires a jc session")
+        request_operation(path, b"O", args.url.encode("utf-8"))
+        return 0
     if args.command == "paste" and args.image:
         sys.stdout.buffer.write(clipboard_image().split(b"\0", 1)[1])
         return 0

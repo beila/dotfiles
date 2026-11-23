@@ -146,6 +146,8 @@ def run_tui(argv):
     env = dict(os.environ)
     env["CLIPBOARD_NATIVE_PATH"] = env.get("CLIPBOARD_NATIVE_PATH", env["PATH"])
     env["PATH"] = str(Path(__file__).parent / "clipboard-tools") + os.pathsep + env["PATH"]
+    if Path(argv[0]).name == "codex" and not env.get("BROWSER") and remote_socket():
+        env["BROWSER"] = "workstation-browser"
     child, master = pty.fork()
     if child == 0:
         listener.close()

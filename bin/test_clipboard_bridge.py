@@ -49,13 +49,23 @@ class ClipboardBridgeTest(unittest.TestCase):
             'esac\n'
         )
         xclip.chmod(0o755)
+        self.opened_url = self.directory / "opened-url"
+        gio = binaries / "gio"
+        gio.write_text(
+            '#!/bin/sh\n'
+            '[ "$#" = 2 ] && [ "$1" = open ] || exit 2\n'
+            'printf %s "$2" > "$TEST_OPENED_URL"\n'
+        )
+        gio.chmod(0o755)
         self.env = {
             **os.environ,
             "PATH": f"{binaries}:{os.environ['PATH']}",
             "DISPLAY": ":clipboard-test",
             "TEST_CLIPBOARD": str(self.clipboard),
+            "TEST_OPENED_URL": str(self.opened_url),
         }
-        for key in ("WAYLAND_DISPLAY", "SSH_CONNECTION", "SSH_TTY", "ZMX_SESSION"):
+        for key in ("WAYLAND_DISPLAY", "SSH_CONNECTION", "SSH_TTY", "ZMX_SESSION",
+                    "BROWSER", "CLIPBOARD_NATIVE_PATH"):
             self.env.pop(key, None)
         self.session = f"test-{os.getpid()}-{self.directory.name}"
         self.remote_env = {
@@ -154,6 +164,51 @@ class ClipboardBridgeTest(unittest.TestCase):
         failure = self.run_bridge("paste", env=self.remote_env, check=False)
         self.assertNotEqual(failure.returncode, 0)
         self.assertIn(b"exit status 7", failure.stderr)
+
+    def test_codex_browser_uses_attached_workstation(self):
+        self.serve()
+        codex = self.directory / "bin/codex"
+        codex.write_text(
+            '#!/bin/sh\n'
+            'printf "BROWSER=<%s>\\n" "$BROWSER"\n'
+            'if [ "$BROWSER" = workstation-browser ]; then exec "$BROWSER" "$1"; fi\n'
+        )
+        codex.chmod(0o755)
+        (codex.parent / "claude").symlink_to(codex)
+        url = "https://example.org/path?q=a%20b&view=(all)#history"
+        for command, env, expected in (
+            ("codex", self.remote_env, "workstation-browser"),
+            ("codex", {**self.env, "ZMX_SESSION": self.session + "-local"}, ""),
+            ("codex", {**self.remote_env, "BROWSER": "custom-browser"}, "custom-browser"),
+            ("claude", self.remote_env, ""),
+        ):
+            with self.subTest(command=command, expected=expected):
+                self.opened_url.unlink(missing_ok=True)
+                shell = (
+                    'fpath=("$DOTFILES_ROOT/zsh/functions" $fpath); '
+                    'autoload -Uz "$1"; "$1" "$2"'
+                )
+                invocation = shlex.join(["zsh", "-fc", shell, "test", command, url])
+                result = subprocess.run(
+                    ["script", "-qec", invocation, "/dev/null"],
+                    env={**env, "DOTFILES_ROOT": str(ROOT)}, stdin=subprocess.DEVNULL,
+                    capture_output=True, timeout=10, check=True,
+                )
+                self.assertIn(f"BROWSER=<{expected}>".encode(), result.stdout)
+                if expected == "workstation-browser":
+                    self.assertEqual(self.opened_url.read_text(), url)
+                else:
+                    self.assertFalse(self.opened_url.exists())
+
+    def test_workstation_rejects_invalid_web_links(self):
+        self.serve()
+        for url in (b"file:///etc/hosts", b"javascript:alert(1)", b"--help", b"https:///path",
+                    b"https://example.org/\n", b"https://[bad", b"\xff"):
+            with self.subTest(url=url), self.assertRaises(RuntimeError):
+                request_operation(self.path, b"O", url)
+        self.assertFalse(self.opened_url.exists())
+        self.assertEqual(request_operation(self.path, b"O", b"http://example.org/path"), b"")
+        self.assertEqual(self.opened_url.read_bytes(), b"http://example.org/path")
 
     def test_image_transport_and_scoped_providers(self):
         self.clipboard.write_bytes(PNG)
@@ -320,11 +375,13 @@ class ClipboardBridgeTest(unittest.TestCase):
             'vim.fn.setreg("+","nvim live probe");'
             'assert(vim.fn.getreg("+")=="nvim live probe")'
         )
+        url = "https://example.org/path?q=a%20b&view=(all)#history"
         command = (
             f"export ZMX_SESSION={shlex.quote(self.session)}; "
             "zsh -fc 'fpath=(~/.dotfiles/zsh/functions $fpath); "
             "autoload -Uz c p; c && p' && "
-            f"nvim --headless -u NONE -i NONE -c {shlex.quote('lua ' + lua)} -c 'qa!'"
+            f"nvim --headless -u NONE -i NONE -c {shlex.quote('lua ' + lua)} -c 'qa!' && "
+            f"{helper} open-url {shlex.quote(url)}"
         )
         text = "SSH clipboard 한글\nwith trailing newline\n".encode()
         result = subprocess.run(
@@ -335,6 +392,7 @@ class ClipboardBridgeTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr.decode())
         self.assertEqual(result.stdout, text)
         self.assertEqual(self.clipboard.read_bytes(), b"nvim live probe")
+        self.assertEqual(self.opened_url.read_text(), url)
 
         self.clipboard.write_bytes(PNG)
         subprocess.run(
