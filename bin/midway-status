@@ -170,7 +170,7 @@ elif ((session_only == 0)) && [[ $aea_posture_valid == false ]]; then
     status=invalid
     reason=aea-posture
 else
-    response=$("$curl_command" \
+    response=$("$curl_command" -q \
         --cookie "$cookie_file" \
         --silent \
         --show-error \

@@ -17,6 +17,7 @@ write_cookie() {
 
 cat > "$TMP/curl" <<'EOF'
 #!/usr/bin/env bash
+[[ $1 == -q && $2 == --cookie && $3 == "$MIDWAY_COOKIE_FILE" ]] || exit 2
 printf x >> "$MIDWAY_TEST_CALLS"
 printf '%s\n' "$MIDWAY_TEST_RESPONSE"
 exit "${MIDWAY_TEST_CURL_EXIT:-0}"
