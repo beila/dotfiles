@@ -650,6 +650,22 @@ rc=$?
 check "case31g: timed failure status propagated" "7" "$rc"
 check_grep "case31h: timing records failure" '^exit_code=7$' "$timing"
 
+# Case 32: A timing line must return the cursor to column one on a raw terminal.
+if command -v script >/dev/null; then
+    new_logdir; d=$LOG_DIR
+    spacer_probe='logrun --auto --no-zshrc --name spacer --log-dir "$spacer_dir" -- sh -c "echo start; sleep 1.6; echo remote: done"'
+    (
+        export PATH="$DOTFILES_ROOT/bin:$PATH" LOGRUN_AUTO_LINES=1 LOGRUN_DECORATOR=
+        export spacer_dir="$d" SHELL=/bin/sh
+        script -qefc "stty cols 64 -opost; $spacer_probe" /dev/null </dev/null >"$d/tty"
+        sh -c "$spacer_probe" </dev/null >"$d/pipe" 2>/dev/null
+    )
+    check "case32a: terminal timing line resets the column before remote output" \
+        "1" "$(rg -Uc '─[^\n]*\r\nremote: done' "$d/tty")"
+    check "case32b: piped timing line keeps a plain newline" \
+        "1" "$(rg -Uc '─[^\r\n]*\nremote: done' "$d/pipe")"
+fi
+
 # Summary
 # -----------------------------------------------------------------------------
 pass=$(cat "$PASS_FILE"); fail=$(cat "$FAIL_FILE")

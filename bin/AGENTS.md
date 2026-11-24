@@ -48,6 +48,8 @@ Companion `bin/logrun-move NEW_DIR` relocates the active logrun log to a differe
 
 Companion `bin/logrun-decorator` (Python stdlib only) is the `--auto` decorator: stays as plain `cat` until `--activate-when-exists <marker>` becomes truthy (or it receives `SIGUSR2`), then emits spacer-style horizontal lines at output pauses + an `idle Ns` stderr indicator. logrun's awk filter touches the marker synchronously when the threshold trips so the decorator activates mid-run (relying on bash's USR2 trap would defer activation until after the pipeline ends).
 
+On a terminal, each timing line ends with `\r\n` so the next command output starts in column one even when `script` puts the SSH terminal in raw mode. Timing lines sent to a pipe or file end with `\n`.
+
 Test harness: `bin/test_logrun.sh` (naming, ANSI strip, fail-suffix rename, env inheritance, sanitisation, custom decorator, usage errors, `--auto` thresholds + invisibility + reveal + FAILED rename + alt-screen hint, `--no-zshrc` fast path, and private function-timing metadata).
 
 ## Midway status
