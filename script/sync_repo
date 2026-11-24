@@ -1454,12 +1454,20 @@ step_check_repo_health
 # Do not start the local work without the space for it. Check the workspace, the
 # Git store, and the directory of temporary files.
 step_check_free_space() {
-    local min_kb=$((SYNC_REPO_MIN_FREE_MB * 1024)) dir avail
+    local min_kb=$((SYNC_REPO_MIN_FREE_MB * 1024)) dir avail mount free_mb
     for dir in "$PWD" "$LOCK_PATH" "${TMPDIR:-/tmp}"; do
         avail=$(df -Pk -- "$dir" 2>/dev/null | awk 'NR == 2 {print $4}')
         [[ $avail =~ ^[0-9]+$ ]] || continue
         if [ "$avail" -lt "$min_kb" ]; then
-            log ERROR "LOW-DISK $dir has $((avail / 1024)) MiB free (minimum $SYNC_REPO_MIN_FREE_MB MiB) -- sync skipped"
+            free_mb=$((avail / 1024))
+            # Let sync_all notify only if it receives this measurement.
+            if [[ -n ${SYNC_LOW_DISK_REPORT:-} ]]; then
+                mount=$(stat -Lc %m -- "$dir" 2>/dev/null) || mount=$dir
+                if printf '%s\t%s\t%s\n' "$free_mb" "$SYNC_REPO_MIN_FREE_MB" "$mount" > "$SYNC_LOW_DISK_REPORT"; then
+                    local LOG_NOTIFY_MODE=never
+                fi
+            fi
+            log ERROR "LOW-DISK $dir has $free_mb MiB free (minimum $SYNC_REPO_MIN_FREE_MB MiB) -- sync skipped"
             exit 1
         fi
     done

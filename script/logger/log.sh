@@ -65,6 +65,7 @@
 #                               within this window. Default 21600 (6h); 0 disables.
 #     LOG_NOTIFY_DEDUP_DIR      directory for dedup state files; default
 #                               $LOG_ROOT/.notify-dedup
+#     LOG_NOTIFY_KEY            optional exact identity for a message whose measurements vary
 #     LOG_MACHINE_NAME          override machine name; default from hostnamectl --pretty
 #
 # State:
@@ -299,7 +300,11 @@ _log_dedup_key() {
     local level=$1 msg=$2 normalized
     # Collapse: hex runs of ≥8 chars → X (commit IDs, UUIDs)
     #          : digit runs of ≥2 chars → N (timestamps, rcs, sizes)
-    normalized=$(printf '%s' "$msg" | sed -E 's/[0-9a-fA-F]{8,}/X/g; s/[0-9]{2,}/N/g')
+    if [ -n "${LOG_NOTIFY_KEY:-}" ]; then
+        normalized=$LOG_NOTIFY_KEY
+    else
+        normalized=$(printf '%s' "$msg" | sed -E 's/[0-9a-fA-F]{8,}/X/g; s/[0-9]{2,}/N/g')
+    fi
     printf '%s\n%s\n%s\n%s' "$LOG_TAG" "$LOG_CONTEXT" "$level" "$normalized" \
         | sha1sum | awk '{print $1}'
 }

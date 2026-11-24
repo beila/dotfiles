@@ -9,9 +9,8 @@
 # sync_repo handles per-workspace iteration via the jj-workspace-aware code
 # inside each run.
 #
-# Per-repo failures are already logged + (optionally) notified by sync_repo
-# via log.sh. This wrapper logs its own START/SUMMARY line so you can grep
-# for the overall run outcome.
+# sync_repo reports low disk space to this script for one batch notification.
+# Its log retains the error for each affected repository.
 
 set -u
 
@@ -83,21 +82,44 @@ failed=0
 processed=0
 log INFO "discovered $total repo(s)"
 
+disk_report=$(mktemp "${TMPDIR:-/tmp}/sync_all.disk.XXXXXX") || disk_report=
+trap 'log_finalize; if [[ -n $disk_report ]]; then rm -f -- "$disk_report"; fi' EXIT
+declare -A skipped=() lowest_free=()
+disk_failures=0
+
 for repo in ${repos[@]+"${repos[@]}"}; do
     processed=$((processed+1))
-    "$SYNC" "$repo"
+    SYNC_LOW_DISK_REPORT="$disk_report" "$SYNC" "$repo"
     rc=$?
     if [ "$rc" -ne 0 ]; then
         failed=$((failed+1))
-        # WARN-level so per-repo lines survive in the SUMMARY-kept log without
-        # firing 35 notifications (LOG_NOTIFY_THRESHOLD defaults to ERROR).
-        # The path is enough to re-run `sync_repo $REPO` for diagnostics.
-        log WARN "FAILED rc=$rc $repo"
+        if [[ -s $disk_report ]] && IFS=$'\t' read -r free_mb minimum mount < "$disk_report"; then
+            : > "$disk_report"
+            ((disk_failures+=1))
+            skipped["$mount"]=$(( ${skipped["$mount"]:-0} + 1 ))
+            if (( free_mb <= ${lowest_free["$mount"]:-free_mb} )); then
+                lowest_free["$mount"]=$free_mb
+            fi
+            LOG_NOTIFY_MODE=never log WARN "FAILED rc=$rc $repo (LOW-DISK $mount, $free_mb MiB free)"
+        else
+            log WARN "FAILED rc=$rc $repo"
+        fi
     fi
 done
 
 if [ "$failed" -gt 0 ]; then
-    log ERROR "SUMMARY processed=$processed failed=$failed (per-repo paths logged above as WARN)"
+    summary="SUMMARY processed=$processed failed=$failed (per-repo paths logged above as WARN)"
+    if (( disk_failures )); then
+        disk_key="LOW-DISK $LOG_MACHINE_NAME"
+        while IFS= read -r mount; do
+            summary+=$'\n'"LOW-DISK $mount: ${lowest_free["$mount"]} MiB free (minimum $minimum MiB), repos skipped=${skipped["$mount"]}"
+            disk_key+=$'\n'"$mount"
+        done < <(printf '%s\n' "${!skipped[@]}" | LC_ALL=C sort)
+        if (( disk_failures == failed )); then
+            LOG_NOTIFY_KEY=$disk_key
+        fi
+    fi
+    log ERROR "$summary"
     exit 1
 fi
 log INFO "SUMMARY processed=$processed failed=0"

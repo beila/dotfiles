@@ -73,6 +73,14 @@ cat > "$STUB_BIN/jj" <<'EOF'
 if [ "$1" = "--ignore-working-copy" ]; then
     shift
 fi
+if [[ $1 == git && $2 == root ]]; then
+    printf '%s/.git\n' "$PWD"
+    exit 0
+fi
+if [[ $1 == config && $3 == sync.remote-bookmark ]] && grep -Fxq "$PWD" "$SYNC_REPO_FAIL_LIST"; then
+    echo invalid
+    exit 0
+fi
 if [ "$1" = "root" ]; then
     cwd=$(pwd)
     mapped=$(grep -E "^$cwd=" "$TEST_JJ_MAP" 2>/dev/null | head -1 | cut -d= -f2-)
@@ -257,6 +265,50 @@ check "exit 0" "0" "$rc"
 check "no sync_repo calls" "0" "$(wc -l < "$SYNC_REPO_CALL_LOG")"
 check_grep "discovered 0 repos" 'discovered 0 repo' "$(log_file)"
 check_grep "SUMMARY 0 failures" 'SUMMARY processed=0 failed=0' "$(log_file)"
+
+echo
+echo "=== Test 8: aggregate low disk from real sync_repo processes ==="
+clear_logs; clear_state
+ln -sfn "$DOTFILES_ROOT/script/sync_repo" "$TMPDIR/fake_dotfiles/script/sync_repo"
+ln -s "$DOTFILES_ROOT/script/logger/backends" "$TMPDIR/fake_dotfiles/script/logger/backends"
+export LOG_NOTIFY_MODE=always LOG_KEEP_THRESHOLD=ERROR NOTIFY_BACKEND=mock
+export LOG_NOTIFY_CMD="$DOTFILES_ROOT/bin/notify-webhook" NOTIFY_MOCK_FILE="$TMPDIR/notifications"
+export SYNC_REPO_MIN_FREE_MB=1024 TEST_FREE_MB=899
+cat > "$STUB_BIN/df" <<'EOF'
+#!/bin/sh
+echo 'Filesystem 1024-blocks Used Available Capacity Mounted on'
+printf '/dev/test 2000000 1000000 %s 55%% /\n' "$((TEST_FREE_MB * 1024))"
+EOF
+chmod +x "$STUB_BIN/df"
+mkdir -p "$TMPDIR/repo A" "$TMPDIR/repoB" "$TMPDIR/repoC"
+printf '%s\n' "$TMPDIR/repo A/.jj" "$TMPDIR/repoB/.jj" > "$TEST_PLOCATE_OUTPUT"
+mount=$(stat -Lc %m -- "$TMPDIR/repo A")
+rc=$(run_under_test)
+check "disk-only batch fails" "1" "$rc"
+check_grep "both skipped repos share one disk summary" "LOW-DISK $mount: 899 MiB free (minimum 1024 MiB), repos skipped=2" "$(log_file)"
+check_grep "batch log names first repo" "FAILED .*repo A (LOW-DISK " "$(log_file)"
+check_grep "batch log names second repo" "FAILED .*repoB (LOW-DISK " "$(log_file)"
+check "both repo ERROR logs retained" "2" "$(grep -l 'LOW-DISK' "$LOG_ROOT/testhost"/sync_repo.*.log | wc -l)"
+
+export TEST_FREE_MB=8
+printf '%s\n' "$TMPDIR/repoC/.jj" >> "$TEST_PLOCATE_OUTPUT"
+rc=$(run_under_test)
+check "repeated disk-only batch still fails" "1" "$rc"
+sleep 0.2
+check "one notification despite changing space and repo count" "1" "$(wc -l < "$NOTIFY_MOCK_FILE")"
+check_grep "notification links to the batch summary" 'sync_all ERROR.*SUMMARY processed=2 failed=2.*Log: .*sync_all\.' "$NOTIFY_MOCK_FILE"
+
+printf '%s\n' "$TMPDIR/repoC" > "$SYNC_REPO_FAIL_LIST"
+rc=$(run_under_test)
+check "mixed batch fails" "1" "$rc"
+sleep 0.2
+check "mixed batch sends its own summary" "2" "$(grep -c 'sync_all ERROR' "$NOTIFY_MOCK_FILE")"
+check_grep "unrelated error still notifies" 'sync_repo .*ERROR.*BAD-CONFIG' "$NOTIFY_MOCK_FILE"
+
+HOME="$FAKE_HOME" PATH="$STUB_BIN:/usr/bin:/bin" bash "$DOTFILES_ROOT/script/sync_repo" "$TMPDIR/repoB" >/dev/null 2>&1
+check "standalone low disk exits 1" "1" "$?"
+sleep 0.2
+check_grep "standalone low disk notifies" 'sync_repo .*ERROR.*LOW-DISK .*repoB has 8 MiB free' "$NOTIFY_MOCK_FILE"
 
 pass=$(cat "$PASS_FILE")
 fail=$(cat "$FAIL_FILE")
