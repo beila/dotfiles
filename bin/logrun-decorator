@@ -117,7 +117,9 @@ def _spacer_line(elapsed: float):
     else:
         # Pad with plain spaces; no color escapes so the slot stays empty.
         tail_colored = f"{' ' * _ELAPSED_WIDTH} {CYAN}{time_str}{DEFAULT_FG} "
-    sys.stdout.write(f"{DIM}{'─' * dashes}{RESET} {tail_colored}\n")
+    # The outer terminal can be in raw mode while script runs.
+    line_end = "\r\n" if sys.stdout.isatty() else "\n"
+    sys.stdout.write(f"{DIM}{'─' * dashes}{RESET} {tail_colored}{line_end}")
     sys.stdout.flush()
 
 
