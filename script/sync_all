@@ -97,7 +97,7 @@ for repo in ${repos[@]+"${repos[@]}"}; do
             : > "$disk_report"
             ((disk_failures+=1))
             skipped["$mount"]=$(( ${skipped["$mount"]:-0} + 1 ))
-            if (( free_mb <= ${lowest_free["$mount"]:-free_mb} )); then
+            if [[ -z ${lowest_free["$mount"]:-} || $free_mb -lt ${lowest_free["$mount"]} ]]; then
                 lowest_free["$mount"]=$free_mb
             fi
             LOG_NOTIFY_MODE=never log WARN "FAILED rc=$rc $repo (LOW-DISK $mount, $free_mb MiB free)"

@@ -276,10 +276,22 @@ export LOG_NOTIFY_CMD="$DOTFILES_ROOT/bin/notify-webhook" NOTIFY_MOCK_FILE="$TMP
 export SYNC_REPO_MIN_FREE_MB=1024 TEST_FREE_MB=899
 cat > "$STUB_BIN/df" <<'EOF'
 #!/bin/sh
+case $3 in
+    */repoStore) free=2048 ;;
+    */repoB) free=$((TEST_FREE_MB + 1)) ;;
+    *) free=$TEST_FREE_MB ;;
+esac
 echo 'Filesystem 1024-blocks Used Available Capacity Mounted on'
-printf '/dev/test 2000000 1000000 %s 55%% /\n' "$((TEST_FREE_MB * 1024))"
+printf '/dev/test 2000000 1000000 %s 55%% /\n' "$((free * 1024))"
 EOF
-chmod +x "$STUB_BIN/df"
+cat > "$STUB_BIN/stat" <<'EOF'
+#!/bin/sh
+case "$2:$4" in
+    %m:*/repoStore/.git) echo '/git store' ;;
+    *) exec /usr/bin/stat "$@" ;;
+esac
+EOF
+chmod +x "$STUB_BIN/df" "$STUB_BIN/stat"
 mkdir -p "$TMPDIR/repo A" "$TMPDIR/repoB" "$TMPDIR/repoC"
 printf '%s\n' "$TMPDIR/repo A/.jj" "$TMPDIR/repoB/.jj" > "$TEST_PLOCATE_OUTPUT"
 mount=$(stat -Lc %m -- "$TMPDIR/repo A")
@@ -308,7 +320,17 @@ check_grep "unrelated error still notifies" 'sync_repo .*ERROR.*BAD-CONFIG' "$NO
 HOME="$FAKE_HOME" PATH="$STUB_BIN:/usr/bin:/bin" bash "$DOTFILES_ROOT/script/sync_repo" "$TMPDIR/repoB" >/dev/null 2>&1
 check "standalone low disk exits 1" "1" "$?"
 sleep 0.2
-check_grep "standalone low disk notifies" 'sync_repo .*ERROR.*LOW-DISK .*repoB has 8 MiB free' "$NOTIFY_MOCK_FILE"
+check_grep "standalone low disk notifies" 'sync_repo .*ERROR.*LOW-DISK .*repoB has 9 MiB free' "$NOTIFY_MOCK_FILE"
+
+: > "$SYNC_REPO_FAIL_LIST"
+mkdir -p "$TMPDIR/repoStore/.git"
+printf '%s\n' "$TMPDIR/repoStore/.jj" >> "$TEST_PLOCATE_OUTPUT"
+rc=$(run_under_test)
+check "batch with two low mounts fails" "1" "$rc"
+sleep 0.2
+check "new low mount sends one new batch alert" "3" "$(grep -c 'sync_all ERROR' "$NOTIFY_MOCK_FILE")"
+check_grep "summary counts only the repo on the low Git store" 'LOW-DISK /git store: 8 MiB free (minimum 1024 MiB), repos skipped=1' "$NOTIFY_MOCK_FILE"
+check_grep "summary counts the other three repositories together" "LOW-DISK $mount: 8 MiB free (minimum 1024 MiB), repos skipped=3" "$NOTIFY_MOCK_FILE"
 
 pass=$(cat "$PASS_FILE")
 fail=$(cat "$FAIL_FILE")
