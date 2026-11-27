@@ -63,6 +63,7 @@ vim.fn.writefile({ "header", "inserted one", "inserted two", "target one changed
 git({ "add", "sample.txt" })
 git({ "commit", "-q", "-m", "change target" })
 local target_change = git({ "rev-parse", "HEAD" })
+local target_parent = git({ "rev-parse", "HEAD^" })
 
 vim.fn.writefile(
 	{ "header", "inserted one", "inserted two", "target one changed", "target two", "footer changed" },
@@ -110,6 +111,21 @@ assert_contains(captured.contents, "JJ_SERIALIZED_READ_ONLY=1", "read-only produ
 assert_contains(captured.contents, "--at-operation", "read-only producer operation pin")
 assert_contains(captured.opts.preview, "JJ_SERIALIZED_READ_ONLY=1", "preview lock bypass")
 assert_contains(captured.opts.preview, "--at-operation", "preview operation pin")
+
+local diff_args
+vim.api.nvim_create_user_command("CodeDiff", function(command)
+	diff_args = command.fargs
+end, { nargs = "+" })
+local function select_revisions(ids, expected)
+	local selected = vim.tbl_map(function(id)
+		return table.concat({ "row", "", "", id:sub(1, 12) }, "\t")
+	end, ids)
+	diff_args = nil
+	captured.opts.actions.enter(selected)
+	assert(vim.deep_equal(diff_args, expected), "unexpected CodeDiff range: " .. vim.inspect(diff_args))
+end
+select_revisions({ target_change }, { target_parent, target_change })
+select_revisions({ unrelated_change, target_change }, { target_parent, unrelated_change })
 
 captured = nil
 vim.cmd.edit(vim.fn.fnameescape(file))

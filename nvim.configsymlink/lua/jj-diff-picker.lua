@@ -75,7 +75,7 @@ local function jj_root(start_dir)
 	return vim.fs.dirname(marker)
 end
 
-local function pin_operation(root)
+local function new_state(root, source_buf, path)
 	local output = run_command(root, {
 		"jj",
 		"--at-operation",
@@ -89,14 +89,26 @@ local function pin_operation(root)
 		"1",
 		"--color=never",
 		"-T",
-		'self.id() ++ "\n"',
+		'self.id() ++ "\\n" ++ try(config("revsets.log").as_string(), "builtin_log()")',
 	}, true, { JJ_SERIALIZED_READ_ONLY = "1" })
-	local operation = output and vim.trim(output) or ""
-	if not operation:match("^%x+$") then
+	local operation, default_revset
+	if output then
+		operation, default_revset = output:match("^(%x+)\n(.*)$")
+	end
+	if not operation then
 		notify("could not pin the current JJ operation")
 		return nil
 	end
-	return operation
+	return {
+		root = root,
+		operation = operation,
+		source_buf = source_buf,
+		path = path,
+		default_revset = default_revset,
+		full_revset = path and "all()" or "::workspace_view()",
+		full_log = path ~= nil,
+		files = false,
+	}
 end
 
 local function build_line_history(root, operation, path, line_range)
@@ -272,11 +284,6 @@ local function resolve_range(state, selected)
 	end
 
 	return parent, heads[1]
-end
-
-local function configured_log_revset(root, operation)
-	local lines = run_readonly_jj(root, operation, { "config", "get", "revsets.log" }, false)
-	return lines and #lines > 0 and table.concat(lines, "\n") or "builtin_log()"
 end
 
 local function active_revset(state)
@@ -519,29 +526,15 @@ open_picker = function(state)
 	})
 end
 
-local function new_state(root, operation, source_buf, path, line_history)
-	return {
-		root = root,
-		operation = operation,
-		source_buf = source_buf,
-		path = path,
-		line_history = line_history,
-		default_revset = configured_log_revset(root, operation),
-		full_revset = path and "all()" or "::workspace_view()",
-		full_log = path ~= nil,
-		files = false,
-	}
-end
-
 function M.revisions()
 	local bufnr, _, root = source_context()
 	if not root then
 		fzf_lua.git_commits()
 		return
 	end
-	local operation = pin_operation(root)
-	if operation then
-		open_picker(new_state(root, operation, bufnr))
+	local state = new_state(root, bufnr)
+	if state then
+		open_picker(state)
 	end
 end
 
@@ -562,12 +555,11 @@ function M.current_file_revisions(line_range)
 		return
 	end
 
-	local operation = pin_operation(root)
-	if not operation then
+	local state = new_state(root, bufnr, relative)
+	if not state then
 		return
 	end
 
-	local line_history
 	if line_range then
 		if vim.bo[bufnr].modified then
 			notify("save the current buffer before opening line history")
@@ -576,13 +568,13 @@ function M.current_file_revisions(line_range)
 		local line_count = vim.api.nvim_buf_line_count(bufnr)
 		local first = math.min(line_count, math.max(1, math.min(line_range[1], line_range[2])))
 		local last = math.min(line_count, math.max(line_range[1], line_range[2]))
-		line_history = build_line_history(root, operation, relative, { first, last })
-		if not line_history then
+		state.line_history = build_line_history(root, state.operation, relative, { first, last })
+		if not state.line_history then
 			return
 		end
 	end
 
-	open_picker(new_state(root, operation, bufnr, relative, line_history))
+	open_picker(state)
 end
 
 return M
