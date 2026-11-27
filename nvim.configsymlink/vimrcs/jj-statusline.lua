@@ -1,4 +1,5 @@
 local requests = {}
+local generation = 0
 
 local function set_workspace(winid, request, workspace)
     vim.schedule(function()
@@ -10,26 +11,15 @@ local function set_workspace(winid, request, workspace)
     end)
 end
 
-local function workspace_cwd(winid)
-    local ok, cwd = pcall(vim.api.nvim_win_call, winid, function()
-        return vim.fn.getcwd()
-    end)
-    return ok and cwd or nil
-end
-
-local function refresh(force)
+local function refresh()
     local winid = vim.api.nvim_get_current_win()
-    local cwd = workspace_cwd(winid)
-    if not cwd then
-        return
-    end
-
+    local cwd = vim.fn.getcwd()
     local previous = requests[winid]
-    if not force and previous and previous.cwd == cwd then
+    if previous and previous.cwd == cwd and previous.generation == generation then
         return
     end
 
-    local request = { cwd = cwd }
+    local request = { cwd = cwd, generation = generation }
     requests[winid] = request
     if not previous or previous.cwd ~= cwd then
         vim.w[winid].jj_workspace = ""
@@ -83,7 +73,10 @@ local group = vim.api.nvim_create_augroup("jj_workspace_statusline", { clear = t
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "DirChanged", "FocusGained", "ShellCmdPost" }, {
     group = group,
     callback = function(args)
-        refresh(args.event == "FocusGained" or args.event == "ShellCmdPost")
+        if args.event == "FocusGained" or args.event == "ShellCmdPost" then
+            generation = generation + 1
+        end
+        refresh()
     end,
 })
 vim.api.nvim_create_autocmd("WinClosed", {
