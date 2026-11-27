@@ -1,5 +1,4 @@
 local requests = {}
-local next_request = 0
 
 local function set_workspace(winid, request, workspace)
     vim.schedule(function()
@@ -18,20 +17,22 @@ local function workspace_cwd(winid)
     return ok and cwd or nil
 end
 
-local function refresh(winid)
-    winid = winid or vim.api.nvim_get_current_win()
-    if not vim.api.nvim_win_is_valid(winid) then
-        return
-    end
-
-    next_request = next_request + 1
-    local request = next_request
-    requests[winid] = request
-    vim.w[winid].jj_workspace = ""
-
+local function refresh(force)
+    local winid = vim.api.nvim_get_current_win()
     local cwd = workspace_cwd(winid)
     if not cwd then
         return
+    end
+
+    local previous = requests[winid]
+    if not force and previous and previous.cwd == cwd then
+        return
+    end
+
+    local request = { cwd = cwd }
+    requests[winid] = request
+    if not previous or previous.cwd ~= cwd then
+        vim.w[winid].jj_workspace = ""
     end
 
     vim.system(
@@ -78,10 +79,17 @@ local function refresh(winid)
         end)
 end
 
+local group = vim.api.nvim_create_augroup("jj_workspace_statusline", { clear = true })
 vim.api.nvim_create_autocmd({ "BufEnter", "BufWinEnter", "DirChanged", "FocusGained", "ShellCmdPost" }, {
-    group = vim.api.nvim_create_augroup("jj_workspace_statusline", { clear = true }),
-    callback = function()
-        refresh()
+    group = group,
+    callback = function(args)
+        refresh(args.event == "FocusGained" or args.event == "ShellCmdPost")
+    end,
+})
+vim.api.nvim_create_autocmd("WinClosed", {
+    group = group,
+    callback = function(args)
+        requests[tonumber(args.match)] = nil
     end,
 })
 

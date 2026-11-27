@@ -104,8 +104,7 @@ augroup myautocommands
     autocmd CursorHold,BufLeave,FocusLost * if &buftype == "" | if expand('%') == "" | execute 'update ~/hjdocs/scratches/vim_scratch_' . strftime("%Y%m%d_%H%M") . '.md' | else | update | endif | endif
 
     " https://stackoverflow.com/a/38082157
-    autocmd BufEnter * silent! :lcd %:p:h | silent! lcd `git rev-parse --show-superproject-working-tree --show-toplevel \| head -1`
-    "autocmd BufEnter * silent! :lcd %:p:h | silent! lcd `git rev-parse --show-superproject-working-tree --show-toplevel \| head -1`| silent! lcd ../../src
+    autocmd BufEnter * if &buftype ==# '' && !empty(expand('%')) | silent! lcd %:p:h | silent! lcd `git rev-parse --show-superproject-working-tree --show-toplevel \| head -1` | endif
 
     " http://www.bestofvim.com/tip/better-commit-messages/
     " Spell uses the personal allowlist spell/en.utf-8.add (add words with `zg`).
@@ -137,10 +136,20 @@ augroup tabcmdheight
 augroup END
 
 " https://stackoverflow.com/a/37558470
+function! s:LoadFileView() abort
+  if &buftype !=# '' || empty(expand('%'))
+    return
+  endif
+  silent! loadview
+  if has('nvim') && &l:foldexpr ==# 'nvim_treesitter#foldexpr()'
+    setlocal foldexpr=v:lua.vim.treesitter.foldexpr()
+  endif
+endfunction
+
 augroup remember_folds
   autocmd!
-  autocmd BufWinLeave * silent! mkview
-  autocmd BufWinEnter * silent! loadview
+  autocmd BufWinLeave * if &buftype ==# '' && !empty(expand('%')) | silent! mkview | endif
+  autocmd BufWinEnter * call s:LoadFileView()
 augroup END
 
 " http://stevelosh.com/blog/2010/09/coming-home-to-vim/#using-the-leader
