@@ -29,7 +29,7 @@ gs.setup {
 local jj_base_pending = false
 
 local function update_jj_base()
-  if jj_base_pending then
+  if jj_base_pending or vim.bo.buftype ~= '' then
     return
   end
 
@@ -39,8 +39,10 @@ local function update_jj_base()
     { text = true, timeout = 2000 },
     vim.schedule_wrap(function(obj)
       jj_base_pending = false
-      if obj.code == 0 and obj.stdout and obj.stdout ~= '' then
-        gs.change_base(vim.trim(obj.stdout), true)
+      local base = vim.trim(obj.stdout or '')
+      -- A global base change refreshes every attached buffer.
+      if obj.code == 0 and base ~= '' and base ~= require('gitsigns.config').config.base then
+        gs.change_base(base, true)
       end
     end)
   )

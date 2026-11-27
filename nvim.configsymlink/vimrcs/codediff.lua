@@ -12,11 +12,21 @@ require("codediff").setup({
 local origins = {}
 local group = vim.api.nvim_create_augroup("CodeDiffReturnToOrigin", { clear = true })
 
+local function is_commit_id(revision)
+	return type(revision) == "string" and (#revision == 40 or #revision == 64) and revision:match("^%x+$")
+end
+
 vim.api.nvim_create_autocmd("User", {
 	group = group,
 	pattern = "CodeDiffOpen",
 	callback = function(args)
 		local tabpage = args.data and args.data.tabpage
+		local session = tabpage and require("codediff.ui.lifecycle").get_session(tabpage)
+		local explorer = session and session.explorer
+		-- The file list between two fixed commits cannot change.
+		if explorer and is_commit_id(explorer.base_revision) and is_commit_id(explorer.target_revision) then
+			explorer._cleanup_auto_refresh()
+		end
 		local origin = vim.api.nvim_list_tabpages()[vim.fn.tabpagenr("#")]
 		if tabpage and origin and origin ~= tabpage then
 			origins[tabpage] = origin

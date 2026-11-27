@@ -230,48 +230,48 @@ local function resolve_range(state, selected)
 	end
 
 	local selected_revset = table.concat(ids, " | ")
-	local template = 'commit_id ++ "\\n"'
 	local roots = run_readonly_jj(state.root, state.operation, {
 		"log",
 		"--no-graph",
 		"-r",
 		"roots(" .. selected_revset .. ")",
 		"-T",
-		template,
+		'commit_id ++ " " ++ parents.map(|p| p.commit_id()).join(" ") ++ "\\n"',
 	})
+	if not roots then
+		return nil
+	end
+	if #roots ~= 1 then
+		notify("selected revisions do not form one ancestry range")
+		return nil
+	end
+
+	local root, parent = roots[1]:match("^(%x+) (%x+)$")
+	if not parent then
+		notify("the oldest selected revision must have exactly one parent")
+		return nil
+	end
+	if #ids == 1 then
+		return parent, root
+	end
+
 	local heads = run_readonly_jj(state.root, state.operation, {
 		"log",
 		"--no-graph",
 		"-r",
 		"heads(" .. selected_revset .. ")",
 		"-T",
-		template,
+		'commit_id ++ "\\n"',
 	})
-	if not roots or not heads then
+	if not heads then
 		return nil
 	end
-	if #roots ~= 1 or #heads ~= 1 then
+	if #heads ~= 1 then
 		notify("selected revisions do not form one ancestry range")
 		return nil
 	end
 
-	local parents = run_readonly_jj(state.root, state.operation, {
-		"log",
-		"--no-graph",
-		"-r",
-		"parents(" .. roots[1] .. ")",
-		"-T",
-		template,
-	})
-	if not parents then
-		return nil
-	end
-	if #parents ~= 1 then
-		notify("the oldest selected revision must have exactly one parent")
-		return nil
-	end
-
-	return parents[1], heads[1]
+	return parent, heads[1]
 end
 
 local function configured_log_revset(root, operation)
